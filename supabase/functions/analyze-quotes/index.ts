@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await admin.auth.getUser(token);
     if (!user) return json({ code: "auth" }, 401);
     const { data: me } = await admin.from("staff").select("role,active").eq("id", user.id).maybeSingle();
-    if (!me || !me.active || !["owner", "purchase", "purchase2"].includes(me.role)) return json({ code: "forbidden" }, 403);
+    if (!me || !me.active || !["owner", "purchase", "purchase2", "project"].includes(me.role)) return json({ code: "forbidden" }, 403);
 
     const key = Deno.env.get("ANTHROPIC_API_KEY");
     if (!key) return json({ code: "no_key" }, 400);
