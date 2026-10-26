@@ -258,11 +258,11 @@ button.fi:hover{background:var(--sunk)}
 .bar .tr{height:10px;background:var(--sunk);border-radius:6px;overflow:hidden}
 .bar .tr i{display:block;height:100%;background:var(--accent);border-radius:6px}
 .toast{position:fixed;bottom:max(18px,env(safe-area-inset-bottom,0px));inset-inline:0;margin:auto;width:max-content;max-width:90vw;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:40;font-size:14px}
+@media (max-width:620px){.top .who{order:3;flex:1 1 100%;justify-content:space-between;border-radius:12px}.brand{flex:1 1 0}}
 @media (max-width:520px){
   .card{grid-template-columns:48px 1fr}
   .thumb{width:48px;height:48px}
   .card .end{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:center}
-  .who b{display:none}
 }
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(12px);opacity:.6}}}
 </style>
