@@ -19,11 +19,15 @@ Deno.serve(async (req) => {
     const token = (req.headers.get("Authorization") || "").replace("Bearer ", "");
     const { data: { user } } = await admin.auth.getUser(token);
     if (!user) return json({ error: "يجب تسجيل الدخول" }, 401);
-    const { data: me } = await admin.from("staff").select("role,active").eq("id", user.id).maybeSingle();
+    const { data: me } = await admin.from("staff").select("role,active,hidden").eq("id", user.id).maybeSingle();
     if (!me || !me.active || me.role !== "owner") return json({ error: "هذا الإجراء لمسؤول النظام فقط" }, 403);
 
     const body = await req.json();
     const { action } = body;
+    if (body.id && !me.hidden) {
+      const { data: tgt } = await admin.from("staff").select("hidden").eq("id", body.id).maybeSingle();
+      if (tgt?.hidden) return json({ error: "غير مسموح" }, 403);
+    }
 
     if (action === "create") {
       const username = String(body.username || "").trim().toLowerCase();
