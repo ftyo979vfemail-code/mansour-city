@@ -487,7 +487,7 @@ function accountsView(){
   h+=`<div class="sec" style="margin-top:14px"><div class="acc">`;
   const used={};staff.forEach(p=>{if(p.active)used[p.role]=(used[p.role]||0)+1});
   staff.forEach(p=>{h+=`<div class="arow"><div class="mono">${p.role==='owner'?'مس':(ROLES[p.role]?.mono||'؟')}</div><div class="an"><b>${esc(p.full_name||p.username)}</b><span class="muted small"><span class="num">${esc(p.username)}</span> · ${p.role==='owner'?OWNER_NAME:esc(ROLES[p.role]?.name||p.role)}${p.active?'':' · <span style="color:var(--bad)">موقوف</span>'}</span></div>
-   <div class="acts">${p.id===S.me.id?'<span class="muted small">أنت</span>':`<button class="btn sm" data-a="accEdit" data-v="${p.id}">تعديل</button>`}</div></div>`});
+   <div class="acts">${p.id===S.me.id?'<span class="muted small">أنت</span> ':''}<button class="btn sm" data-a="accEdit" data-v="${p.id}">${p.id===S.me.id?'تغيير رمزي':'تعديل'}</button></div></div>`});
   h+=`</div></div>`;
   const missing=Object.keys(ROLES).filter(k=>!used[k]);
   if(missing.length)h+=`<p class="note" style="margin-top:10px">صفات بدون حساب: ${missing.map(k=>ROLES[k].name).join('، ')}</p>`;
