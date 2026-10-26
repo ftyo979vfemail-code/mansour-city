@@ -45,12 +45,15 @@ Deno.serve(async (req) => {
     if (action === "update") {
       if (!body.id) return json({ error: "id مطلوب" }, 400);
       if (body.id === user.id && (body.role !== "owner" || body.active === false)) return json({ error: "لا يمكنك إزالة صلاحيتك أنت" }, 400);
+      const { data: cur } = await admin.from("staff").select("status").eq("id", body.id).maybeSingle();
+      if (cur?.status === "pending" && body.active === false) delete body.active;
       const patch: Record<string, unknown> = {};
       if (body.role) { if (!ROLES.includes(body.role)) return json({ error: "صفة غير صحيحة" }, 400); patch.role = body.role; }
       if (typeof body.full_name === "string" && body.full_name.trim()) patch.full_name = body.full_name.trim();
-      if (typeof body.active === "boolean") patch.active = body.active;
+      if (typeof body.active === "boolean") { patch.active = body.active; if (body.active) patch.status = "active"; }
       const { error } = await admin.from("staff").update(patch).eq("id", body.id);
       if (error) return json({ error: error.message }, 400);
+      if (body.active === true) await admin.from("staff_codes").delete().eq("id", body.id);
       const authPatch: Record<string, unknown> = {};
       if (body.password) { if (String(body.password).length < 6) return json({ error: "الرمز السري 6 أحرف على الأقل" }, 400); authPatch.password = body.password; }
       if (body.active === false) authPatch.ban_duration = "876000h";

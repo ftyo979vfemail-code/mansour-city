@@ -1,0 +1,1 @@
+Public sign-up endpoint (deployed with verify_jwt=false). Creates a pending staff account and an approval code; the account is activated only by `public.approve_staff()` after an admin AND the project manager scan the code.

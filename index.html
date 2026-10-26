@@ -238,6 +238,28 @@ button.fi:hover{background:var(--sunk)}
 .d-ok{background:var(--ok)}.d-bad{background:var(--bad)}.d-accent{background:var(--accent)}.d-info{background:var(--info)}.d-mute{background:var(--muted)}
 .lock{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);background:var(--sunk);border:1px dashed var(--line);border-radius:8px;padding:8px 12px}
 .lock svg{width:16px;height:16px;flex:none}
+.scanbox{position:relative;width:100%;aspect-ratio:1;max-width:420px;margin:0 auto;border-radius:12px;overflow:hidden;background:#000}
+.scanbox video{width:100%;height:100%;object-fit:cover;display:block}
+.scanframe{position:absolute;inset:18%;border:3px solid var(--accent);border-radius:14px;box-shadow:0 0 0 999px rgb(0 0 0 / .35)}
+.rcbox{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.qr{background:#fff;padding:10px;border-radius:12px;width:100%;max-width:280px}
+.qr svg{width:100%;height:auto;display:block}
+.rcdig{font-family:var(--display);font-size:30px;letter-spacing:.12em;color:var(--ink)}
+.okmark{width:64px;height:64px;border-radius:50%;background:var(--ok);color:var(--surface);display:grid;place-items:center;font-size:34px;font-weight:700}
+.nc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:start}
+.nc[role=button]{cursor:pointer}.nc[role=button]:hover{border-color:var(--muted)}
+.nc.new{border-inline-start:4px solid var(--accent)}
+.nh{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap}
+.nc .kv small{display:block;font-size:11.5px}
+.appr{display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;margin-top:8px;color:var(--muted)}
+.appr .yes{color:var(--ok);font-weight:600}
+.bell{position:relative;width:34px;height:34px}
+.bdg{position:absolute;top:-5px;inset-inline-end:-5px;background:var(--bad);color:#fff;border-radius:999px;font-size:11px;font-weight:700;min-width:18px;height:18px;display:grid;place-items:center;padding:0 4px}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.rpick{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:8px;cursor:pointer;background:var(--surface);font-size:13px}
+.rpick input{position:absolute;opacity:0;pointer-events:none}
+.rpick .mono{width:30px;height:30px;border-radius:7px;background:var(--sunk);display:grid;place-items:center;font-family:var(--display);font-size:12px;color:var(--accent);flex:none}
+.rpick:has(input:checked){border-color:var(--accent);background:var(--accent-soft);font-weight:600}
 .quotes{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
 .qc{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--surface);min-width:0}
 .qc.pick{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
@@ -267,6 +289,8 @@ button.fi:hover{background:var(--sunk)}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(12px);opacity:.6}}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 <body>
 <div id="app" dir="rtl" lang="ar"></div>
@@ -295,7 +319,7 @@ const ST={
   pur_ok:{t:'بانتظار موافقة المشتريات',c:'warn',who:['purchase','purchase2']},
   buy:{t:'بانتظار الشراء',c:'accent',who:['purchase','purchase2']},
   buying:{t:'قيد الشراء',c:'accent',who:['purchase','purchase2']},
-  receive:{t:'بانتظار الاستلام',c:'info',who:['store']},
+  receive:{t:'بانتظار الاستلام',c:'info',who:['store','purchase','purchase2']},
   done:{t:'مكتمل',c:'ok',who:[]},
   rejected:{t:'مرفوض',c:'bad',who:[]},
 };
@@ -305,7 +329,7 @@ const AREAS=['الكسارة','ساحة الحجر الجيري','طاحونة �
 const UNITS=['قطعة','متر','كغم','طن','لتر','برميل','لفة','علبة','طقم'];
 
 /* ---------- state ---------- */
-const S={staff:[],me:null,names:{},view:null,aiBusy:null,invlog:[],feedRole:'',hist:[],mode:'loading',db:null,assets:null,requests:[],inventory:[],settings:{},role:null,tab:null,q:'',open:null,imgCache:{},local:{}};
+const S={notifs:[],authTab:'login',myCode:null,staff:[],me:null,names:{},view:null,aiBusy:null,invlog:[],feedRole:'',hist:[],mode:'loading',db:null,assets:null,requests:[],inventory:[],settings:{},role:null,tab:null,q:'',open:null,imgCache:{},local:{}};
 try{S.role=localStorage.getItem('cm_role')}catch(e){}
 if(S.role&&!ROLES[S.role])S.role=null;
 
@@ -398,12 +422,13 @@ async function loadAll(which){
   if(want('inventory')){const {data}=await sb.from('inventory').select('id,data');S.inventory=(data||[]).map(d=>({...d.data,id:d.id}))}
   if(want('invlog')){const {data}=await sb.from('invlog').select('data').order('id',{ascending:false}).limit(500);S.invlog=(data||[]).map(d=>d.data)}
   if(want('settings')){const {data}=await sb.from('settings').select('data').eq('id','main').maybeSingle();S.settings=data?.data||{}}
-  if(want('staff')){const {data}=await sb.from('staff').select('id,username,full_name,role,active');S.staff=data||[];S.staff.forEach(p=>S.names[p.id]={name:p.full_name||p.username})}
+  if(want('notifications')&&seesNotifs()){const {data}=await sb.from('notifications').select('id,kind,data,created_at').order('id',{ascending:false}).limit(200);const prevTop=S.notifs[0]?.id||0;S.notifs=data||[];if(which==='notifications')S.notifs.filter(n=>n.id>prevTop).forEach(sysNotify)}
+  if(want('staff')){const {data}=await sb.from('staff').select('id,username,full_name,role,active,status,phone,admin_ok,project_ok');S.staff=data||[];S.staff.forEach(p=>S.names[p.id]={name:p.full_name||p.username})}
   await signAll()}
 let rtTimers={};
 function subscribe(){
   const ch=sb.channel('all');
-  ['requests','inventory','invlog','settings','staff'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(rtTimers[t]);rtTimers[t]=setTimeout(async()=>{await loadAll(t);render()},300)}));
+  ['requests','inventory','invlog','settings','staff','notifications'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(rtTimers[t]);rtTimers[t]=setTimeout(async()=>{await loadAll(t);if(t==='requests'&&S.rcFor){const r=S.requests.find(x=>x.id===S.rcFor);if(r&&r.status==='done'){S.rcFor=null;overlay('ok','تم الاستلام',`<div class="rcbox"><div class="okmark">✓</div><b>مسح مدير المشتريات الباركود وتم الاستلام</b><p class="muted" style="margin:0">${esc(r.item)}</p></div><div class="acts"><button class="btn" data-a="close">إغلاق</button></div>`)}}if(t==='staff'&&S.me?.status==='pending'){await afterLogin();return}render()},300)}));
   ch.subscribe()}
 
 function demoData(){
@@ -448,7 +473,6 @@ async function act(r,action,extra={}){
     case'purOk':nr.status='buy';push('وافق على الشراء');break;
     case'startBuy':nr.status='buying';push('بدأ الشراء');break;
     case'bought':nr.status='receive';nr.purchase=extra.purchase;push('أكد الشراء وأرفق الفاتورة');break;
-    case'received':nr.status='done';push('استلم المادة وسلّمها للقسم');break;
     case'reject':nr.status='rejected';push('رفض الطلب');break;
   }
   await putReq(nr);toast(extra.toast||('تم: '+ST[nr.status].t));
@@ -466,19 +490,119 @@ function goBack(){
   if($('#ovroot').innerHTML){const cur=S.requests.find(x=>x.id===S.open);if((k==='buy'||k==='iss'||k==='quote')&&cur)openReq(cur);else{closeOv();render()}return}
   const h=S.hist.pop();if(!h)return;if(!isOwner()){S.tab=h.tab;S.view=null;S.q='';render();return}S.role=h.role;S.tab=h.tab;S.view=h.view||null;S.q='';saveRole();render();scrollTo(0,0)}
 
+/* ---------- barcode ---------- */
+const normDigits=t=>String(t||'').replace(/[\u0660-\u0669]/g,d=>d.charCodeAt(0)-0x0660).replace(/[\u06F0-\u06F9]/g,d=>d.charCodeAt(0)-0x06F0);
+function qrSvg(text,cell=6){if(!window.qrcode)return`<div class="note">${esc(text)}</div>`;const q=qrcode(0,'M');q.addData(text);q.make();return q.createSvgTag({cellSize:cell,margin:2,scalable:true})}
+let scanStop=null;
+function openScanner(title,hint,onCode){
+  overlay('scan',title,`<p class="muted" style="margin:0">${hint}</p><div class="scanbox"><video id="scVid" playsinline muted></video><div class="scanframe"></div></div><span class="note" id="scMsg">جارِ تشغيل الكاميرا…</span>
+   <form class="gps" id="scForm"><input id="scManual" class="in num" dir="ltr" placeholder="أو اكتب الرمز يدوياً" autocomplete="off"><button class="btn" type="submit">تأكيد</button></form>`);
+  let done=false,stream=null,raf=0;const vid=$('#scVid'),cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
+  const finish=async txt=>{if(done)return;done=true;stop();await onCode(txt)};
+  const stop=()=>{cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null};scanStop=stop;
+  $('#scForm').addEventListener('submit',e=>{e.preventDefault();const v=$('#scManual').value.trim();if(v)finish(v)});
+  (async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});vid.srcObject=stream;await vid.play();$('#scMsg').textContent='وجّه الكاميرا على الباركود';
+    const tick=()=>{if(done||!stream)return;if(vid.readyState>=2){const w=vid.videoWidth,h=vid.videoHeight;const sc=Math.min(1,640/Math.max(w,h));cv.width=w*sc;cv.height=h*sc;cx.drawImage(vid,0,0,cv.width,cv.height);
+      const im=cx.getImageData(0,0,cv.width,cv.height);const r=window.jsQR&&jsQR(im.data,im.width,im.height,{inversionAttempts:'dontInvert'});if(r&&r.data){navigator.vibrate?.(80);finish(r.data);return}}raf=requestAnimationFrame(tick)};tick();
+  }catch(e){$('#scMsg').className='note bad';$('#scMsg').textContent='تعذر تشغيل الكاميرا. اسمح للمتصفح باستخدامها أو اكتب الرمز يدوياً.'}})();
+}
+function stopScan(){if(scanStop){scanStop();scanStop=null}}
+async function rcIssue(r){
+  const {data,error}=await sb.rpc('issue_receipt_code',{p_req:r.id});
+  if(error){toast('تعذر إصدار الباركود: '+error.message);return}
+  S.rcFor=r.id;
+  overlay('rcode',`باركود استلام <span class="num">#${esc(r.code)}</span>`,`<div class="rcbox"><div class="qr">${qrSvg('MCR:'+r.id+':'+data,7)}</div><div class="rcdig num">${esc(data.slice(0,3)+' '+data.slice(3))}</div>
+   <p class="muted" style="margin:0">${esc(r.item)} — <span class="num">${nf.format(r.qty)}</span> ${esc(r.unit)}</p><p class="note">اطلب من مدير المشتريات أن يمسح هذا الباركود من موبايله. تنتهي صلاحيته بعد 30 دقيقة.</p><span class="note" id="rcWait">بانتظار المسح…</span></div>
+   <div class="acts"><button class="btn ghost" data-a="back">رجوع</button></div>`);
+}
+function rcScan(r){
+  openScanner(`مسح باركود الاستلام <span class="num">#${esc(r.code)}</span>`,'امسح الباركود الظاهر على شاشة مدير المخزن.',async txt=>{
+    const t=normDigits(txt);let code=t;const m=t.match(/^MCR:([^:]+):(\d{6})$/);
+    if(m){if(m[1]!==r.id){toast('هذا الباركود لطلب آخر');openReq(r);return}code=m[2]}
+    const {data,error}=await sb.rpc('confirm_receipt',{p_req:r.id,p_code:code});
+    if(error){toast('تعذر التأكيد: '+error.message);openReq(r);return}
+    if(!data.ok){const msg={mismatch:'الباركود غير مطابق',expired:'انتهت صلاحية الباركود، اطلب باركود جديد من المخزن',no_code:'مدير المخزن لم يُصدر باركود بعد'}[data.reason]||'لم يتم التحقق';toast(msg);openReq(r);return}
+    await loadAll('requests');const nr=S.requests.find(x=>x.id===r.id);
+    overlay('ok','تم الاستلام',`<div class="rcbox"><div class="okmark">✓</div><b>تطابق الباركود وتم تسجيل الاستلام</b><p class="muted" style="margin:0">أُغلق الطلب وأُرسل إشعار للإدارة.</p></div><div class="acts"><button class="btn" data-a="close">إغلاق</button></div>`);render()});
+}
+/* notifications */
+const seesNotifs=()=>['owner','admin1','admin2','project'].includes(S.me?.role);
+function seenId(){try{return +localStorage.getItem('ms_seen_'+S.me.id)||0}catch(e){return 0}}
+function setSeen(){const top=S.notifs[0]?.id||0;try{localStorage.setItem('ms_seen_'+S.me.id,top)}catch(e){}}
+const unread=()=>S.notifs.filter(n=>n.id>seenId()).length;
+function notifCard(n){const d=n.data||{},t=dt(new Date(n.created_at).getTime()),isNew=n.id>seenId();
+  if(n.kind==='receipt')return`<div class="nc ${isNew?'new':''}" data-a="openReq" data-v="${esc(d.req_id)}" role="button" tabindex="0"><div class="nh"><span class="pill p-ok">استلام مكتمل</span><span class="num muted small">${t}</span></div>
+    <b>${esc(d.item)} — <span class="num">${nf.format(+d.qty||0)}</span> ${esc(d.unit||'')}</b>
+    <div class="kv" style="margin-top:8px"><div><span>السعر الكلي</span><b class="num">${money(+d.total)}</b></div><div><span>سعر الوحدة</span><b class="num">${money(+d.unitPrice)}</b></div><div><span>المورد</span><b>${esc(d.supplier||'—')}</b></div>
+    <div><span>المشتري</span><b>${esc(d.buyer||'')}</b><small class="muted">${esc(ROLES[d.buyer_role]?.name||'')}</small></div><div><span>استلمه من المخزن</span><b>${esc(d.store||'')}</b></div><div><span>وقت التسليم</span><b class="num">${dt(+d.deliveredAt)}</b></div><div><span>القسم</span><b>${esc(d.dept||'')}</b></div><div><span>رقم الطلب</span><b class="num">#${esc(d.code||'')}</b></div></div></div>`;
+  if(n.kind==='staff_pending')return`<div class="nc ${isNew?'new':''}"><div class="nh"><span class="pill p-warn">طلب انضمام</span><span class="num muted small">${t}</span></div><b>${esc(d.name)}</b> يطلب الدخول بصفة ${esc(ROLES[d.role]?.name||d.role)} <span class="num muted">${esc(d.phone||'')}</span></div>`;
+  if(n.kind==='staff_active')return`<div class="nc ${isNew?'new':''}"><div class="nh"><span class="pill p-info">حساب مفعّل</span><span class="num muted small">${t}</span></div><b>${esc(d.name)}</b> صار يدخل بصفة ${esc(ROLES[d.role]?.name||d.role)}</div>`;
+  return''}
+function notifView(){
+  const canSys='Notification' in window;
+  let h=`<div class="filters">${canSys&&Notification.permission!=='granted'?`<button class="btn" data-a="sysNotif">تفعيل التنبيهات على هذا الجهاز</button>`:''}${S.notifs.length?`<button class="btn ghost" data-a="markSeen">تعليم الكل كمقروء</button>`:''}</div>`;
+  if(!S.notifs.length)return h+`<div class="empty"><b>لا توجد إشعارات بعد</b>كل عملية استلام تتم بالباركود تظهر هنا: المادة والسعر والمشتري ومدير المخزن ووقت التسليم.</div>`;
+  return h+`<div class="list">${S.notifs.map(notifCard).join('')}</div>`}
+function sysNotify(n){try{if(!('Notification' in window)||Notification.permission!=='granted')return;const d=n.data||{};
+  const body=n.kind==='receipt'?`${d.item} — ${money(+d.total)}\nالمشتري: ${d.buyer} · المخزن: ${d.store}`:n.kind==='staff_pending'?`${d.name} يطلب الانضمام`:`${d.name} صار مفعّلاً`;
+  new Notification(n.kind==='receipt'?'استلام مكتمل':'المنصور ستي',{body,icon:'icon-192.png',tag:'n'+n.id})}catch(e){}}
+/* approvals */
+const canApprove=()=>['owner','admin1','admin2','project'].includes(S.me?.role);
+const pendingStaff=()=>S.staff.filter(p=>p.status==='pending');
+function approvalsView(){
+  const ps=pendingStaff();
+  let h=`<div class="filters"><button class="btn pri" data-a="apScan">مسح باركود موظف جديد</button></div>`;
+  if(!ps.length)return h+`<div class="empty"><b>لا توجد طلبات انضمام</b>عندما يسجّل موظف جديد يظهر هنا، ويتفعّل حسابه بعد أن يمسح الإداري ومدير المشروع الباركود الظاهر على شاشته.</div>`;
+  return h+`<div class="list">${ps.map(p=>`<div class="nc"><div class="nh"><b>${esc(p.full_name||'')}</b><span class="pill p-warn">بانتظار الموافقة</span></div><div class="meta"><span>${esc(ROLES[p.role]?.name||p.role)}</span><span class="num">${esc(p.phone||p.username)}</span></div>
+   <div class="appr"><span class="${p.admin_ok?'yes':''}">${p.admin_ok?'✓':'○'} الإداري${p.admin_ok&&S.names[p.admin_ok]?' ('+esc(S.names[p.admin_ok].name)+')':''}</span><span class="${p.project_ok?'yes':''}">${p.project_ok?'✓':'○'} مدير المشروع${p.project_ok&&S.names[p.project_ok]?' ('+esc(S.names[p.project_ok].name)+')':''}</span></div>
+   ${isOwner()?`<div class="acts" style="margin-top:8px"><button class="btn sm" data-a="accEdit" data-v="${p.id}">تعديل / تفعيل مباشر</button></div>`:''}</div>`).join('')}</div>`}
+function apScan(){openScanner('مسح باركود موظف','امسح الباركود الظاهر على شاشة الموظف الجديد بعد التأكد من هويته.',async txt=>{
+  const code=normDigits(txt).replace(/^MCS:/,'').trim().toUpperCase();
+  const {data,error}=await sb.rpc('approve_staff',{p_code:code});
+  if(error){toast('تعذر: '+error.message);closeOv();return}
+  if(!data.ok){toast({not_found:'الباركود غير معروف',already:'هذا الحساب مفعّل مسبقاً'}[data.reason]||'لم يتم');closeOv();return}
+  await loadAll('staff');closeOv();render();toast(data.activated?`تفعّل حساب ${data.name}`:`سُجّلت موافقتك على ${data.name}. بانتظار الموافقة الثانية`)})}
+/* registration */
+function registerView(){
+  const roleOpts=Object.entries(ROLES).map(([k,r])=>`<label class="rpick"><input type="radio" name="rRole" value="${k}"><span class="mono">${r.mono}</span><span>${r.name}</span></label>`).join('');
+  return`<form class="f" id="fReg" style="width:100%;text-align:start"><div class="l" style="font-size:13px;font-weight:500">اختر دورك المهني<div class="rgrid">${roleOpts}</div></div>
+   <label class="l">الاسم الكامل<input id="rName" class="in" required autocomplete="name"></label>
+   <label class="l">رقم الهاتف<input id="rPhone" class="in num" dir="ltr" inputmode="tel" required placeholder="07xxxxxxxxx" autocomplete="tel"></label>
+   <label class="l">كلمة السر <em>(6 أحرف على الأقل)</em><input id="rPass" class="in" type="password" dir="ltr" required minlength="6" autocomplete="new-password"></label>
+   <div class="err" id="rErr"></div><button class="btn pri" type="submit" id="rSub" style="width:100%">تسجيل</button>
+   <p class="small muted" style="margin:0">بعد التسجيل يظهر لك باركود. لن يتفعّل حسابك حتى يمسحه الإداري ومدير المشروع.</p></form>`}
+function bindRegister(){const f=$('#fReg');if(!f)return;f.addEventListener('submit',async e=>{e.preventDefault();const b=$('#rSub'),err=$('#rErr');err.textContent='';
+  const role=document.querySelector('input[name=rRole]:checked')?.value;if(!role){err.textContent='اختر دورك المهني';return}
+  b.disabled=true;b.textContent='جارِ التسجيل…';
+  const phone=normDigits($('#rPhone').value).replace(/\D/g,''),password=$('#rPass').value;
+  const {data,error}=await sb.functions.invoke('register',{body:{role,full_name:$('#rName').value.trim(),phone,password}});
+  let msg=data?.error;if(error){try{msg=(await error.context.json()).error}catch(x){msg=error.message}}
+  if(msg){err.textContent=msg;b.disabled=false;b.textContent='تسجيل';return}
+  const {error:le}=await sb.auth.signInWithPassword({email:phone+'@'+EMAIL_DOMAIN,password});
+  if(le){err.textContent='تم التسجيل. سجّل الدخول برقمك.';S.authTab='login';render();return}
+  await afterLogin()})}
+function pendingView(){const me=S.me;
+  return`<section class="gate"><div class="gcard"><h2>بانتظار الموافقة</h2><p>أهلاً ${esc(me.full_name||'')}. سجّلت بصفة <b>${esc(ROLES[me.role]?.name||me.role)}</b>. اعرض هذا الباركود على الإداري وعلى مدير المشروع ليمسحاه.</p>
+   <div class="qr" style="max-width:240px;width:100%">${S.myCode?qrSvg('MCS:'+S.myCode,6):'<div class="note">جارِ التحميل…</div>'}</div>${S.myCode?`<div class="rcdig num">${esc(S.myCode)}</div>`:''}
+   <div class="appr"><span class="${me.admin_ok?'yes':''}">${me.admin_ok?'✓':'○'} موافقة الإداري</span><span class="${me.project_ok?'yes':''}">${me.project_ok?'✓':'○'} موافقة مدير المشروع</span></div>
+   <div class="acts" style="justify-content:center"><button class="btn" data-a="recheck">تحديث</button><button class="btn ghost" data-a="logout">خروج</button></div></div></section>`}
+
 /* ---------- accounts ---------- */
 function plabel(l){const n=l.uid&&S.names[l.uid]?.name;return`<b>${esc(ROLES[l.role]?.name||(l.role==='owner'?OWNER_NAME:l.role))}</b>${n?` <span class="muted">(${esc(n)})</span>`:''}`}
 const isOwner=()=>S.me?.role==='owner';
 function loginView(){
-  return`<section class="gate"><form class="gcard" id="fLogin"><img src="${LOGO}" alt="شعار المنصور ستي" class="glogo"><h2>تسجيل الدخول</h2><p>نظام مخازن ومشتريات معمل الإسمنت</p>
-  <label class="l" style="width:100%;text-align:start">اسم المستخدم<input id="lUser" class="in" autocomplete="username" autocapitalize="off" dir="ltr" required></label>
-  <label class="l" style="width:100%;text-align:start">الرمز السري<input id="lPass" class="in" type="password" autocomplete="current-password" dir="ltr" required></label>
+  const reg=S.authTab==='register';
+  return`<section class="gate"><div class="gcard"><img src="${LOGO}" alt="شعار المنصور ستي" class="glogo"><h2>${reg?'تسجيل جديد':'تسجيل الدخول'}</h2><p>نظام مخازن ومشتريات معمل الإسمنت</p>
+  <div class="seg" style="width:100%"><label><input type="radio" name="authTab" value="login" ${reg?'':'checked'}>دخول</label><label><input type="radio" name="authTab" value="register" ${reg?'checked':''}>تسجيل جديد</label></div>
+  ${reg?registerView():`<form class="f" id="fLogin" style="width:100%;text-align:start">
+  <label class="l">رقم الهاتف أو اسم المستخدم<input id="lUser" class="in" autocomplete="username" autocapitalize="off" dir="ltr" required></label>
+  <label class="l">كلمة السر<input id="lPass" class="in" type="password" autocomplete="current-password" dir="ltr" required></label>
   <div class="err" id="lErr"></div><button class="btn pri" type="submit" id="lSub" style="width:100%">دخول</button>
-  <p class="small">إذا نسيت الرمز راجع مسؤول النظام.</p></form></section>`}
-function bindLogin(){const f=$('#fLogin');if(!f)return;f.addEventListener('submit',async e=>{e.preventDefault();const b=$('#lSub');b.disabled=true;b.textContent='جارِ الدخول…';
-  const u=$('#lUser').value.trim().toLowerCase();
+  <p class="small muted" style="margin:0">إذا نسيت كلمة السر راجع مسؤول النظام.</p></form>`}</div></section>`}
+function bindLogin(){bindRegister();const f=$('#fLogin');if(!f)return;f.addEventListener('submit',async e=>{e.preventDefault();const b=$('#lSub');b.disabled=true;b.textContent='جارِ الدخول…';
+  let u=normDigits($('#lUser').value.trim()).toLowerCase();if(/^[+\d\s-]+$/.test(u))u=u.replace(/\D/g,'');
   const {error}=await sb.auth.signInWithPassword({email:u+'@'+EMAIL_DOMAIN,password:$('#lPass').value});
-  if(error){$('#lErr').textContent='اسم المستخدم أو الرمز غير صحيح.';b.disabled=false;b.textContent='دخول';return}
+  if(error){$('#lErr').textContent='الرقم أو كلمة السر غير صحيحة.';b.disabled=false;b.textContent='دخول';return}
   await afterLogin()})}
 function noRoleView(){return`<section class="gate"><div class="gcard"><img src="${LOGO}" alt="" class="glogo"><h2>الحساب موقوف</h2><p>هذا الحساب غير مفعّل أو ليس له صفة. راجع مسؤول النظام.</p><button class="btn" data-a="logout">خروج</button></div></section>`}
 function accountsView(){
@@ -486,7 +610,7 @@ function accountsView(){
   let h=`<div class="head"><div><h2>الحسابات</h2><p>أنشئ حساباً لكل موظف باسم مستخدم ورمز سري وحدد صفته. يدخل الموظف لواجهته فقط.</p></div><button class="btn pri" data-a="accNew">+ حساب جديد</button></div>`;
   h+=`<div class="sec" style="margin-top:14px"><div class="acc">`;
   const used={};staff.forEach(p=>{if(p.active)used[p.role]=(used[p.role]||0)+1});
-  staff.forEach(p=>{h+=`<div class="arow"><div class="mono">${p.role==='owner'?'مس':(ROLES[p.role]?.mono||'؟')}</div><div class="an"><b>${esc(p.full_name||p.username)}</b><span class="muted small"><span class="num">${esc(p.username)}</span> · ${p.role==='owner'?OWNER_NAME:esc(ROLES[p.role]?.name||p.role)}${p.active?'':' · <span style="color:var(--bad)">موقوف</span>'}</span></div>
+  staff.forEach(p=>{h+=`<div class="arow"><div class="mono">${p.role==='owner'?'مس':(ROLES[p.role]?.mono||'؟')}</div><div class="an"><b>${esc(p.full_name||p.username)}</b><span class="muted small"><span class="num">${esc(p.phone||p.username)}</span>${p.status==='pending'?' · <span style="color:var(--warn)">بانتظار الموافقة</span>':''} · ${p.role==='owner'?OWNER_NAME:esc(ROLES[p.role]?.name||p.role)}${p.active?'':' · <span style="color:var(--bad)">موقوف</span>'}</span></div>
    <div class="acts">${p.id===S.me.id?'<span class="muted small">أنت</span> ':''}<button class="btn sm" data-a="accEdit" data-v="${p.id}">${p.id===S.me.id?'تغيير رمزي':'تعديل'}</button></div></div>`});
   h+=`</div></div>`;
   const missing=Object.keys(ROLES).filter(k=>!used[k]);
@@ -531,11 +655,13 @@ function render(){
   if(S.me){
     h+=`<div class="who"><span class="wn"><b>${esc(S.me.full_name||S.me.username)}</b><span>${S.role&&S.view!=='accounts'?esc(ROLES[S.role].name):(isOwner()?OWNER_NAME:'')}</span></span>`;
     if(isOwner())h+=`${S.view!=='accounts'?`<button class="btn sm" data-a="accounts">الحسابات</button>`:''}${S.role||S.view==='accounts'?`<button class="btn sm" data-a="switch">الواجهات</button>`:''}`;
+    if(seesNotifs()&&S.me.active){const u=unread();h+=`<button class="ib bell" data-a="bell" aria-label="الإشعارات" title="الإشعارات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>${u?`<span class="bdg num">${u>99?'99+':u}</span>`:''}</button>`}
     h+=`<button class="btn sm ghost" data-a="logout">خروج</button></div>`;
   }
   h+=`</header>`;
   if(S.mode==='loading')h+=`<div class="empty"><b>جارِ التحميل…</b>تحميل الطلبات والمخزون</div>`;
   else if(S.mode==='login')h+=loginView();
+  else if(S.me&&S.me.status==='pending')h+=pendingView();
   else if(!S.me||!S.me.active||(!isOwner()&&!ROLES[S.me.role]))h+=noRoleView();
   else if(isOwner()&&S.view==='accounts')h+=accountsView();
   else h+=S.role?roleHome():rolePicker();
@@ -556,8 +682,8 @@ function tabsFor(role){
   const k=ROLES[role].kind,q=queueFor(role);
   if(k==='dept')return[['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0]];
   if(k==='store')return[['check','للفحص',S.requests.filter(r=>r.status==='store_check').length],['receive','للاستلام',S.requests.filter(r=>r.status==='receive').length],['inv','المخزون',S.inventory.filter(i=>+i.qty<=+i.min).length],['all','كل الطلبات',0]];
-  if(k==='project')return[['approve','للموافقة',q.length],['all','كل الطلبات',0]];
-  if(k==='admin')return[['feed','سجل الحركات',recent24()],['all','كل الطلبات',0],['sum','الملخص',0]];
+  if(k==='project')return[['approve','للموافقة',q.length],['notif','الإشعارات',unread()],['join','طلبات الانضمام',pendingStaff().length],['all','كل الطلبات',0]];
+  if(k==='admin')return[['notif','الإشعارات',unread()],['feed','سجل الحركات',recent24()],['join','طلبات الانضمام',pendingStaff().length],['all','كل الطلبات',0],['sum','الملخص',0]];
   return[['buy','للموافقة والشراء',q.length],['map','المواقع GPS',0],['done','مشترياتي',0]];
 }
 function roleHome(){
@@ -600,6 +726,8 @@ function tabBody(role){
   if(t==='approve')return listView(queueFor(role),'لا توجد طلبات بانتظار موافقتك.');
   if(t==='sum')return sumView();
   if(t==='feed')return feedView();
+  if(t==='notif'){const v=notifView();setTimeout(()=>{if(S.tab==='notif'&&unread()){setSeen()}},4000);return v}
+  if(t==='join')return approvalsView();
   if(t==='buy')return listView(queueFor(role),'لا توجد طلبات معتمدة للشراء حالياً.');
   if(t==='map')return mapView();
   if(t==='done')return listView(S.requests.filter(r=>r.purchase),'لم تُسجّل أي عملية شراء بعد.',true);
@@ -658,8 +786,8 @@ function mapView(){
 }
 
 /* ---------- overlays ---------- */
-function overlay(kind,title,body){const o=$('#ovroot');o.dataset.kind=kind;o.innerHTML=`<div class="ov" data-a="ovbg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sh-h"><h3>${title}</h3><button class="x" data-a="close" aria-label="إغلاق">×</button></div><div class="sh-b">${body}</div></div></div>`;document.body.style.overflow='hidden';const gb=document.querySelector('[data-a=goback]');if(gb)gb.disabled=false}
-function closeOv(){const o=$('#ovroot');o.innerHTML='';o.dataset.kind='';S.open=null;S.openSig=null;document.body.style.overflow=''}
+function overlay(kind,title,body){stopScan();const o=$('#ovroot');o.dataset.kind=kind;o.innerHTML=`<div class="ov" data-a="ovbg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sh-h"><h3>${title}</h3><button class="x" data-a="close" aria-label="إغلاق">×</button></div><div class="sh-b">${body}</div></div></div>`;document.body.style.overflow='hidden';const gb=document.querySelector('[data-a=goback]');if(gb)gb.disabled=false}
+function closeOv(){stopScan();S.rcFor=null;const o=$('#ovroot');o.innerHTML='';o.dataset.kind='';S.open=null;S.openSig=null;document.body.style.overflow=''}
 
 function track(r){
   if(r.status==='rejected'){const last=(r.log||[]).length;return`<div class="track"><div class="step done">الطلب</div><div class="step now rej">مرفوض</div></div>`}
@@ -697,7 +825,7 @@ function actionsHTML(r,role){
     case'pur_ok':a=`<button class="btn ok" data-a="do" data-v="purOk">موافقة على الشراء</button>${rej}`;break;
     case'buy':a=`<button class="btn" data-a="do" data-v="startBuy">بدء الشراء</button><button class="btn pri" data-a="buyForm">تأكيد الشراء وإرفاق الفاتورة</button>`;break;
     case'buying':a=`<button class="btn pri" data-a="buyForm">تأكيد الشراء وإرفاق الفاتورة</button>`;break;
-    case'receive':a=`<button class="btn ok" data-a="do" data-v="received">تم الاستلام والتسليم للقسم</button>`;break;
+    case'receive':a=ROLES[role].kind==='store'?`<button class="btn pri" data-a="rcIssue">إصدار باركود الاستلام</button><span class="note">يمسحه مدير المشتريات عند تسليم المادة</span>`:`<button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button><span class="note">اطلب من مدير المخزن إظهار الباركود</span>`;return`<div class="sec"><h4>الاستلام بالباركود</h4><div class="acts">${a}</div></div>`;
   }
   return`<div class="sec"><h4>إجراؤك</h4><div class="acts">${note}${a}</div></div>`;
 }
@@ -890,6 +1018,14 @@ document.addEventListener('click',async e=>{
     case'goback':goBack();break;
     case'accounts':pushHist();S.view='accounts';closeOv();render();scrollTo(0,0);break;
     case'accNew':accForm();break;
+    case'rcIssue':if(cur)await rcIssue(cur);break;
+    case'rcScan':if(cur)rcScan(cur);break;
+    case'apScan':apScan();break;
+    case'bell':pushHist();S.tab='notif';closeOv();render();scrollTo(0,0);break;
+    case'markSeen':setSeen();render();break;
+    case'sysNotif':try{const p=await Notification.requestPermission();toast(p==='granted'?'تم تفعيل التنبيهات':'لم يُسمح بالتنبيهات')}catch(x){}render();break;
+    case'openReq':{const r=S.requests.find(x=>x.id===v);if(r)openReq(r);break}
+    case'recheck':await afterLogin();break;
     case'accEdit':accForm(S.staff.find(p=>p.id===v));break;
     case'logout':await sb.auth.signOut();S.me=null;S.role=null;S.view=null;S.hist=[];S.mode='login';closeOv();render();break;
     case'theme':document.documentElement.dataset.theme=isDark()?'light':'dark';try{localStorage.setItem('cm_theme',document.documentElement.dataset.theme)}catch(x){}render();break;
@@ -912,15 +1048,19 @@ document.addEventListener('click',async e=>{
     case'plantHere':if(!navigator.geolocation){toast('تحديد الموقع غير متاح هنا');break}navigator.geolocation.getCurrentPosition(p=>{$('#plantIn').value=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6)},()=>toast('المتصفح لم يسمح بقراءة الموقع. الصق الإحداثيات يدوياً.'));break;
   }
 });
-document.addEventListener('change',e=>{if(e.target.id==='feedRole'){S.feedRole=e.target.value;render()}});
+document.addEventListener('change',e=>{if(e.target.name==='authTab'){S.authTab=e.target.value;render();return}if(e.target.id==='feedRole'){S.feedRole=e.target.value;render()}});
 document.addEventListener('input',e=>{if(e.target.id==='q'){S.q=e.target.value;const pos=e.target.selectionStart;render();const q=$('#q');if(q){q.focus();q.setSelectionRange(pos,pos)}}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#ovroot').innerHTML)goBack()});
 
 /* ---------- boot ---------- */
 async function afterLogin(){
   const {data:{user}}=await sb.auth.getUser();if(!user){S.mode='login';render();return}
-  const {data:me}=await sb.from('staff').select('id,username,full_name,role,active').eq('id',user.id).maybeSingle();
-  S.me=me||null;S.mode='loading';render();
+  const {data:me}=await sb.from('staff').select('id,username,full_name,role,active,status,phone,admin_ok,project_ok').eq('id',user.id).maybeSingle();
+  S.me=me||null;
+  if(me&&me.status==='pending'){const {data:c}=await sb.from('staff_codes').select('code').eq('id',me.id).maybeSingle();S.myCode=c?.code||null;S.mode='db';render();
+    if(!S.pendSub){S.pendSub=setInterval(async()=>{const {data:m2}=await sb.from('staff').select('status,active,admin_ok,project_ok').eq('id',me.id).maybeSingle();if(m2&&(m2.status!==S.me.status||m2.admin_ok!==S.me.admin_ok||m2.project_ok!==S.me.project_ok)){if(m2.status==='active'){clearInterval(S.pendSub);S.pendSub=null;await afterLogin()}else{Object.assign(S.me,m2);render()}}},5000)}
+    return}
+  S.mode='loading';render();
   if(!me||!me.active){S.mode='db';render();return}
   if(me.role!=='owner'){S.role=me.role}else if(S.role&&!ROLES[S.role])S.role=null;
   await loadAll();S.mode='db';render();subscribe();
