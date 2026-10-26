@@ -313,7 +313,7 @@ const ROLES={
   purchase2:{name:'مدير المشتريات الثاني',kind:'purchase',mono:'ش٢'},
 };
 const OWNER_NAME='مسؤول النظام';
-const DEPTS=['الآليات','الكهرباء','الميكانيك','المخزن','الإنتاج'];
+const DEPTS=['الآليات','الكهرباء','الميكانيك','المخزن','الإنتاج','المشروع'];
 const ST={
   store_check:{t:'بانتظار المخزن',c:'info',who:['store']},
   proj:{t:'بانتظار مدير المشروع',c:'warn',who:['project']},
@@ -471,6 +471,7 @@ async function act(r,action,extra={}){
     case'toBuy':nr.status='proj';push('حوّل للشراء - غير متوفر بالمخزن');break;
     case'issue':nr.status='done';nr.fromStock=true;push('صرف من المخزن'+(extra.itemName?' ('+extra.itemName+')':''));break;
     case'projOk':nr.status='pur_ok';push('وافق');break;
+    case'direct':nr.status='buy';push('أرسل الطلب مباشرة للمشتريات (أولوية مدير المشروع)');break;
     case'purOk':nr.status='buy';push('وافق على الشراء');break;
     case'startBuy':nr.status='buying';push('بدأ الشراء');break;
     case'bought':nr.status='receive';nr.purchase=extra.purchase;push('أكد الشراء وأرفق الفاتورة');break;
@@ -872,6 +873,7 @@ function actionsHTML(r,role){if(!role||!ROLES[role])return"";
     case'buying':a=`<button class="btn pri" data-a="buyForm">تأكيد الشراء وإرفاق الفاتورة</button>`;break;
     case'receive':a=role==='project'?`<button class="btn" data-a="rcIssue">إصدار باركود الاستلام</button><button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button>`:ROLES[role].kind==='store'?`<button class="btn pri" data-a="rcIssue">إصدار باركود الاستلام</button><span class="note">يمسحه مدير المشتريات عند تسليم المادة</span>`:`<button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button><span class="note">اطلب من مدير المخزن إظهار الباركود</span>`;return`<div class="sec"><h4>الاستلام بالباركود</h4><div class="acts">${a}</div></div>`;
   }
+  if(role==='project'&&['store_check','proj','pur_ok'].includes(r.status))a=`<button class="btn pri" data-a="do" data-v="direct">إرسال مباشرة للمشتريات</button>`+a;
   return`<div class="sec"><h4>إجراؤك</h4><div class="acts">${note}${a}</div></div>`;
 }
 
@@ -893,13 +895,14 @@ function newReqForm(){
   const R=ROLES[S.role];
   const b=`<form class="f" id="fNew">
    <div class="fr"><label class="l">اسم المادة المطلوبة<input id="fItem" class="in" required placeholder="مثال: محمل SKF 22320"></label>
-   <label class="l">القسم<select id="fDept" class="in">${DEPTS.map(d=>`<option ${d===(R.dept||'')?'selected':''}>${d}</option>`).join('')}</select></label></div>
+   <label class="l">القسم<select id="fDept" class="in">${DEPTS.map(d=>`<option ${d===(R.dept||(S.role==='project'?'المشروع':S.role==='store'?'المخزن':''))?'selected':''}>${d}</option>`).join('')}</select></label></div>
    <div class="fr"><label class="l">الكمية<input id="fQty" class="in num" type="number" min="0" step="any" required value="1"></label>
    <label class="l">الوحدة<input id="fUnit" class="in" list="units" value="قطعة"></label>
    <label class="l">مكان العمل<input id="fArea" class="in" list="areas" placeholder="مثال: الفرن الدوار"></label></div>
    <div class="l" style="font-size:13px;font-weight:500">الأولوية<div class="seg">${Object.entries(PRI).map(([k,v],i)=>`<label><input type="radio" name="pri" value="${k}" ${i?'':'checked'}>${v[0]}</label>`).join('')}</div></div>
    <div class="fr">${fileField('fProd','صورة المنتج المطلوب','صوّر القطعة القديمة أو لوحة المواصفات',true)}${fileField('fSite','صورة مكان العمل','تُقرأ إحداثيات GPS من صورة الهاتف تلقائياً',true)}</div>
    <label class="l">إحداثيات مكان العمل <em>(تُملأ من الصورة أو الصقها من خرائط Google)</em><div class="gps"><input id="fGps" class="in num" placeholder="33.3152, 44.3661"><button type="button" class="btn" id="fGpsBtn">موقعي الحالي</button></div><span class="note" id="fGpsN"></span></label>
+   ${S.role==='project'?`<div class="sec" style="padding:10px 12px"><div class="seg"><label><input type="radio" name="fRoute" value="buy" checked>مباشرة للمشتريات</label><label><input type="radio" name="fRoute" value="store_check">فحص المخزن أولاً</label></div><p class="note" style="margin:6px 0 0">بصفتك مدير المشروع، يمكن إرسال الطلب مباشرة لمديرَي المشتريات بدون مراحل الموافقة.</p></div>`:''}
    <label class="l">ملاحظات<textarea id="fNotes" class="in" placeholder="سبب الطلب، المواصفات، رقم الماكنة…"></textarea></label>
    <div class="err" id="fErr"></div>
    <div class="acts"><button class="btn pri" type="submit" id="fSub">إرسال الطلب للمخزن</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div>
@@ -914,7 +917,9 @@ function newReqForm(){
       const gv=$('#fGps').value.trim();const coords=parseCoords(gv);
       const r={id:uid(),code:code(),by:S.role,dept:$('#fDept').value,item:$('#fItem').value.trim(),qty:+$('#fQty').value||0,unit:$('#fUnit').value.trim()||'قطعة',area:$('#fArea').value.trim(),priority:document.querySelector('input[name=pri]:checked').value,notes:$('#fNotes').value.trim(),
         productImg:prod?.ref||null,siteImg:site?.ref||null,site:coords,siteLink:!coords&&/^https?:/.test(gv)?gv:null,status:'store_check',createdAt:Date.now(),log:[{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أنشأ الطلب',note:''}]};
-      await putReq(r);closeOv();toast('أُرسل الطلب #'+r.code+' إلى المخزن');
+      const direct=S.role==='project'&&document.querySelector('input[name=fRoute]:checked')?.value==='buy';
+      if(direct){r.status='buy';r.log.push({t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أرسل الطلب مباشرة للمشتريات (أولوية مدير المشروع)',note:''})}
+      await putReq(r);closeOv();toast('أُرسل الطلب #'+r.code+(direct?' إلى مديرَي المشتريات':' إلى المخزن'));
     }catch(x){err.textContent='تعذر الإرسال: '+(x.message||x.code||'خطأ');sub.disabled=false;sub.textContent='إرسال الطلب للمخزن'}});
 }
 const COND={orig:'أصلي',comm:'تجاري',used:'مستعمل/مجدد'};
