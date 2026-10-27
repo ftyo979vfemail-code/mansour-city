@@ -251,6 +251,17 @@ button.orow:hover{background:var(--sunk)}
 .ocrew{margin-top:8px;padding-inline-start:14px;border-inline-start:3px solid var(--accent-soft);display:flex;flex-direction:column;gap:6px}
 .ocl{font-size:12.5px;font-weight:600;color:var(--muted);margin-top:4px}
 @media (max-width:520px){.orow{grid-template-columns:auto 1fr}.oend{grid-column:2;flex-direction:row;align-items:center;justify-content:space-between}}
+.ppthumbs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.ppthumbs img{height:110px;width:auto;border-radius:8px;border:1px solid var(--line);flex:none}
+.ppg{padding:10px 12px}
+.pprow{display:grid;grid-template-columns:auto minmax(0,1fr) 80px 80px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.pprow .ppmeta{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pprow.low .ppName{border-color:var(--warn);background:var(--warn-soft)}
+.pprow.off{opacity:.45}
+.pprow input[type=checkbox]{width:20px;height:20px}
+.spin{width:42px;height:42px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (max-width:520px){.pprow{grid-template-columns:auto minmax(0,1fr) 64px 70px}}
 .bigs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
 .bigbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;border-radius:14px;border:1px solid var(--line);background:var(--surface);font-family:var(--display);font-size:16px;color:var(--ink)}
 .bigbtn .bi{font-size:28px;line-height:1}
@@ -432,7 +443,7 @@ async function saveFile(file,stamp){
 function imgSrc(ref){if(!ref)return'';return S.imgCache[ref.slice(2)]||''}
 async function signAll(){
   const refs=new Set();const add=x=>{if(x&&x.startsWith('s:')&&!S.imgCache[x.slice(2)])refs.add(x.slice(2))};
-  S.requests.forEach(r=>{add(r.productImg);add(r.siteImg);add(r.purchase?.invoice?.ref);(r.quotes||[]).forEach(q=>add(q.img))});
+  S.requests.forEach(r=>{add(r.productImg);add(r.siteImg);add(r.paperImg);add(r.purchase?.invoice?.ref);(r.quotes||[]).forEach(q=>add(q.img))});
   if(!refs.size)return false;
   const {data}=await sb.storage.from('files').createSignedUrls([...refs],604800);
   (data||[]).forEach(d=>{if(d.signedUrl)S.imgCache[d.path]=d.signedUrl});return true}
@@ -865,6 +876,67 @@ function openDlv(d){S.openD=d.id;const st=DST[d.status]||DST.wait,m=d.machineId&
   b+=`<div class="sec"><h4>السجل</h4><ul class="log">${[...(d.log||[])].reverse().map(l=>`<li><i></i><span>${plabel(l)} ${esc(l.a)}${l.note?' — '+esc(l.note):''}</span><small class="num">${dt(l.t)}</small></li>`).join('')}</ul></div>`;
   overlay('dlv',`شاحنة ${esc(d.material)}`,b);if($('#fDone'))bindPreview('fDone')}
 
+/* ---------- paper list → requests ---------- */
+const CATS=['محامل','كهرباء','زيوت وشحوم','فلاتر','قطع غيار ميكانيكية','أحزمة وسيور','براغي وعدد','لحام وقطع','مواد بناء','سلامة','أخرى'];
+function defDept(){const R=ROLES[S.role]||{};return R.dept||(S.role==='project'?'المشروع':isStoreRole(S.role)?'المخزن':S.role==='machines'||S.role==='mstore'?'الآليات':'')}
+function paperForm(){S.paper={pages:[],items:[],files:[]};
+  const b=`<div class="sec" style="background:var(--accent-soft)"><b>صوّر ورقة الطلب</b><p class="muted small" style="margin:4px 0 0">النظام يقرا المواد المكتوبة (حتى بخط اليد)، يصنّفها، ويقارنها بالمخزون. بعدها تراجعها وترسلها للمخزن بضغطة وحدة.</p></div>
+   <div class="fr"><label class="l">القسم<select id="ppDept" class="in">${DEPTS.map(d=>`<option ${d===defDept()?'selected':''}>${d}</option>`).join('')}</select></label><label class="l">مكان العمل<input id="ppArea" class="in" list="areas3"></label></div>
+   ${S.machines.length?`<label class="l">الآلية <em>(اختياري)</em><select id="ppMach" class="in"><option value="">— بدون —</option>${S.machines.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select></label>`:''}
+   <div class="l" style="font-size:13px;font-weight:500">الأولوية<div class="seg">${Object.entries(PRI).map(([k,v],i)=>`<label><input type="radio" name="ppPri" value="${k}" ${i?'':'checked'}>${v[0]}</label>`).join('')}</div></div>
+   <label class="drop" for="ppFile"><input type="file" id="ppFile" accept="image/*" capture="environment" multiple><div class="thumb" style="width:72px;height:60px">📄</div><div class="dt"><b>صوّر الورقة</b><span class="muted" id="ppN">صفحة أو أكثر</span></div></label>
+   <div class="ppthumbs" id="ppThumbs"></div><datalist id="areas3">${AREAS.map(a=>`<option value="${a}">`).join('')}</datalist>
+   <div class="err" id="ppErr"></div><div class="acts"><button class="btn pri" id="ppGo" disabled>تحليل الورقة</button><button class="btn ghost" data-a="close">إلغاء</button></div>`;
+  overlay('paper','رفع ورقة طلبات',b);
+  $('#ppFile').addEventListener('change',e=>{const fs=[...e.target.files].slice(0,6);S.paper.files.push(...fs);S.paper.files=S.paper.files.slice(0,6);
+    $('#ppThumbs').innerHTML=S.paper.files.map(f=>`<img src="${URL.createObjectURL(f)}" alt="">`).join('');$('#ppN').textContent=S.paper.files.length+' صفحة';$('#ppGo').disabled=!S.paper.files.length;e.target.value=''});
+  $('#ppGo').addEventListener('click',analyzePaper)}
+async function analyzePaper(){
+  const P=S.paper;P.dept=$('#ppDept').value;P.area=$('#ppArea').value.trim();P.mach=$('#ppMach')?.value||null;P.pri=document.querySelector('input[name=ppPri]:checked').value;
+  P.wh=(P.mach||P.dept==='الآليات'||['machines','mstore','keeper','operator','mechanic','fueler','supply'].includes(S.role))?'mach':'main';
+  const stock=S.inventory.filter(i=>(i.wh==='mach'?'mach':'main')===P.wh).map(i=>i.name);
+  const box=$('#ovroot .sh-b');box.innerHTML=`<div class="rcbox"><div class="spin"></div><b>جارِ قراءة الورقة…</b><span class="note" id="ppProg">الصفحة 1 من ${P.files.length}</span></div>`;
+  try{P.items=[];P.header={};P.unread=[];P.refs=[];
+    for(let i=0;i<P.files.length;i++){$('#ppProg').textContent=`الصفحة ${i+1} من ${P.files.length}`;const f=P.files[i];
+      const big=await compress(f,1800,.82);const b64=(await blobToData(big)).split(',')[1];
+      const {data,error}=await sb.functions.invoke('scan-list',{body:{image:b64,mime:'image/jpeg',dept:P.dept,stock}});
+      let code=data?.code;if(error){try{code=(await error.context.json()).code}catch(x){code='upstream'}}
+      if(code)throw new Error({no_key:'قراءة الورق تحتاج تفعيل مفتاح الذكاء الاصطناعي. راجع مطوّر النظام.',rate_limited:'طلبات كثيرة، حاول بعد دقيقة.',bad_image:'الصورة غير واضحة أو كبيرة جداً.',forbidden:'غير متاح لصفتك.'}[code]||'تعذرت قراءة الورقة، حاول بصورة أوضح.');
+      (data.items||[]).forEach(x=>P.items.push({...x,on:true,id:uid()}));Object.assign(P.header,data.header||{});if(data.unreadable)P.unread.push(data.unreadable);
+      const ref=await saveFile(f);if(ref)P.refs.push(ref.ref)}
+    if(!P.items.length)throw new Error('ما لكيت مواد مكتوبة بالورقة. تأكد إن الصورة واضحة.');
+    reviewPaper()}catch(x){box.innerHTML=`<div class="err">${esc(x.message)}</div><div class="acts" style="margin-top:12px"><button class="btn" data-a="paper">حاول مرة ثانية</button><button class="btn ghost" data-a="close">إغلاق</button></div>`}}
+function stockFor(it){const P=S.paper,inv=S.inventory.filter(i=>(i.wh==='mach'?'mach':'main')===P.wh);
+  let m=it.match&&inv.find(i=>i.name===it.match);if(!m){const w=it.name.split(/\s+/).filter(x=>x.length>2);let best=0;inv.forEach(i=>{const sc=w.filter(x=>i.name.includes(x)).length;if(sc>best&&sc>=Math.min(2,w.length)){best=sc;m=i}})}return m||null}
+function reviewPaper(){const P=S.paper;
+  const groups={};P.items.forEach(it=>{(groups[it.category]=groups[it.category]||[]).push(it)});
+  const order=Object.keys(groups).sort((a,b)=>CATS.indexOf(a)-CATS.indexOf(b));
+  const n=P.items.filter(i=>i.on).length;
+  let h=`${P.refs.length?`<div class="ppthumbs">${P.refs.map(r=>imgTag(r,'','الورقة')).join('')}</div>`:''}
+   <div class="sec"><div class="kv"><div><span>القسم</span><b>${esc(P.dept)}</b></div><div><span>المخزن</span><b>${whName(P.wh)}</b></div><div><span>عدد المواد</span><b class="num">${P.items.length}</b></div>${P.header.date?`<div><span>تاريخ الورقة</span><b>${esc(P.header.date)}</b></div>`:''}${P.header.signed_by?`<div><span>الموقّع</span><b>${esc(P.header.signed_by)}</b></div>`:''}${P.header.machine?`<div><span>الماكنة / المكان</span><b>${esc(P.header.machine)}</b></div>`:''}</div>
+   ${P.unread.filter(Boolean).length?`<p class="note bad" style="margin:8px 0 0">أجزاء غير مقروءة: ${esc(P.unread.filter(Boolean).join(' · '))}</p>`:''}</div>
+   <p class="note" style="margin:0">راجع كل سطر وصحّح إذا لزم. المواد المؤشرة بالأصفر قراءتها غير مؤكدة.</p>`;
+  order.forEach(c=>{h+=`<div class="sec ppg"><h4>${esc(c)} <span class="num">(${groups[c].length})</span></h4>${groups[c].map(it=>{const st=stockFor(it);
+    return`<div class="pprow ${it.confidence<.6?'low':''} ${it.on?'':'off'}" data-id="${it.id}"><input type="checkbox" class="ppOn" ${it.on?'checked':''} aria-label="تضمين">
+     <input class="in ppName" value="${esc(it.name)}"><input class="in num ppQty" type="number" min="0" step="any" value="${it.qty}"><input class="in ppUnit" list="units4" value="${esc(it.unit)}">
+     <div class="ppmeta">${st&&+st.qty>0?`<span class="pill p-ok">متوفر بالمخزن: <span class="num">${nf.format(+st.qty)}</span> ${esc(st.unit)}</span>`:st?'<span class="pill p-warn">مسجلة بالمخزن والرصيد صفر</span>':'<span class="pill p-mute">غير متوفر بالمخزن</span>'}${it.confidence<.6?'<span class="pill p-warn">تأكد من القراءة</span>':''}${it.notes?`<span class="muted small">${esc(it.notes)}</span>`:''}<button class="btn sm ghost ppDel" type="button">حذف</button></div></div>`}).join('')}</div>`});
+  h+=`<datalist id="units4">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist><div class="acts"><button class="btn" data-a="ppAdd">+ إضافة سطر</button></div>
+   <div class="err" id="ppErr2"></div><div class="acts" style="position:sticky;bottom:0;background:var(--bg);padding-block:10px"><button class="btn pri" data-a="ppSend" id="ppSend">إرسال ${n} طلب للمخزن</button><button class="btn ghost" data-a="close">إلغاء</button></div>`;
+  $('#ovroot .sh-b').innerHTML=h;
+  $('#ovroot .sh-b').addEventListener('input',paperSync);$('#ovroot .sh-b').addEventListener('change',paperSync);
+  $('#ovroot .sh-b').querySelectorAll('.ppDel').forEach(b=>b.addEventListener('click',()=>{const id=b.closest('.pprow').dataset.id;P.items=P.items.filter(i=>i.id!==id);reviewPaper()}))}
+function paperSync(e){const row=e.target.closest('.pprow');if(!row)return;const it=S.paper.items.find(i=>i.id===row.dataset.id);if(!it)return;
+  it.on=row.querySelector('.ppOn').checked;it.name=row.querySelector('.ppName').value;it.qty=+row.querySelector('.ppQty').value||0;it.unit=row.querySelector('.ppUnit').value;
+  row.classList.toggle('off',!it.on);const n=S.paper.items.filter(i=>i.on&&i.name.trim()).length;const b=$('#ppSend');if(b)b.textContent=`إرسال ${n} طلب للمخزن`}
+async function sendPaper(){const P=S.paper,list=P.items.filter(i=>i.on&&i.name.trim()&&i.qty>0);const btn=$('#ppSend');
+  if(!list.length){$('#ppErr2').textContent='اختر مادة واحدة على الأقل';return}
+  btn.disabled=true;const batch='P-'+code();let ok=0;
+  for(const it of list){btn.textContent=`جارِ الإرسال ${ok+1} من ${list.length}…`;
+    const r={id:uid(),code:code(),machineId:P.mach||null,wh:P.wh,by:S.role,dept:P.dept,item:it.name.trim(),qty:it.qty,unit:it.unit||'قطعة',area:P.area,priority:P.pri,notes:[it.category,it.notes].filter(Boolean).join(' — '),
+      paperImg:P.refs[0]||null,batch,status:'store_check',createdAt:Date.now(),log:[{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أنشأ الطلب من ورقة مرفوعة',note:batch}]};
+    try{await putReq(r);ok++}catch(x){$('#ppErr2').textContent='تعذر إرسال '+it.name+': '+x.message;btn.disabled=false;btn.textContent='إعادة المحاولة';P.items=P.items.filter(i=>!list.slice(0,ok).includes(i));return}}
+  await invLog('رفع ورقة طلبات '+batch,ok+' مادة · '+P.dept);closeOv();render();toast(`أُرسلت ${ok} مادة للمخزن من ورقة ${batch}`)}
+
 /* ---------- organisation: managers, crews and departments ---------- */
 const ORG=[{n:'إدارة المشروع',h:['project'],c:[]},{n:'الإدارة والمراقبة',h:['admin1','admin2'],c:['clerk']},{n:'المشتريات',h:['purchase','purchase2'],c:['buyer']},
  {n:'المخزن الرئيسي',h:['store'],c:['receiver']},{n:'الآليات',h:['machines'],c:['operator','mechanic','fueler','supply']},{n:'مخزن الآليات',h:['mstore'],c:['keeper']},
@@ -1037,7 +1109,7 @@ function roleHome(){
   const crit=open.filter(r=>r.priority==='critical').length;
   const mq=queueFor(role).length;
   const canNew=['dept','project','store','crew'].includes(R.kind)&&role!=='fueler'&&role!=='supply'&&role!=='receiver';
-  let h=pushBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div>${canNew?`<button class="btn pri" data-a="new">+ طلب مواد جديد</button>`:''}</div>`;
+  let h=pushBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div>${canNew?`<div class="acts"><button class="btn" data-a="paper">📄 رفع ورقة طلبات</button><button class="btn pri" data-a="new">+ طلب مواد جديد</button></div>`:''}</div>`;
   const spent=S.requests.reduce((s,r)=>s+(r.purchase?.total||0),0);
   if(R.kind!=='crew')h+=`<div class="stats">${R.kind==='admin'?`<div class="stat"><b>${recent24()}</b><span>حركات آخر 24 ساعة</span></div>`:`<div class="stat ${mq?'hot':''}"><b>${mq}</b><span>بانتظار إجرائك</span></div>`}<div class="stat"><b>${open.length}</b><span>طلبات مفتوحة</span></div><div class="stat ${crit?'hot':''}"><b>${crit}</b><span>طارئة - توقف إنتاج</span></div>${R.kind==='admin'||R.kind==='purchase'?`<div class="stat"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></div>`:`<div class="stat"><b>${invOf(role).filter(i=>+i.qty<=+i.min).length}</b><span>مواد تحت الحد الأدنى</span></div>`}</div>`;
   h+=`<div class="tabs" role="tablist">${tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-a="tab" data-v="${k}">${t}${c?`<span class="c num">${c}</span>`:''}</button>`).join('')}</div>`;
@@ -1058,7 +1130,7 @@ function card(r){
   const st=ST[r.status],p=PRI[r.priority]||PRI.normal;
   return`<button class="card ${r.priority==='critical'?'crit':r.priority==='urgent'?'urg':''}" data-a="open" data-v="${r.id}">
    ${r.productImg?imgTag(r.productImg,'thumb'):`<div class="thumb">${esc((r.unit||'').slice(0,4))}</div>`}
-   <div class="mid"><div class="t">${esc(r.item)}</div><div class="meta"><span class="num">#${esc(r.code)}</span><span>${esc(r.dept)}</span><span><span class="num">${nf.format(r.qty)}</span> ${esc(r.unit)}</span>${r.area?`<span>${esc(r.area)}</span>`:''}${r.site?'<span>📍 GPS</span>':''}${r.demo?'<span class="tag-demo">تجريبي</span>':''}</div></div>
+   <div class="mid"><div class="t">${esc(r.item)}</div><div class="meta"><span class="num">#${esc(r.code)}</span><span>${esc(r.dept)}</span><span><span class="num">${nf.format(r.qty)}</span> ${esc(r.unit)}</span>${r.area?`<span>${esc(r.area)}</span>`:''}${r.site?'<span>📍 GPS</span>':''}${r.batch?'<span class="pill p-mute">ورقة '+esc(r.batch)+'</span>':''}${r.demo?'<span class="tag-demo">تجريبي</span>':''}</div></div>
    <div class="end"><span class="pill p-${st.c}">${st.t}</span><span class="small muted">${r.priority!=='normal'?`<span class="pill p-${p[1]}">${p[0]}</span> `:''}${ago(r.updatedAt||r.createdAt)}</span></div></button>`;
 }
 function tabBody(role){
@@ -1156,6 +1228,7 @@ function openReq(r,keep){
    <div><span>المخزن</span><b>${whName(whOf(r))}</b></div><div><span>مكان العمل</span><b>${esc(r.area||'—')}</b></div>${r.machineId?`<div><span>الآلية</span><b>${esc(S.machines.find(m=>m.id===r.machineId)?.name||'—')}</b></div>`:''}<div><span>الحالة</span><b><span class="pill p-${st.c}">${st.t}</span></b></div>
    <div><span>رفعه</span><b>${esc(ROLES[r.by]?.name||'')}</b></div><div><span>التاريخ</span><b class="num">${dt(r.createdAt)}</b></div></div>
    ${r.notes?`<p style="margin:12px 0 0">${esc(r.notes)}</p>`:''}</div>`;
+  if(r.paperImg)b+=`<div class="sec"><h4>ورقة الطلب الأصلية ${r.batch?'<span class="num">'+esc(r.batch)+'</span>':''}</h4><div class="photos"><div class="ph">${imgTag(r.paperImg,'','ورقة الطلب')}</div></div>${r.batch?`<p class="note" style="margin:8px 0 0">${S.requests.filter(x=>x.batch===r.batch).length} مادة من نفس الورقة</p>`:''}</div>`;
   b+=`<div class="sec"><h4>الصور والموقع</h4><div class="photos"><div class="ph">صورة المنتج المطلوب${imgTag(r.productImg,'','صورة المنتج')}</div><div class="ph">صورة مكان العمل${imgTag(r.siteImg,'','صورة مكان العمل')}</div>
    <div class="ph">إحداثيات مكان العمل${r.site?`<div class="none" style="aspect-ratio:auto;padding:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-start"><b class="num" style="color:var(--ink)">${r.site.lat}, ${r.site.lng}</b><a href="${gmap(r.site)}" target="_blank" rel="noopener">فتح في خرائط Google ↗</a><a href="${gdir(r.site)}" target="_blank" rel="noopener">الاتجاهات ↗</a>${S.settings.plant?`<span>يبعد <span class="num">${km(S.settings.plant,r.site).toFixed(2)}</span> كم عن المعمل</span>`:''}</div>`:'<div class="none">لم تُحدد</div>'}</div></div></div>`;
   b+=quotesHTML(r);
@@ -1380,6 +1453,9 @@ document.addEventListener('click',async e=>{
     case'accounts':pushHist();S.view='accounts';closeOv();render();scrollTo(0,0);break;
     case'accNew':accForm();break;
     case'crewNew':crewForm();break;
+    case'paper':paperForm();break;
+    case'ppAdd':S.paper.items.push({id:uid(),name:'',qty:1,unit:'قطعة',category:'أخرى',notes:'',confidence:1,on:true});reviewPaper();break;
+    case'ppSend':await sendPaper();break;
     case'orgView':pushHist();S.view='org';S.role=null;closeOv();render();scrollTo(0,0);break;
     case'orgPerson':{const p=S.staff.find(x=>x.id===v);if(p)orgPerson(p);break}
     case'loginQR':{const p=S.staff.find(x=>x.id===v);if(p){el.disabled=true;await showLoginQR(p)}break}
