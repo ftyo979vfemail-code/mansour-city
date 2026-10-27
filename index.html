@@ -344,29 +344,29 @@ const ROLES={
   fueler:{name:'مسؤول الوقود',kind:'crew',mono:'وق',crew:true,boss:'machines',dept:'الآليات'},
   elec_tech:{name:'فني كهرباء',kind:'crew',mono:'فك',crew:true,boss:'elec',dept:'الكهرباء'},
   mech_tech:{name:'فني ميكانيك',kind:'crew',mono:'فم',crew:true,boss:'mech',dept:'الميكانيك'},
-  buyer:{name:'مندوب مشتريات',kind:'purchase',mono:'من',crew:true,boss:'purchase'},
+  buyer:{name:'مندوب مشتريات',kind:'purchase',mono:'من',crew:true,boss:'project'},
   clerk:{name:'موظف إداري',kind:'admin',mono:'مو',crew:true,boss:'admin1'},
   receiver:{name:'عامل الاستلام',kind:'crew',mono:'اس',crew:true,boss:'store'},
   supply:{name:'مشرف تجهيز المواد',kind:'crew',mono:'تج',crew:true,boss:'machines',dept:'الآليات'},
   project:{name:'مدير المشروع',kind:'project',mono:'مش'},
   admin1:{name:'الإداري الأول',kind:'admin',mono:'إ١'},
   admin2:{name:'الإداري الثاني',kind:'admin',mono:'إ٢'},
-  purchase:{name:'مدير المشتريات الأول',kind:'purchase',mono:'ش١'},
-  purchase2:{name:'مدير المشتريات الثاني',kind:'purchase',mono:'ش٢'},
+  purchase:{name:'مندوب مشتريات (سابق)',kind:'purchase',mono:'ش١',legacy:true},
+  purchase2:{name:'مندوب مشتريات (سابق)',kind:'purchase',mono:'ش٢',legacy:true},
 };
 const OWNER_NAME='مسؤول النظام';
 const DEPTS=['الآليات','الكهرباء','الميكانيك','المخزن','الإنتاج','المشروع'];
 const ST={
   store_check:{t:'بانتظار المخزن',c:'info',who:['store','mstore','keeper']},
   proj:{t:'بانتظار مدير المشروع',c:'warn',who:['project']},
-  pur_ok:{t:'بانتظار موافقة المشتريات',c:'warn',who:['purchase','purchase2']},
-  buy:{t:'بانتظار الشراء',c:'accent',who:['purchase','purchase2','buyer']},
-  buying:{t:'قيد الشراء',c:'accent',who:['purchase','purchase2','buyer']},
-  receive:{t:'بانتظار الاستلام',c:'info',who:['store','mstore','keeper','receiver','purchase','purchase2','buyer']},
+  pur_ok:{t:'بانتظار موافقة مدير المشروع',c:'warn',who:['project']},
+  buy:{t:'بانتظار الشراء',c:'accent',who:['buyer']},
+  buying:{t:'قيد الشراء',c:'accent',who:['buyer']},
+  receive:{t:'بانتظار الاستلام',c:'info',who:['store','mstore','keeper','receiver','buyer']},
   done:{t:'مكتمل',c:'ok',who:[]},
   rejected:{t:'مرفوض',c:'bad',who:[]},
 };
-const STAGES=[['store_check','المخزن'],['proj','المشروع'],['pur_ok','موافقة المشتريات'],['buy','الشراء'],['receive','الاستلام'],['done','التسليم']];
+const STAGES=[['store_check','المخزن'],['proj','موافقة المشروع'],['buy','الشراء'],['receive','الاستلام'],['done','التسليم']];
 const PRI={normal:['عادي','mute'],urgent:['مستعجل','warn'],critical:['طارئ - توقف إنتاج','bad']};
 const AREAS=['الكسارة','ساحة الحجر الجيري','طاحونة المواد الخام','الفرن الدوار','مبرد الكلنكر','طاحونة الإسمنت','السايلوات','قسم التعبئة والتحميل','محطة الكهرباء الرئيسية','الورشة الميكانيكية','ساحة الآليات','مقلع المواد الأولية'];
 const UNITS=['قطعة','متر','كغم','طن','لتر','برميل','لفة','علبة','طقم'];
@@ -474,7 +474,7 @@ async function loadAll(which){
 let rtTimers={};
 function subscribe(){
   const ch=sb.channel('all');
-  ['requests','inventory','invlog','settings','staff','notifications','machines','deliveries'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(rtTimers[t]);rtTimers[t]=setTimeout(async()=>{await loadAll(t);if(t==='requests'&&S.rcFor){const r=S.requests.find(x=>x.id===S.rcFor);if(r&&r.status==='done'){S.rcFor=null;overlay('ok','تم الاستلام',`<div class="rcbox"><div class="okmark">✓</div><b>مسح مدير المشتريات الباركود وتم الاستلام</b><p class="muted" style="margin:0">${esc(r.item)}</p></div><div class="acts"><button class="btn" data-a="close">إغلاق</button></div>`)}}if(t==='staff'&&S.me?.status==='pending'){await afterLogin();return}if(t==='deliveries'&&S.openD&&$('#ovroot').dataset.kind==='dlv'){const d=S.deliveries.find(x=>x.id===S.openD);if(d)openDlv(d)}if(t==='machines'&&S.openM&&$('#ovroot').dataset.kind==='mach'){const m=S.machines.find(x=>x.id===S.openM);if(m)openMachine(m)}render()},300)}));
+  ['requests','inventory','invlog','settings','staff','notifications','machines','deliveries'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(rtTimers[t]);rtTimers[t]=setTimeout(async()=>{await loadAll(t);if(t==='requests'&&S.rcFor){const r=S.requests.find(x=>x.id===S.rcFor);if(r&&r.status==='done'){S.rcFor=null;overlay('ok','تم الاستلام',`<div class="rcbox"><div class="okmark">✓</div><b>مسح مندوب المشتريات الباركود وتم الاستلام</b><p class="muted" style="margin:0">${esc(r.item)}</p></div><div class="acts"><button class="btn" data-a="close">إغلاق</button></div>`)}}if(t==='staff'&&S.me?.status==='pending'){await afterLogin();return}if(t==='deliveries'&&S.openD&&$('#ovroot').dataset.kind==='dlv'){const d=S.deliveries.find(x=>x.id===S.openD);if(d)openDlv(d)}if(t==='machines'&&S.openM&&$('#ovroot').dataset.kind==='mach'){const m=S.machines.find(x=>x.id===S.openM);if(m)openMachine(m)}render()},300)}));
   ch.subscribe()}
 
 function demoData(){
@@ -524,7 +524,7 @@ async function act(r,action,extra={}){
   switch(action){
     case'toBuy':nr.status='proj';push('حوّل للشراء - غير متوفر بالمخزن');break;
     case'issue':nr.status='done';nr.fromStock=true;push('صرف من المخزن'+(extra.itemName?' ('+extra.itemName+')':''));break;
-    case'projOk':nr.status='pur_ok';push('وافق');break;
+    case'projOk':nr.status='buy';push('وافق — أُرسل لمندوبي المشتريات');break;
     case'direct':nr.status='buy';push('أرسل الطلب مباشرة للمشتريات (أولوية مدير المشروع)');break;
     case'purOk':nr.status='buy';push('وافق على الشراء');break;
     case'startBuy':nr.status='buying';push('بدأ الشراء');break;
@@ -568,7 +568,7 @@ async function rcIssue(r){
   if(error){toast('تعذر إصدار الباركود: '+error.message);return}
   S.rcFor=r.id;
   overlay('rcode',`باركود استلام <span class="num">#${esc(r.code)}</span>`,`<div class="rcbox"><div class="qr">${qrSvg('MCR:'+r.id+':'+data,7)}</div><div class="rcdig num">${esc(data.slice(0,3)+' '+data.slice(3))}</div>
-   <p class="muted" style="margin:0">${esc(r.item)} — <span class="num">${nf.format(r.qty)}</span> ${esc(r.unit)}</p><p class="note">اطلب من مدير المشتريات أن يمسح هذا الباركود من موبايله. تنتهي صلاحيته بعد 30 دقيقة.</p><span class="note" id="rcWait">بانتظار المسح…</span></div>
+   <p class="muted" style="margin:0">${esc(r.item)} — <span class="num">${nf.format(r.qty)}</span> ${esc(r.unit)}</p><p class="note">اطلب من مندوب المشتريات أن يمسح هذا الباركود من موبايله. تنتهي صلاحيته بعد 30 دقيقة.</p><span class="note" id="rcWait">بانتظار المسح…</span></div>
    <div class="acts"><button class="btn ghost" data-a="back">رجوع</button></div>`);
 }
 function rcScan(r){
@@ -620,7 +620,7 @@ function apScan(){openScanner('مسح باركود موظف','امسح البا�
   await loadAll('staff');closeOv();render();toast(data.activated?`تفعّل حساب ${data.name}`:`سُجّلت توصيتك على ${data.name}. التفعيل بيد مدير المشروع`)})}
 /* registration */
 function registerView(){
-  const roleOpts=Object.entries(ROLES).filter(([k,r])=>!r.crew).map(([k,r])=>`<label class="rpick"><input type="radio" name="rRole" value="${k}"><span class="mono">${r.mono}</span><span>${r.name}</span></label>`).join('');
+  const roleOpts=Object.entries(ROLES).filter(([k,r])=>(!r.crew||k==='buyer')&&!r.legacy).map(([k,r])=>`<label class="rpick"><input type="radio" name="rRole" value="${k}"><span class="mono">${r.mono}</span><span>${r.name}</span></label>`).join('');
   return`<form class="f" id="fReg" style="width:100%;text-align:start"><div class="l" style="font-size:13px;font-weight:500">اختر دورك المهني<div class="rgrid">${roleOpts}</div></div>
    <label class="l">الاسم الكامل<input id="rName" class="in" required autocomplete="name"></label>
    <label class="l">رقم الهاتف<input id="rPhone" class="in num" dir="ltr" inputmode="tel" required placeholder="07xxxxxxxxx" autocomplete="tel"></label>
@@ -732,7 +732,7 @@ function fuelForm(m){overlay('mfuel','تعبئة وقود — '+esc(m.name),`<fo
 
 /* ---------- crew ---------- */
 const ALLCREW=['receiver','keeper','operator','mechanic','fueler','supply','elec_tech','mech_tech','buyer','clerk'];
-const CREW_OF={machines:['operator','mechanic','fueler','supply'],mstore:['keeper'],store:['receiver'],elec:['elec_tech'],mech:['mech_tech'],purchase:['buyer'],purchase2:['buyer'],admin1:['clerk'],admin2:['clerk'],project:ALLCREW,owner:ALLCREW};
+const CREW_OF={machines:['operator','mechanic','fueler','supply'],mstore:['keeper'],store:['receiver'],elec:['elec_tech'],mech:['mech_tech'],admin1:['clerk'],admin2:['clerk'],project:ALLCREW,owner:ALLCREW};
 const crewRoles=()=>CREW_OF[S.me?.role]||[];
 function myCrew(){const rs=CREW_OF[S.role]||crewRoles();return S.staff.filter(p=>rs.includes(p.role)&&!p.hidden)}
 function teamView(){
@@ -938,7 +938,7 @@ async function sendPaper(){const P=S.paper,list=P.items.filter(i=>i.on&&i.name.t
   await invLog('رفع ورقة طلبات '+batch,ok+' مادة · '+P.dept);closeOv();render();toast(`أُرسلت ${ok} مادة للمخزن من ورقة ${batch}`)}
 
 /* ---------- organisation: managers, crews and departments ---------- */
-const ORG=[{n:'إدارة المشروع',h:['project'],c:[]},{n:'الإدارة والمراقبة',h:['admin1','admin2'],c:['clerk']},{n:'المشتريات',h:['purchase','purchase2'],c:['buyer']},
+const ORG=[{n:'إدارة المشروع',h:['project'],c:[]},{n:'الإدارة والمراقبة',h:['admin1','admin2'],c:['clerk']},{n:'مندوبو المشتريات',h:[],c:['buyer']},
  {n:'المخزن الرئيسي',h:['store'],c:['receiver']},{n:'الآليات',h:['machines'],c:['operator','mechanic','fueler','supply']},{n:'مخزن الآليات',h:['mstore'],c:['keeper']},
  {n:'قسم الكهرباء',h:['elec'],c:['elec_tech']},{n:'قسم الميكانيك',h:['mech'],c:['mech_tech']},{n:'مسؤول النظام',h:['owner'],c:[]}];
 const seesOrg=()=>['owner','project','admin1','admin2'].includes(S.me?.role);
@@ -980,7 +980,7 @@ function devView(){
   const act=S.staff.filter(p=>p.active&&!p.hidden).length,pend=pendingStaff().length;
   let h=pushBanner()+`<div class="head"><div><h2>لوحة المطوّر</h2><p>تحكم كامل بالنظام. هذه اللوحة لا تظهر لأي حساب آخر.</p></div></div>
   <div class="stats"><div class="stat"><b>${S.requests.length}</b><span>كل الطلبات</span></div><div class="stat"><b>${S.inventory.length}</b><span>مواد المخزون</span></div><div class="stat"><b>${act}</b><span>حسابات مفعّلة</span></div><div class="stat ${pend?'hot':''}"><b>${pend}</b><span>بانتظار الموافقة</span></div><div class="stat"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></div><div class="stat"><b>${S.notifs.length}</b><span>إشعارات</span></div></div>
-  <div class="mapgrid"><div class="sec"><h4>الدخول لأي واجهة</h4><div class="acts">${Object.entries(ROLES).map(([k,r])=>`<button class="btn sm" data-a="role" data-v="${k}">${r.name}</button>`).join('')}</div>
+  <div class="mapgrid"><div class="sec"><h4>الدخول لأي واجهة</h4><div class="acts">${Object.entries(ROLES).filter(([k,r])=>!r.legacy).map(([k,r])=>`<button class="btn sm" data-a="role" data-v="${k}">${r.name}</button>`).join('')}</div>
    <h4 style="margin-top:14px">الإدارة</h4><div class="acts"><button class="btn sm" data-a="accounts">الحسابات والصلاحيات</button><button class="btn sm" data-a="orgView">الموظفين والأقسام</button><button class="btn sm" data-a="devTab" data-v="admin1:notif">الإشعارات</button><button class="btn sm" data-a="devTab" data-v="admin1:feed">سجل الحركات</button><button class="btn sm" data-a="devTab" data-v="admin1:join">طلبات الانضمام</button><button class="btn sm" data-a="devTab" data-v="store:inv">المخزون</button><button class="btn sm" data-a="devTab" data-v="project:mach">الآليات</button><button class="btn sm" data-a="devTab" data-v="mstore:inv">مخزن الآليات</button><button class="btn sm" data-a="devTab" data-v="project:dlv">تجهيز المواد</button></div></div>
    <div class="sec"><h4>الطلبات حسب المرحلة</h4><div class="kv">${Object.entries(ST).map(([k,v])=>`<div><span>${v.t}</span><b class="num">${cnt[k]||0}</b></div>`).join('')}</div>
    <h4 style="margin-top:14px">صيانة</h4><div class="acts"><button class="btn sm" data-a="demo">تحميل بيانات تجريبية</button><button class="btn sm" data-a="cleardemo">حذف البيانات التجريبية</button><button class="btn sm" data-a="devReload">إعادة تحميل البيانات</button></div></div></div>
@@ -1017,14 +1017,14 @@ function accountsView(){
   staff.forEach(p=>{h+=`<div class="arow"><div class="mono">${p.hidden?'دف':p.role==='owner'?'مس':(ROLES[p.role]?.mono||'؟')}</div><div class="an"><b>${esc(p.full_name||p.username)}</b><span class="muted small"><span class="num">${esc(p.phone||p.username)}</span>${p.status==='pending'?' · <span style="color:var(--warn)">بانتظار الموافقة</span>':''} · ${p.hidden?'مطوّر النظام (مخفي)':p.role==='owner'?OWNER_NAME:esc(ROLES[p.role]?.name||p.role)}${p.active||p.status==='pending'?'':' · <span style="color:var(--bad)">موقوف</span>'}</span></div>
    <div class="acts">${p.id===S.me.id?'<span class="muted small">أنت</span> ':''}${p.id!==S.me.id&&p.active&&p.status!=='pending'?`<button class="btn sm pri" data-a="loginQR" data-v="${p.id}">باركود الدخول</button>`:''}<button class="btn sm" data-a="accEdit" data-v="${p.id}">${p.id===S.me.id?'تغيير رمزي':'تعديل'}</button></div></div>`});
   h+=`</div></div>`;
-  const missing=Object.keys(ROLES).filter(k=>!used[k]);
+  const missing=Object.keys(ROLES).filter(k=>!used[k]&&!ROLES[k].legacy);
   if(missing.length)h+=`<p class="note" style="margin-top:10px">صفات بدون حساب: ${missing.map(k=>ROLES[k].name).join('، ')}</p>`;
   return h}
 function genPass(){const c='abcdefghjkmnpqrstuvwxyz23456789';let p='';const a=new Uint32Array(8);crypto.getRandomValues(a);a.forEach(n=>p+=c[n%c.length]);return p}
 function accForm(p){const n=!p;p=p||{full_name:'',username:'',role:'machines',active:true};const pw=n?genPass():'';
   const b=`<form class="f" id="fAcc"><div class="fr"><label class="l">الاسم الكامل<input id="aName" class="in" required value="${esc(p.full_name||'')}"></label>
    <label class="l">اسم المستخدم <em>(إنكليزي بدون مسافات)</em><input id="aUser" class="in num" dir="ltr" required pattern="[a-zA-Z0-9._-]{3,30}" value="${esc(p.username)}" ${n?'':'disabled'}></label></div>
-   <div class="fr"><label class="l">الصفة<select id="aRole" class="in">${Object.entries(ROLES).map(([k,r])=>`<option value="${k}" ${p.role===k?'selected':''}>${r.name}</option>`).join('')}<option value="owner" ${p.role==='owner'?'selected':''}>${OWNER_NAME}</option></select></label>
+   <div class="fr"><label class="l">الصفة<select id="aRole" class="in">${Object.entries(ROLES).filter(([k,r])=>!r.legacy||p.role===k).map(([k,r])=>`<option value="${k}" ${p.role===k?'selected':''}>${r.name}</option>`).join('')}<option value="owner" ${p.role==='owner'?'selected':''}>${OWNER_NAME}</option></select></label>
    <label class="l">${n?'الرمز السري':'رمز سري جديد'} <em>${n?'':'(اتركه فارغاً بدون تغيير)'}</em><div class="gps"><input id="aPass" class="in num" dir="ltr" value="${pw}" ${n?'required minlength="6"':'minlength="6"'}><button type="button" class="btn" id="aGen">توليد</button></div></label></div>
    ${n?'':`<label class="l" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="aAct" ${p.active?'checked':''}> الحساب مفعّل</label>`}
    <div class="err" id="aErr"></div><div class="acts"><button class="btn pri" type="submit" id="aSub">${n?'إنشاء الحساب':'حفظ'}</button><button class="btn ghost" type="button" data-a="close">إلغاء</button>${n?'':`<button class="btn bad" type="button" id="aDel">حذف الحساب</button><span id="aConf"></span>`}</div>
@@ -1082,9 +1082,9 @@ function rolePicker(){
   <div class="group-label">رؤساء الأقسام</div><div class="roles">${['machines','elec','mech'].map(card).join('')}</div>
   <div class="group-label">المخزن والمشروع</div><div class="roles">${['store','mstore','project'].map(card).join('')}</div>
   <div class="group-label">الإدارة (مراقبة)</div><div class="roles">${['admin1','admin2'].map(card).join('')}</div>
-  <div class="group-label">المشتريات</div><div class="roles">${['purchase','purchase2'].map(card).join('')}</div>
+  <div class="group-label">المشتريات</div><div class="roles">${['buyer'].map(card).join('')}</div>
   <div class="group-label">كادر الآليات</div><div class="roles">${['keeper','operator','mechanic','fueler','supply'].map(card).join('')}</div>
-  <div class="group-label">عمال الأقسام</div><div class="roles">${['receiver','elec_tech','mech_tech','buyer','clerk'].map(card).join('')}</div></section>`;
+  <div class="group-label">عمال الأقسام</div><div class="roles">${['receiver','elec_tech','mech_tech','clerk'].map(card).join('')}</div></section>`;
 }
 function roleDesc(k){const CD={elec_tech:'طلب مواد قسم الكهرباء ومتابعتها',mech_tech:'طلب مواد قسم الميكانيك ومتابعتها',buyer:'عروض الأسعار والشراء والفواتير والتسليم بالباركود',clerk:'متابعة الإشعارات وسجل الحركات والطلبات',receiver:'استلام المواد المشتراة بالباركود نيابة عن مدير المخزن',supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
 
@@ -1217,7 +1217,7 @@ function closeOv(){stopScan();S.openM=null;S.openD=null;S.rcFor=null;const o=$('
 function track(r){
   if(r.status==='rejected'){const last=(r.log||[]).length;return`<div class="track"><div class="step done">الطلب</div><div class="step now rej">مرفوض</div></div>`}
   if(r.fromStock)return`<div class="track"><div class="step done">الطلب</div><div class="step done">المخزن</div><div class="step skip">المشروع</div><div class="step skip">الإدارة</div><div class="step skip">الشراء</div><div class="step done">التسليم</div></div>`;
-  const cur=r.status==='buying'?'buy':r.status;const idx=STAGES.findIndex(s=>s[0]===cur);
+  const cur=r.status==='buying'?'buy':r.status==='pur_ok'?'proj':r.status;const idx=STAGES.findIndex(s=>s[0]===cur);
   return`<div class="track"><div class="step done">الطلب</div>${STAGES.map((s,i)=>`<div class="step ${i<idx||cur==='done'?'done':i===idx?'now':''}">${s[1]}${s[0]==='buy'&&r.status==='buying'?' (جارٍ)':''}</div>`).join('')}</div>`;
 }
 function openReq(r,keep){
@@ -1250,10 +1250,10 @@ function actionsHTML(r,role){if(!role||!ROLES[role])return"";
   switch(r.status){
     case'store_check':a=`<button class="btn ok" data-a="issueForm">صرف من المخزن</button><button class="btn pri" data-a="do" data-v="toBuy">غير متوفر - تحويل للشراء</button>${rej}`;break;
     case'proj':a=`<button class="btn ok" data-a="do" data-v="projOk">موافقة</button>${rej}`;break;
-    case'pur_ok':a=`<button class="btn ok" data-a="do" data-v="purOk">موافقة على الشراء</button>${rej}`;break;
+    case'pur_ok':a=`<button class="btn ok" data-a="do" data-v="projOk">موافقة على الشراء</button>${rej}`;break;
     case'buy':a=`<button class="btn" data-a="do" data-v="startBuy">بدء الشراء</button><button class="btn pri" data-a="buyForm">تأكيد الشراء وإرفاق الفاتورة</button>`;break;
     case'buying':a=`<button class="btn pri" data-a="buyForm">تأكيد الشراء وإرفاق الفاتورة</button>`;break;
-    case'receive':a=role==='receiver'?`<button class="btn pri" data-a="rcIssue">إصدار باركود الاستلام</button><span class="note">يمسحه مدير المشتريات عند تسليم المادة</span>`:role==='project'?`<button class="btn" data-a="rcIssue">إصدار باركود الاستلام</button><button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button>`:ROLES[role].kind==='store'?`<button class="btn pri" data-a="rcIssue">إصدار باركود الاستلام</button><span class="note">يمسحه مدير المشتريات عند تسليم المادة</span>`:`<button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button><span class="note">اطلب من مدير المخزن إظهار الباركود</span>`;return`<div class="sec"><h4>الاستلام بالباركود</h4><div class="acts">${a}</div></div>`;
+    case'receive':a=role==='receiver'?`<button class="btn pri" data-a="rcIssue">إصدار باركود الاستلام</button><span class="note">يمسحه مندوب المشتريات عند تسليم المادة</span>`:role==='project'?`<button class="btn" data-a="rcIssue">إصدار باركود الاستلام</button><button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button>`:ROLES[role].kind==='store'?`<button class="btn pri" data-a="rcIssue">إصدار باركود الاستلام</button><span class="note">يمسحه مندوب المشتريات عند تسليم المادة</span>`:`<button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button><span class="note">اطلب من مدير المخزن إظهار الباركود</span>`;return`<div class="sec"><h4>الاستلام بالباركود</h4><div class="acts">${a}</div></div>`;
   }
   if(role==='project'&&['store_check','proj','pur_ok'].includes(r.status))a=`<button class="btn pri" data-a="do" data-v="direct">إرسال مباشرة للمشتريات</button>`+a;
   return`<div class="sec"><h4>إجراؤك</h4><div class="acts">${note}${a}</div></div>`;

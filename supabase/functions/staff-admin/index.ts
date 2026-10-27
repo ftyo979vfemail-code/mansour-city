@@ -10,8 +10,6 @@ const CREW: Record<string, string[]> = {
   store: ["receiver"],
   elec: ["elec_tech"],
   mech: ["mech_tech"],
-  purchase: ["buyer"],
-  purchase2: ["buyer"],
   admin1: ["clerk"],
   admin2: ["clerk"],
   project: ["keeper", "operator", "mechanic", "fueler", "supply", "receiver", "elec_tech", "mech_tech", "buyer", "clerk"],
