@@ -712,11 +712,11 @@ function teamView(){
   if(!list.length)return h+`<div class="empty"><b>لا يوجد عمال بالكادر بعد</b>أضف كل عامل باسمه ورقم هاتفه وعمله. يدخل العامل برقمه ويرى أزرار عمله فقط.</div>`;
   return h+`<div class="sec" style="margin-top:14px"><div class="acc">${list.map(p=>{const m=p.machine_id&&S.machines.find(x=>x.id===p.machine_id);
     return`<div class="arow"><div class="mono">${ROLES[p.role]?.mono||'؟'}</div><div class="an"><b>${esc(p.full_name||p.username)}</b><span class="muted small">${esc(ROLES[p.role]?.name||p.role)} · <span class="num">${esc(p.phone||p.username)}</span>${m?' · '+esc(m.name):''}${p.active?'':' · <span style="color:var(--bad)">موقوف</span>'}</span></div>
-    <div class="acts">${rs.includes(p.role)?`<button class="btn sm" data-a="crewEdit" data-v="${p.id}">تعديل</button>`:''}</div></div>`}).join('')}</div></div>`}
+    <div class="acts">${rs.includes(p.role)?`${p.active?`<button class="btn sm pri" data-a="loginQR" data-v="${p.id}">باركود الدخول</button>`:''}<button class="btn sm" data-a="crewEdit" data-v="${p.id}">تعديل</button>`:''}</div></div>`}).join('')}</div></div>`}
 function crewForm(p){const n=!p,rs=crewRoles();p=p||{role:rs[0],active:true};const pw=n?genPass():'';
   const machOpts=`<option value="">— بدون —</option>${[...S.machines].sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(m=>`<option value="${m.id}" ${p.machine_id===m.id?'selected':''}>${esc(m.name)}${m.plate?' · '+esc(m.plate):''}</option>`).join('')}`;
   const b=`<form class="f" id="fCrew"><div class="fr"><label class="l">اسم العامل<input id="cName" class="in" required value="${esc(p.full_name||'')}"></label>
-   <label class="l">رقم الهاتف <em>(يدخل به)</em><input id="cPhone" class="in num" dir="ltr" inputmode="tel" ${n?'required':'disabled'} value="${esc(p.phone||p.username||'')}" placeholder="07xxxxxxxxx"></label></div>
+   <label class="l">رقم الهاتف <em>(اختياري)</em><input id="cPhone" class="in num" dir="ltr" inputmode="tel" ${n?'':'disabled'} value="${esc(p.phone||'')}" placeholder="07xxxxxxxxx"></label></div>
    <div class="l" style="font-size:13px;font-weight:500">العمل<div class="rgrid">${rs.map(r=>`<label class="rpick"><input type="radio" name="cRole" value="${r}" ${p.role===r?'checked':''}><span class="mono">${ROLES[r].mono}</span><span>${ROLES[r].name}</span></label>`).join('')}</div></div>
    <label class="l" id="cMachL">الآلية المخصصة <em>(للمشغّل)</em><select id="cMach" class="in">${machOpts}</select></label>
    <label class="l">${n?'كلمة السر':'كلمة سر جديدة'} <em>${n?'':'(اتركها فارغة بدون تغيير)'}</em><div class="gps"><input id="cPass" class="in num" dir="ltr" value="${pw}" ${n?'required minlength="6"':'minlength="6"'}><button type="button" class="btn" id="cGen">توليد</button></div></label>
@@ -731,15 +731,35 @@ function crewForm(p){const n=!p,rs=crewRoles();p=p||{role:rs[0],active:true};con
   $('#fCrew').addEventListener('submit',async e=>{e.preventDefault();const sb_=$('#cSub');sb_.disabled=true;$('#cErr').textContent='';
     try{const role=document.querySelector('input[name=cRole]:checked')?.value;if(!role)throw new Error('اختر العمل');const name=$('#cName').value.trim(),pass=$('#cPass').value.trim();
       const mach=role==='operator'?($('#cMach').value||null):null;
-      if(n){const phone=normDigits($('#cPhone').value).replace(/\D/g,'');const r=await call({action:'create',phone,password:pass,full_name:name,role,machine_id:mach});
+      if(n){const phone=normDigits($('#cPhone').value).replace(/\D/g,'');const username=phone?'':'w'+String(Math.floor(100000+Math.random()*900000));
+        const r=await call({action:'create',phone,username,password:pass,full_name:name,role,machine_id:mach});
         await invLog('أضاف '+name+' للكادر بعمل '+ROLES[role].name,'');await loadAll('staff');render();
-        const d=$('#cDone');d.hidden=false;d.innerHTML=`<b>تمت الإضافة. أرسل هذه البيانات للعامل:</b><pre class="num" style="white-space:pre-wrap;margin:8px 0 0" id="cCopyT">الرابط: ${esc(location.href.split('?')[0].split('#')[0])}\nرقم الدخول: ${esc(r.username)}\nكلمة السر: ${esc(pass)}</pre><button type="button" class="btn sm" id="cCopy" style="margin-top:8px">نسخ</button>`;
-        $('#cCopy').addEventListener('click',()=>{navigator.clipboard?.writeText($('#cCopyT').textContent).then(()=>toast('نُسخ'),()=>{})});sb_.hidden=true}
+        await showLoginQR({id:r.id,full_name:name,role,username:r.username},pass);return}
       else{await call({action:'update',id:p.id,role,full_name:name,active:$('#cAct').checked,password:pass||undefined,machine_id:mach});
         await invLog('عدّل بيانات '+name+' بالكادر',(p.role!==role?'العمل: '+ROLES[role].name:'')+(pass?' · غيّر كلمة السر':'')+(p.active&&!$('#cAct').checked?' · أوقف الحساب':''));await loadAll('staff');closeOv();render();toast('حُفظ')}
     }catch(x){$('#cErr').textContent=x.message;sb_.disabled=false}});
   if(!n)$('#cDel').addEventListener('click',()=>{$('#cConf').innerHTML='<button class="btn bad sm" type="button" id="cDel2">تأكيد الحذف</button>';$('#cDel2').addEventListener('click',async()=>{try{await call({action:'delete',id:p.id});await invLog('حذف '+(p.full_name||'')+' من الكادر','');await loadAll('staff');closeOv();render();toast('حُذف')}catch(x){$('#cErr').textContent=x.message}})});
 }
+async function showLoginQR(p,pass){
+  overlay('lqr','باركود دخول '+esc(p.full_name||''),'<div class="rcbox"><span class="note">جارِ إنشاء الباركود…</span></div>');
+  const {data,error}=await sb.functions.invoke('staff-admin',{body:{action:'login_qr',id:p.id}});
+  let msg=data?.error;if(error){try{msg=(await error.context.json()).error}catch(x){msg=error.message}}
+  if(msg){$('#ovroot .sh-b').innerHTML=`<div class="err">${esc(msg)}</div>`;return}
+  const url=location.href.split('?')[0].split('#')[0]+'?ql='+encodeURIComponent(data.token);
+  $('#ovroot .sh-b').innerHTML=`<div class="rcbox"><b style="font-family:var(--display);font-size:20px">${esc(p.full_name||'')}</b><span class="pill p-accent">${esc(ROLES[p.role]?.name||p.role)}</span>
+   <div class="qr">${qrSvg(url,6)}</div><p class="muted" style="margin:0">العامل يصوّر هذا الباركود بكاميرة موبايله فيدخل مباشرة لواجهته.<br>الباركود يُستخدم مرة واحدة وينتهي بعد ساعة.</p></div>
+   <div class="sec"><h4>بيانات الدخول الاحتياطية</h4><pre class="num" style="white-space:pre-wrap;margin:0" id="lqT">الاسم: ${esc(p.full_name||'')}\nالصفة: ${esc(ROLES[p.role]?.name||'')}\nرقم الدخول: ${esc(p.username||'')}${pass?`\nكلمة السر: ${esc(pass)}`:''}</pre><div class="acts" style="margin-top:8px"><button class="btn sm" id="lqCopy">نسخ</button><button class="btn sm" data-a="loginQR" data-v="${p.id}">باركود جديد</button><button class="btn sm ghost" data-a="close">إغلاق</button></div></div>`;
+  $('#lqCopy').addEventListener('click',()=>{navigator.clipboard?.writeText($('#lqT').textContent).then(()=>toast('نُسخ'),()=>{})});
+  invLog('أصدر باركود دخول لـ '+(p.full_name||''),'')}
+async function qrLogin(token){
+  const {error}=await sb.auth.verifyOtp({token_hash:token,type:'magiclink'});
+  try{history.replaceState(null,'',location.pathname)}catch(e){}
+  if(error){toast('الباركود منتهي أو مستخدم. اطلب باركود جديد من مسؤولك.');S.mode='login';render();return false}
+  await afterLogin();return true}
+function scanLogin(){openScanner('دخول بالباركود','صوّر باركود الدخول اللي أعطاك إياه مسؤولك.',async txt=>{
+  let tok=null;try{tok=new URL(txt).searchParams.get('ql')}catch(e){}if(!tok&&/^[a-f0-9]{20,}$/i.test(txt.trim()))tok=txt.trim();
+  closeOv();if(!tok){toast('هذا ليس باركود دخول');return}await qrLogin(tok)})}
+
 /* crew work screens */
 function bigBtn(a,v,icon,label,cls){return`<button class="bigbtn ${cls||''}" data-a="${a}" data-v="${v}"><span class="bi">${icon}</span><span>${label}</span></button>`}
 function machCard(m){const st=MST[m.status]||MST.idle,d=mDue(m);return`<div class="mcard"><div class="mh"><div><b>${esc(m.name)}</b><div class="meta"><span>${esc(m.type)}</span><span class="num">${esc(m.plate||'')}</span>${m.site?`<span>${esc(m.site)}</span>`:''}</div></div><span class="pill p-${st[1]}">${st[0]}</span></div>
@@ -854,6 +874,7 @@ function loginView(){
   <label class="l">رقم الهاتف أو اسم المستخدم<input id="lUser" class="in" autocomplete="username" autocapitalize="off" dir="ltr" required></label>
   <label class="l">كلمة السر<input id="lPass" class="in" type="password" autocomplete="current-password" dir="ltr" required></label>
   <div class="err" id="lErr"></div><button class="btn pri" type="submit" id="lSub" style="width:100%">دخول</button>
+  <button class="btn" type="button" data-a="scanLogin" style="width:100%">دخول بالباركود</button>
   <p class="small muted" style="margin:0">إذا نسيت كلمة السر راجع مسؤول النظام.</p></form>`}</div></section>`}
 function bindLogin(){bindRegister();const f=$('#fLogin');if(!f)return;f.addEventListener('submit',async e=>{e.preventDefault();const b=$('#lSub');b.disabled=true;b.textContent='جارِ الدخول…';
   let u=normDigits($('#lUser').value.trim()).toLowerCase();if(/^[+\d\s-]+$/.test(u))u=u.replace(/\D/g,'');
@@ -867,7 +888,7 @@ function accountsView(){
   h+=`<div class="sec" style="margin-top:14px"><div class="acc">`;
   const used={};staff.forEach(p=>{if(p.active)used[p.role]=(used[p.role]||0)+1});
   staff.forEach(p=>{h+=`<div class="arow"><div class="mono">${p.hidden?'دف':p.role==='owner'?'مس':(ROLES[p.role]?.mono||'؟')}</div><div class="an"><b>${esc(p.full_name||p.username)}</b><span class="muted small"><span class="num">${esc(p.phone||p.username)}</span>${p.status==='pending'?' · <span style="color:var(--warn)">بانتظار الموافقة</span>':''} · ${p.hidden?'مطوّر النظام (مخفي)':p.role==='owner'?OWNER_NAME:esc(ROLES[p.role]?.name||p.role)}${p.active||p.status==='pending'?'':' · <span style="color:var(--bad)">موقوف</span>'}</span></div>
-   <div class="acts">${p.id===S.me.id?'<span class="muted small">أنت</span> ':''}<button class="btn sm" data-a="accEdit" data-v="${p.id}">${p.id===S.me.id?'تغيير رمزي':'تعديل'}</button></div></div>`});
+   <div class="acts">${p.id===S.me.id?'<span class="muted small">أنت</span> ':''}${p.id!==S.me.id&&p.active&&p.status!=='pending'?`<button class="btn sm pri" data-a="loginQR" data-v="${p.id}">باركود الدخول</button>`:''}<button class="btn sm" data-a="accEdit" data-v="${p.id}">${p.id===S.me.id?'تغيير رمزي':'تعديل'}</button></div></div>`});
   h+=`</div></div>`;
   const missing=Object.keys(ROLES).filter(k=>!used[k]);
   if(missing.length)h+=`<p class="note" style="margin-top:10px">صفات بدون حساب: ${missing.map(k=>ROLES[k].name).join('، ')}</p>`;
@@ -1298,6 +1319,8 @@ document.addEventListener('click',async e=>{
     case'accounts':pushHist();S.view='accounts';closeOv();render();scrollTo(0,0);break;
     case'accNew':accForm();break;
     case'crewNew':crewForm();break;
+    case'loginQR':{const p=S.staff.find(x=>x.id===v);if(p){el.disabled=true;await showLoginQR(p)}break}
+    case'scanLogin':scanLogin();break;
     case'dlvNew':dlvForm();break;
     case'dlvOpen':{const d=S.deliveries.find(x=>x.id===v);if(d)openDlv(d);break}
     case'dlvStart':case'dlvReject':case'dlvDone':{const d0=S.deliveries.find(x=>x.id===S.openD);if(!d0)break;el.disabled=true;const d=clean(d0);
@@ -1377,7 +1400,7 @@ async function afterLogin(){
   await loadAll();S.mode='db';render();subscribe();checkPush();
 }
 render();
-(async()=>{const {data:{session}}=await sb.auth.getSession();if(session)await afterLogin();else{S.mode='login';render()}})();
+(async()=>{const ql=new URLSearchParams(location.search).get('ql');if(ql){await sb.auth.signOut().catch(()=>{});if(await qrLogin(ql))return;return}const {data:{session}}=await sb.auth.getSession();if(session)await afterLogin();else{S.mode='login';render()}})();
 </script>
 </body>
 </html>

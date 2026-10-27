@@ -91,6 +91,18 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (action === "login_qr") {
+      if (!body.id) return json({ error: "id مطلوب" }, 400);
+      const { data: t } = await admin.from("staff").select("username,active,status").eq("id", body.id).maybeSingle();
+      if (!t || !t.active || t.status !== "active") return json({ error: "الحساب غير مفعّل" }, 400);
+      const { data: u } = await admin.auth.admin.getUserById(body.id);
+      const email = u?.user?.email;
+      if (!email) return json({ error: "الحساب غير موجود" }, 404);
+      const { data: link, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true, token: link.properties.hashed_token });
+    }
+
     if (action === "delete") {
       if (!body.id || body.id === user.id) return json({ error: "لا يمكن حذف هذا الحساب" }, 400);
       const { error } = await admin.auth.admin.deleteUser(body.id);
