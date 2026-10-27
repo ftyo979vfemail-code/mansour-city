@@ -137,6 +137,11 @@ button{cursor:pointer}
 .stat b{display:block;font-size:22px;font-family:var(--display);font-variant-numeric:tabular-nums}
 .stat span{font-size:12px;color:var(--muted)}
 .stat.hot b{color:var(--accent)}
+.stat.sel{border-color:var(--accent);background:var(--accent-soft)}
+button.stat{font:inherit;color:inherit;text-align:start;cursor:pointer;width:100%;position:relative;transition:border-color .15s,transform .1s,box-shadow .15s}
+button.stat::after{content:'‹';position:absolute;inset-inline-end:12px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--muted);opacity:.6}
+button.stat:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.06)}button.stat:hover::after{color:var(--accent);opacity:1}
+button.stat:active{transform:scale(.98)}button.stat:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tabs{display:flex;gap:4px;margin-top:20px;border-bottom:1px solid var(--line);overflow-x:auto}
 .tab{border:0;background:none;padding:10px 14px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
@@ -327,7 +332,7 @@ button.orow:hover{background:var(--sunk)}
 .bar .tr{height:10px;background:var(--sunk);border-radius:6px;overflow:hidden}
 .bar .tr i{display:block;height:100%;background:var(--accent);border-radius:6px}
 .toast{position:fixed;bottom:max(18px,env(safe-area-inset-bottom,0px));inset-inline:0;margin:auto;width:max-content;max-width:90vw;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:40;font-size:14px}
-@media (max-width:620px){.top .who{order:3;flex:1 1 100%;justify-content:space-between;border-radius:12px}.brand{flex:1 1 0}}
+@media (max-width:620px){.top .who{order:3;flex:1 1 100%;justify-content:space-between;border-radius:12px;flex-wrap:wrap;row-gap:6px;min-width:0}.brand{flex:1 1 0}}
 @media (max-width:520px){
   .card{grid-template-columns:48px 1fr}
   .thumb{width:48px;height:48px}
@@ -701,11 +706,11 @@ function mLog(m,a,note){m.log=[...(m.log||[]),{t:Date.now(),role:S.role||S.me?.r
 function machinesView(){
   const all=S.machines,f=S.mFilter;
   const cnt=k=>all.filter(m=>m.status===k).length;
-  const list=[...all].filter(m=>!f||m.status===f||m.type===f).sort((a,b)=>({down:0,service:1,work:2,idle:3}[a.status]-{down:0,service:1,work:2,idle:3}[b.status])||a.name.localeCompare(b.name,'ar'));
+  const list=[...all].filter(m=>!f||m.status===f||m.type===f||(f==='due'&&(d=>d!=null&&d<=50)(mDue(m)))).sort((a,b)=>({down:0,service:1,work:2,idle:3}[a.status]-{down:0,service:1,work:2,idle:3}[b.status])||a.name.localeCompare(b.name,'ar'));
   const dueN=all.filter(m=>{const d=mDue(m);return d!=null&&d<=50}).length;
   const types={};all.forEach(m=>types[m.type]=(types[m.type]||0)+1);
-  let h=`<div class="stats" style="margin-top:14px"><div class="stat"><b>${all.length}</b><span>كل الآليات</span></div><div class="stat"><b style="color:var(--ok)">${cnt('work')}</b><span>شغالة</span></div><div class="stat ${cnt('down')?'hot':''}"><b>${cnt('down')}</b><span>عاطلة</span></div><div class="stat"><b>${cnt('service')}</b><span>بالصيانة</span></div><div class="stat ${dueN?'hot':''}"><b>${dueN}</b><span>صيانتها قريبة</span></div></div>`;
-  h+=`<div class="filters"><select id="mFilter" class="in" style="flex:1 1 160px" aria-label="تصفية"><option value="">الكل (${all.length})</option>${Object.entries(MST).map(([k,v])=>`<option value="${k}" ${f===k?'selected':''}>${v[0]} (${cnt(k)})</option>`).join('')}${Object.entries(types).map(([t,n])=>`<option value="${esc(t)}" ${f===t?'selected':''}>${esc(t)} (${n})</option>`).join('')}</select>${canEditM()?`<button class="btn pri" data-a="mNew">+ إضافة آلية</button>`:''}</div>`;
+  let h=`<div class="stats" style="margin-top:14px"><button type="button" class="stat " data-a="stat" data-v="m:"><b>${all.length}</b><span>كل الآليات</span></button><button type="button" class="stat " data-a="stat" data-v="m:work"><b style="color:var(--ok)">${cnt('work')}</b><span>شغالة</span></button><button type="button" class="stat ${cnt('down')?'hot':''}" data-a="stat" data-v="m:down"><b>${cnt('down')}</b><span>عاطلة</span></button><button type="button" class="stat " data-a="stat" data-v="m:service"><b>${cnt('service')}</b><span>بالصيانة</span></button><button type="button" class="stat ${dueN?'hot':''}" data-a="stat" data-v="m:due"><b>${dueN}</b><span>صيانتها قريبة</span></button></div>`;
+  h+=`<div class="filters"><select id="mFilter" class="in" style="flex:1 1 160px" aria-label="تصفية"><option value="">الكل (${all.length})</option>${dueN?`<option value="due" ${f==='due'?'selected':''}>صيانتها قريبة (${dueN})</option>`:''}${Object.entries(MST).map(([k,v])=>`<option value="${k}" ${f===k?'selected':''}>${v[0]} (${cnt(k)})</option>`).join('')}${Object.entries(types).map(([t,n])=>`<option value="${esc(t)}" ${f===t?'selected':''}>${esc(t)} (${n})</option>`).join('')}</select>${canEditM()?`<button class="btn pri" data-a="mNew">+ إضافة آلية</button>`:''}</div>`;
   if(!all.length)return h+`<div class="empty"><b>لا توجد آليات مسجلة</b>${canEditM()?'أضف كل آلية مع نوعها ورقمها وعدّاد الساعات، حتى يتابع النظام حالتها وصيانتها وكلفتها.':'يضيفها مدير الآليات أو مدير المشروع.'}</div>`;
   return h+`<div class="list">${list.map(m=>{const st=MST[m.status]||MST.idle,d=mDue(m),c=mCost(m);
     return`<button class="card ${m.status==='down'?'crit':m.status==='service'?'urg':''}" data-a="mOpen" data-v="${m.id}">${m.img?imgTag(m.img,'thumb'):`<div class="thumb">${esc((m.type||'').slice(0,5))}</div>`}
@@ -820,7 +825,7 @@ function crewWork(role){
     if(!need.length)return`<div class="empty"><b>لا توجد أعمال صيانة الآن</b>الآليات العاطلة أو التي حان موعد صيانتها تظهر هنا.</div>`;
     return`<div class="list" style="margin-top:14px">${need.map(m=>`<div>${machCard(m)}<div class="acts" style="margin:8px 0 6px">${m.status==='down'?`<button class="btn" data-a="mcStart" data-v="${m.id}">بدء الإصلاح</button>`:''}${m.status!=='work'?`<button class="btn ok" data-a="mcFixed" data-v="${m.id}">تم الإصلاح</button>`:''}<button class="btn" data-a="mcService" data-v="${m.id}">تمت الصيانة الدورية</button><button class="btn ghost" data-a="opPart" data-v="${m.id}">طلب قطعة</button></div></div>`).join('')}</div>`}
   if(role==='fueler'){const today=new Date().toDateString();let tot=0;S.machines.forEach(m=>(m.fuel||[]).forEach(f=>{if(new Date(f.t).toDateString()===today)tot+=+f.liters||0}));
-    return`<div class="stats" style="margin-top:14px"><div class="stat"><b class="num">${nf.format(tot)}</b><span>لتر اليوم</span></div><div class="stat"><b>${S.machines.length}</b><span>آلية</span></div></div>
+    return`<div class="stats" style="margin-top:14px"><div class="stat"><b class="num">${nf.format(tot)}</b><span>لتر اليوم</span></div><button type="button" class="stat" data-a="stat" data-v="tab:mach"><b>${S.machines.length}</b><span>آلية</span></button></div>
      <div class="list" style="margin-top:14px">${[...S.machines].sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(m=>{const last=(m.fuel||[]).slice(-1)[0];return`<div class="card" style="cursor:default"><div class="thumb">${esc((m.type||'').slice(0,5))}</div><div class="mid"><div class="t">${esc(m.name)}</div><div class="meta"><span class="num">${esc(m.plate||'')}</span>${last?`<span>آخر تعبئة <span class="num">${nf.format(+last.liters)}</span> لتر · ${ago(last.t)}</span>`:'<span>لا تعبئة مسجلة</span>'}</div></div><div class="end"><button class="btn pri sm" data-a="opFuel" data-v="${m.id}">⛽ تعبئة</button></div></div>`}).join('')||'<div class="empty"><b>لا توجد آليات</b></div>'}</div>`}
   return''}
 function keeperIssueView(){
@@ -855,7 +860,7 @@ function dlvView(){
   const f=S.dlvF,today=S.deliveries.filter(d=>sameDay(d.createdAt));
   const list=(f==='today'?today:f==='open'?dlvOpen():S.deliveries).slice().sort((a,b)=>({wait:0,unload:1}[a.status]??2)-({wait:0,unload:1}[b.status]??2)||b.createdAt-a.createdAt);
   const byMat={};today.filter(d=>d.status==='done').forEach(d=>{const k=d.material+'|'+d.unit;byMat[k]=(byMat[k]||0)+(+d.qty||0)});
-  let h=`<div class="stats" style="margin-top:14px"><div class="stat"><b>${today.length}</b><span>شاحنات اليوم</span></div><div class="stat ${S.deliveries.filter(d=>d.status==='wait').length?'hot':''}"><b>${S.deliveries.filter(d=>d.status==='wait').length}</b><span>بانتظار التنزيل</span></div><div class="stat"><b>${S.deliveries.filter(d=>d.status==='unload').length}</b><span>قيد التنزيل</span></div><div class="stat"><b style="color:var(--ok)">${today.filter(d=>d.status==='done').length}</b><span>نُزّلت اليوم</span></div></div>`;
+  let h=`<div class="stats" style="margin-top:14px"><button type="button" class="stat " data-a="stat" data-v="d:today"><b>${today.length}</b><span>شاحنات اليوم</span></button><button type="button" class="stat ${S.deliveries.filter(d=>d.status==='wait').length?'hot':''}" data-a="stat" data-v="d:open"><b>${S.deliveries.filter(d=>d.status==='wait').length}</b><span>بانتظار التنزيل</span></button><button type="button" class="stat " data-a="stat" data-v="d:open"><b>${S.deliveries.filter(d=>d.status==='unload').length}</b><span>قيد التنزيل</span></button><button type="button" class="stat " data-a="stat" data-v="d:today"><b style="color:var(--ok)">${today.filter(d=>d.status==='done').length}</b><span>نُزّلت اليوم</span></button></div>`;
   if(Object.keys(byMat).length)h+=`<div class="sec" style="margin-top:12px"><h4>المنزّل اليوم</h4><div class="kv">${Object.entries(byMat).map(([k,v])=>{const [m,u]=k.split('|');return`<div><span>${esc(m)}</span><b><span class="num">${nf.format(v)}</span> ${esc(u)}</b></div>`}).join('')}</div></div>`;
   h+=`<div class="filters"><div class="seg" style="flex:1 1 220px">${[['today','اليوم'],['open','المفتوحة'],['all','الكل']].map(([k,t])=>`<label><input type="radio" name="dlvF" value="${k}" ${f===k?'checked':''}>${t}</label>`).join('')}</div>${canDlv()?`<button class="btn pri" data-a="dlvNew">+ تسجيل شاحنة واصلة</button>`:''}</div>`;
   if(!list.length)return h+`<div class="empty"><b>لا توجد شاحنات ${f==='today'?'اليوم':f==='open'?'بانتظار التنزيل':''}</b>${canDlv()?'سجّل كل شاحنة توصل للمعمل: المادة والكمية والمورد ورقم الشاحنة، وصوّر وصل التسليم.':''}</div>`;
@@ -968,14 +973,15 @@ function orgRow(p,act){const st=personStatus(p),a=act[p.id],mg=p.manager_id&&S.s
    <span class="oend"><span class="pill p-${st[1]}">${st[0]}</span><span class="muted small">${a?`<span class="num">${a.n}</span> حركة · ${ago(a.last)}`:'لا حركات'}</span></span></button>`}
 function orgView(){
   const q=(S.orgQ||'').trim(),act=activityIndex(),all=S.staff.filter(p=>!p.hidden);
-  const match=p=>!q||[p.full_name,p.phone,p.username,ROLES[p.role]?.name].join(' ').includes(q);
+  const of=S.orgF||'',okF=p=>!of||(of==='heads'?!ROLES[p.role]?.crew:of==='crew'?!!ROLES[p.role]?.crew:of==='pending'?p.status==='pending':(!p.active&&p.status!=='pending'));
+  const match=p=>okF(p)&&(!q||[p.full_name,p.phone,p.username,ROLES[p.role]?.name].join(' ').includes(q));
   const heads=all.filter(p=>!ROLES[p.role]?.crew),crew=all.filter(p=>ROLES[p.role]?.crew);
   let h=`<div class="head"><div><h2>الموظفين والأقسام</h2><p>كل المسؤولين وكوادرهم حسب القسم، مع حالة كل حساب وآخر نشاط.</p></div></div>
-  <div class="stats"><div class="stat"><b>${all.length}</b><span>كل الموظفين</span></div><div class="stat"><b>${heads.length}</b><span>مسؤولين</span></div><div class="stat"><b>${crew.length}</b><span>كادر</span></div><div class="stat ${all.filter(p=>p.status==='pending').length?'hot':''}"><b>${all.filter(p=>p.status==='pending').length}</b><span>بانتظار الموافقة</span></div><div class="stat"><b>${all.filter(p=>!p.active&&p.status!=='pending').length}</b><span>موقوفين</span></div></div>
+  <div class="stats">${[['','كل الموظفين',all.length],['heads','مسؤولين',heads.length],['crew','كادر',crew.length],['pending','بانتظار الموافقة',all.filter(p=>p.status==='pending').length],['off','موقوفين',all.filter(p=>!p.active&&p.status!=='pending').length]].map(([k,t,n])=>`<button type="button" class="stat ${(S.orgF||'')===k?'sel':''} ${k==='pending'&&n?'hot':''}" data-a="stat" data-v="o:${k}"><b>${n}</b><span>${t}</span></button>`).join('')}</div>${S.orgF?`<p class="note">معروض: ${{heads:'المسؤولين فقط',crew:'الكادر فقط',pending:'بانتظار الموافقة فقط',off:'الموقوفين فقط'}[S.orgF]} — <a href="#" data-a="stat" data-v="o:">عرض الكل</a></p>`:''}
   <div class="filters"><input id="orgQ" class="in" placeholder="بحث بالاسم أو الرقم أو الصفة…" value="${esc(q)}"></div>`;
   ORG.forEach(d=>{const H=all.filter(p=>d.h.includes(p.role)&&match(p)),C=all.filter(p=>d.c.includes(p.role)&&match(p));
-    const vac=q?[]:d.h.filter(r=>!all.some(p=>p.role===r));
-    if(q&&!H.length&&!C.length)return;
+    const vac=(q||of)?[]:d.h.filter(r=>!all.some(p=>p.role===r));
+    if((q||of)&&!H.length&&!C.length)return;
     h+=`<div class="sec osec"><div class="oh"><h3>${d.n}</h3><span class="muted small">${H.length} مسؤول${d.c.length?` · ${C.length} من الكادر`:''}</span></div>
      ${H.map(p=>orgRow(p,act)).join('')}${vac.map(r=>`<div class="orow vac"><span class="mono">${ROLES[r].mono}</span><span class="an"><b>${ROLES[r].name}</b><span class="muted small">غير معيّن — لا يوجد حساب بهذه الصفة</span></span></div>`).join('')}
      ${d.c.length?`<div class="ocrew">${d.c.map(r=>{const L=C.filter(p=>p.role===r);return`<div class="ocr"><div class="ocl">${ROLES[r].name} <span class="num">(${L.length})</span></div>${L.map(p=>orgRow(p,act)).join('')||'<div class="muted small" style="padding:6px 4px">لا يوجد</div>'}</div>`}).join('')}</div>`:''}</div>`});
@@ -996,7 +1002,7 @@ function devView(){
   const spent=S.requests.reduce((a,r)=>a+(r.purchase?.total||0),0);
   const act=S.staff.filter(p=>p.active&&!p.hidden).length,pend=pendingStaff().length;
   let h=pushBanner()+`<div class="head"><div><h2>لوحة المطوّر</h2><p>تحكم كامل بالنظام. هذه اللوحة لا تظهر لأي حساب آخر.</p></div></div>
-  <div class="stats"><div class="stat"><b>${S.requests.length}</b><span>كل الطلبات</span></div><div class="stat"><b>${S.inventory.length}</b><span>مواد المخزون</span></div><div class="stat"><b>${act}</b><span>حسابات مفعّلة</span></div><div class="stat ${pend?'hot':''}"><b>${pend}</b><span>بانتظار الموافقة</span></div><div class="stat"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></div><div class="stat"><b>${S.notifs.length}</b><span>إشعارات</span></div></div>
+  <div class="stats"><button type="button" class="stat " data-a="stat" data-v="all"><b>${S.requests.length}</b><span>كل الطلبات</span></button><div class="stat"><b>${S.inventory.length}</b><span>مواد المخزون</span></div><div class="stat"><b>${act}</b><span>حسابات مفعّلة</span></div><div class="stat ${pend?'hot':''}"><b>${pend}</b><span>بانتظار الموافقة</span></div><button type="button" class="stat" data-a="stat" data-v="spent"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></button><div class="stat"><b>${S.notifs.length}</b><span>إشعارات</span></div></div>
   <div class="mapgrid"><div class="sec"><h4>الدخول لأي واجهة</h4><div class="acts">${Object.entries(ROLES).filter(([k,r])=>!r.legacy).map(([k,r])=>`<button class="btn sm" data-a="role" data-v="${k}">${r.name}</button>`).join('')}</div>
    <h4 style="margin-top:14px">الإدارة</h4><div class="acts"><button class="btn sm" data-a="accounts">الحسابات والصلاحيات</button><button class="btn sm" data-a="orgView">الموظفين والأقسام</button><button class="btn sm" data-a="devTab" data-v="admin1:notif">الإشعارات</button><button class="btn sm" data-a="devTab" data-v="admin1:feed">سجل الحركات</button><button class="btn sm" data-a="devTab" data-v="admin1:join">طلبات الانضمام</button><button class="btn sm" data-a="devTab" data-v="store:inv">المخزون</button><button class="btn sm" data-a="devTab" data-v="project:mach">الآليات</button><button class="btn sm" data-a="devTab" data-v="mstore:inv">مخزن الآليات</button><button class="btn sm" data-a="devTab" data-v="project:dlv">تجهيز المواد</button></div></div>
    <div class="sec"><h4>الطلبات حسب المرحلة</h4><div class="kv">${Object.entries(ST).map(([k,v])=>`<div><span>${v.t}</span><b class="num">${cnt[k]||0}</b></div>`).join('')}</div>
@@ -1128,7 +1134,7 @@ function roleHome(){
   const canNew=['dept','project','store','crew'].includes(R.kind)&&role!=='fueler'&&role!=='supply'&&role!=='receiver';
   let h=pushBanner()+gpsBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div>${canNew?`<div class="acts"><button class="btn" data-a="paper">📄 رفع ورقة طلبات</button><button class="btn pri" data-a="new">+ طلب مواد جديد</button></div>`:''}</div>`;
   const spent=S.requests.reduce((s,r)=>s+(r.purchase?.total||0),0);
-  if(R.kind!=='crew')h+=`<div class="stats">${R.kind==='admin'?`<div class="stat"><b>${recent24()}</b><span>حركات آخر 24 ساعة</span></div>`:`<div class="stat ${mq?'hot':''}"><b>${mq}</b><span>بانتظار إجرائك</span></div>`}<div class="stat"><b>${open.length}</b><span>طلبات مفتوحة</span></div><div class="stat ${crit?'hot':''}"><b>${crit}</b><span>طارئة - توقف إنتاج</span></div>${R.kind==='admin'||R.kind==='purchase'?`<div class="stat"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></div>`:`<div class="stat"><b>${invOf(role).filter(i=>+i.qty<=+i.min).length}</b><span>مواد تحت الحد الأدنى</span></div>`}</div>`;
+  if(R.kind!=='crew')h+=`<div class="stats">${R.kind==='admin'?`<button type="button" class="stat " data-a="stat" data-v="recent"><b>${recent24()}</b><span>حركات آخر 24 ساعة</span></button>`:`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار إجرائك</span></button>`}<button type="button" class="stat " data-a="stat" data-v="open"><b>${open.length}</b><span>طلبات مفتوحة</span></button><button type="button" class="stat ${crit?'hot':''}" data-a="stat" data-v="crit"><b>${crit}</b><span>طارئة - توقف إنتاج</span></button>${R.kind==='admin'||R.kind==='purchase'?`<button type="button" class="stat " data-a="stat" data-v="spent"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></button>`:`<button type="button" class="stat " data-a="stat" data-v="low"><b>${invOf(role).filter(i=>+i.qty<=+i.min).length}</b><span>مواد تحت الحد الأدنى</span></button>`}</div>`;
   h+=`<div class="tabs" role="tablist">${tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-a="tab" data-v="${k}">${t}${c?`<span class="c num">${c}</span>`:''}</button>`).join('')}</div>`;
   h+=tabBody(role);
   if(!S.requests.length&&!S.inventory.length)h+=`<div class="empty"><b>لا توجد بيانات بعد</b>ابدأ برفع أول طلب.</div>`;
@@ -1516,6 +1522,7 @@ document.addEventListener('click',async e=>{
     case'logout':stopTracking();await disablePush();await sb.auth.signOut();S.me=null;S.role=null;S.view=null;S.hist=[];S.mode='login';closeOv();render();break;
     case'theme':document.documentElement.dataset.theme=isDark()?'light':'dark';try{localStorage.setItem('cm_theme',document.documentElement.dataset.theme)}catch(x){}render();break;
     case'open':{const r=S.requests.find(x=>x.id===v);if(r)openReq(r);break}
+    case'stat':e.preventDefault();statGo(v);break;
     case'close':case'ovbg':closeOv();render();break;
     case'back':if(cur)openReq(cur);else closeOv();break;
     case'new':newReqForm();break;
@@ -1546,6 +1553,30 @@ document.addEventListener('input',e=>{if(e.target.id==='orgQ'){S.orgQ=e.target.v
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#ovroot').innerHTML)goBack()});
 
 /* ---------- boot ---------- */
+/* clickable stat tiles */
+function scrollToList(){setTimeout(()=>{const el=$('#app .filters')||$('#app .list')||$('#app .tbl-wrap');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}
+function reqSheet(title,list,empty){overlay('stat',`${title} <span class="num muted">(${list.length})</span>`,listView(list,empty))}
+function statGo(k){
+  const role=S.role,open=S.requests.filter(r=>!['done','rejected'].includes(r.status)),tabs=role?tabsFor(role).map(t=>t[0]):[];
+  const toTab=t=>{if(tabs.includes(t)){closeOv();S.tab=t;render();scrollToList();return true}return false};
+  if(k.startsWith('tab:')){toTab(k.slice(4));return}
+  if(k.startsWith('m:')){closeOv();S.mFilter=k.slice(2);render();scrollToList();return}
+  if(k.startsWith('d:')){closeOv();S.dlvF=k.slice(2);render();scrollToList();return}
+  if(k.startsWith('o:')){S.orgF=k.slice(2);render();scrollToList();return}
+  switch(k){
+    case'mine':{const q=queueFor(role);const tab=tabs[0];if(q.length&&tab&&['approve','buy','check','receive'].includes(tab)){toTab(tab);return}reqSheet('بانتظار إجرائك',q,'ماكو شي بانتظارك هسه. 👍');return}
+    case'open':reqSheet('الطلبات المفتوحة',open,'ماكو طلبات مفتوحة.');return;
+    case'crit':reqSheet('طارئة — توقف إنتاج',open.filter(r=>r.priority==='critical'),'ماكو طلبات طارئة.');return;
+    case'all':reqSheet('كل الطلبات',S.requests,'ماكو طلبات بعد.');return;
+    case'recent':if(!toTab('feed'))reqSheet('آخر الحركات',S.requests.filter(r=>Date.now()-(r.updatedAt||r.createdAt)<864e5),'ماكو حركات آخر 24 ساعة.');return;
+    case'low':{if(toTab('inv'))return;const items=invOf(role).filter(i=>+i.qty<=+i.min);
+      overlay('stat',`مواد تحت الحد الأدنى <span class="num muted">(${items.length})</span>`,items.length?`<div class="tbl-wrap"><table><thead><tr><th>المادة</th><th>الرصيد</th><th>الحد الأدنى</th></tr></thead><tbody>${items.map(i=>`<tr class="low"><td>${esc(i.name)}</td><td class="num">${nf.format(+i.qty)} ${esc(i.unit||'')}</td><td class="num">${nf.format(+i.min)}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><b>كل المواد فوق الحد الأدنى</b>ماكو نقص بالمخزون.</div>`);return}
+    case'spent':{const b=S.requests.filter(r=>r.purchase?.total).sort((a,c)=>(c.purchase.at||0)-(a.purchase.at||0));const tot=b.reduce((a,r)=>a+r.purchase.total,0);
+      const by={};b.forEach(r=>{by[r.dept]=(by[r.dept]||0)+r.purchase.total});
+      overlay('stat',`مجموع المشتريات <span class="num muted">(${b.length})</span>`,b.length?`<div class="sec"><div class="kv"><div><span>المجموع الكلي</span><b class="num">${money(tot)}</b></div>${Object.entries(by).sort((a,c)=>c[1]-a[1]).map(([d,v])=>`<div><span>${esc(d)}</span><b class="num">${money(v)}</b></div>`).join('')}</div></div><div class="list">${b.map(r=>card(r).replace('</button>',`<div class="num" style="font-weight:700;white-space:nowrap">${money(r.purchase.total)}</div></button>`)).join('')}</div>`:`<div class="empty"><b>ماكو مشتريات بعد</b>تظهر هنا كل عملية شراء مع فاتورتها.</div>`);return}
+  }
+}
+
 /* ===== GPS: live location of purchasing reps ===== */
 const TRACK_ROLES=['buyer','purchase','purchase2'];
 const seesReps=()=>['owner','project','admin1','admin2'].includes(S.me?.role);
