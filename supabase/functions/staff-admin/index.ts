@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const DOMAIN = "staff.mansourcity.app";
-const ROLES = ["owner","machines","elec","mech","store","project","admin1","admin2","purchase","purchase2"];
+const ROLES = ["owner","machines","elec","mech","store","mstore","project","admin1","admin2","purchase","purchase2"];
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
