@@ -320,6 +320,7 @@ const ROLES={
   operator:{name:'مشغّل آلية',kind:'crew',mono:'شغ',crew:true,boss:'machines',dept:'الآليات'},
   mechanic:{name:'فني صيانة آليات',kind:'crew',mono:'فن',crew:true,boss:'machines',dept:'الآليات'},
   fueler:{name:'مسؤول الوقود',kind:'crew',mono:'وق',crew:true,boss:'machines',dept:'الآليات'},
+  receiver:{name:'عامل الاستلام',kind:'crew',mono:'اس',crew:true,boss:'store'},
   supply:{name:'مشرف تجهيز المواد',kind:'crew',mono:'تج',crew:true,boss:'machines',dept:'الآليات'},
   project:{name:'مدير المشروع',kind:'project',mono:'مش'},
   admin1:{name:'الإداري الأول',kind:'admin',mono:'إ١'},
@@ -335,7 +336,7 @@ const ST={
   pur_ok:{t:'بانتظار موافقة المشتريات',c:'warn',who:['purchase','purchase2']},
   buy:{t:'بانتظار الشراء',c:'accent',who:['purchase','purchase2']},
   buying:{t:'قيد الشراء',c:'accent',who:['purchase','purchase2']},
-  receive:{t:'بانتظار الاستلام',c:'info',who:['store','mstore','keeper','purchase','purchase2']},
+  receive:{t:'بانتظار الاستلام',c:'info',who:['store','mstore','keeper','receiver','purchase','purchase2']},
   done:{t:'مكتمل',c:'ok',who:[]},
   rejected:{t:'مرفوض',c:'bad',who:[]},
 };
@@ -484,7 +485,7 @@ async function clearDemo(){
 /* ---------- workflow ---------- */
 const whOf=r=>r.wh==='mach'?'mach':'main';
 const myWh=role=>(role==='mstore'||role==='keeper')?'mach':'main';
-const isStoreRole=role=>role==='store'||role==='mstore'||role==='keeper';
+const isStoreRole=role=>role==='store'||role==='mstore'||role==='keeper'||role==='receiver';
 const whName=w=>w==='mach'?'مخزن الآليات':'المخزن الرئيسي';
 function canAct(r,role){if(role==='project'&&!['done','rejected'].includes(r.status))return true;if(isStoreRole(role)&&whOf(r)!==myWh(role))return false;return(ST[r.status]?.who||[]).includes(role)}
 const invOf=role=>isStoreRole(role)?S.inventory.filter(i=>(i.wh==='mach'?'mach':'main')===myWh(role)):S.inventory;
@@ -703,7 +704,7 @@ function fuelForm(m){overlay('mfuel','تعبئة وقود — '+esc(m.name),`<fo
     nm.fuel=[...(nm.fuel||[]),{t:Date.now(),liters:L,hours:H,note:$('#fuN').value.trim(),uid:S.me?.id||null}];if(H!=null&&H>=(+nm.hours||0))nm.hours=H;mLog(nm,'عبّأ وقود',L+' لتر');await putMachine(nm);openMachine(nm);toast('سُجّلت التعبئة')})}
 
 /* ---------- crew ---------- */
-const CREW_OF={machines:['operator','mechanic','fueler','supply'],mstore:['keeper'],project:['keeper','operator','mechanic','fueler','supply'],owner:['keeper','operator','mechanic','fueler','supply']};
+const CREW_OF={machines:['operator','mechanic','fueler','supply'],mstore:['keeper'],store:['receiver'],project:['keeper','operator','mechanic','fueler','supply','receiver'],owner:['keeper','operator','mechanic','fueler','supply','receiver']};
 const crewRoles=()=>CREW_OF[S.me?.role]||[];
 function myCrew(){const rs=CREW_OF[S.role]||crewRoles();return S.staff.filter(p=>rs.includes(p.role)&&!p.hidden)}
 function teamView(){
@@ -954,19 +955,20 @@ function rolePicker(){
   <div class="group-label">المخزن والمشروع</div><div class="roles">${['store','mstore','project'].map(card).join('')}</div>
   <div class="group-label">الإدارة (مراقبة)</div><div class="roles">${['admin1','admin2'].map(card).join('')}</div>
   <div class="group-label">المشتريات</div><div class="roles">${['purchase','purchase2'].map(card).join('')}</div>
-  <div class="group-label">كادر الآليات</div><div class="roles">${['keeper','operator','mechanic','fueler','supply'].map(card).join('')}</div></section>`;
+  <div class="group-label">كادر الآليات</div><div class="roles">${['receiver','keeper','operator','mechanic','fueler','supply'].map(card).join('')}</div></section>`;
 }
-function roleDesc(k){const CD={supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
+function roleDesc(k){const CD={receiver:'استلام المواد المشتراة بالباركود نيابة عن مدير المخزن',supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
 
 function tabsFor(role){
   const k=ROLES[role].kind,q=queueFor(role);
   if(role==='operator')return[['work','آليتي',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='mechanic')return[['work','أعمال الصيانة',S.machines.filter(m=>m.status==='down').length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='fueler')return[['work','تعبئة الوقود',0],['mach','الآليات',0]];
+  if(role==='receiver')return[['receive','للاستلام',S.requests.filter(r=>r.status==='receive'&&canAct(r,role)).length],['inv','المخزون',0],['all','كل الطلبات',0]];
   if(role==='supply')return[['dlv','التنزيل',dlvOpen().length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='machines')return[['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['dlv','تجهيز المواد',dlvOpen().length],['team','الكادر',myCrew().length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0]];
   if(k==='dept')return[['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0]];
-  if(k==='store')return[['check','للفحص',S.requests.filter(r=>r.status==='store_check'&&canAct(r,role)).length],['receive','للاستلام',S.requests.filter(r=>r.status==='receive'&&canAct(r,role)).length],['inv','المخزون',invOf(role).filter(i=>+i.qty<=+i.min).length],...(role==='mstore'?[['team','الكادر',myCrew().length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length]]:role==='keeper'?[['issue','صرف لآلية',0],['mach','الآليات',0]]:[]),['all','كل الطلبات',0]];
+  if(k==='store')return[['check','للفحص',S.requests.filter(r=>r.status==='store_check'&&canAct(r,role)).length],['receive','للاستلام',S.requests.filter(r=>r.status==='receive'&&canAct(r,role)).length],['inv','المخزون',invOf(role).filter(i=>+i.qty<=+i.min).length],...(role==='store'?[['team','الكادر',myCrew().length]]:role==='mstore'?[['team','الكادر',myCrew().length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length]]:role==='keeper'?[['issue','صرف لآلية',0],['mach','الآليات',0]]:[]),['all','كل الطلبات',0]];
   if(k==='project')return[['approve','للموافقة',q.length],['open','كل المفتوحة',S.requests.filter(r=>!['done','rejected'].includes(r.status)).length],['notif','الإشعارات',unread()],['join','طلبات الانضمام',pendingStaff().length],['inv','المخزون',S.inventory.filter(i=>+i.qty<=+i.min).length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['dlv','تجهيز المواد',dlvOpen().length],['team','الكادر',myCrew().length],['all','كل الطلبات',0]];
   if(k==='admin')return[['notif','الإشعارات',unread()],['feed','سجل الحركات',recent24()],['join','طلبات الانضمام',pendingStaff().length],['all','كل الطلبات',0],['mach','الآليات',0],['dlv','تجهيز المواد',0],['sum','الملخص',0]];
   return[['buy','للموافقة والشراء',q.length],['map','المواقع GPS',0],['done','مشترياتي',0]];
@@ -977,7 +979,7 @@ function roleHome(){
   const open=S.requests.filter(r=>!['done','rejected'].includes(r.status));
   const crit=open.filter(r=>r.priority==='critical').length;
   const mq=queueFor(role).length;
-  const canNew=['dept','project','store','crew'].includes(R.kind)&&role!=='fueler'&&role!=='supply';
+  const canNew=['dept','project','store','crew'].includes(R.kind)&&role!=='fueler'&&role!=='supply'&&role!=='receiver';
   let h=pushBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div>${canNew?`<button class="btn pri" data-a="new">+ طلب مواد جديد</button>`:''}</div>`;
   const spent=S.requests.reduce((s,r)=>s+(r.purchase?.total||0),0);
   if(R.kind!=='crew')h+=`<div class="stats">${R.kind==='admin'?`<div class="stat"><b>${recent24()}</b><span>حركات آخر 24 ساعة</span></div>`:`<div class="stat ${mq?'hot':''}"><b>${mq}</b><span>بانتظار إجرائك</span></div>`}<div class="stat"><b>${open.length}</b><span>طلبات مفتوحة</span></div><div class="stat ${crit?'hot':''}"><b>${crit}</b><span>طارئة - توقف إنتاج</span></div>${R.kind==='admin'||R.kind==='purchase'?`<div class="stat"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></div>`:`<div class="stat"><b>${invOf(role).filter(i=>+i.qty<=+i.min).length}</b><span>مواد تحت الحد الأدنى</span></div>`}</div>`;
@@ -1046,9 +1048,9 @@ async function invLog(a,note){const e={t:Date.now(),role:S.role,uid:S.me?.id||nu
   S.invlog.unshift(e);try{await sb.from('invlog').insert({data:e})}catch(x){}}
 function invView(){
   const role=S.role,both=!isStoreRole(role);const items=[...invOf(role)].filter(i=>!both||!S.whF||(i.wh==='mach'?'mach':'main')===S.whF).sort((a,b)=>((+a.qty<=+a.min)?0:1)-((+b.qty<=+b.min)?0:1)||a.name.localeCompare(b.name,'ar'));
-  let h=`<div class="filters">${both?`<select id="whF" class="in" style="flex:1 1 160px"><option value="">كل المخازن</option><option value="main" ${S.whF==='main'?'selected':''}>المخزن الرئيسي</option><option value="mach" ${S.whF==='mach'?'selected':''}>مخزن الآليات</option></select>`:`<span class="pill p-info" style="align-self:center">${whName(myWh(role))}</span>`}<button class="btn pri" data-a="invNew">+ إضافة مادة للمخزون</button></div>`;
+  let h=`<div class="filters">${both?`<select id="whF" class="in" style="flex:1 1 160px"><option value="">كل المخازن</option><option value="main" ${S.whF==='main'?'selected':''}>المخزن الرئيسي</option><option value="mach" ${S.whF==='mach'?'selected':''}>مخزن الآليات</option></select>`:`<span class="pill p-info" style="align-self:center">${whName(myWh(role))}</span>`}${role==='receiver'?'':'<button class="btn pri" data-a="invNew">+ إضافة مادة للمخزون</button>'}</div>`;
   if(!items.length)return h+`<div class="empty"><b>المخزون فارغ</b>أضف المواد مع الحد الأدنى لكل مادة ليظهر التنبيه عند النقص.</div>`;
-  return h+`<div class="tbl-wrap"><table><thead><tr><th>المادة</th><th>الرمز</th><th>الرصيد</th><th>الحد الأدنى</th><th>الرف</th><th></th></tr></thead><tbody>${items.map(i=>`<tr class="${+i.qty<=+i.min?'low':''}"><td>${esc(i.name)} ${both&&i.wh==='mach'?'<span class="pill p-accent">الآليات</span> ':''}${i.demo?'<span class="tag-demo">تجريبي</span>':''}</td><td class="num muted">${esc(i.sku||'')}</td><td class="q"><span class="num">${nf.format(+i.qty)}</span> ${esc(i.unit)}</td><td class="num">${nf.format(+i.min)}</td><td class="num">${esc(i.shelf||'')}</td><td><button class="btn sm" data-a="invEdit" data-v="${i.id}">تعديل</button></td></tr>`).join('')}</tbody></table></div>`;
+  return h+`<div class="tbl-wrap"><table><thead><tr><th>المادة</th><th>الرمز</th><th>الرصيد</th><th>الحد الأدنى</th><th>الرف</th><th></th></tr></thead><tbody>${items.map(i=>`<tr class="${+i.qty<=+i.min?'low':''}"><td>${esc(i.name)} ${both&&i.wh==='mach'?'<span class="pill p-accent">الآليات</span> ':''}${i.demo?'<span class="tag-demo">تجريبي</span>':''}</td><td class="num muted">${esc(i.sku||'')}</td><td class="q"><span class="num">${nf.format(+i.qty)}</span> ${esc(i.unit)}</td><td class="num">${nf.format(+i.min)}</td><td class="num">${esc(i.shelf||'')}</td><td>${role==='receiver'?'':`<button class="btn sm" data-a="invEdit" data-v="${i.id}">تعديل</button>`}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function sumView(){
   const by={};S.requests.forEach(r=>{by[r.dept]=by[r.dept]||{n:0,s:0};by[r.dept].n++;by[r.dept].s+=r.purchase?.total||0});
@@ -1119,7 +1121,7 @@ function actionsHTML(r,role){if(!role||!ROLES[role])return"";
     case'pur_ok':a=`<button class="btn ok" data-a="do" data-v="purOk">موافقة على الشراء</button>${rej}`;break;
     case'buy':a=`<button class="btn" data-a="do" data-v="startBuy">بدء الشراء</button><button class="btn pri" data-a="buyForm">تأكيد الشراء وإرفاق الفاتورة</button>`;break;
     case'buying':a=`<button class="btn pri" data-a="buyForm">تأكيد الشراء وإرفاق الفاتورة</button>`;break;
-    case'receive':a=role==='project'?`<button class="btn" data-a="rcIssue">إصدار باركود الاستلام</button><button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button>`:ROLES[role].kind==='store'?`<button class="btn pri" data-a="rcIssue">إصدار باركود الاستلام</button><span class="note">يمسحه مدير المشتريات عند تسليم المادة</span>`:`<button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button><span class="note">اطلب من مدير المخزن إظهار الباركود</span>`;return`<div class="sec"><h4>الاستلام بالباركود</h4><div class="acts">${a}</div></div>`;
+    case'receive':a=role==='receiver'?`<button class="btn pri" data-a="rcIssue">إصدار باركود الاستلام</button><span class="note">يمسحه مدير المشتريات عند تسليم المادة</span>`:role==='project'?`<button class="btn" data-a="rcIssue">إصدار باركود الاستلام</button><button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button>`:ROLES[role].kind==='store'?`<button class="btn pri" data-a="rcIssue">إصدار باركود الاستلام</button><span class="note">يمسحه مدير المشتريات عند تسليم المادة</span>`:`<button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button><span class="note">اطلب من مدير المخزن إظهار الباركود</span>`;return`<div class="sec"><h4>الاستلام بالباركود</h4><div class="acts">${a}</div></div>`;
   }
   if(role==='project'&&['store_check','proj','pur_ok'].includes(r.status))a=`<button class="btn pri" data-a="do" data-v="direct">إرسال مباشرة للمشتريات</button>`+a;
   return`<div class="sec"><h4>إجراؤك</h4><div class="acts">${note}${a}</div></div>`;
