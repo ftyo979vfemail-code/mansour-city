@@ -137,7 +137,7 @@ button{cursor:pointer}
 .stat b{display:block;font-size:22px;font-family:var(--display);font-variant-numeric:tabular-nums}
 .stat span{font-size:12px;color:var(--muted)}
 .stat.hot b{color:var(--accent)}
-.fab{position:fixed;z-index:40;bottom:max(18px,env(safe-area-inset-bottom,0px));inset-inline-end:max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.fab{position:fixed;z-index:15;bottom:max(18px,env(safe-area-inset-bottom,0px));inset-inline-end:max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 .fab-btn{display:flex;align-items:center;gap:8px;border:0;cursor:pointer;background:var(--accent);color:#fff;font:600 15px var(--body);height:56px;padding:0 20px 0 22px;border-radius:28px;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
 .fab-btn:active{transform:scale(.96)}.fab-btn .fp{font-size:26px;line-height:1;transition:transform .2s}
 .fab.open .fab-btn .fp{transform:rotate(45deg)}
@@ -146,6 +146,7 @@ button{cursor:pointer}
 .fab-item{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 14px var(--body);padding:11px 16px;border-radius:14px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.15);white-space:nowrap}
 .fab-item .fi{width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:15px}
 .fab-item:hover{border-color:var(--accent)}
+body.ovopen .fab{display:none}
 .stat.sel{border-color:var(--accent);background:var(--accent-soft)}
 button.stat{font:inherit;color:inherit;text-align:start;cursor:pointer;width:100%;position:relative;transition:border-color .15s,transform .1s,box-shadow .15s}
 button.stat::after{content:'‹';position:absolute;inset-inline-end:12px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--muted);opacity:.6}
@@ -481,12 +482,15 @@ function imgTag(ref,cls,alt){if(!ref)return`<div class="${cls} none">لا توج
 
 /* ---------- data layer ---------- */
 function chk(res){if(res.error)throw new Error(res.error.message);return res}
+/* update existing rows, insert new ones (upsert fires INSERT checks on every save) */
+async function saveRow(table,id,data){const u=await sb.from(table).update({data,updated_at:new Date().toISOString()}).eq('id',id).select('id');
+  if(u.error)return u;if(u.data&&u.data.length)return u;return await sb.from(table).insert({id,data,updated_at:new Date().toISOString()})}
 async function putReq(r){r.updatedAt=Date.now();
-  const res=await sb.from('requests').upsert({id:r.id,data:clean(r),updated_at:new Date().toISOString()});
+  const res=await saveRow('requests',r.id,clean(r));
   if(res.error){await loadAll('requests');render();throw new Error(res.error.message)}
   const i=S.requests.findIndex(x=>x.id===r.id);if(i<0)S.requests.unshift(r);else S.requests[i]=r;render()}
 async function putInv(it){const i=S.inventory.findIndex(x=>x.id===it.id);if(i<0)S.inventory.push(it);else S.inventory[i]=it;
-  chk(await sb.from('inventory').upsert({id:it.id,data:clean(it),updated_at:new Date().toISOString()}));render()}
+  chk(await saveRow('inventory',it.id,clean(it)));render()}
 async function delInv(id){S.inventory=S.inventory.filter(x=>x.id!==id);chk(await sb.from('inventory').delete().eq('id',id));render()}
 async function putSettings(o){S.settings={...S.settings,...o};chk(await sb.from('settings').upsert({id:'main',data:clean(S.settings)}));render()}
 async function loadAll(which){
@@ -545,8 +549,9 @@ const whOf=r=>r.wh==='mach'?'mach':'main';
 const myWh=role=>(role==='mstore'||role==='keeper')?'mach':'main';
 const isStoreRole=role=>role==='store'||role==='mstore'||role==='keeper'||role==='receiver';
 const whName=w=>w==='mach'?'مخزن الآليات':'المخزن الرئيسي';
-function canAct(r,role){if(role==='project'&&!['done','rejected'].includes(r.status))return true;return(ST[r.status]?.who||[]).includes(role)}
-const invOf=role=>S.inventory.filter(i=>i.kind!=='fuel');
+function canAct(r,role){if(role==='project'&&!['done','rejected'].includes(r.status))return true;if(isStoreRole(role)&&whOf(r)!==myWh(role))return false;return(ST[r.status]?.who||[]).includes(role)}
+const invOf=role=>S.inventory.filter(i=>i.kind!=='fuel'&&(!isStoreRole(role)||(i.wh==='mach'?'mach':'main')===myWh(role)));
+const reqsFor=role=>isStoreRole(role)?S.requests.filter(r=>whOf(r)===myWh(role)):S.requests;
 function queueFor(role){if(role==='project')return S.requests.filter(r=>r.status==='proj');return S.requests.filter(r=>canAct(r,role))}
 function mine(role){const R=ROLES[role];if(R.crew)return S.requests.filter(r=>r.log?.[0]?.uid===S.me?.id);return S.requests.filter(r=>r.by===role||(R.dept&&r.dept===R.dept))}
 async function act(r,action,extra={}){
@@ -710,7 +715,7 @@ function demoMachines(){const mk=(o)=>({id:uid(),demo:true,log:[],fuel:[],create
    mk({name:'رافعة برجية T1',type:'رافعة',model:'Liebherr 280EC',plate:'M-04',status:'work',site:'عمارة T1',hours:3300,lastService:3000,serviceEvery:250}),
    mk({name:'مولدة 500 KVA',type:'مولدة',model:'Perkins',plate:'G-01',status:'down',site:'محطة الكهرباء الرئيسية',hours:15890,lastService:15500,serviceEvery:250})]}
 async function putMachine(m){m.updatedAt=Date.now();const i=S.machines.findIndex(x=>x.id===m.id);if(i<0)S.machines.push(m);else S.machines[i]=m;
-  chk(await sb.from('machines').upsert({id:m.id,data:clean(m),updated_at:new Date().toISOString()}));render()}
+  chk(await saveRow('machines',m.id,clean(m)));render()}
 function mLog(m,a,note){m.log=[...(m.log||[]),{t:Date.now(),role:S.role||S.me?.role,uid:S.me?.id||null,a,note:note||''}]}
 function machinesView(){
   const all=S.machines,f=S.mFilter;
@@ -880,7 +885,7 @@ function dlvCard(d){const st=DST[d.status]||DST.wait,m=d.machineId&&S.machines.f
    <div class="mid"><div class="t">${esc(d.material)} — <span class="num">${nf.format(+d.qty||0)}</span> ${esc(d.unit)}</div><div class="meta"><span>${esc(d.supplier||'')}</span><span class="num">${esc(d.truck||'')}</span>${d.dest?`<span>${esc(d.dest)}</span>`:''}${m?`<span>${esc(m.name)}</span>`:''}${d.demo?'<span class="tag-demo">تجريبي</span>':''}</div></div>
    <div class="end"><span class="pill p-${st[1]}">${st[0]}</span><span class="small muted">${ago(d.updatedAt||d.createdAt)}</span></div></button>`}
 async function putDlv(d){d.updatedAt=Date.now();const i=S.deliveries.findIndex(x=>x.id===d.id);if(i<0)S.deliveries.unshift(d);else S.deliveries[i]=d;
-  chk(await sb.from('deliveries').upsert({id:d.id,data:clean(d),updated_at:new Date().toISOString()}));render()}
+  chk(await saveRow('deliveries',d.id,clean(d)));render()}
 function dLog(d,a,note){d.log=[...(d.log||[]),{t:Date.now(),role:S.me?.role,uid:S.me?.id||null,a,note:note||''}]}
 function dlvForm(){
   const reqOpts=S.requests.filter(r=>['buy','buying','receive'].includes(r.status)).map(r=>`<option value="${r.id}">#${esc(r.code)} — ${esc(r.item)}</option>`).join('');
@@ -1138,7 +1143,7 @@ function tabsFor(role){
 function roleHome(){
   const role=S.role,R=ROLES[role],tabs=tabsFor(role);
   if(!S.tab||!tabs.find(t=>t[0]===S.tab))S.tab=tabs[0][0];
-  const open=S.requests.filter(r=>!['done','rejected'].includes(r.status));
+  const open=reqsFor(role).filter(r=>!['done','rejected'].includes(r.status));
   const crit=open.filter(r=>r.priority==='critical').length;
   const mq=queueFor(role).length;
   const canNew=(['dept','project','store','crew'].includes(R.kind)||role==='admin1'||role==='admin2')&&role!=='fueler'&&role!=='supply'&&role!=='receiver';
@@ -1192,7 +1197,7 @@ function tabBody(role){
   if(t==='map')return mapView();
   if(t==='reps')return repsView();
   if(t==='done')return listView(S.requests.filter(r=>r.purchase),'لم تُسجّل أي عملية شراء بعد.',true);
-  return listView(S.requests,'لا توجد طلبات.',true);
+  return listView(reqsFor(role),'لا توجد طلبات.',true);
 }
 function allEvents(){
   const ev=[];S.requests.forEach(r=>(r.log||[]).forEach(l=>ev.push({...l,req:r})));
@@ -1214,7 +1219,7 @@ function feedView(){
 async function invLog(a,note){const e={t:Date.now(),role:S.role,uid:S.me?.id||null,a,note:note||''};
   S.invlog.unshift(e);try{await sb.from('invlog').insert({data:e})}catch(x){}}
 function invView(){
-  const role=S.role,both=true;const items=[...invOf(role)].filter(i=>!both||!S.whF||(i.wh==='mach'?'mach':'main')===S.whF).sort((a,b)=>((+a.qty<=+a.min)?0:1)-((+b.qty<=+b.min)?0:1)||a.name.localeCompare(b.name,'ar'));
+  const role=S.role,both=!isStoreRole(role);const items=[...invOf(role)].filter(i=>!both||!S.whF||(i.wh==='mach'?'mach':'main')===S.whF).sort((a,b)=>((+a.qty<=+a.min)?0:1)-((+b.qty<=+b.min)?0:1)||a.name.localeCompare(b.name,'ar'));
   let h=`<div class="filters">${both?`<select id="whF" class="in" style="flex:1 1 160px"><option value="">كل المخازن</option><option value="main" ${S.whF==='main'?'selected':''}>المخزن الرئيسي</option><option value="mach" ${S.whF==='mach'?'selected':''}>مخزن الآليات</option></select>`:`<span class="pill p-info" style="align-self:center">${whName(myWh(role))}</span>`}${role==='receiver'?'':'<button class="btn pri" data-a="invNew">+ إضافة مادة للمخزون</button>'}</div>`;
   if(!items.length)return h+`<div class="empty"><b>المخزون فارغ</b>أضف المواد مع الحد الأدنى لكل مادة ليظهر التنبيه عند النقص.</div>`;
   return h+`<div class="tbl-wrap"><table><thead><tr><th>المادة</th><th>الرمز</th><th>الرصيد</th><th>الحد الأدنى</th><th>السعر</th><th>الرف</th><th></th></tr></thead><tbody>${items.map(i=>`<tr class="${+i.qty<=+i.min?'low':''}"><td>${esc(i.name)} ${both&&i.wh==='mach'?'<span class="pill p-accent">الآليات</span> ':''}${i.demo?'<span class="tag-demo">تجريبي</span>':''}</td><td class="num muted">${esc(i.sku||'')}</td><td class="q"><span class="num">${nf.format(+i.qty)}</span> ${esc(i.unit)}</td><td class="num">${nf.format(+i.min)}</td><td class="num">${i.price!=null&&i.price!==''?money(+i.price):'—'}</td><td class="num">${esc(i.shelf||'')}</td><td>${role==='receiver'?'':`<div class="acts" style="flex-wrap:nowrap">${+i.qty<=+i.min&&ROLES[role]&&['store','mstore','keeper','project'].includes(role)?`<button class="btn sm pri" data-a="invReq" data-v="${i.id}">اطلب</button>`:''}<button class="btn sm" data-a="invEdit" data-v="${i.id}">تعديل</button></div>`}</td></tr>`).join('')}</tbody></table></div>`;
@@ -1247,8 +1252,8 @@ function mapView(){
 }
 
 /* ---------- overlays ---------- */
-function overlay(kind,title,body){stopScan();const o=$('#ovroot');o.dataset.kind=kind;o.innerHTML=`<div class="ov" data-a="ovbg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sh-h"><h3>${title}</h3><button class="x" data-a="close" aria-label="إغلاق">×</button></div><div class="sh-b">${body}</div></div></div>`;document.body.style.overflow='hidden';const gb=document.querySelector('[data-a=goback]');if(gb)gb.disabled=false}
-function closeOv(){stopScan();S.openM=null;S.openD=null;S.rcFor=null;const o=$('#ovroot');o.innerHTML='';o.dataset.kind='';S.open=null;S.openSig=null;document.body.style.overflow=''}
+function overlay(kind,title,body){document.body.classList.add('ovopen');stopScan();const o=$('#ovroot');o.dataset.kind=kind;o.innerHTML=`<div class="ov" data-a="ovbg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sh-h"><h3>${title}</h3><button class="x" data-a="close" aria-label="إغلاق">×</button></div><div class="sh-b">${body}</div></div></div>`;document.body.style.overflow='hidden';const gb=document.querySelector('[data-a=goback]');if(gb)gb.disabled=false}
+function closeOv(){document.body.classList.remove('ovopen');stopScan();S.openM=null;S.openD=null;S.rcFor=null;const o=$('#ovroot');o.innerHTML='';o.dataset.kind='';S.open=null;S.openSig=null;document.body.style.overflow=''}
 
 function track(r){
   if(r.status==='rejected'){const last=(r.log||[]).length;return`<div class="track"><div class="step done">الطلب</div><div class="step now rej">مرفوض</div></div>`}
@@ -1452,7 +1457,7 @@ function buyForm(r){
     }catch(x){$('#bErr').textContent='تعذر الحفظ: '+(x.message||x.code);s.disabled=false;s.textContent='تأكيد الشراء وإرسال للمخزن'}});
 }
 function issueForm(r){
-  const opts=S.inventory.filter(i=>i.kind!=='fuel').sort((a,b)=>(((b.wh==='mach'?'mach':'main')===whOf(r))-((a.wh==='mach'?'mach':'main')===whOf(r)))||score(b,r)-score(a,r));
+  const opts=S.inventory.filter(i=>i.kind!=='fuel'&&(i.wh==='mach'?'mach':'main')===whOf(r)).sort((a,b)=>score(b,r)-score(a,r));
   const b=`<form class="f" id="fIss"><p class="muted" style="margin:0">اختر المادة من المخزون. تُخصم الكمية من الرصيد ويُغلق الطلب.</p>
    <div class="fr"><label class="l">المادة في المخزون<select id="iItem" class="in">${opts.map(i=>`<option value="${i.id}">${esc(i.name)}${i.wh==='mach'?' (الآليات)':''} — الرصيد ${nf.format(+i.qty)} ${esc(i.unit)}</option>`).join('')}<option value="">غير مسجلة بالمخزون (صرف بدون خصم)</option></select></label>
    <label class="l">الكمية المصروفة<input id="iQty" class="in num" type="number" min="0" step="any" value="${r.qty}"></label></div>
@@ -1465,7 +1470,7 @@ function issueForm(r){
 }
 function score(i,r){const a=i.name,b=r.item;let s=0;a.split(/\s+/).forEach(w=>{if(w.length>1&&b.includes(w))s++});return s}
 function invForm(it){
-  const n=!it;it=it||{id:uid(),name:'',sku:'',qty:0,unit:'قطعة',min:0,shelf:'',wh:(S.role==='mstore'||S.role==='keeper'||S.whF==='mach')?'mach':'main'};const whSel=true;
+  const n=!it;it=it||{id:uid(),name:'',sku:'',qty:0,unit:'قطعة',min:0,shelf:'',wh:(S.role==='mstore'||S.role==='keeper'||S.whF==='mach')?'mach':'main'};const whSel=!isStoreRole(S.role);
   const b=`<form class="f" id="fInvE"><div class="fr"><label class="l">اسم المادة<input id="vName" class="in" required value="${esc(it.name)}"></label><label class="l">الرمز<input id="vSku" class="in num" value="${esc(it.sku)}"></label></div>
    <div class="fr"><label class="l">الرصيد<input id="vQty" class="in num" type="number" step="any" value="${it.qty}"></label><label class="l">الوحدة<input id="vUnit" class="in" list="units2" value="${esc(it.unit)}"></label><label class="l">الحد الأدنى<input id="vMin" class="in num" type="number" step="any" value="${it.min}"></label><label class="l">الرف<input id="vShelf" class="in num" value="${esc(it.shelf)}"></label></div>
    <div class="fr"><label class="l">سعر الوحدة (دينار) <em>(اختياري)</em><input id="vPrice" class="in num" type="number" min="0" step="any" value="${it.price??''}" placeholder="مثال: 25000"></label><label class="l">المورد <em>(اختياري)</em><input id="vSup" class="in" value="${esc(it.supplier||'')}" placeholder="اسم المحل أو المورد"></label></div>
@@ -1610,7 +1615,7 @@ function fuelLogView(){const f=fuelItem();const rows=(f?.log||[]).slice().revers
 function scrollToList(){setTimeout(()=>{const el=$('#app .filters')||$('#app .list')||$('#app .tbl-wrap');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}
 function reqSheet(title,list,empty){overlay('stat',`${title} <span class="num muted">(${list.length})</span>`,listView(list,empty))}
 function statGo(k){
-  const role=S.role,open=S.requests.filter(r=>!['done','rejected'].includes(r.status)),tabs=role?tabsFor(role).map(t=>t[0]):[];
+  const role=S.role,open=reqsFor(role).filter(r=>!['done','rejected'].includes(r.status)),tabs=role?tabsFor(role).map(t=>t[0]):[];
   const toTab=t=>{if(tabs.includes(t)){closeOv();S.tab=t;render();scrollToList();return true}return false};
   if(k.startsWith('tab:')){toTab(k.slice(4));return}
   if(k.startsWith('m:')){closeOv();S.mFilter=k.slice(2);render();scrollToList();return}
@@ -1620,7 +1625,7 @@ function statGo(k){
     case'mine':{const q=queueFor(role);const tab=tabs[0];if(q.length&&tab&&['approve','buy','check','receive'].includes(tab)){toTab(tab);return}reqSheet('بانتظار إجرائك',q,'ماكو شي بانتظارك هسه. 👍');return}
     case'open':reqSheet('الطلبات المفتوحة',open,'ماكو طلبات مفتوحة.');return;
     case'crit':reqSheet('طارئة — توقف إنتاج',open.filter(r=>r.priority==='critical'),'ماكو طلبات طارئة.');return;
-    case'all':reqSheet('كل الطلبات',S.requests,'ماكو طلبات بعد.');return;
+    case'all':reqSheet('كل الطلبات',reqsFor(role),'ماكو طلبات بعد.');return;
     case'recent':if(!toTab('feed'))reqSheet('آخر الحركات',S.requests.filter(r=>Date.now()-(r.updatedAt||r.createdAt)<864e5),'ماكو حركات آخر 24 ساعة.');return;
     case'low':{if(toTab('inv'))return;const items=invOf(role).filter(i=>+i.qty<=+i.min);
       overlay('stat',`مواد تحت الحد الأدنى <span class="num muted">(${items.length})</span>`,items.length?`<div class="tbl-wrap"><table><thead><tr><th>المادة</th><th>الرصيد</th><th>الحد الأدنى</th></tr></thead><tbody>${items.map(i=>`<tr class="low"><td>${esc(i.name)}</td><td class="num">${nf.format(+i.qty)} ${esc(i.unit||'')}</td><td class="num">${nf.format(+i.min)}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><b>كل المواد فوق الحد الأدنى</b>ماكو نقص بالمخزون.</div>`);return}
