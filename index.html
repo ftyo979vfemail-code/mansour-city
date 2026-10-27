@@ -1120,7 +1120,7 @@ function tabsFor(role){
   if(role==='supply')return[['dlv','التنزيل',dlvOpen().length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='machines')return[['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['dlv','تجهيز المواد',dlvOpen().length],['team','الكادر',myCrew().length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0]];
   if(k==='dept'||role==='elec_tech'||role==='mech_tech')return[['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0],...(CREW_OF[role]&&!ROLES[role].crew?[['team','الكادر',myCrew().length]]:[])];
-  if(k==='store')return[['check','للفحص',S.requests.filter(r=>r.status==='store_check'&&canAct(r,role)).length],['receive','للاستلام',S.requests.filter(r=>r.status==='receive'&&canAct(r,role)).length],['inv','المخزون',invOf(role).filter(i=>+i.qty<=+i.min).length],...(role==='store'?[['team','الكادر',myCrew().length]]:role==='mstore'?[['team','الكادر',myCrew().length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length]]:role==='keeper'?[['issue','صرف لآلية',0],['mach','الآليات',0]]:[]),['all','كل الطلبات',0]];
+  if(k==='store')return[['check','للفحص',S.requests.filter(r=>r.status==='store_check'&&canAct(r,role)).length],['receive','للاستلام',S.requests.filter(r=>r.status==='receive'&&canAct(r,role)).length],['inv','المخزون',invOf(role).filter(i=>+i.qty<=+i.min).length],...(role==='store'?[['team','الكادر',myCrew().length]]:role==='mstore'?[['team','الكادر',myCrew().length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length]]:role==='keeper'?[['issue','صرف لآلية',0],['mach','الآليات',0]]:[]),...(role==='receiver'?[]:[['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]]),['all','كل الطلبات',0]];
   if(k==='project')return[['approve','للموافقة',q.length],['reps','مواقع المندوبين',repsOnline()],['open','كل المفتوحة',S.requests.filter(r=>!['done','rejected'].includes(r.status)).length],['notif','الإشعارات',unread()],['join','طلبات الانضمام',pendingStaff().length],['inv','المخزون',S.inventory.filter(i=>+i.qty<=+i.min).length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['dlv','تجهيز المواد',dlvOpen().length],['team','الكادر',myCrew().length],['org','الموظفين والأقسام',S.staff.filter(p=>!p.hidden).length],['all','كل الطلبات',0]];
   if(k==='admin')return[['notif','الإشعارات',unread()],['feed','سجل الحركات',recent24()],...(role==='clerk'?[]:[['reps','مواقع المندوبين',repsOnline()],['join','طلبات الانضمام',pendingStaff().length],['org','الموظفين والأقسام',S.staff.filter(p=>!p.hidden).length]]),...(CREW_OF[role]&&!ROLES[role].crew?[['team','الكادر',myCrew().length]]:[]),['all','كل الطلبات',0],['mach','الآليات',0],['dlv','تجهيز المواد',0],['sum','الملخص',0]];
   return[['buy',role==='buyer'?'للشراء':'للموافقة والشراء',q.length],['map','المواقع GPS',0],['done','مشترياتي',0],...(CREW_OF[role]&&!ROLES[role].crew?[['team','الكادر',myCrew().length]]:[])];
@@ -1164,6 +1164,7 @@ function tabBody(role){
   if(t==='org')return seesOrg()?orgView():'';
   if(t==='work')return crewWork(role);
   if(t==='issue')return keeperIssueView();
+  if(t==='mine'&&isStoreRole(role))return listView(mine(role),'ما طلبت شي بعد. اضغط «+ طلب مواد جديد» أو زر «اطلب» جنب المادة الناقصة بالمخزون.');
   if(R.crew&&t==='mine')return listView(mine(role).filter(r=>!['done','rejected'].includes(r.status)),'لا توجد طلبات مفتوحة منك. اضغط "طلب مواد جديد".');
   if(R.crew&&t==='closed')return listView(mine(role).filter(r=>['done','rejected'].includes(r.status)),'لم يكتمل أي طلب بعد.',true);
   if(R.kind==='dept'){const m=mine(role);return t==='mine'?listView(m.filter(r=>!['done','rejected'].includes(r.status)),'لا توجد طلبات مفتوحة لقسمك. اضغط "طلب مواد جديد".'):listView(m.filter(r=>['done','rejected'].includes(r.status)),'لم يكتمل أي طلب بعد.',true)}
@@ -1205,7 +1206,7 @@ function invView(){
   const role=S.role,both=!isStoreRole(role);const items=[...invOf(role)].filter(i=>!both||!S.whF||(i.wh==='mach'?'mach':'main')===S.whF).sort((a,b)=>((+a.qty<=+a.min)?0:1)-((+b.qty<=+b.min)?0:1)||a.name.localeCompare(b.name,'ar'));
   let h=`<div class="filters">${both?`<select id="whF" class="in" style="flex:1 1 160px"><option value="">كل المخازن</option><option value="main" ${S.whF==='main'?'selected':''}>المخزن الرئيسي</option><option value="mach" ${S.whF==='mach'?'selected':''}>مخزن الآليات</option></select>`:`<span class="pill p-info" style="align-self:center">${whName(myWh(role))}</span>`}${role==='receiver'?'':'<button class="btn pri" data-a="invNew">+ إضافة مادة للمخزون</button>'}</div>`;
   if(!items.length)return h+`<div class="empty"><b>المخزون فارغ</b>أضف المواد مع الحد الأدنى لكل مادة ليظهر التنبيه عند النقص.</div>`;
-  return h+`<div class="tbl-wrap"><table><thead><tr><th>المادة</th><th>الرمز</th><th>الرصيد</th><th>الحد الأدنى</th><th>الرف</th><th></th></tr></thead><tbody>${items.map(i=>`<tr class="${+i.qty<=+i.min?'low':''}"><td>${esc(i.name)} ${both&&i.wh==='mach'?'<span class="pill p-accent">الآليات</span> ':''}${i.demo?'<span class="tag-demo">تجريبي</span>':''}</td><td class="num muted">${esc(i.sku||'')}</td><td class="q"><span class="num">${nf.format(+i.qty)}</span> ${esc(i.unit)}</td><td class="num">${nf.format(+i.min)}</td><td class="num">${esc(i.shelf||'')}</td><td>${role==='receiver'?'':`<button class="btn sm" data-a="invEdit" data-v="${i.id}">تعديل</button>`}</td></tr>`).join('')}</tbody></table></div>`;
+  return h+`<div class="tbl-wrap"><table><thead><tr><th>المادة</th><th>الرمز</th><th>الرصيد</th><th>الحد الأدنى</th><th>الرف</th><th></th></tr></thead><tbody>${items.map(i=>`<tr class="${+i.qty<=+i.min?'low':''}"><td>${esc(i.name)} ${both&&i.wh==='mach'?'<span class="pill p-accent">الآليات</span> ':''}${i.demo?'<span class="tag-demo">تجريبي</span>':''}</td><td class="num muted">${esc(i.sku||'')}</td><td class="q"><span class="num">${nf.format(+i.qty)}</span> ${esc(i.unit)}</td><td class="num">${nf.format(+i.min)}</td><td class="num">${esc(i.shelf||'')}</td><td>${role==='receiver'?'':`<div class="acts" style="flex-wrap:nowrap">${+i.qty<=+i.min&&ROLES[role]&&['store','mstore','keeper','project'].includes(role)?`<button class="btn sm pri" data-a="invReq" data-v="${i.id}">اطلب</button>`:''}<button class="btn sm" data-a="invEdit" data-v="${i.id}">تعديل</button></div>`}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function sumView(){
   const by={};S.requests.forEach(r=>{by[r.dept]=by[r.dept]||{n:0,s:0};by[r.dept].n++;by[r.dept].s+=r.purchase?.total||0});
@@ -1297,22 +1298,22 @@ function bindGps(btnId,inId,noteId){
   $('#'+inId).addEventListener('input',()=>{const n=$('#'+noteId),v=$('#'+inId).value;if(!v.trim()){n.textContent='';return}const c=parseCoords(v);n.className=c?'note ok':'note bad';n.textContent=c?'إحداثيات صحيحة: '+c.lat+', '+c.lng:'لم أتعرف على الإحداثيات. اكتبها هكذا: 33.3152, 44.3661'})
 }
 
-function newReqForm(){
-  const R=ROLES[S.role];
+function newReqForm(pre){
+  pre=pre||{};const R=ROLES[S.role],isSt=['store','mstore','keeper'].includes(S.role);
   const b=`<form class="f" id="fNew">
-   <div class="fr"><label class="l">اسم المادة المطلوبة<input id="fItem" class="in" required placeholder="مثال: محمل SKF 22320"></label>
+   <div class="fr"><label class="l">اسم المادة المطلوبة<input id="fItem" class="in" required placeholder="مثال: محمل SKF 22320" value="${esc(pre.item||'')}"></label>
    <label class="l">القسم<select id="fDept" class="in">${DEPTS.map(d=>`<option ${d===(R.dept||(S.role==='project'?'المشروع':S.role==='store'?'المخزن':''))?'selected':''}>${d}</option>`).join('')}</select></label></div>
    ${S.machines.length?`<label class="l">الآلية <em>(اختياري — لتُحسب الكلفة عليها)</em><select id="fMach" class="in"><option value="">— بدون —</option>${[...S.machines].sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(m=>`<option value="${m.id}" ${S.preMach===m.id?'selected':''}>${esc(m.name)}${m.plate?' · '+esc(m.plate):''}</option>`).join('')}</select></label>`:''}
-   <div class="fr"><label class="l">الكمية<input id="fQty" class="in num" type="number" min="0" step="any" required value="1"></label>
-   <label class="l">الوحدة<input id="fUnit" class="in" list="units" value="قطعة"></label>
+   <div class="fr"><label class="l">الكمية<input id="fQty" class="in num" type="number" min="0" step="any" required value="${pre.qty||1}"></label>
+   <label class="l">الوحدة<input id="fUnit" class="in" list="units" value="${esc(pre.unit||'قطعة')}"></label>
    <label class="l">مكان العمل<input id="fArea" class="in" list="areas" placeholder="مثال: الفرن الدوار"></label></div>
    <div class="l" style="font-size:13px;font-weight:500">الأولوية<div class="seg">${Object.entries(PRI).map(([k,v],i)=>`<label><input type="radio" name="pri" value="${k}" ${i?'':'checked'}>${v[0]}</label>`).join('')}</div></div>
    <div class="fr">${fileField('fProd','صورة المنتج المطلوب','صوّر القطعة القديمة أو لوحة المواصفات',true)}${fileField('fSite','صورة مكان العمل','تُقرأ إحداثيات GPS من صورة الهاتف تلقائياً',true)}</div>
    <label class="l">إحداثيات مكان العمل <em>(تُملأ من الصورة أو الصقها من خرائط Google)</em><div class="gps"><input id="fGps" class="in num" placeholder="33.3152, 44.3661"><button type="button" class="btn" id="fGpsBtn">موقعي الحالي</button></div><span class="note" id="fGpsN"></span></label>
-   ${S.role==='project'?`<div class="sec" style="padding:10px 12px"><div class="seg"><label><input type="radio" name="fRoute" value="buy" checked>مباشرة للمشتريات</label><label><input type="radio" name="fRoute" value="store_check">فحص المخزن أولاً</label></div><p class="note" style="margin:6px 0 0">بصفتك مدير المشروع، يمكن إرسال الطلب مباشرة لمديرَي المشتريات بدون مراحل الموافقة.</p></div>`:''}
-   <label class="l">ملاحظات<textarea id="fNotes" class="in" placeholder="سبب الطلب، المواصفات، رقم الماكنة…"></textarea></label>
+   ${S.role==='project'?`<div class="sec" style="padding:10px 12px"><div class="seg"><label><input type="radio" name="fRoute" value="buy" checked>مباشرة للمشتريات</label><label><input type="radio" name="fRoute" value="store_check">فحص المخزن أولاً</label></div><p class="note" style="margin:6px 0 0">بصفتك مدير المشروع، يمكن إرسال الطلب مباشرة لمندوبي المشتريات بدون مراحل الموافقة.</p></div>`:isSt?`<p class="note" style="margin:0">طلبك يروح مباشرة لمدير المشروع للموافقة، وبعدها لمندوبي المشتريات. من يوصل المادة تستلمها أنت بالباركود.</p>`:''}
+   <label class="l">ملاحظات<textarea id="fNotes" class="in" placeholder="سبب الطلب، المواصفات، رقم الماكنة…">${esc(pre.notes||'')}</textarea></label>
    <div class="err" id="fErr"></div>
-   <div class="acts"><button class="btn pri" type="submit" id="fSub">إرسال الطلب للمخزن</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div>
+   <div class="acts"><button class="btn pri" type="submit" id="fSub">${isSt?'إرسال لمدير المشروع':'إرسال الطلب للمخزن'}</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div>
    <datalist id="units">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist><datalist id="areas">${AREAS.map(u=>`<option value="${u}">`).join('')}</datalist></form>`;
   overlay('new','طلب مواد جديد',b);
   bindPreview('fProd');
@@ -1322,12 +1323,13 @@ function newReqForm(){
     try{
       const prod=await saveFile($('#fProd').files[0]),site=await saveFile($('#fSite').files[0]);
       const gv=$('#fGps').value.trim();const coords=parseCoords(gv);
-      const _m=$('#fMach')?.value||null,_d=$('#fDept').value;const r={id:uid(),code:code(),machineId:_m,wh:(_m||_d==='الآليات'||['machines','mstore','keeper','operator','mechanic','fueler','supply'].includes(S.role))?'mach':'main',by:S.role,dept:_d,item:$('#fItem').value.trim(),qty:+$('#fQty').value||0,unit:$('#fUnit').value.trim()||'قطعة',area:$('#fArea').value.trim(),priority:document.querySelector('input[name=pri]:checked').value,notes:$('#fNotes').value.trim(),
+      const _m=$('#fMach')?.value||null,_d=$('#fDept').value;const r={id:uid(),code:code(),machineId:_m,wh:isSt?myWh(S.role):(_m||_d==='الآليات'||['machines','mstore','keeper','operator','mechanic','fueler','supply'].includes(S.role))?'mach':'main',by:S.role,dept:_d,item:$('#fItem').value.trim(),qty:+$('#fQty').value||0,unit:$('#fUnit').value.trim()||'قطعة',area:$('#fArea').value.trim(),priority:document.querySelector('input[name=pri]:checked').value,notes:$('#fNotes').value.trim(),
         productImg:prod?.ref||null,siteImg:site?.ref||null,site:coords,siteLink:!coords&&/^https?:/.test(gv)?gv:null,status:'store_check',createdAt:Date.now(),log:[{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أنشأ الطلب',note:''}]};
       const direct=S.role==='project'&&document.querySelector('input[name=fRoute]:checked')?.value==='buy';
+      if(isSt){r.status='proj';r.log.push({t:Date.now(),role:S.role,uid:S.me?.id||null,a:'طلب تعبئة مخزون — أُرسل لمدير المشروع',note:''})}
       if(direct){r.status='buy';r.log.push({t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أرسل الطلب مباشرة للمشتريات (أولوية مدير المشروع)',note:''})}
-      await putReq(r);closeOv();toast('أُرسل الطلب #'+r.code+(direct?' إلى مديرَي المشتريات':' إلى المخزن'));
-    }catch(x){err.textContent='تعذر الإرسال: '+(x.message||x.code||'خطأ');sub.disabled=false;sub.textContent='إرسال الطلب للمخزن'}});
+      await putReq(r);closeOv();toast('أُرسل الطلب #'+r.code+(direct?' إلى مندوبي المشتريات':isSt?' إلى مدير المشروع للموافقة':' إلى المخزن'));
+    }catch(x){err.textContent='تعذر الإرسال: '+(x.message||x.code||'خطأ');sub.disabled=false;sub.textContent=isSt?'إرسال لمدير المشروع':'إرسال الطلب للمخزن'}});
 }
 const COND={orig:'أصلي',comm:'تجاري',used:'مستعمل/مجدد'};
 function canQuote(r){return(ROLES[S.role]?.kind==='purchase'||S.role==='project')&&['pur_ok','buy','buying'].includes(r.status)}
@@ -1526,6 +1528,7 @@ document.addEventListener('click',async e=>{
     case'close':case'ovbg':closeOv();render();break;
     case'back':if(cur)openReq(cur);else closeOv();break;
     case'new':newReqForm();break;
+    case'invReq':{const i=S.inventory.find(x=>x.id===v);if(i)newReqForm({item:i.name,unit:i.unit,qty:Math.max(1,(+i.min*2||1)-(+i.qty||0)),notes:`تعبئة مخزون — الرصيد الحالي ${+i.qty} والحد الأدنى ${+i.min}${i.sku?' · رمز '+i.sku:''}`});break}
     case'do':if(cur){el.disabled=true;try{await act(cur,v,{note:$('#actNote')?.value})}catch(x){el.disabled=false;toast('تعذر الحفظ: '+(x.message||x.code))}}break;
     case'buyForm':if(cur)buyForm(cur);break;
     case'qAdd':if(cur)quoteForm(cur);break;
