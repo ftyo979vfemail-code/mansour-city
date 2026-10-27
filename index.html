@@ -171,6 +171,7 @@ button{cursor:pointer}
 .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 16px}
 .kv div span{display:block;font-size:12px;color:var(--muted)}
 .kv div b{font-weight:500;overflow-wrap:anywhere}
+.kv div b span{display:inline}
 .photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .ph{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
 .ph img,.ph .none{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--sunk);max-width:100%}
@@ -330,7 +331,7 @@ const AREAS=['الكسارة','ساحة الحجر الجيري','طاحونة �
 const UNITS=['قطعة','متر','كغم','طن','لتر','برميل','لفة','علبة','طقم'];
 
 /* ---------- state ---------- */
-const S={notifs:[],authTab:'login',myCode:null,staff:[],me:null,names:{},view:null,aiBusy:null,invlog:[],feedRole:'',hist:[],mode:'loading',db:null,assets:null,requests:[],inventory:[],settings:{},role:null,tab:null,q:'',open:null,imgCache:{},local:{}};
+const S={machines:[],mFilter:'',notifs:[],authTab:'login',myCode:null,staff:[],me:null,names:{},view:null,aiBusy:null,invlog:[],feedRole:'',hist:[],mode:'loading',db:null,assets:null,requests:[],inventory:[],settings:{},role:null,tab:null,q:'',open:null,imgCache:{},local:{}};
 try{S.role=localStorage.getItem('cm_role')}catch(e){}
 if(S.role&&!ROLES[S.role])S.role=null;
 
@@ -420,6 +421,7 @@ async function putSettings(o){S.settings={...S.settings,...o};chk(await sb.from(
 async function loadAll(which){
   const want=w=>!which||which===w;
   if(want('requests')){const {data}=await sb.from('requests').select('id,data').order('updated_at',{ascending:false}).limit(2000);S.requests=(data||[]).map(d=>({...d.data,id:d.id}))}
+  if(want('machines')){const {data}=await sb.from('machines').select('id,data');S.machines=(data||[]).map(d=>({...d.data,id:d.id}))}
   if(want('inventory')){const {data}=await sb.from('inventory').select('id,data');S.inventory=(data||[]).map(d=>({...d.data,id:d.id}))}
   if(want('invlog')){const {data}=await sb.from('invlog').select('data').order('id',{ascending:false}).limit(500);S.invlog=(data||[]).map(d=>d.data)}
   if(want('settings')){const {data}=await sb.from('settings').select('data').eq('id','main').maybeSingle();S.settings=data?.data||{}}
@@ -429,7 +431,7 @@ async function loadAll(which){
 let rtTimers={};
 function subscribe(){
   const ch=sb.channel('all');
-  ['requests','inventory','invlog','settings','staff','notifications'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(rtTimers[t]);rtTimers[t]=setTimeout(async()=>{await loadAll(t);if(t==='requests'&&S.rcFor){const r=S.requests.find(x=>x.id===S.rcFor);if(r&&r.status==='done'){S.rcFor=null;overlay('ok','تم الاستلام',`<div class="rcbox"><div class="okmark">✓</div><b>مسح مدير المشتريات الباركود وتم الاستلام</b><p class="muted" style="margin:0">${esc(r.item)}</p></div><div class="acts"><button class="btn" data-a="close">إغلاق</button></div>`)}}if(t==='staff'&&S.me?.status==='pending'){await afterLogin();return}render()},300)}));
+  ['requests','inventory','invlog','settings','staff','notifications','machines'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(rtTimers[t]);rtTimers[t]=setTimeout(async()=>{await loadAll(t);if(t==='requests'&&S.rcFor){const r=S.requests.find(x=>x.id===S.rcFor);if(r&&r.status==='done'){S.rcFor=null;overlay('ok','تم الاستلام',`<div class="rcbox"><div class="okmark">✓</div><b>مسح مدير المشتريات الباركود وتم الاستلام</b><p class="muted" style="margin:0">${esc(r.item)}</p></div><div class="acts"><button class="btn" data-a="close">إغلاق</button></div>`)}}if(t==='staff'&&S.me?.status==='pending'){await afterLogin();return}if(t==='machines'&&S.openM&&$('#ovroot').dataset.kind==='mach'){const m=S.machines.find(x=>x.id===S.openM);if(m)openMachine(m)}render()},300)}));
   ch.subscribe()}
 
 function demoData(){
@@ -451,11 +453,13 @@ function demoData(){
 }
 async function loadDemo(){
   const {R,I,plant}=demoData();
-  try{chk(await sb.from('requests').upsert(R.map(r=>({id:r.id,data:r}))));chk(await sb.from('inventory').upsert(I.map(i=>({id:i.id,data:i}))));
+  try{chk(await sb.from('machines').upsert(demoMachines().map(m=>({id:m.id,data:m}))));
+    chk(await sb.from('requests').upsert(R.map(r=>({id:r.id,data:r}))));chk(await sb.from('inventory').upsert(I.map(i=>({id:i.id,data:i}))));
     if(!S.settings.plant)await putSettings({plant});await loadAll();render();toast('تم تحميل بيانات تجريبية')}catch(e){toast('تعذر الحفظ: '+e.message)}
 }
 async function clearDemo(){
   const rs=S.requests.filter(r=>r.demo).map(r=>r.id),is=S.inventory.filter(i=>i.demo).map(i=>i.id);
+  const ms=S.machines.filter(m=>m.demo).map(m=>m.id);if(ms.length)await sb.from('machines').delete().in('id',ms);
   try{if(rs.length)chk(await sb.from('requests').delete().in('id',rs));if(is.length)chk(await sb.from('inventory').delete().in('id',is));
     if(S.settings.plant&&S.settings.plant.demo)await putSettings({plant:null});await loadAll();render();toast('حُذفت البيانات التجريبية')}catch(e){toast('تعذر الحذف: '+e.message)}
 }
@@ -611,6 +615,70 @@ function pushBanner(){if(!S.me?.active||S.push==='on'||S.push==='checking'||S.pu
   if(S.push==='denied')return`<div class="banner">الإشعارات محظورة لهذا الموقع. افتح إعدادات المتصفح ← إعدادات الموقع ← الإشعارات واسمح بها.</div>`;
   return`<div class="banner pushb"><span><b>فعّل الإشعارات</b> حتى تصلك الطلبات على موبايلك حتى لو الموقع مسدود.</span><button class="btn sm pri" data-a="pushOn">تفعيل الإشعارات</button></div>`}
 
+/* ---------- machines ---------- */
+const MTYPES=['شفل','حفارة','قلاب','رافعة','بلدوزر','كريدر','حادلة','خباطة','مضخة كونكريت','رافعة شوكية','مولدة','سيارة نقل','أخرى'];
+const MST={work:['شغالة','ok'],down:['عاطلة','bad'],service:['بالصيانة','warn'],idle:['متوقفة','mute']};
+const canEditM=()=>['machines','project','owner'].includes(S.me?.role);
+function mCost(m){return S.requests.filter(r=>r.machineId===m.id&&r.purchase).reduce((a,r)=>a+(+r.purchase.total||0),0)}
+function mFuel(m){return (m.fuel||[]).reduce((a,f)=>a+(+f.liters||0),0)}
+function mDue(m){if(!m.serviceEvery||m.hours==null)return null;const next=(+m.lastService||0)+(+m.serviceEvery);return next-(+m.hours)}
+function demoMachines(){const mk=(o)=>({id:uid(),demo:true,log:[],fuel:[],createdAt:Date.now(),...o});
+  return[mk({name:'شفل كاتربلر 966',type:'شفل',model:'CAT 966H',plate:'M-01',status:'work',site:'ساحة الآليات',hours:8420,lastService:8000,serviceEvery:500}),
+   mk({name:'حفارة كوماتسو',type:'حفارة',model:'PC300',plate:'M-02',status:'service',site:'الورشة الميكانيكية',hours:12110,lastService:11500,serviceEvery:500}),
+   mk({name:'قلاب مرسيدس',type:'قلاب',model:'Actros 3341',plate:'بغداد 45821',status:'work',site:'مقلع المواد الأولية',hours:210500,lastService:205000,serviceEvery:10000,unit:'كم'}),
+   mk({name:'رافعة برجية T1',type:'رافعة',model:'Liebherr 280EC',plate:'M-04',status:'work',site:'عمارة T1',hours:3300,lastService:3000,serviceEvery:250}),
+   mk({name:'مولدة 500 KVA',type:'مولدة',model:'Perkins',plate:'G-01',status:'down',site:'محطة الكهرباء الرئيسية',hours:15890,lastService:15500,serviceEvery:250})]}
+async function putMachine(m){m.updatedAt=Date.now();const i=S.machines.findIndex(x=>x.id===m.id);if(i<0)S.machines.push(m);else S.machines[i]=m;
+  chk(await sb.from('machines').upsert({id:m.id,data:clean(m),updated_at:new Date().toISOString()}));render()}
+function mLog(m,a,note){m.log=[...(m.log||[]),{t:Date.now(),role:S.role||S.me?.role,uid:S.me?.id||null,a,note:note||''}]}
+function machinesView(){
+  const all=S.machines,f=S.mFilter;
+  const cnt=k=>all.filter(m=>m.status===k).length;
+  const list=[...all].filter(m=>!f||m.status===f||m.type===f).sort((a,b)=>({down:0,service:1,work:2,idle:3}[a.status]-{down:0,service:1,work:2,idle:3}[b.status])||a.name.localeCompare(b.name,'ar'));
+  const dueN=all.filter(m=>{const d=mDue(m);return d!=null&&d<=50}).length;
+  const types={};all.forEach(m=>types[m.type]=(types[m.type]||0)+1);
+  let h=`<div class="stats" style="margin-top:14px"><div class="stat"><b>${all.length}</b><span>كل الآليات</span></div><div class="stat"><b style="color:var(--ok)">${cnt('work')}</b><span>شغالة</span></div><div class="stat ${cnt('down')?'hot':''}"><b>${cnt('down')}</b><span>عاطلة</span></div><div class="stat"><b>${cnt('service')}</b><span>بالصيانة</span></div><div class="stat ${dueN?'hot':''}"><b>${dueN}</b><span>صيانتها قريبة</span></div></div>`;
+  h+=`<div class="filters"><select id="mFilter" class="in" style="flex:1 1 160px" aria-label="تصفية"><option value="">الكل (${all.length})</option>${Object.entries(MST).map(([k,v])=>`<option value="${k}" ${f===k?'selected':''}>${v[0]} (${cnt(k)})</option>`).join('')}${Object.entries(types).map(([t,n])=>`<option value="${esc(t)}" ${f===t?'selected':''}>${esc(t)} (${n})</option>`).join('')}</select>${canEditM()?`<button class="btn pri" data-a="mNew">+ إضافة آلية</button>`:''}</div>`;
+  if(!all.length)return h+`<div class="empty"><b>لا توجد آليات مسجلة</b>${canEditM()?'أضف كل آلية مع نوعها ورقمها وعدّاد الساعات، حتى يتابع النظام حالتها وصيانتها وكلفتها.':'يضيفها مدير الآليات أو مدير المشروع.'}</div>`;
+  return h+`<div class="list">${list.map(m=>{const st=MST[m.status]||MST.idle,d=mDue(m),c=mCost(m);
+    return`<button class="card ${m.status==='down'?'crit':m.status==='service'?'urg':''}" data-a="mOpen" data-v="${m.id}">${m.img?imgTag(m.img,'thumb'):`<div class="thumb">${esc((m.type||'').slice(0,5))}</div>`}
+     <div class="mid"><div class="t">${esc(m.name)}</div><div class="meta"><span>${esc(m.type)}</span><span class="num">${esc(m.plate||'')}</span>${m.site?`<span>${esc(m.site)}</span>`:''}${m.hours!=null?`<span><span class="num">${nf.format(+m.hours)}</span> ${esc(m.unit||'ساعة')}</span>`:''}${m.demo?'<span class="tag-demo">تجريبي</span>':''}</div></div>
+     <div class="end"><span class="pill p-${st[1]}">${st[0]}</span><span class="small muted">${d!=null&&d<=50?`<span class="pill p-warn">${d<=0?'صيانة متأخرة':'صيانة بعد '+nf.format(d)}</span> `:''}${c?`<span class="num">${money(c)}</span>`:''}</span></div></button>`}).join('')}</div>`}
+function openMachine(m){S.openM=m.id;const st=MST[m.status]||MST.idle,d=mDue(m),ed=canEditM();
+  const reqs=S.requests.filter(r=>r.machineId===m.id).sort((a,b)=>b.createdAt-a.createdAt);
+  const cost=mCost(m),fuel=mFuel(m);
+  let b=`<div class="sec"><div class="kv"><div><span>النوع</span><b>${esc(m.type)}</b></div><div><span>الموديل</span><b>${esc(m.model||'—')}</b></div><div><span>الرقم / اللوحة</span><b class="num">${esc(m.plate||'—')}</b></div><div><span>الحالة</span><b><span class="pill p-${st[1]}">${st[0]}</span></b></div>
+   <div><span>المكان</span><b>${esc(m.site||'—')}</b></div><div><span>العدّاد</span><b><span class="num">${m.hours!=null?nf.format(+m.hours):'—'}</span> ${esc(m.unit||'ساعة')}</b></div><div><span>الصيانة القادمة</span><b>${d==null?'—':d<=0?`<span class="pill p-bad">متأخرة <span class="num">${nf.format(-d)}</span></span>`:`بعد <span class="num">${nf.format(d)}</span> ${esc(m.unit||'ساعة')}`}</b></div><div><span>المشغّل</span><b>${esc(m.operator||'—')}</b></div></div>
+   ${m.img?`<div class="photos" style="margin-top:12px"><div class="ph">${imgTag(m.img,'','صورة الآلية')}</div></div>`:''}${m.notes?`<p style="margin:10px 0 0">${esc(m.notes)}</p>`:''}</div>`;
+  if(ed)b+=`<div class="sec"><h4>تحديث سريع</h4><div class="seg" style="margin-bottom:10px">${Object.entries(MST).map(([k,v])=>`<label><input type="radio" name="mSt" value="${k}" ${m.status===k?'checked':''}>${v[0]}</label>`).join('')}</div>
+   <div class="fr"><label class="l">قراءة العدّاد الحالية<input id="mHours" class="in num" type="number" min="0" step="any" value="${m.hours??''}"></label><label class="l">ملاحظة<input id="mNote" class="in" placeholder="سبب العطل، مكان العمل…"></label></div>
+   <div class="acts" style="margin-top:10px"><button class="btn pri" data-a="mQuick">حفظ</button><button class="btn" data-a="mServiced">تمت الصيانة الدورية</button><button class="btn" data-a="mFuel">+ تعبئة وقود</button><button class="btn ghost" data-a="mEdit">تعديل البيانات</button></div></div>`;
+  b+=`<div class="sec"><h4>كشف الحساب</h4><div class="kv"><div><span>كلفة قطع الغيار والمواد</span><b class="num">${money(cost)}</b></div><div><span>الوقود الكلي</span><b><span class="num">${nf.format(fuel)}</span> لتر</b></div><div><span>عدد الطلبات</span><b class="num">${reqs.length}</b></div></div>
+   ${reqs.length?`<div class="tbl-wrap"><table style="min-width:480px"><thead><tr><th>التاريخ</th><th>المادة</th><th>الكمية</th><th>الحالة</th><th>الكلفة</th></tr></thead><tbody>${reqs.map(r=>`<tr data-a="open" data-v="${r.id}" style="cursor:pointer"><td class="num">${dt(r.createdAt)}</td><td>${esc(r.item)}</td><td class="num">${nf.format(r.qty)} ${esc(r.unit)}</td><td><span class="pill p-${ST[r.status].c}">${ST[r.status].t}</span></td><td class="num">${money(r.purchase?.total)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted" style="margin:10px 0 0">لا توجد طلبات مرتبطة بهذه الآلية بعد. عند طلب مواد اختر الآلية من نموذج الطلب.</p>'}
+   ${(m.fuel||[]).length?`<h4 style="margin-top:14px">سجل الوقود</h4><div class="tbl-wrap"><table style="min-width:360px"><thead><tr><th>التاريخ</th><th>اللترات</th><th>العدّاد</th><th>ملاحظة</th></tr></thead><tbody>${[...m.fuel].reverse().map(f=>`<tr><td class="num">${dt(f.t)}</td><td class="num">${nf.format(+f.liters)}</td><td class="num">${f.hours!=null?nf.format(+f.hours):'—'}</td><td>${esc(f.note||'')}</td></tr>`).join('')}</tbody></table></div>`:''}</div>`;
+  b+=`<div class="sec"><h4>السجل</h4><ul class="log">${[...(m.log||[])].reverse().map(l=>`<li><i></i><span>${plabel(l)} ${esc(l.a)}${l.note?' — '+esc(l.note):''}</span><small class="num">${dt(l.t)}</small></li>`).join('')||'<li class="muted">لا حركات بعد</li>'}</ul></div>`;
+  if(['project','owner'].includes(S.me?.role))b+=`<div class="acts"><button class="btn bad sm" id="mDel">حذف الآلية</button><span id="mDelC"></span></div>`;
+  overlay('mach',esc(m.name),b);
+  const dl=$('#mDel');if(dl)dl.addEventListener('click',()=>{$('#mDelC').innerHTML='<button class="btn bad sm" id="mDel2">تأكيد الحذف</button>';$('#mDel2').addEventListener('click',async()=>{try{chk(await sb.from('machines').delete().eq('id',m.id));await invLog('حذف آلية: '+m.name,'');S.machines=S.machines.filter(x=>x.id!==m.id);closeOv();render();toast('حُذفت الآلية')}catch(e){toast('تعذر: '+e.message)}})});
+}
+function machineForm(m){const n=!m;m=m||{type:'شفل',status:'work',unit:'ساعة'};
+  const b=`<form class="f" id="fM"><div class="fr"><label class="l">اسم الآلية<input id="mfName" class="in" required value="${esc(m.name||'')}" placeholder="مثال: شفل كاتربلر 966"></label><label class="l">النوع<select id="mfType" class="in">${MTYPES.map(t=>`<option ${m.type===t?'selected':''}>${t}</option>`).join('')}</select></label></div>
+   <div class="fr"><label class="l">الموديل<input id="mfModel" class="in" value="${esc(m.model||'')}"></label><label class="l">الرقم / اللوحة<input id="mfPlate" class="in num" value="${esc(m.plate||'')}"></label><label class="l">المشغّل<input id="mfOp" class="in" value="${esc(m.operator||'')}"></label></div>
+   <div class="fr"><label class="l">المكان<input id="mfSite" class="in" list="areas2" value="${esc(m.site||'')}"></label><label class="l">العدّاد بالـ<select id="mfUnit" class="in"><option ${m.unit!=='كم'?'selected':''}>ساعة</option><option ${m.unit==='كم'?'selected':''}>كم</option></select></label><label class="l">القراءة الحالية<input id="mfHours" class="in num" type="number" min="0" step="any" value="${m.hours??''}"></label></div>
+   <div class="fr"><label class="l">الصيانة الدورية كل<input id="mfEvery" class="in num" type="number" min="0" step="any" value="${m.serviceEvery??''}" placeholder="مثال: 500"></label><label class="l">آخر صيانة عند قراءة<input id="mfLast" class="in num" type="number" min="0" step="any" value="${m.lastService??''}"></label></div>
+   ${fileField('fMImg','صورة الآلية','اختياري',true)}
+   <label class="l">ملاحظات<textarea id="mfNotes" class="in">${esc(m.notes||'')}</textarea></label>
+   <datalist id="areas2">${AREAS.map(a=>`<option value="${a}">`).join('')}</datalist>
+   <div class="err" id="mfErr"></div><div class="acts"><button class="btn pri" type="submit" id="mfSub">${n?'إضافة الآلية':'حفظ'}</button><button class="btn ghost" type="button" data-a="${n?'close':'mBack'}">إلغاء</button></div></form>`;
+  overlay('mform',n?'إضافة آلية':'تعديل '+esc(m.name),b);bindPreview('fMImg');
+  $('#fM').addEventListener('submit',async e=>{e.preventDefault();const sb_=$('#mfSub');sb_.disabled=true;
+    try{const img=await saveFile($('#fMImg').files[0]);const num=id=>{const v=$('#'+id).value;return v===''?null:+v};
+      const nm={...m,id:m.id||uid(),name:$('#mfName').value.trim(),type:$('#mfType').value,model:$('#mfModel').value.trim(),plate:$('#mfPlate').value.trim(),operator:$('#mfOp').value.trim(),site:$('#mfSite').value.trim(),unit:$('#mfUnit').value,hours:num('mfHours'),serviceEvery:num('mfEvery'),lastService:num('mfLast'),notes:$('#mfNotes').value.trim(),img:img?.ref||m.img||null,createdAt:m.createdAt||Date.now(),log:m.log||[],fuel:m.fuel||[]};
+      mLog(nm,n?'أضاف الآلية':'عدّل بيانات الآلية','');await putMachine(nm);if(n)await invLog('أضاف آلية: '+nm.name,nm.type);openMachine(nm);toast('حُفظت')}catch(x){$('#mfErr').textContent='تعذر الحفظ: '+x.message;sb_.disabled=false}})}
+function fuelForm(m){overlay('mfuel','تعبئة وقود — '+esc(m.name),`<form class="f" id="fFu"><div class="fr"><label class="l">اللترات<input id="fuL" class="in num" type="number" min="1" step="any" required></label><label class="l">قراءة العدّاد<input id="fuH" class="in num" type="number" min="0" step="any" value="${m.hours??''}"></label></div><label class="l">ملاحظة<input id="fuN" class="in" placeholder="مثال: كازية المعمل"></label><div class="acts"><button class="btn pri" type="submit">حفظ</button><button class="btn ghost" type="button" data-a="mBack">رجوع</button></div></form>`);
+  $('#fFu').addEventListener('submit',async e=>{e.preventDefault();const nm=clean(m);const L=+$('#fuL').value,H=$('#fuH').value===''?null:+$('#fuH').value;
+    nm.fuel=[...(nm.fuel||[]),{t:Date.now(),liters:L,hours:H,note:$('#fuN').value.trim(),uid:S.me?.id||null}];if(H!=null&&H>=(+nm.hours||0))nm.hours=H;mLog(nm,'عبّأ وقود',L+' لتر');await putMachine(nm);openMachine(nm);toast('سُجّلت التعبئة')})}
+
 /* ---------- developer ---------- */
 function devView(){
   const cnt={};S.requests.forEach(r=>cnt[r.status]=(cnt[r.status]||0)+1);
@@ -619,7 +687,7 @@ function devView(){
   let h=pushBanner()+`<div class="head"><div><h2>لوحة المطوّر</h2><p>تحكم كامل بالنظام. هذه اللوحة لا تظهر لأي حساب آخر.</p></div></div>
   <div class="stats"><div class="stat"><b>${S.requests.length}</b><span>كل الطلبات</span></div><div class="stat"><b>${S.inventory.length}</b><span>مواد المخزون</span></div><div class="stat"><b>${act}</b><span>حسابات مفعّلة</span></div><div class="stat ${pend?'hot':''}"><b>${pend}</b><span>بانتظار الموافقة</span></div><div class="stat"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></div><div class="stat"><b>${S.notifs.length}</b><span>إشعارات</span></div></div>
   <div class="mapgrid"><div class="sec"><h4>الدخول لأي واجهة</h4><div class="acts">${Object.entries(ROLES).map(([k,r])=>`<button class="btn sm" data-a="role" data-v="${k}">${r.name}</button>`).join('')}</div>
-   <h4 style="margin-top:14px">الإدارة</h4><div class="acts"><button class="btn sm" data-a="accounts">الحسابات والصلاحيات</button><button class="btn sm" data-a="devTab" data-v="admin1:notif">الإشعارات</button><button class="btn sm" data-a="devTab" data-v="admin1:feed">سجل الحركات</button><button class="btn sm" data-a="devTab" data-v="admin1:join">طلبات الانضمام</button><button class="btn sm" data-a="devTab" data-v="store:inv">المخزون</button></div></div>
+   <h4 style="margin-top:14px">الإدارة</h4><div class="acts"><button class="btn sm" data-a="accounts">الحسابات والصلاحيات</button><button class="btn sm" data-a="devTab" data-v="admin1:notif">الإشعارات</button><button class="btn sm" data-a="devTab" data-v="admin1:feed">سجل الحركات</button><button class="btn sm" data-a="devTab" data-v="admin1:join">طلبات الانضمام</button><button class="btn sm" data-a="devTab" data-v="store:inv">المخزون</button><button class="btn sm" data-a="devTab" data-v="project:mach">الآليات</button></div></div>
    <div class="sec"><h4>الطلبات حسب المرحلة</h4><div class="kv">${Object.entries(ST).map(([k,v])=>`<div><span>${v.t}</span><b class="num">${cnt[k]||0}</b></div>`).join('')}</div>
    <h4 style="margin-top:14px">صيانة</h4><div class="acts"><button class="btn sm" data-a="demo">تحميل بيانات تجريبية</button><button class="btn sm" data-a="cleardemo">حذف البيانات التجريبية</button><button class="btn sm" data-a="devReload">إعادة تحميل البيانات</button></div></div></div>
   <div class="sec" style="margin-top:14px"><h4>كل الطلبات (حذف نهائي متاح لك فقط)</h4>${S.requests.length?`<div class="list">${[...S.requests].sort((a,b)=>b.createdAt-a.createdAt).map(card).join('')}</div>`:'<p class="muted">لا توجد طلبات.</p>'}</div>`;
@@ -723,10 +791,11 @@ function roleDesc(k){return{dept:'رفع طلبات المواد ومتابعت�
 
 function tabsFor(role){
   const k=ROLES[role].kind,q=queueFor(role);
+  if(role==='machines')return[['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0]];
   if(k==='dept')return[['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0]];
   if(k==='store')return[['check','للفحص',S.requests.filter(r=>r.status==='store_check').length],['receive','للاستلام',S.requests.filter(r=>r.status==='receive').length],['inv','المخزون',S.inventory.filter(i=>+i.qty<=+i.min).length],['all','كل الطلبات',0]];
-  if(k==='project')return[['approve','للموافقة',q.length],['open','كل المفتوحة',S.requests.filter(r=>!['done','rejected'].includes(r.status)).length],['notif','الإشعارات',unread()],['join','طلبات الانضمام',pendingStaff().length],['inv','المخزون',S.inventory.filter(i=>+i.qty<=+i.min).length],['all','كل الطلبات',0]];
-  if(k==='admin')return[['notif','الإشعارات',unread()],['feed','سجل الحركات',recent24()],['join','طلبات الانضمام',pendingStaff().length],['all','كل الطلبات',0],['sum','الملخص',0]];
+  if(k==='project')return[['approve','للموافقة',q.length],['open','كل المفتوحة',S.requests.filter(r=>!['done','rejected'].includes(r.status)).length],['notif','الإشعارات',unread()],['join','طلبات الانضمام',pendingStaff().length],['inv','المخزون',S.inventory.filter(i=>+i.qty<=+i.min).length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['all','كل الطلبات',0]];
+  if(k==='admin')return[['notif','الإشعارات',unread()],['feed','سجل الحركات',recent24()],['join','طلبات الانضمام',pendingStaff().length],['all','كل الطلبات',0],['mach','الآليات',0],['sum','الملخص',0]];
   return[['buy','للموافقة والشراء',q.length],['map','المواقع GPS',0],['done','مشترياتي',0]];
 }
 function roleHome(){
@@ -762,6 +831,7 @@ function card(r){
 }
 function tabBody(role){
   const t=S.tab,R=ROLES[role];
+  if(t==='mach')return machinesView();
   if(R.kind==='dept'){const m=mine(role);return t==='mine'?listView(m.filter(r=>!['done','rejected'].includes(r.status)),'لا توجد طلبات مفتوحة لقسمك. اضغط "طلب مواد جديد".'):listView(m.filter(r=>['done','rejected'].includes(r.status)),'لم يكتمل أي طلب بعد.',true)}
   if(t==='check')return listView(S.requests.filter(r=>r.status==='store_check'),'لا توجد طلبات جديدة تحتاج فحص الرصيد.');
   if(t==='receive')return listView(S.requests.filter(r=>r.status==='receive'),'لا توجد مواد مشتراة بانتظار الاستلام.');
@@ -831,7 +901,7 @@ function mapView(){
 
 /* ---------- overlays ---------- */
 function overlay(kind,title,body){stopScan();const o=$('#ovroot');o.dataset.kind=kind;o.innerHTML=`<div class="ov" data-a="ovbg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sh-h"><h3>${title}</h3><button class="x" data-a="close" aria-label="إغلاق">×</button></div><div class="sh-b">${body}</div></div></div>`;document.body.style.overflow='hidden';const gb=document.querySelector('[data-a=goback]');if(gb)gb.disabled=false}
-function closeOv(){stopScan();S.rcFor=null;const o=$('#ovroot');o.innerHTML='';o.dataset.kind='';S.open=null;S.openSig=null;document.body.style.overflow=''}
+function closeOv(){stopScan();S.openM=null;S.rcFor=null;const o=$('#ovroot');o.innerHTML='';o.dataset.kind='';S.open=null;S.openSig=null;document.body.style.overflow=''}
 
 function track(r){
   if(r.status==='rejected'){const last=(r.log||[]).length;return`<div class="track"><div class="step done">الطلب</div><div class="step now rej">مرفوض</div></div>`}
@@ -844,7 +914,7 @@ function openReq(r,keep){
   let b=`<div>${track(r)}</div><div class="sec"><div class="kv">
    <div><span>المادة</span><b>${esc(r.item)}</b></div><div><span>الكمية</span><b><span class="num">${nf.format(r.qty)}</span> ${esc(r.unit)}</b></div>
    <div><span>القسم</span><b>${esc(r.dept)}</b></div><div><span>الأولوية</span><b><span class="pill p-${p[1]}">${p[0]}</span></b></div>
-   <div><span>مكان العمل</span><b>${esc(r.area||'—')}</b></div><div><span>الحالة</span><b><span class="pill p-${st.c}">${st.t}</span></b></div>
+   <div><span>مكان العمل</span><b>${esc(r.area||'—')}</b></div>${r.machineId?`<div><span>الآلية</span><b>${esc(S.machines.find(m=>m.id===r.machineId)?.name||'—')}</b></div>`:''}<div><span>الحالة</span><b><span class="pill p-${st.c}">${st.t}</span></b></div>
    <div><span>رفعه</span><b>${esc(ROLES[r.by]?.name||'')}</b></div><div><span>التاريخ</span><b class="num">${dt(r.createdAt)}</b></div></div>
    ${r.notes?`<p style="margin:12px 0 0">${esc(r.notes)}</p>`:''}</div>`;
   b+=`<div class="sec"><h4>الصور والموقع</h4><div class="photos"><div class="ph">صورة المنتج المطلوب${imgTag(r.productImg,'','صورة المنتج')}</div><div class="ph">صورة مكان العمل${imgTag(r.siteImg,'','صورة مكان العمل')}</div>
@@ -896,6 +966,7 @@ function newReqForm(){
   const b=`<form class="f" id="fNew">
    <div class="fr"><label class="l">اسم المادة المطلوبة<input id="fItem" class="in" required placeholder="مثال: محمل SKF 22320"></label>
    <label class="l">القسم<select id="fDept" class="in">${DEPTS.map(d=>`<option ${d===(R.dept||(S.role==='project'?'المشروع':S.role==='store'?'المخزن':''))?'selected':''}>${d}</option>`).join('')}</select></label></div>
+   ${S.machines.length?`<label class="l">الآلية <em>(اختياري — لتُحسب الكلفة عليها)</em><select id="fMach" class="in"><option value="">— بدون —</option>${[...S.machines].sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(m=>`<option value="${m.id}" ${S.preMach===m.id?'selected':''}>${esc(m.name)}${m.plate?' · '+esc(m.plate):''}</option>`).join('')}</select></label>`:''}
    <div class="fr"><label class="l">الكمية<input id="fQty" class="in num" type="number" min="0" step="any" required value="1"></label>
    <label class="l">الوحدة<input id="fUnit" class="in" list="units" value="قطعة"></label>
    <label class="l">مكان العمل<input id="fArea" class="in" list="areas" placeholder="مثال: الفرن الدوار"></label></div>
@@ -915,7 +986,7 @@ function newReqForm(){
     try{
       const prod=await saveFile($('#fProd').files[0]),site=await saveFile($('#fSite').files[0]);
       const gv=$('#fGps').value.trim();const coords=parseCoords(gv);
-      const r={id:uid(),code:code(),by:S.role,dept:$('#fDept').value,item:$('#fItem').value.trim(),qty:+$('#fQty').value||0,unit:$('#fUnit').value.trim()||'قطعة',area:$('#fArea').value.trim(),priority:document.querySelector('input[name=pri]:checked').value,notes:$('#fNotes').value.trim(),
+      const r={id:uid(),code:code(),machineId:$('#fMach')?.value||null,by:S.role,dept:$('#fDept').value,item:$('#fItem').value.trim(),qty:+$('#fQty').value||0,unit:$('#fUnit').value.trim()||'قطعة',area:$('#fArea').value.trim(),priority:document.querySelector('input[name=pri]:checked').value,notes:$('#fNotes').value.trim(),
         productImg:prod?.ref||null,siteImg:site?.ref||null,site:coords,siteLink:!coords&&/^https?:/.test(gv)?gv:null,status:'store_check',createdAt:Date.now(),log:[{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أنشأ الطلب',note:''}]};
       const direct=S.role==='project'&&document.querySelector('input[name=fRoute]:checked')?.value==='buy';
       if(direct){r.status='buy';r.log.push({t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أرسل الطلب مباشرة للمشتريات (أولوية مدير المشروع)',note:''})}
@@ -1068,6 +1139,15 @@ document.addEventListener('click',async e=>{
     case'goback':goBack();break;
     case'accounts':pushHist();S.view='accounts';closeOv();render();scrollTo(0,0);break;
     case'accNew':accForm();break;
+    case'mNew':machineForm();break;
+    case'mOpen':{const m=S.machines.find(x=>x.id===v);if(m)openMachine(m);break}
+    case'mBack':{const m=S.machines.find(x=>x.id===S.openM);if(m)openMachine(m);else closeOv();break}
+    case'mEdit':{const m=S.machines.find(x=>x.id===S.openM);if(m)machineForm(m);break}
+    case'mFuel':{const m=S.machines.find(x=>x.id===S.openM);if(m)fuelForm(m);break}
+    case'mQuick':case'mServiced':{const m=S.machines.find(x=>x.id===S.openM);if(!m)break;el.disabled=true;const nm=clean(m);const st=document.querySelector('input[name=mSt]:checked')?.value||nm.status;const hv=$('#mHours').value;const note=$('#mNote').value.trim();
+      if(hv!=='')nm.hours=+hv;if(a==='mServiced'){nm.lastService=nm.hours;if(nm.status==='service')nm.status='work';mLog(nm,'تمت الصيانة الدورية','عند '+nf.format(+nm.hours||0)+' '+(nm.unit||'ساعة'))}
+      else{const ch=[];if(st!==nm.status){ch.push('الحالة: '+MST[st][0]);nm.status=st}if(hv!==''&&+hv!==+m.hours)ch.push('العدّاد: '+nf.format(+hv));if(note)ch.push(note);mLog(nm,'حدّث الآلية',ch.join(' · '))}
+      try{await putMachine(nm);openMachine(nm);toast('حُفظ')}catch(x){toast('تعذر: '+x.message);el.disabled=false}break}
     case'pendOk':case'pendNo':{el.disabled=true;const p=S.staff.find(x=>x.id===v);const {data,error}=await sb.rpc('decide_pending',{p_id:v,p_accept:a==='pendOk'});if(error||!data?.ok){toast('تعذر: '+(error?.message||''));el.disabled=false;break}await loadAll('staff');render();toast(a==='pendOk'?'تفعّل حساب '+(p?.full_name||''):'رُفض الطلب');break}
     case'pushOn':el.disabled=true;await enablePush();break;
     case'devPanel':pushHist();S.view='dev';S.role=null;closeOv();render();scrollTo(0,0);break;
@@ -1103,7 +1183,7 @@ document.addEventListener('click',async e=>{
     case'plantHere':if(!navigator.geolocation){toast('تحديد الموقع غير متاح هنا');break}navigator.geolocation.getCurrentPosition(p=>{$('#plantIn').value=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6)},()=>toast('المتصفح لم يسمح بقراءة الموقع. الصق الإحداثيات يدوياً.'));break;
   }
 });
-document.addEventListener('change',e=>{if(e.target.name==='authTab'){S.authTab=e.target.value;render();return}if(e.target.id==='feedRole'){S.feedRole=e.target.value;render()}});
+document.addEventListener('change',e=>{if(e.target.id==='mFilter'){S.mFilter=e.target.value;render();return}if(e.target.name==='authTab'){S.authTab=e.target.value;render();return}if(e.target.id==='feedRole'){S.feedRole=e.target.value;render()}});
 document.addEventListener('input',e=>{if(e.target.id==='q'){S.q=e.target.value;const pos=e.target.selectionStart;render();const q=$('#q');if(q){q.focus();q.setSelectionRange(pos,pos)}}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#ovroot').innerHTML)goBack()});
 
