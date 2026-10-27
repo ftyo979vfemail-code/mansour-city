@@ -1686,7 +1686,7 @@ function invcForm(){const fixed=scopeWh(S.role);const canStock=INV_WRITE.include
       await invLog('رفع فاتورة خارجية: '+v.supplier,money(v.total)+(v.stocked?' · أُضيفت للمخزون':''));await signAll();closeOv();render();toast('حُفظت الفاتورة — '+money(v.total))}
     catch(x){$('#ivE').textContent='تعذر الحفظ: '+(x.message||x);sb_.disabled=false;sb_.textContent='حفظ الفاتورة'}});
   calc()}
-function invcOpen(id){const v=(S.invoices||[]).find(x=>x.id===id);if(!v)return;const canDel=v.uid===S.me?.id||['project','owner'].includes(S.me?.role);
+function invcOpen(id){const v=(S.invoices||[]).find(x=>x.id===id);if(!v)return;const canDel=S.me?.role==='owner';
   overlay('invcv',`فاتورة — ${esc(v.supplier||'')}`,`<div class="sec"><div class="kv"><div><span>المورد</span><b>${esc(v.supplier||'—')}</b></div><div><span>تابعة لـ</span><b>${v.wh==='mach'?'مخزن الآليات':'المخزن الرئيسي'}</b></div><div><span>التاريخ</span><b class="num">${new Date(v.at).toLocaleDateString('ar-IQ-u-nu-latn')}</b></div><div><span>رفعها</span><b>${esc(S.names[v.uid]?.name||'—')}</b></div></div></div>
    <div class="tbl-wrap"><table><thead><tr><th>المادة</th><th>العدد</th><th>سعر القطعة</th><th>المجموع</th></tr></thead><tbody>${(v.lines||[]).map(l=>`<tr><td>${esc(l.name)}</td><td class="num">${nf.format(l.qty)}</td><td class="num">${money(l.price)}</td><td class="num">${money(l.total)}</td></tr>`).join('')}<tr><td colspan="3"><b>المجموع الكلي</b></td><td class="num"><b>${money(+v.total)}</b></td></tr></tbody></table></div>
    ${v.note?`<p class="note">${esc(v.note)}</p>`:''}${v.stocked?'<p class="note ok">أُضيفت موادها للمخزون.</p>':''}
