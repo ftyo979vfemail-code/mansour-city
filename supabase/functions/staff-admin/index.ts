@@ -2,13 +2,19 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const DOMAIN = "staff.mansourcity.app";
-const ROLES = ["owner","machines","elec","mech","store","mstore","project","admin1","admin2","purchase","purchase2","keeper","operator","mechanic","fueler","supply","receiver"];
+const ROLES = ["owner","machines","elec","mech","store","mstore","project","admin1","admin2","purchase","purchase2","keeper","operator","mechanic","fueler","supply","receiver","elec_tech","mech_tech","buyer","clerk"];
 // which crew roles each manager may add / manage
 const CREW: Record<string, string[]> = {
   machines: ["operator", "mechanic", "fueler", "supply"],
   mstore: ["keeper"],
   store: ["receiver"],
-  project: ["keeper", "operator", "mechanic", "fueler", "supply", "receiver"],
+  elec: ["elec_tech"],
+  mech: ["mech_tech"],
+  purchase: ["buyer"],
+  purchase2: ["buyer"],
+  admin1: ["clerk"],
+  admin2: ["clerk"],
+  project: ["keeper", "operator", "mechanic", "fueler", "supply", "receiver", "elec_tech", "mech_tech", "buyer", "clerk"],
 };
 const cors = {
   "Access-Control-Allow-Origin": "*",
