@@ -96,6 +96,21 @@ button{cursor:pointer}
 
 .banner{margin-top:12px;padding:10px 14px;border-radius:8px;background:var(--warn-soft);color:var(--warn);font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .banner .btn{margin-inline-start:auto}
+.banner.gpsOn{background:var(--ok-soft);color:var(--ok)}
+.banner.gpsBad{background:var(--bad-soft);color:var(--bad)}
+.gdot{width:9px;height:9px;border-radius:50%;background:currentColor;display:inline-block;flex:none;animation:gp 2s infinite}
+@keyframes gp{0%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 50%,transparent)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+#repMap{height:380px;border-radius:10px;margin-top:12px;border:1px solid var(--line);z-index:0}
+.repPin{background:var(--accent);color:#fff;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 12px system-ui;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.repPin.off{background:#8a8a8a}
+.repPin.plant{background:#1f4e79;border-radius:8px}
+.reps{display:grid;gap:10px;margin-top:12px}
+.rep{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);flex-wrap:wrap}
+.rep .mono{width:38px;height:38px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-family:var(--display);font-size:13px;flex:none}
+.rep .rwho{flex:1 1 160px;min-width:0}.rep .rwho b{display:block;font-size:14px}.rep .rwho span{font-size:12px;color:var(--muted)}
+.rep .acts{flex:1 1 100%}
+.rep .st{font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.rep .st.on{background:var(--ok-soft);color:var(--ok)}.rep .st.idle{background:var(--warn-soft);color:var(--warn)}.rep .st.off{background:var(--sunk);color:var(--muted)}
 
 /* role picker */
 .pick{padding-block:28px 8px}
@@ -372,7 +387,7 @@ const AREAS=['الكسارة','ساحة الحجر الجيري','طاحونة �
 const UNITS=['قطعة','متر','كغم','طن','لتر','برميل','لفة','علبة','طقم'];
 
 /* ---------- state ---------- */
-const S={deliveries:[],dlvF:'today',machines:[],mFilter:'',notifs:[],authTab:'login',myCode:null,staff:[],me:null,names:{},view:null,aiBusy:null,invlog:[],feedRole:'',hist:[],mode:'loading',db:null,assets:null,requests:[],inventory:[],settings:{},role:null,tab:null,q:'',open:null,imgCache:{},local:{}};
+const S={deliveries:[],dlvF:'today',machines:[],mFilter:'',notifs:[],authTab:'login',myCode:null,staff:[],me:null,names:{},view:null,aiBusy:null,invlog:[],feedRole:'',hist:[],mode:'loading',db:null,assets:null,requests:[],inventory:[],settings:{},role:null,tab:null,q:'',open:null,imgCache:{},local:{},locs:[]};
 try{S.role=localStorage.getItem('cm_role')}catch(e){}
 if(S.role&&!ROLES[S.role])S.role=null;
 
@@ -470,10 +485,12 @@ async function loadAll(which){
   if(want('settings')){const {data}=await sb.from('settings').select('data').eq('id','main').maybeSingle();S.settings=data?.data||{}}
   if(want('notifications')&&seesNotifs()){const {data}=await sb.from('notifications').select('id,kind,data,created_at').order('id',{ascending:false}).limit(200);const prevTop=S.notifs[0]?.id||0;S.notifs=data||[];if(which==='notifications')S.notifs.filter(n=>n.id>prevTop).forEach(sysNotify)}
   if(want('staff')){const {data}=await sb.from('staff').select('id,full_name,role,active,status,admin_ok,project_ok,hidden,manager_id,machine_id,created_at');S.staff=data||[];try{const {data:c}=await sb.rpc('staff_contacts');const cm={};(c||[]).forEach(x=>cm[x.id]=x);S.staff.forEach(p=>{if(cm[p.id]){p.username=cm[p.id].username;p.phone=cm[p.id].phone}})}catch(e){}S.staff.forEach(p=>S.names[p.id]={name:p.full_name||p.username||'—'})}
+  if(want('staff_locations')&&seesReps()){const {data}=await sb.from('staff_locations').select('id,lat,lng,acc,at');S.locs=data||[]}
   await signAll()}
 let rtTimers={};
 function subscribe(){
   const ch=sb.channel('all');
+  if(seesReps())ch.on('postgres_changes',{event:'*',schema:'public',table:'staff_locations'},e=>{const n=e.new;if(!n||!n.id)return;S.locs=S.locs||[];const i=S.locs.findIndex(x=>x.id===n.id);if(i<0)S.locs.push(n);else S.locs[i]=n;repsRefresh()});
   ['requests','inventory','invlog','settings','staff','notifications','machines','deliveries'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(rtTimers[t]);rtTimers[t]=setTimeout(async()=>{await loadAll(t);if(t==='requests'&&S.rcFor){const r=S.requests.find(x=>x.id===S.rcFor);if(r&&r.status==='done'){S.rcFor=null;overlay('ok','تم الاستلام',`<div class="rcbox"><div class="okmark">✓</div><b>مسح مندوب المشتريات الباركود وتم الاستلام</b><p class="muted" style="margin:0">${esc(r.item)}</p></div><div class="acts"><button class="btn" data-a="close">إغلاق</button></div>`)}}if(t==='staff'&&S.me?.status==='pending'){await afterLogin();return}if(t==='deliveries'&&S.openD&&$('#ovroot').dataset.kind==='dlv'){const d=S.deliveries.find(x=>x.id===S.openD);if(d)openDlv(d)}if(t==='machines'&&S.openM&&$('#ovroot').dataset.kind==='mach'){const m=S.machines.find(x=>x.id===S.openM);if(m)openMachine(m)}render()},300)}));
   ch.subscribe()}
 
@@ -1098,8 +1115,8 @@ function tabsFor(role){
   if(role==='machines')return[['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['dlv','تجهيز المواد',dlvOpen().length],['team','الكادر',myCrew().length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0]];
   if(k==='dept'||role==='elec_tech'||role==='mech_tech')return[['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0],...(CREW_OF[role]&&!ROLES[role].crew?[['team','الكادر',myCrew().length]]:[])];
   if(k==='store')return[['check','للفحص',S.requests.filter(r=>r.status==='store_check'&&canAct(r,role)).length],['receive','للاستلام',S.requests.filter(r=>r.status==='receive'&&canAct(r,role)).length],['inv','المخزون',invOf(role).filter(i=>+i.qty<=+i.min).length],...(role==='store'?[['team','الكادر',myCrew().length]]:role==='mstore'?[['team','الكادر',myCrew().length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length]]:role==='keeper'?[['issue','صرف لآلية',0],['mach','الآليات',0]]:[]),['all','كل الطلبات',0]];
-  if(k==='project')return[['approve','للموافقة',q.length],['open','كل المفتوحة',S.requests.filter(r=>!['done','rejected'].includes(r.status)).length],['notif','الإشعارات',unread()],['join','طلبات الانضمام',pendingStaff().length],['inv','المخزون',S.inventory.filter(i=>+i.qty<=+i.min).length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['dlv','تجهيز المواد',dlvOpen().length],['team','الكادر',myCrew().length],['org','الموظفين والأقسام',S.staff.filter(p=>!p.hidden).length],['all','كل الطلبات',0]];
-  if(k==='admin')return[['notif','الإشعارات',unread()],['feed','سجل الحركات',recent24()],...(role==='clerk'?[]:[['join','طلبات الانضمام',pendingStaff().length],['org','الموظفين والأقسام',S.staff.filter(p=>!p.hidden).length]]),...(CREW_OF[role]&&!ROLES[role].crew?[['team','الكادر',myCrew().length]]:[]),['all','كل الطلبات',0],['mach','الآليات',0],['dlv','تجهيز المواد',0],['sum','الملخص',0]];
+  if(k==='project')return[['approve','للموافقة',q.length],['reps','مواقع المندوبين',repsOnline()],['open','كل المفتوحة',S.requests.filter(r=>!['done','rejected'].includes(r.status)).length],['notif','الإشعارات',unread()],['join','طلبات الانضمام',pendingStaff().length],['inv','المخزون',S.inventory.filter(i=>+i.qty<=+i.min).length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['dlv','تجهيز المواد',dlvOpen().length],['team','الكادر',myCrew().length],['org','الموظفين والأقسام',S.staff.filter(p=>!p.hidden).length],['all','كل الطلبات',0]];
+  if(k==='admin')return[['notif','الإشعارات',unread()],['feed','سجل الحركات',recent24()],...(role==='clerk'?[]:[['reps','مواقع المندوبين',repsOnline()],['join','طلبات الانضمام',pendingStaff().length],['org','الموظفين والأقسام',S.staff.filter(p=>!p.hidden).length]]),...(CREW_OF[role]&&!ROLES[role].crew?[['team','الكادر',myCrew().length]]:[]),['all','كل الطلبات',0],['mach','الآليات',0],['dlv','تجهيز المواد',0],['sum','الملخص',0]];
   return[['buy',role==='buyer'?'للشراء':'للموافقة والشراء',q.length],['map','المواقع GPS',0],['done','مشترياتي',0],...(CREW_OF[role]&&!ROLES[role].crew?[['team','الكادر',myCrew().length]]:[])];
 }
 function roleHome(){
@@ -1109,7 +1126,7 @@ function roleHome(){
   const crit=open.filter(r=>r.priority==='critical').length;
   const mq=queueFor(role).length;
   const canNew=['dept','project','store','crew'].includes(R.kind)&&role!=='fueler'&&role!=='supply'&&role!=='receiver';
-  let h=pushBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div>${canNew?`<div class="acts"><button class="btn" data-a="paper">📄 رفع ورقة طلبات</button><button class="btn pri" data-a="new">+ طلب مواد جديد</button></div>`:''}</div>`;
+  let h=pushBanner()+gpsBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div>${canNew?`<div class="acts"><button class="btn" data-a="paper">📄 رفع ورقة طلبات</button><button class="btn pri" data-a="new">+ طلب مواد جديد</button></div>`:''}</div>`;
   const spent=S.requests.reduce((s,r)=>s+(r.purchase?.total||0),0);
   if(R.kind!=='crew')h+=`<div class="stats">${R.kind==='admin'?`<div class="stat"><b>${recent24()}</b><span>حركات آخر 24 ساعة</span></div>`:`<div class="stat ${mq?'hot':''}"><b>${mq}</b><span>بانتظار إجرائك</span></div>`}<div class="stat"><b>${open.length}</b><span>طلبات مفتوحة</span></div><div class="stat ${crit?'hot':''}"><b>${crit}</b><span>طارئة - توقف إنتاج</span></div>${R.kind==='admin'||R.kind==='purchase'?`<div class="stat"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></div>`:`<div class="stat"><b>${invOf(role).filter(i=>+i.qty<=+i.min).length}</b><span>مواد تحت الحد الأدنى</span></div>`}</div>`;
   h+=`<div class="tabs" role="tablist">${tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-a="tab" data-v="${k}">${t}${c?`<span class="c num">${c}</span>`:''}</button>`).join('')}</div>`;
@@ -1155,6 +1172,7 @@ function tabBody(role){
   if(t==='join')return approvalsView();
   if(t==='buy')return listView(queueFor(role),'لا توجد طلبات معتمدة للشراء حالياً.');
   if(t==='map')return mapView();
+  if(t==='reps')return repsView();
   if(t==='done')return listView(S.requests.filter(r=>r.purchase),'لم تُسجّل أي عملية شراء بعد.',true);
   return listView(S.requests,'لا توجد طلبات.',true);
 }
@@ -1337,7 +1355,7 @@ function quoteForm(r){
   <div class="err" id="qErr"></div><div class="acts"><button class="btn pri" type="submit" id="qSub">حفظ العرض</button><button class="btn ghost" type="button" data-a="back">رجوع</button></div></form>`;
   overlay('quote',`عرض سعر <span class="num">#${esc(r.code)}</span>`,b);
   bindPreview('fQImg',async f=>{const g=await exifGps(f);if(g&&!$('#qGps').value){$('#qGps').value=g.lat+', '+g.lng;$('#qGpsN').className='note ok';$('#qGpsN').textContent='أُخذ الموقع من الصورة'}});
-  bindGps('qGpsBtn','qGps','qGpsN');
+  bindGps('qGpsBtn','qGps','qGpsN');autoGps('qGps','qGpsN');
   $('#fQ').addEventListener('submit',async e=>{e.preventDefault();const sb=$('#qSub');sb.disabled=true;sb.textContent='جارِ الحفظ…';
     try{const img=await saveFile($('#fQImg').files[0]);
       const q={id:uid(),supplier:$('#qSup').value.trim(),unitPrice:+$('#qPrice').value||0,brand:$('#qBrand').value.trim(),warranty:+$('#qWar').value||0,days:+$('#qDays').value||0,cond:document.querySelector('input[name=qc]:checked').value,notes:$('#qNotes').value.trim(),img:img?.ref||null,loc:parseCoords($('#qGps').value),at:Date.now()};
@@ -1399,15 +1417,15 @@ function buyForm(r){
   <label class="l">سعر الوحدة (دينار)<input id="bUnit" class="in num" type="number" min="0" step="any" required></label>
   <label class="l">المجموع (دينار)<input id="bTot" class="in num" type="number" min="0" step="any" required></label></div>
   ${fileField('fInv','صوّر الفاتورة بالكاميرا الآن','تفتح الكاميرا مباشرة. لا تُقبل صور قديمة من المعرض',true)}<div class="err" id="invErr"></div>
-  <label class="l">موقع المورد GPS <em>(اختياري)</em><div class="gps"><input id="bGps" class="in num" placeholder="33.3152, 44.3661"><button type="button" class="btn" id="bGpsBtn">موقعي الحالي</button></div><span class="note" id="bGpsN"></span></label>
+  <label class="l">موقع المحل GPS <em>(إلزامي — يُحدَّد تلقائياً)</em><div class="gps"><input id="bGps" class="in num" placeholder="33.3152, 44.3661"><button type="button" class="btn" id="bGpsBtn">موقعي الحالي</button></div><span class="note" id="bGpsN"></span></label>
   <div class="err" id="bErr"></div><div class="acts"><span class="lock" id="bLock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>ارفع صورة الفاتورة أولاً حتى يظهر زر الموافقة على الشراء</span><button class="btn ok" type="submit" id="bSub" hidden disabled>تمت الموافقة على الشراء - إرسال للمخزن</button><button class="btn ghost" type="button" data-a="back">رجوع</button></div></form>`;
   overlay('buy',`تأكيد شراء <span class="num">#${esc(r.code)}</span>`,b);
   bindInvoice(r);
-  bindGps('bGpsBtn','bGps','bGpsN');
+  bindGps('bGpsBtn','bGps','bGpsN');autoGps('bGps','bGpsN');
   const u=$('#bUnit'),t=$('#bTot');u.addEventListener('input',()=>{t.value=u.value?Math.round(+u.value*r.qty):''});
   const cq=(r.quotes||[]).find(x=>x.id===r.chosenQuote)||(r.ai&&(r.quotes||[]).find(x=>x.id===r.ai.pick));
   if(cq){$('#bSup').value=cq.supplier;u.value=cq.unitPrice;t.value=Math.round(cq.unitPrice*r.qty);if(cq.loc)$('#bGps').value=cq.loc.lat+', '+cq.loc.lng}
-  $('#fBuy').addEventListener('submit',async e=>{e.preventDefault();const s=$('#bSub');s.disabled=true;s.textContent='جارِ الرفع…';
+  $('#fBuy').addEventListener('submit',async e=>{e.preventDefault();const s=$('#bSub');if(!parseCoords($('#bGps').value)){$('#bErr').textContent='حدّد موقع المحل أولاً: اضغط «موقعي الحالي» وأنت داخل المحل.';$('#bGps').focus();return}s.disabled=true;s.textContent='جارِ الرفع…';
     try{const inv=await saveFile($('#fInv').files[0],'فاتورة #'+r.code+' · صُوّرت '+new Date(S.invShotAt||Date.now()).toLocaleString('ar-IQ-u-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+' · '+ROLES[S.role].name);
       if(!inv){$('#bErr').textContent='أرفق صورة الفاتورة قبل التأكيد.';s.disabled=false;s.textContent='تأكيد الشراء وإرسال للمخزن';return}
       await act(r,'bought',{toast:'تمت الموافقة على الشراء وأُرسلت المادة للمخزن للاستلام',note:$('#bSup').value.trim(),purchase:{supplier:$('#bSup').value.trim(),unitPrice:+u.value,total:+t.value,invoice:inv,loc:parseCoords($('#bGps').value),at:Date.now()}});
@@ -1495,7 +1513,7 @@ document.addEventListener('click',async e=>{
     case'openReq':{const r=S.requests.find(x=>x.id===v);if(r)openReq(r);break}
     case'recheck':await afterLogin();break;
     case'accEdit':accForm(S.staff.find(p=>p.id===v));break;
-    case'logout':await disablePush();await sb.auth.signOut();S.me=null;S.role=null;S.view=null;S.hist=[];S.mode='login';closeOv();render();break;
+    case'logout':stopTracking();await disablePush();await sb.auth.signOut();S.me=null;S.role=null;S.view=null;S.hist=[];S.mode='login';closeOv();render();break;
     case'theme':document.documentElement.dataset.theme=isDark()?'light':'dark';try{localStorage.setItem('cm_theme',document.documentElement.dataset.theme)}catch(x){}render();break;
     case'open':{const r=S.requests.find(x=>x.id===v);if(r)openReq(r);break}
     case'close':case'ovbg':closeOv();render();break;
@@ -1513,6 +1531,9 @@ document.addEventListener('click',async e=>{
     case'demo':el.disabled=true;await loadDemo();break;
     case'cleardemo':el.disabled=true;await clearDemo();break;
     case'plantSave':{const c=parseCoords($('#plantIn').value);if(!c){toast('اكتب الإحداثيات هكذا: 33.3152, 44.3661');break}await putSettings({plant:c});await invLog('غيّر موقع المعمل',c.lat+', '+c.lng);toast('حُفظ موقع المعمل');break}
+    case'locRetry':stopTracking();startTracking(true);break;
+    case'repTrail':showTrail(v);break;
+    case'repFocus':{const l=(S.locs||[]).find(x=>x.id===v);if(l&&REPMAP.map){REPMAP.map.setView([l.lat,l.lng],16);$('#repMap').scrollIntoView({behavior:'smooth',block:'center'})}break}
     case'plantHere':if(!navigator.geolocation){toast('تحديد الموقع غير متاح هنا');break}navigator.geolocation.getCurrentPosition(p=>{$('#plantIn').value=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6)},()=>toast('المتصفح لم يسمح بقراءة الموقع. الصق الإحداثيات يدوياً.'));break;
   }
 });
@@ -1525,6 +1546,73 @@ document.addEventListener('input',e=>{if(e.target.id==='orgQ'){S.orgQ=e.target.v
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#ovroot').innerHTML)goBack()});
 
 /* ---------- boot ---------- */
+/* ===== GPS: live location of purchasing reps ===== */
+const TRACK_ROLES=['buyer','purchase','purchase2'];
+const seesReps=()=>['owner','project','admin1','admin2'].includes(S.me?.role);
+const LOC={watch:null,hb:null,state:'off',last:null,sentAt:0,sentPos:null,trailAt:0,trailPos:null};
+function meters(a,b){const R=6371000,t=x=>x*Math.PI/180,dl=t(b.lat-a.lat),dg=t(b.lng-a.lng);const h=Math.sin(dl/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+function tracks(){return S.me?.active&&TRACK_ROLES.includes(S.me.role)}
+function setLoc(st){if(LOC.state!==st){LOC.state=st;if(!$('#ovroot')?.dataset.kind)render()}}
+function startTracking(force){
+  if(!tracks()||LOC.watch!==null)return;
+  if(!navigator.geolocation){setLoc('na');return}
+  LOC.state='wait';if(force)render();
+  LOC.watch=navigator.geolocation.watchPosition(onPos,e=>setLoc(e.code===1?'denied':'err'),{enableHighAccuracy:true,maximumAge:15000,timeout:45000});
+  LOC.hb=setInterval(()=>{if(LOC.last&&document.visibilityState==='visible'&&Date.now()-LOC.sentAt>120000)sendLoc(LOC.last)},60000);
+}
+function stopTracking(){if(LOC.watch!==null)navigator.geolocation.clearWatch(LOC.watch);clearInterval(LOC.hb);LOC.watch=null;LOC.hb=null;LOC.state='off';LOC.last=null;LOC.sentPos=null}
+function onPos(p){const c={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy||0),t:Date.now()};LOC.last=c;
+  const moved=LOC.sentPos?meters(LOC.sentPos,c):1e9;if(moved>30||Date.now()-LOC.sentAt>60000)sendLoc(c);setLoc('on')}
+async function sendLoc(c){if(!tracks())return;LOC.sentAt=Date.now();LOC.sentPos=c;
+  try{await sb.from('staff_locations').upsert({id:S.me.id,lat:c.lat,lng:c.lng,acc:c.acc,sharing:true});
+    if(!LOC.trailPos||meters(LOC.trailPos,c)>80||Date.now()-LOC.trailAt>300000){LOC.trailAt=Date.now();LOC.trailPos=c;await sb.from('loc_trail').insert({uid:S.me.id,lat:c.lat,lng:c.lng,acc:c.acc})}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&tracks()&&LOC.watch!==null)navigator.geolocation.getCurrentPosition(onPos,()=>{},{enableHighAccuracy:true,maximumAge:10000,timeout:30000})});
+function gpsBanner(){if(!tracks())return'';
+  if(LOC.state==='on')return`<div class="banner gpsOn"><span class="gdot"></span><span><b>الـGPS شغّال</b> — موقعك يظهر لمدير المشروع والإدارة أثناء فتح التطبيق${LOC.last?` · دقة <span class="num">${LOC.last.acc}</span> م`:''}</span></div>`;
+  if(LOC.state==='denied')return`<div class="banner gpsBad"><span><b>الموقع مقفول</b> — لازم تسمح بالموقع حتى تشتغل. اضغط على 🔒 جنب الرابط ← الأذونات ← الموقع ← سماح، وبعدين اضغط «تشغيل».</span><button class="btn sm" data-a="locRetry">تشغيل الـGPS</button></div>`;
+  if(LOC.state==='na')return`<div class="banner gpsBad"><span>هذا المتصفح ما يدعم تحديد الموقع. افتح الرابط من Chrome أو Safari.</span></div>`;
+  if(LOC.state==='err')return`<div class="banner gpsBad"><span>ما كدرنا نحدد موقعك. شغّل الموقع (GPS) من إعدادات الموبايل.</span><button class="btn sm" data-a="locRetry">إعادة المحاولة</button></div>`;
+  return`<div class="banner"><span>📍 جارِ تشغيل الـGPS… إذا طلع لك سؤال «السماح بالموقع» اختار <b>سماح</b>.</span></div>`}
+function autoGps(inId,noteId){const i=$('#'+inId),n=$('#'+noteId);if(!i||i.value.trim())return;
+  const put=c=>{if(i.value.trim())return;i.value=c.lat+', '+c.lng;n.className='note ok';n.textContent='تم تحديد موقعك تلقائياً (دقة '+c.acc+' م)'};
+  if(LOC.last&&Date.now()-LOC.last.t<90000){put(LOC.last);return}
+  if(!navigator.geolocation)return;n.className='note';n.textContent='جارِ تحديد موقعك…';
+  navigator.geolocation.getCurrentPosition(p=>put({lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy||0)}),()=>{if(!i.value.trim()){n.className='note bad';n.textContent='اسمح بالموقع أو اضغط «موقعي الحالي».'}},{enableHighAccuracy:true,maximumAge:30000,timeout:30000})}
+/* managers' view */
+const REPMAP={map:null,layer:null,trail:null,lib:null};
+function repList(){return S.staff.filter(p=>TRACK_ROLES.includes(p.role)&&p.active&&!p.hidden)}
+function locOf(id){return(S.locs||[]).find(x=>x.id===id)}
+function repState(l){if(!l)return['off','ما شارك موقعه بعد'];const m=(Date.now()-new Date(l.at).getTime())/60000;return m<3?['on','متصل الآن']:m<30?['idle','آخر ظهور '+ago(new Date(l.at).getTime())]:['off','آخر ظهور '+ago(new Date(l.at).getTime())]}
+function repsOnline(){if(!seesReps())return 0;return repList().filter(p=>repState(locOf(p.id))[0]==='on').length}
+function repBuying(id){return S.requests.filter(r=>r.status==='buying'&&(r.log||[]).some(x=>x.uid===id&&x.a==='بدأ الشراء'))}
+function repCards(){const reps=repList();if(!reps.length)return`<div class="empty"><b>لا يوجد مندوبي مشتريات مسجلين</b>أضف مندوب من «إضافة عامل» واختار «مندوب مشتريات».</div>`;
+  const plant=S.settings.plant;
+  return reps.map(p=>{const l=locOf(p.id),[st,txt]=repState(l),b=repBuying(p.id);
+    return`<div class="rep"><div class="mono">${esc((p.full_name||'؟').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join(''))}</div><div class="rwho"><b>${esc(p.full_name||p.username||'—')}</b><span>${l?`دقة <span class="num">${Math.round(l.acc||0)}</span> م${plant?` · يبعد عن المعمل <span class="num">${km(plant,l).toFixed(1)}</span> كم`:''}`:'لازم يفتح التطبيق ويسمح بالموقع'}${b.length?` · يشتري: ${esc(b[0].item)}`:''}</span></div><span class="st ${st}">${txt}</span>
+    ${l?`<div class="acts"><button class="btn sm" data-a="repFocus" data-v="${p.id}">على الخريطة</button><button class="btn sm" data-a="repTrail" data-v="${p.id}">مسار اليوم</button><a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${l.lat},${l.lng}">Google Maps</a></div>`:''}</div>`}).join('')}
+function repsView(){setTimeout(initRepMap,0);
+  return`<div class="sec" style="margin-top:14px"><h4>مواقع مندوبي المشتريات (مباشر)</h4><p class="note" style="margin:0">يتحدث الموقع تلقائياً كل دقيقة أو عند تحرك المندوب، طالما التطبيق مفتوح عنده. الأخضر = متصل الآن.</p><div id="repMap"></div><div id="trailInfo" class="note"></div></div><div class="reps" id="repList">${repCards()}</div>`}
+function loadLeaflet(){if(REPMAP.lib)return REPMAP.lib;REPMAP.lib=new Promise((ok,no)=>{const c=document.createElement('link');c.rel='stylesheet';c.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.appendChild(c);const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';s.onload=()=>ok(window.L);s.onerror=()=>{REPMAP.lib=null;no()};document.head.appendChild(s)});return REPMAP.lib}
+async function initRepMap(){const el=$('#repMap');if(!el)return;let L;try{L=await loadLeaflet()}catch(e){el.outerHTML='<p class="note bad">تعذر تحميل الخريطة. تأكد من الإنترنت.</p>';return}
+  if(!document.body.contains(el))return;const prev=REPMAP.map?{c:REPMAP.map.getCenter(),z:REPMAP.map.getZoom()}:null;if(REPMAP.map){try{REPMAP.map.remove()}catch(e){}}
+  const m=L.map(el,{zoomControl:true});REPMAP.map=m;L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(m);
+  REPMAP.layer=L.layerGroup().addTo(m);REPMAP.trail=null;drawReps(!prev);if(prev)m.setView(prev.c,prev.z)}
+function drawReps(fit){const L=window.L,m=REPMAP.map;if(!L||!m)return;REPMAP.layer.clearLayers();const pts=[];const plant=S.settings.plant;
+  if(plant){L.marker([plant.lat,plant.lng],{icon:L.divIcon({className:'',html:'<div class="repPin plant" style="width:34px;height:34px">🏭</div>',iconSize:[34,34],iconAnchor:[17,17]})}).bindTooltip('المعمل').addTo(REPMAP.layer);pts.push([plant.lat,plant.lng])}
+  repList().forEach(p=>{const l=locOf(p.id);if(!l)return;const [st,txt]=repState(l);const ini=esc((p.full_name||'؟').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join(''));
+    L.marker([l.lat,l.lng],{icon:L.divIcon({className:'',html:`<div class="repPin ${st==='on'?'':'off'}" style="width:34px;height:34px">${ini}</div>`,iconSize:[34,34],iconAnchor:[17,17]})}).bindPopup(`<b>${esc(p.full_name||'')}</b><br>${txt}<br><a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${l.lat},${l.lng}">فتح بخرائط Google</a>`).addTo(REPMAP.layer);
+    if(l.acc&&l.acc<2000)L.circle([l.lat,l.lng],{radius:l.acc,weight:1,fillOpacity:.08}).addTo(REPMAP.layer);pts.push([l.lat,l.lng])});
+  if(fit){if(pts.length>1)REPMAP.map.fitBounds(pts,{padding:[40,40],maxZoom:15});else if(pts.length)REPMAP.map.setView(pts[0],14);else REPMAP.map.setView([33.3152,44.3661],11)}}
+function repsRefresh(){if(S.tab!=='reps'||!$('#repList')){if(S.tab!=='reps'&&!$('#ovroot')?.dataset.kind)render();return}$('#repList').innerHTML=repCards();drawReps(false)}
+async function showTrail(id){const L=window.L,m=REPMAP.map;if(!L||!m)return;const d0=new Date();d0.setHours(0,0,0,0);
+  const {data}=await sb.from('loc_trail').select('lat,lng,at').eq('uid',id).gte('at',d0.toISOString()).order('at',{ascending:true}).limit(2000);
+  if(REPMAP.trail){REPMAP.trail.remove();REPMAP.trail=null}const pts=(data||[]).map(x=>[x.lat,x.lng]);const nm=S.names[id]?.name||'';
+  if(pts.length<2){$('#trailInfo').textContent=`لا يوجد مسار كافٍ اليوم لـ ${nm}.`;return}
+  let dist=0;for(let i=1;i<data.length;i++)dist+=meters(data[i-1],data[i]);
+  REPMAP.trail=L.polyline(pts,{weight:4,opacity:.8}).addTo(m);m.fitBounds(REPMAP.trail.getBounds(),{padding:[40,40]});
+  const t=x=>new Date(x).toLocaleTimeString('ar-IQ-u-nu-latn',{hour:'2-digit',minute:'2-digit'});
+  $('#trailInfo').className='note ok';$('#trailInfo').textContent=`مسار ${nm} اليوم: من ${t(data[0].at)} إلى ${t(data[data.length-1].at)} · تقريباً ${(dist/1000).toFixed(1)} كم · ${data.length} نقطة`;$('#repMap').scrollIntoView({behavior:'smooth',block:'center'})}
+
 async function afterLogin(){
   const {data:{user}}=await sb.auth.getUser();if(!user){S.mode='login';render();return}
   const {data:me}=await sb.from('staff').select('id,full_name,role,active,status,admin_ok,project_ok,hidden,manager_id,machine_id,created_at').eq('id',user.id).maybeSingle();if(me){try{const {data:c}=await sb.rpc('staff_contacts');const mine=(c||[]).find(x=>x.id===me.id);if(mine){me.username=mine.username;me.phone=mine.phone}}catch(e){}}
@@ -1536,7 +1624,7 @@ async function afterLogin(){
   if(!me||!me.active){S.mode='db';render();return}
   if(me.role!=='owner'){S.role=me.role}else if(S.role&&!ROLES[S.role])S.role=null;
   if(me.hidden&&!S.role&&!S.view)S.view='dev';
-  await loadAll();S.mode='db';render();subscribe();checkPush();
+  await loadAll();S.mode='db';render();subscribe();checkPush();startTracking();
 }
 window.addEventListener('unhandledrejection',e=>{const m=e.reason?.message||String(e.reason||'');if(m)toast('تعذر: '+m)});
 render();
