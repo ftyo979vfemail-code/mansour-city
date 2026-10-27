@@ -147,6 +147,11 @@ button{cursor:pointer}
 .fab-item .fi{width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:15px}
 .fab-item:hover{border-color:var(--accent)}
 body.ovopen .fab{display:none}
+.ilist{display:grid;gap:10px;margin-top:12px}
+.icard{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:12px 14px;display:grid;gap:10px}
+.icard.low{border-color:var(--bad);box-shadow:inset 3px 0 0 var(--bad)}
+.icard .ih{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.icard .ih b{font-size:16px;font-weight:600}
+.icard .kv{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}.icard .kv small{display:block;font-size:11.5px}
 .ivl{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface);display:grid;gap:8px;margin-bottom:8px}
 .ivh{display:flex;gap:8px;align-items:center}.ivh .ivN{flex:1}
 .ivg{display:grid;grid-template-columns:1fr 1.3fr 1.3fr;gap:8px;align-items:end}.ivg .l{margin:0;font-size:12px}.ivg .ivT{display:block;padding:10px 0;font-size:15px}
@@ -1229,7 +1234,20 @@ function invView(){
   const role=S.role,both=!isStoreRole(role);const items=[...invOf(role)].filter(i=>!both||!S.whF||(i.wh==='mach'?'mach':'main')===S.whF).sort((a,b)=>((+a.qty<=+a.min)?0:1)-((+b.qty<=+b.min)?0:1)||a.name.localeCompare(b.name,'ar'));
   let h=`<div class="filters">${both?`<select id="whF" class="in" style="flex:1 1 160px"><option value="">كل المخازن</option><option value="main" ${S.whF==='main'?'selected':''}>المخزن الرئيسي</option><option value="mach" ${S.whF==='mach'?'selected':''}>مخزن الآليات</option></select>`:`<span class="pill p-info" style="align-self:center">${whName(myWh(role))}</span>`}${role==='receiver'?'':'<button class="btn" data-a="impOpen">📥 رفع ملف أسعار</button><button class="btn pri" data-a="invNew">+ إضافة مادة للمخزون</button>'}</div>`;
   if(!items.length)return h+`<div class="empty"><b>المخزون فارغ</b>أضف المواد مع الحد الأدنى لكل مادة ليظهر التنبيه عند النقص.</div>`;
-  return h+`<div class="tbl-wrap"><table><thead><tr><th>المادة</th><th>الرمز</th><th>الرصيد</th><th>الحد الأدنى</th><th>السعر</th><th>الرف</th><th></th></tr></thead><tbody>${items.map(i=>`<tr class="${+i.qty<=+i.min?'low':''}"><td>${esc(i.name)} ${both&&i.wh==='mach'?'<span class="pill p-accent">الآليات</span> ':''}${i.demo?'<span class="tag-demo">تجريبي</span>':''}</td><td class="num muted">${esc(i.sku||'')}</td><td class="q"><span class="num">${nf.format(+i.qty)}</span> ${esc(i.unit)}</td><td class="num">${nf.format(+i.min)}</td><td class="num">${i.price!=null&&i.price!==''?money(+i.price):'—'}</td><td class="num">${esc(i.shelf||'')}</td><td>${role==='receiver'?'':`<div class="acts" style="flex-wrap:nowrap">${+i.qty<=+i.min&&ROLES[role]&&['store','mstore','keeper','project'].includes(role)?`<button class="btn sm pri" data-a="invReq" data-v="${i.id}">اطلب</button>`:''}<button class="btn sm" data-a="invEdit" data-v="${i.id}">تعديل</button></div>`}</td></tr>`).join('')}</tbody></table></div>`;
+  const val=items.reduce((a,i)=>a+(+i.price||0)*(+i.qty||0),0),noP=items.filter(i=>!+i.price).length;
+  h+=`<div class="stats"><div class="stat"><b>${items.length}</b><span>مادة</span></div><div class="stat"><b class="num" style="font-size:18px">${money(val)}</b><span>القيمة الكلية للمخزون</span></div>${noP?`<div class="stat"><b>${noP}</b><span>مواد بدون سعر</span></div>`:''}</div>`;
+  return h+`<div class="ilist">${items.map(i=>{const low=+i.qty<=+i.min,p=+i.price||0,tot=p*(+i.qty||0);return`<div class="icard ${low?'low':''}">
+   <div class="ih"><b>${esc(i.name)}</b>${both&&i.wh==='mach'?'<span class="pill p-accent">الآليات</span>':''}${low?'<span class="pill p-bad">تحت الحد</span>':''}${i.demo?'<span class="tag-demo">تجريبي</span>':''}</div>
+   <div class="kv">
+    <div><span>الرصيد</span><b><span class="num">${nf.format(+i.qty)}</span> ${esc(i.unit)}</b></div>
+    <div><span>سعر القطعة</span><b class="num">${p?money(p):'—'}</b></div>
+    <div><span>القيمة الكلية</span><b class="num" style="color:var(--accent)">${p?money(tot):'—'}</b>${p&&+i.qty>1?`<small class="muted"><bdi>${nf.format(+i.qty)} ${esc(i.unit)}</bdi> × <bdi>${money(p)}</bdi></small>`:''}</div>
+    <div><span>الحد الأدنى</span><b class="num">${nf.format(+i.min)}</b></div>
+    ${i.sku?`<div><span>الرمز</span><b class="num">${esc(i.sku)}</b></div>`:''}
+    ${i.shelf?`<div><span>الرف</span><b class="num">${esc(i.shelf)}</b></div>`:''}
+    ${i.supplier?`<div><span>المورد</span><b>${esc(i.supplier)}</b></div>`:''}
+   </div>
+   ${role==='receiver'?'':`<div class="acts">${low&&['store','mstore','keeper','project'].includes(role)?`<button class="btn sm pri" data-a="invReq" data-v="${i.id}">اطلب</button>`:''}<button class="btn sm" data-a="invEdit" data-v="${i.id}">تعديل</button></div>`}</div>`}).join('')}</div>`;
 }
 function sumView(){
   const by={};S.requests.forEach(r=>{by[r.dept]=by[r.dept]||{n:0,s:0};by[r.dept].n++;by[r.dept].s+=r.purchase?.total||0});
