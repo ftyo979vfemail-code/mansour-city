@@ -361,6 +361,76 @@ button.orow:hover{background:var(--sunk)}
   .card .end{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:center}
 }
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(12px);opacity:.6}}}
+/* attendance */
+.atsub{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.atbar{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.4fr);gap:8px;margin-top:14px;align-items:end}
+.atday{display:flex;flex-direction:column;gap:2px}
+.atday .in{min-width:150px}
+.atdl{margin:10px 0 0}
+.atstats{grid-template-columns:repeat(auto-fit,minmax(92px,1fr))}
+.atstats .stat{text-align:start;font:inherit;color:inherit;cursor:pointer}
+.atstats .stat b{font-size:20px}
+.atacts{margin-top:12px}
+.banner.atclosed{background:var(--sunk);color:var(--ink);border:1px solid var(--line)}
+.banner.atoff{background:var(--bad-soft);color:var(--bad)}
+.atlist{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.atrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px 12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-inline-start:4px solid var(--line);border-radius:var(--r);padding:8px 10px}
+.atrow.s-present{border-inline-start-color:var(--ok)}.atrow.s-late{border-inline-start-color:var(--warn)}.atrow.s-half{border-inline-start-color:var(--info)}.atrow.s-absent{border-inline-start-color:var(--bad)}.atrow.s-leave{border-inline-start-color:var(--muted)}
+.atrow.inact{opacity:.7}
+.atw{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;text-align:start;min-width:0}
+.atw .an{display:flex;flex-direction:column;min-width:0}
+.atw .an b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--sunk);border:1px solid var(--line);font-family:var(--display);font-size:13px;color:var(--brand);object-fit:cover}
+.av.lg{width:56px;height:56px;font-size:18px}
+.atst{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:92px}
+.attm{white-space:nowrap}
+.atpend{font-size:13px;margin-inline-start:4px}
+.atq{display:flex;gap:6px}
+.atb{min-width:56px;min-height:48px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;line-height:1;gap:2px;padding:4px 6px;font-weight:600}
+.atb span{font-size:11px;font-weight:500}
+.atb.ok{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.atb.bad{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.atb.more{min-width:40px}
+.atb:active{transform:scale(.96)}
+.atb:disabled{opacity:.5}
+.atsh-h{display:flex;gap:12px;align-items:center}
+.athist{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:3px;margin-top:12px}
+.athist .hd{height:30px;border-radius:5px;border:1px solid var(--line);background:var(--sunk);font-size:11px;padding:0;color:var(--muted)}
+.athist .hd.s-present{background:var(--ok);border-color:var(--ok);color:var(--surface)}.athist .hd.s-late{background:var(--warn);border-color:var(--warn);color:var(--surface)}.athist .hd.s-half{background:var(--info-soft);border-color:var(--info);color:var(--info)}
+.athist .hd.s-absent{background:var(--bad);border-color:var(--bad);color:var(--surface)}.athist .hd.s-absent.ex,.athist .hd.s-leave{background:var(--bad-soft);border-color:var(--line);color:var(--bad)}
+.athist .hd.cur{outline:2px solid var(--accent);outline-offset:1px}
+.atseg label{padding:10px 4px}
+.atchk{display:flex;align-items:center;gap:6px;font-size:13.5px;margin-top:8px;cursor:pointer}
+.atchk input{width:18px;height:18px;accent-color:var(--accent)}
+.atchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.atattach{max-height:160px;border-radius:8px;border:1px solid var(--line)}
+.atqr{background:#fff;padding:8px;border-radius:8px;width:220px;max-width:70vw}
+.atqr svg{width:100%;height:auto;display:block}
+.atok{color:var(--ok)}.atbad{color:var(--bad)}
+.atwarn{border-color:var(--bad)}
+.atabs-h{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.atday-c{border:1px solid var(--bad);background:var(--bad-soft);color:var(--bad);border-radius:999px;font-size:12px;padding:3px 10px}
+.atday-c.ex{border-color:var(--line);background:var(--sunk);color:var(--muted)}
+.atrh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.atrh h4{flex:1 1 auto}
+.atrh .in{width:auto}
+.attbl td.q.bad{color:var(--bad)}.attbl td.q.warn{color:var(--warn)}
+.attbl tr.tot td{font-weight:600;background:var(--sunk)}
+.attbl tr.clk{cursor:pointer}.attbl tr.clk:hover td{background:var(--sunk)}
+.atdows{display:flex;flex-wrap:wrap;gap:4px 14px}
+.atdows .atchk{margin-top:4px}
+@media (max-width:640px){
+  .atbar{grid-template-columns:1fr 1fr}
+  .atbar #atQ{grid-column:1/-1}
+  .atday .in{min-width:0}
+  .atrow{grid-template-columns:minmax(0,1fr) auto;padding:8px}
+  .atst{grid-column:1;grid-row:2;flex-direction:row;align-items:center;gap:8px;min-width:0;padding-inline-start:48px}
+  .atq{grid-column:2;grid-row:1/3}
+  .athist .hd{height:26px;font-size:10px}
+  .atstats{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .atstats .stat{padding:8px 10px}
+  .atstats .stat b{font-size:17px}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -388,6 +458,7 @@ const ROLES={
   mech_tech:{name:'فني ميكانيك',kind:'crew',mono:'فم',crew:true,boss:'mech',dept:'الميكانيك'},
   buyer:{name:'مندوب مشتريات',kind:'purchase',mono:'من',crew:true,boss:'project'},
   clerk:{name:'موظف إداري',kind:'admin',mono:'مو',crew:true,boss:'admin1'},
+  timekeeper:{name:'مراقب الدوام',kind:'att',mono:'دو',crew:true,boss:'project'},
   receiver:{name:'عامل الاستلام',kind:'crew',mono:'اس',crew:true,boss:'store'},
   supply:{name:'مشرف تجهيز المواد',kind:'crew',mono:'تج',crew:true,boss:'machines',dept:'الآليات'},
   project:{name:'مدير المشروع',kind:'project',mono:'مش'},
@@ -519,6 +590,7 @@ async function loadAll(which){
   if(want('notifications')&&seesNotifs()){const {data}=await sb.from('notifications').select('id,kind,data,created_at').order('id',{ascending:false}).limit(200);const prevTop=S.notifs[0]?.id||0;S.notifs=data||[];if(which==='notifications')S.notifs.filter(n=>n.id>prevTop).forEach(sysNotify)}
   if(want('staff')){const {data}=await sb.from('staff').select('id,full_name,role,active,status,admin_ok,project_ok,hidden,manager_id,machine_id,created_at');S.staff=data||[];try{const {data:c}=await sb.rpc('staff_contacts');const cm={};(c||[]).forEach(x=>cm[x.id]=x);S.staff.forEach(p=>{if(cm[p.id]){p.username=cm[p.id].username;p.phone=cm[p.id].phone}})}catch(e){}S.staff.forEach(p=>S.names[p.id]={name:p.full_name||p.username||'—'})}
   if(want('invoices')&&(INVC_ROLES.includes(S.me?.role)||EXP_ROLES.includes(S.me?.role)||S.me?.role==='owner')){const {data}=await sb.from('invoices').select('id,wh,data').order('created_at',{ascending:false}).limit(1000);S.invoices=(data||[]).map(d=>({...d.data,id:d.id,wh:d.wh}))}
+  if(!which&&seesAtt())await attLoad();
   if(want('staff_locations')&&seesReps()){const {data}=await sb.from('staff_locations').select('id,lat,lng,acc,at');S.locs=data||[]}
   await signAll()}
 let rtTimers={};
@@ -526,6 +598,7 @@ function subscribe(){
   const ch=sb.channel('all');
   if(seesReps())ch.on('postgres_changes',{event:'*',schema:'public',table:'staff_locations'},e=>{const n=e.new;if(!n||!n.id)return;S.locs=S.locs||[];const i=S.locs.findIndex(x=>x.id===n.id);if(i<0)S.locs.push(n);else S.locs[i]=n;repsRefresh()});
   ['requests','inventory','invlog','settings','staff','notifications','machines','deliveries','invoices'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(rtTimers[t]);rtTimers[t]=setTimeout(async()=>{await loadAll(t);if(t==='requests'&&S.rcFor){const r=S.requests.find(x=>x.id===S.rcFor);if(r&&r.status==='done'){S.rcFor=null;overlay('ok','تم الاستلام',`<div class="rcbox"><div class="okmark">✓</div><b>مسح مندوب المشتريات الباركود وتم الاستلام</b><p class="muted" style="margin:0">${esc(r.item)}</p></div><div class="acts"><button class="btn" data-a="close">إغلاق</button></div>`)}}if(t==='staff'&&S.me?.status==='pending'){await afterLogin();return}if(t==='deliveries'&&S.openD&&$('#ovroot').dataset.kind==='dlv'){const d=S.deliveries.find(x=>x.id===S.openD);if(d)openDlv(d)}if(t==='machines'&&S.openM&&$('#ovroot').dataset.kind==='mach'){const m=S.machines.find(x=>x.id===S.openM);if(m)openMachine(m)}render()},300)}));
+  if(seesAtt())['workers','attendance','att_days'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},e=>attRT(t,e)));
   ch.subscribe()}
 
 function demoData(){
@@ -644,6 +717,7 @@ function notifCard(n){const d=n.data||{},t=dt(new Date(n.created_at).getTime()),
     <div class="kv" style="margin-top:8px"><div><span>السعر الكلي</span><b class="num">${money(+d.total)}</b></div><div><span>سعر الوحدة</span><b class="num">${money(+d.unitPrice)}</b></div><div><span>المورد</span><b>${esc(d.supplier||'—')}</b></div>
     <div><span>المشتري</span><b>${esc(d.buyer||'')}</b><small class="muted">${esc(ROLES[d.buyer_role]?.name||'')}</small></div><div><span>استلمه من المخزن</span><b>${esc(d.store||'')}</b></div><div><span>وقت التسليم</span><b class="num">${dt(+d.deliveredAt)}</b></div><div><span>القسم</span><b>${esc(d.dept||'')}</b></div><div><span>رقم الطلب</span><b class="num">#${esc(d.code||'')}</b></div></div></div>`;
   if(n.kind==='staff_pending')return`<div class="nc ${isNew?'new':''}"><div class="nh"><span class="pill p-warn">طلب انضمام</span><span class="num muted small">${t}</span></div><b>${esc(d.name)}</b> يطلب الدخول بصفة ${esc(ROLES[d.role]?.name||d.role)} <span class="num muted">${esc(d.phone||'')}</span></div>`;
+  if(n.kind==='att_absent')return`<div class="nc ${isNew?'new':''}" data-a="atOpen" data-v="${esc(d.wid)}" role="button" tabindex="0"><div class="nh"><span class="pill p-bad">غياب متكرر</span><span class="num muted small">${t}</span></div><b>${esc(d.name)}</b> غائب <span class="num">${esc(d.days)}</span> أيام متتالية بدون إذن${d.site?' · '+esc(d.site):''}${d.trade?' · '+esc(d.trade):''}</div>`;
   if(n.kind==='staff_active')return`<div class="nc ${isNew?'new':''}"><div class="nh"><span class="pill p-info">حساب مفعّل</span><span class="num muted small">${t}</span></div><b>${esc(d.name)}</b> صار يدخل بصفة ${esc(ROLES[d.role]?.name||d.role)}</div>`;
   return''}
 function notifView(){
@@ -652,8 +726,8 @@ function notifView(){
   if(!S.notifs.length)return h+`<div class="empty"><b>لا توجد إشعارات بعد</b>كل عملية استلام تتم بالباركود تظهر هنا: المادة والسعر والمشتري ومدير المخزن ووقت التسليم.</div>`;
   return h+`<div class="list">${S.notifs.map(notifCard).join('')}</div>`}
 function sysNotify(n){try{if(!('Notification' in window)||Notification.permission!=='granted')return;const d=n.data||{};
-  const body=n.kind==='receipt'?`${d.item} — ${money(+d.total)}\nالمشتري: ${d.buyer} · المخزن: ${d.store}`:n.kind==='staff_pending'?`${d.name} يطلب الانضمام`:`${d.name} صار مفعّلاً`;
-  new Notification(n.kind==='receipt'?'استلام مكتمل':'نظام شركة المنصور',{body,icon:'icon-192.png',tag:'n'+n.id})}catch(e){}}
+  const body=n.kind==='att_absent'?`${d.name} غائب ${d.days} أيام متتالية بدون إذن`:n.kind==='receipt'?`${d.item} — ${money(+d.total)}\nالمشتري: ${d.buyer} · المخزن: ${d.store}`:n.kind==='staff_pending'?`${d.name} يطلب الانضمام`:`${d.name} صار مفعّلاً`;
+  new Notification(n.kind==='receipt'?'استلام مكتمل':n.kind==='att_absent'?'غياب متكرر':'نظام شركة المنصور',{body,icon:'icon-192.png',tag:'n'+n.id})}catch(e){}}
 /* approvals */
 const canApprove=()=>['owner','admin1','admin2','project'].includes(S.me?.role);
 const pendingStaff=()=>S.staff.filter(p=>p.status==='pending');
@@ -783,7 +857,7 @@ function fuelForm(m){overlay('mfuel','تعبئة وقود — '+esc(m.name),`<fo
     const T0=Date.now();nm.fuel=[...(nm.fuel||[]),{t:T0,liters:L,hours:H,note:$('#fuN').value.trim(),uid:S.me?.id||null}];if(H!=null&&H>=(+nm.hours||0))nm.hours=H;mLog(nm,'عبّأ وقود',L+' لتر');await putMachine(nm);{const fi=fuelItem();if(fi){const nu=clean(fi);nu.qty=+Math.max(0,(+nu.qty)-L).toFixed(2);nu.log=[...(nu.log||[]),{t:T0,k:'out',l:L,p:+fi.price||null,to:nm.name,mid:nm.id,uid:S.me?.id||null,role:S.role}].slice(-500);try{await putInv(nu)}catch(e){}}}openMachine(nm);toast('سُجّلت التعبئة')})}
 
 /* ---------- crew ---------- */
-const ALLCREW=['receiver','keeper','operator','mechanic','fueler','supply','elec_tech','mech_tech','buyer','clerk'];
+const ALLCREW=['receiver','keeper','operator','mechanic','fueler','supply','elec_tech','mech_tech','buyer','clerk','timekeeper'];
 const CREW_OF={machines:['operator','mechanic','fueler','supply'],mstore:['keeper'],store:['receiver'],elec:['elec_tech'],mech:['mech_tech'],admin1:['clerk'],admin2:['clerk'],project:ALLCREW,owner:ALLCREW};
 const crewRoles=()=>CREW_OF[S.me?.role]||[];
 function myCrew(){const rs=CREW_OF[S.role]||crewRoles();return S.staff.filter(p=>rs.includes(p.role)&&!p.hidden)}
@@ -991,7 +1065,7 @@ async function sendPaper(){const P=S.paper,list=P.items.filter(i=>i.on&&i.name.t
   await invLog('رفع ورقة طلبات '+batch,ok+' مادة · '+P.dept);closeOv();render();toast(`أُرسلت ${ok} مادة للمخزن من ورقة ${batch}`)}
 
 /* ---------- organisation: managers, crews and departments ---------- */
-const ORG=[{n:'إدارة المشروع',h:['project'],c:[]},{n:'الإدارة والمراقبة',h:['admin1','admin2'],c:['clerk']},{n:'مندوبو المشتريات',h:[],c:['buyer']},
+const ORG=[{n:'إدارة المشروع',h:['project'],c:['timekeeper']},{n:'الإدارة والمراقبة',h:['admin1','admin2'],c:['clerk']},{n:'مندوبو المشتريات',h:[],c:['buyer']},
  {n:'المخزن الرئيسي',h:['store'],c:['receiver']},{n:'الآليات',h:['machines'],c:['operator','mechanic','fueler','supply']},{n:'مخزن الآليات',h:['mstore'],c:['keeper']},
  {n:'قسم الكهرباء',h:['elec'],c:['elec_tech']},{n:'قسم الميكانيك',h:['mech'],c:['mech_tech']},{n:'مسؤول النظام',h:['owner'],c:[]}];
 const seesOrg=()=>['owner','project','admin1','admin2'].includes(S.me?.role);
@@ -1102,6 +1176,488 @@ function accForm(p){const n=!p;p=p||{full_name:'',username:'',role:'machines',ac
   if(!n)$('#aDel').addEventListener('click',()=>{$('#aConf').innerHTML='<button class="btn bad sm" type="button" id="aDel2">تأكيد الحذف</button>';$('#aDel2').addEventListener('click',async()=>{try{await call({action:'delete',id:p.id});await invLog('حذف حساب '+(p.full_name||p.username),'');await loadAll('staff');closeOv();render();toast('حُذف الحساب')}catch(x){$('#aErr').textContent=x.message}})});
 }
 
+/* =====================================================================
+   حضور العمال وسجل الغيابات
+   Workers have no accounts. The timekeeper (مراقب الدوام) records them.
+   All days are Baghdad days. The server enforces every rule again.
+   ===================================================================== */
+const ATT_ST={present:['حاضر','ok'],late:['متأخر','warn'],half:['نص يوم','info'],absent:['غائب','bad'],leave:['إجازة','mute']};
+const ATT_WORK=['present','late','half'];
+const ATT_VIEW_ROLES=['timekeeper','project','owner','admin1','admin2','clerk'];
+const ATT_TRADES=['عامل خدمة','حداد','نجار','بنّاء','كهربائي','سبّاك','صبّاغ','لحّام','سائق','مشغّل آلية','حارس','كاشي','جبس','فني تبريد'];
+const ATT_SITES=[...Array.from({length:22},(_,i)=>'T'+(i+1)),'المعمل','الساحة العامة','المخزن'];
+const DOW_AR=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const seesAtt=()=>ATT_VIEW_ROLES.includes(S.me?.role);
+const attCanMark=()=>['timekeeper','project','owner'].includes(S.me?.role);
+const attBoss=()=>['project','owner'].includes(S.me?.role);
+const attSeesPay=()=>['project','owner','admin1','admin2'].includes(S.me?.role);
+const attSeesAudit=()=>['project','owner','admin1','admin2'].includes(S.me?.role);
+
+/* ---- Baghdad time helpers (Iraq is UTC+3 all year) ---- */
+const _bgD=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Baghdad',year:'numeric',month:'2-digit',day:'2-digit'});
+const _bgT=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',hour:'2-digit',minute:'2-digit',hour12:false});
+const bgDay=t=>_bgD.format(new Date(t??Date.now()));
+const bgHM=t=>t?_bgT.format(new Date(t)).replace(/^24/,'00'):'';
+const hm2min=s=>{const m=/^(\d{1,2}):(\d{2})/.exec(s||'');return m?(+m[1])*60+(+m[2]):null};
+const bgMin=t=>hm2min(bgHM(t));
+const dayAdd=(d,n)=>{const x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
+const dayDow=d=>new Date(d+'T12:00:00Z').getUTCDay();
+const dayIso=(d,hm)=>new Date(Date.parse(d+'T'+hm+':00+03:00')).toISOString();
+const monthStart=d=>d.slice(0,8)+'01';
+const monthEnd=d=>dayAdd(dayAdd(monthStart(d),32).slice(0,8)+'01',-1);
+function dayLabel(d){const t=bgDay();if(d===t)return'اليوم';if(d===dayAdd(t,-1))return'أمس';return DOW_AR[dayDow(d)]+' '+(+d.slice(8))+'/'+(+d.slice(5,7))}
+const dayLong=d=>DOW_AR[dayDow(d)]+' '+(+d.slice(8))+'/'+(+d.slice(5,7))+'/'+d.slice(0,4);
+function attCfg(){const c=S.settings?.att||{};const start=c.start||'07:00',end=c.end||'15:00',sm=hm2min(start),em=hm2min(end);
+  return{start,end,grace:Math.max(0,+(c.grace??15)),off:Array.isArray(c.off)?c.off.map(Number):[5],alertDays:Math.max(2,+(c.alertDays||3)),otRate:+(c.otRate??1)||1,hours:em>sm?(em-sm)/60:8}}
+
+/* ---- state ---- */
+S.att={workers:[],rows:{},byId:{},days:{},from:null,to:null,day:null,site:'',q:'',f:'',sub:'round',
+  wq:'',wsite:'',woff:false,absFrom:null,absTo:null,absSite:'',absAll:false,month:null,repSite:'',repDay:null,audit:null,geo:null,geoW:null,dirty:false,err:null};
+const AK=(w,d)=>w+'|'+d;
+const attRec=(w,d)=>S.att.rows[AK(w,d)];
+const attWorker=id=>S.att.workers.find(w=>w.id===id);
+function attPut(r){const A=S.att;const old=A.byId[r.id];if(old){const k0=AK(old.worker_id,old.day);if(A.rows[k0]&&A.rows[k0].id===r.id)delete A.rows[k0]}A.byId[r.id]=r;A.rows[AK(r.worker_id,r.day)]=r}
+function attDrop(id){const A=S.att,r=A.byId[id];if(!r)return;delete A.byId[id];const k=AK(r.worker_id,r.day);if(A.rows[k]&&A.rows[k].id===id)delete A.rows[k]}
+const siteSort=(a,b)=>{const na=/^T(\d+)$/.exec(a||''),nb=/^T(\d+)$/.exec(b||'');if(na&&nb)return na[1]-nb[1];if(na)return-1;if(nb)return 1;return String(a||'').localeCompare(String(b||''),'ar')};
+const attSites=()=>[...new Set(S.att.workers.map(w=>w.site).filter(Boolean))].sort(siteSort);
+const initials=n=>esc(String(n||'؟').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join(''));
+
+/* ---- loading ---- */
+async function attPaged(build){const out=[];for(let p=0;p<200;p++){const {data,error}=await build().range(p*1000,p*1000+999);if(error)throw error;out.push(...(data||[]));if(!data||data.length<1000)break}return out}
+async function attLoad(){
+  if(!seesAtt())return;const A=S.att,today=bgDay(),from=monthStart(dayAdd(monthStart(today),-1));
+  try{
+    const [ws,ds,rs]=await Promise.all([
+      attPaged(()=>sb.from('workers').select('*').order('name')),
+      attPaged(()=>sb.from('att_days').select('*').gte('day',dayAdd(from,-60))),
+      attPaged(()=>sb.from('attendance').select('*').gte('day',from).lte('day',today).order('id'))]);
+    A.workers=ws;A.days={};ds.forEach(d=>A.days[d.day]=d);A.rows={};A.byId={};rs.forEach(attPut);A.from=from;A.to=today;A.err=null;
+    attSnapSave();attApplyQueue();attSign();
+  }catch(e){A.err=e.message||String(e)}
+}
+async function attEnsure(from,to){const A=S.att;if(!A.from)return;let changed=false;
+  try{if(from<A.from){const rs=await attPaged(()=>sb.from('attendance').select('*').gte('day',from).lt('day',A.from).order('id'));rs.forEach(attPut);
+      const ds=await attPaged(()=>sb.from('att_days').select('*').gte('day',from).lt('day',A.from));ds.forEach(d=>A.days[d.day]=d);A.from=from;changed=true}
+    const today=bgDay();if(to>A.to&&A.to<today){const rs=await attPaged(()=>sb.from('attendance').select('*').gt('day',A.to).lte('day',today).order('id'));rs.forEach(attPut);A.to=today;changed=true}
+  }catch(e){toast('تعذر تحميل السجلات: '+(e.message||e))}return changed}
+async function attSign(){const refs=new Set();const add=x=>{if(x&&x.startsWith('s:')&&!S.imgCache[x.slice(2)])refs.add(x.slice(2))};
+  S.att.workers.forEach(w=>add(w.photo));Object.values(S.att.byId).forEach(r=>add(r.attach));if(!refs.size)return;
+  try{const {data}=await sb.storage.from('files').createSignedUrls([...refs],604800);(data||[]).forEach(d=>{if(d.signedUrl)S.imgCache[d.path]=d.signedUrl});attRerender()}catch(e){}}
+
+
+/* offline start: a timekeeper can open the app without signal from the last snapshot */
+function attSnapSave(){if(S.me?.role!=='timekeeper')return;const t=bgDay(),y=dayAdd(t,-1);
+  try{localStorage.setItem('att_snap_'+S.me.id,JSON.stringify({at:Date.now(),me:S.me,att:S.settings?.att||null,workers:S.att.workers,
+    days:Object.values(S.att.days).filter(d=>d.day>=y),rows:Object.values(S.att.byId).filter(r=>r.day>=y)}))}catch(e){}}
+async function attOfflineStart(){try{const {data}=await sb.auth.getSession();const uid=data?.session?.user?.id;if(!uid)return false;
+  const s=JSON.parse(localStorage.getItem('att_snap_'+uid)||'null');if(!s||s.me?.role!=='timekeeper')return false;
+  S.me=s.me;S.role='timekeeper';S.settings={...S.settings,att:s.att||undefined};const A=S.att;A.workers=s.workers||[];A.days={};(s.days||[]).forEach(d=>A.days[d.day]=d);
+  A.rows={};A.byId={};(s.rows||[]).forEach(attPut);A.from=dayAdd(bgDay(),-1);A.to=bgDay();attApplyQueue();S.offlineStart=true;S.mode='db';render();return true}catch(e){return false}}
+
+/* ---- live updates ---- */
+function attRT(table,e){const A=S.att;
+  if(table==='workers'){if(e.eventType==='DELETE')A.workers=A.workers.filter(w=>w.id!==e.old?.id);else if(e.new?.id){const i=A.workers.findIndex(w=>w.id===e.new.id);if(i<0)A.workers.push(e.new);else A.workers[i]=e.new}}
+  if(table==='attendance'){if(e.eventType==='DELETE')attDrop(e.old?.id);else if(e.new?.id){if(!A.from||e.new.day>=A.from)attPut(e.new)}}
+  if(table==='att_days'){if(e.eventType==='DELETE')delete A.days[e.old?.day];else if(e.new?.day)A.days[e.new.day]=e.new}
+  attRerender()}
+let attRT_t=0;
+function attRerender(now){clearTimeout(attRT_t);attRT_t=setTimeout(()=>{if(!S.me||S.mode!=='db')return;const ae=document.activeElement;
+    if(ae&&$('#app')?.contains(ae)&&['INPUT','SELECT','TEXTAREA'].includes(ae.tagName)&&ae.id!=='atQ'&&ae.id!=='atWQ'){S.att.dirty=true;return}attRenderKeep()},now?0:250)}
+function attRenderKeep(){const ae=document.activeElement,id=ae&&$('#app')?.contains(ae)?ae.id:null,s=id&&ae.selectionStart,y=scrollY;render();
+  if(id){const n=document.getElementById(id);if(n){n.focus();try{if(s!=null)n.setSelectionRange(s,s)}catch(e){}}}if(Math.abs(scrollY-y)>2)scrollTo(0,y)}
+document.addEventListener('focusout',()=>{if(S.att.dirty){S.att.dirty=false;setTimeout(attRenderKeep,50)}});
+
+/* ---- offline queue (kept per user on this device) ---- */
+const AQK=()=>'att_q_'+(S.me?.id||'x');
+function attQ(){try{return JSON.parse(localStorage.getItem(AQK())||'[]')}catch(e){return[]}}
+function attQSet(q){try{localStorage.setItem(AQK(),JSON.stringify(q))}catch(e){}}
+function attQueue(p){const q=attQ().filter(x=>!(x.p.worker_id===p.worker_id&&x.p.day===p.day));q.push({p,t:Date.now()});attQSet(q)}
+function attApplyQueue(){attQ().forEach(it=>{const k=AK(it.p.worker_id,it.p.day);S.att.rows[k]={...(S.att.rows[k]||{}),...it.p,_pending:true,_err:it.err||null}})}
+const attNetErr=e=>{const m=String(e?.message||e||'');return !navigator.onLine||e?.name==='TypeError'||/failed to fetch|networkerror|load failed|network request failed|fetch/i.test(m)};
+function attErrMsg(e){const m=String(e?.message||e||'');if(/row-level security|permission denied/i.test(m))return'ما عندك صلاحية لهذا الإجراء';return m||'تعذر الحفظ'}
+let attFlushing=false;
+async function attFlush(){if(attFlushing||!navigator.onLine||!S.me)return 0;const q=attQ();if(!q.some(x=>!x.err))return 0;attFlushing=true;let ok=0,i=0;const keep=[];
+  try{for(;i<q.length;i++){const it=q[i];if(it.err){keep.push(it);continue}
+      try{const {data,error}=await sb.from('attendance').upsert(it.p,{onConflict:'worker_id,day'}).select().single();if(error)throw error;attPut(data);ok++}
+      catch(e){if(attNetErr(e)){keep.push(...q.slice(i));break}keep.push({...it,err:attErrMsg(e)})}}
+  }finally{attQSet(keep);attFlushing=false}
+  if(ok)toast('انرفع '+ok+' تسجيل كان محفوظ بدون إنترنت');attApplyQueue();attRerender(true);return ok}
+window.addEventListener('online',async()=>{if(S.offlineStart){S.offlineStart=false;await afterLogin();return}if(!seesAtt())return;await attFlush();await attLoad();attRerender(true)});
+window.addEventListener('offline',()=>{if(seesAtt())attRerender(true)});
+setInterval(()=>{if(S.me&&seesAtt()&&attQ().some(x=>!x.err))attFlush()},30000);
+
+/* ---- GPS while doing the round ---- */
+function attGeoStart(){if(S.att.geoW!=null||!navigator.geolocation)return;try{S.att.geoW=navigator.geolocation.watchPosition(p=>{S.att.geo={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy||0),t:Date.now()}},()=>{},{enableHighAccuracy:true,maximumAge:60000,timeout:20000})}catch(e){}}
+const attGeoNow=()=>{const g=S.att.geo;return g&&Date.now()-g.t<180000?g:null};
+
+/* ---- saving ---- */
+const ATT_COLS=['status','in_at','out_at','in_lat','in_lng','in_acc','out_lat','out_lng','method','reason','excused','attach'];
+const isClosed=d=>!!S.att.days[d]?.closed;
+const isHoliday=d=>!!S.att.days[d]?.holiday;
+function attCanEdit(d){const r=S.me?.role,t=bgDay();if(!d||d>t)return false;if(r==='timekeeper')return d>=dayAdd(t,-1)&&!isClosed(d);return['project','owner'].includes(r)}
+async function attSave(wid,day,patch,editReason){
+  const A=S.att,k=AK(wid,day),prev=A.rows[k]?{...A.rows[k]}:null;
+  const row={...(prev||{}),...patch,worker_id:wid,day};
+  if(!ATT_WORK.includes(row.status)){Object.assign(row,{in_at:null,out_at:null,in_lat:null,in_lng:null,in_acc:null,out_lat:null,out_lng:null})}else row.excused=false;
+  const p={worker_id:wid,day};ATT_COLS.forEach(c=>{p[c]=row[c]??(c==='excused'?false:c==='method'?'manual':null)});
+  if(editReason)p.edit_reason=editReason;
+  A.rows[k]={...row,_pending:true,_err:null};attRerender(true);
+  if(!navigator.onLine){attQueue(p);toast('محفوظ على الجهاز — ينرفع أول ما يرجع الإنترنت');return true}
+  try{const {data,error}=await sb.from('attendance').upsert(p,{onConflict:'worker_id,day'}).select().single();if(error)throw error;attPut(data);attRerender(true);return true}
+  catch(e){if(attNetErr(e)){attQueue(p);toast('محفوظ على الجهاز — ينرفع أول ما يرجع الإنترنت');return true}
+    if(prev)A.rows[k]=prev;else delete A.rows[k];attRerender(true);toast(attErrMsg(e));return false}}
+function attInPatch(wid,day,status,method){
+  const c=attCfg(),prev=attRec(wid,day),g=attGeoNow(),isToday=day===bgDay();
+  let inAt=prev&&ATT_WORK.includes(prev.status)&&prev.in_at?prev.in_at:null;
+  if(!inAt)inAt=isToday?new Date().toISOString():dayIso(day,c.start);
+  const st=status||(bgMin(inAt)>hm2min(c.start)+c.grace?'late':'present');
+  const p={status:st,in_at:inAt,method:method||'manual',reason:null,excused:false};
+  if(g&&!(prev&&prev.in_lat!=null&&ATT_WORK.includes(prev.status))){p.in_lat=g.lat;p.in_lng=g.lng;p.in_acc=g.acc}
+  return p}
+const attCheckIn=(wid,day,status,method)=>attSave(wid,day,attInPatch(wid,day,status,method));
+function attCheckOut(wid,day){const r=attRec(wid,day);if(!r||!ATT_WORK.includes(r.status))return;const g=attGeoNow();
+  const p={out_at:new Date().toISOString()};if(r.in_at&&Date.parse(p.out_at)<Date.parse(r.in_at))p.out_at=r.in_at;if(g){p.out_lat=g.lat;p.out_lng=g.lng}return attSave(wid,day,p)}
+
+/* ---- calculations ---- */
+function attOT(r,c){if(!r||!ATT_WORK.includes(r.status)||!r.in_at||!r.out_at)return 0;const h=(Date.parse(r.out_at)-Date.parse(r.in_at))/36e5;return Math.max(0,Math.round((h-c.hours)*4)/4)}
+const attWorked=r=>r&&r.in_at&&r.out_at?(Date.parse(r.out_at)-Date.parse(r.in_at))/36e5:null;
+function attStreak(wid){const c=attCfg(),t=bgDay();let n=0;
+  for(let i=0;i<90;i++){const d=dayAdd(t,-i);if(S.att.from&&d<S.att.from)break;const r=attRec(wid,d);
+    if(!r){if(i===0||c.off.includes(dayDow(d))||isHoliday(d)||!isClosed(d))continue;break}
+    if(r.status==='absent'&&!r.excused)n++;else break}return n}
+function attSum(wid,from,to){const c=attCfg(),o={present:0,late:0,half:0,absent:0,absX:0,leave:0,none:0,ot:0,days:0};
+  for(let d=from;d<=to;d=dayAdd(d,1)){const r=attRec(wid,d);if(!r){if(!c.off.includes(dayDow(d))&&!isHoliday(d)&&isClosed(d))o.none++;continue}
+    o.days++;if(r.status==='absent'){if(r.excused)o.absX++;else o.absent++}else o[r.status]++;o.ot+=attOT(r,c)}return o}
+function attPay(w,o){const c=attCfg(),wage=+w.wage||0;if(!wage)return null;
+  if(w.pay_type==='monthly'){const day=wage/30;return Math.max(0,wage-o.absent*day-o.half*day/2+o.ot*(day/c.hours)*c.otRate)}
+  return(o.present+o.late)*wage+o.half*wage/2+o.ot*(wage/c.hours)*c.otRate}
+
+/* ---- views ---- */
+function attTabsTK(){const t=bgDay(),un=S.att.workers.filter(w=>w.active&&!attRec(w.id,t)).length;
+  return[['round','جولة اليوم',isClosed(t)||isHoliday(t)?0:un],['workers','العمال',0],['abs','الغيابات',0],['rep','التقارير',0]]}
+function attHomeTK(){const tabs=attTabsTK();if(!S.tab||!tabs.find(t=>t[0]===S.tab))S.tab='round';
+  return pushBanner()+`<div class="head"><div><h2>مراقب الدوام</h2><p>${roleDesc('timekeeper')}</p></div></div>`+
+   `<div class="tabs" role="tablist">${tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-a="tab" data-v="${k}">${t}${c?`<span class="c num">${c}</span>`:''}</button>`).join('')}</div>`+attBody(S.tab)}
+function attHub(){const subs=[['round','الدوام اليومي'],['workers','العمال'],['abs','الغيابات'],['rep','التقارير'],...(attSeesAudit()?[['audit','سجل التعديلات']]:[])];
+  if(!subs.find(s=>s[0]===S.att.sub))S.att.sub='round';
+  return`<div class="atsub" role="tablist">${subs.map(([k,t])=>`<button class="btn sm ${S.att.sub===k?'pri':''}" data-a="atSub" data-v="${k}">${t}</button>`).join('')}</div>`+attBody(S.att.sub)}
+function attBody(k){
+  if(S.att.err&&!S.att.workers.length)return`<div class="empty"><b>تعذر تحميل بيانات الحضور</b>${esc(S.att.err)}<div class="row"><button class="btn" data-a="atReload">إعادة المحاولة</button></div></div>`;
+  return attQBanner()+(k==='workers'?attWorkersView():k==='abs'?attAbsView():k==='rep'?attRepView():k==='audit'?attAuditView():attRoundView())}
+function attQBanner(){const q=attQ(),bad=q.filter(x=>x.err),wait=q.length-bad.length;let h='';
+  if(!navigator.onLine)h+=`<div class="banner atoff">📴 بدون إنترنت — كمّل التسجيل عادي، كل شي ينحفظ على الجهاز وينرفع تلقائياً.${wait?` <b class="num">(${wait})</b>`:''}</div>`;
+  else if(wait)h+=`<div class="banner">⏳ <span><span class="num">${wait}</span> تسجيل بانتظار الرفع</span><button class="btn sm" data-a="atFlush">ارفع الآن</button></div>`;
+  if(bad.length)h+=`<div class="banner gpsBad">⚠ <span><span class="num">${bad.length}</span> تسجيل ما انرفع بسبب خطأ</span><button class="btn sm" data-a="atQErr">عرض</button></div>`;return h}
+function attPill(r){if(!r)return`<span class="pill p-mute atnone">لم يُسجّل</span>`;const s=ATT_ST[r.status]||['؟','mute'];
+  return`<span class="pill p-${s[1]}">${s[0]}${r.status==='absent'&&r.excused?' بإذن':''}</span>${r._err?'<span class="pill p-bad">لم يُرفع</span>':r._pending?'<span class="atpend" title="بانتظار الرفع">⏳</span>':''}`}
+
+function attRoundView(){
+  const A=S.att,t=bgDay(),tk=S.me?.role==='timekeeper',c=attCfg();if(!A.day||A.day>t||(tk&&A.day<dayAdd(t,-1)))A.day=t;
+  const d=A.day,closed=isClosed(d),hol=isHoliday(d),off=c.off.includes(dayDow(d)),ed=attCanEdit(d),boss=attBoss(),quick=ed&&!closed;
+  setTimeout(()=>{if(quick&&d===t)attGeoStart()},0);
+  const ws=A.workers.filter(w=>w.active||attRec(w.id,d));
+  const q=A.q.trim(),inSite=w=>!A.site||w.site===A.site,inQ=w=>!q||[w.name,w.code,w.trade,w.site,w.team,w.phone].join(' ').includes(q);
+  const base=ws.filter(w=>inSite(w)&&inQ(w));
+  const cnt={all:base.length,present:0,late:0,half:0,absent:0,leave:0,none:0};base.forEach(w=>{const r=attRec(w.id,d);cnt[r?r.status:'none']++});
+  const f=A.f,list=base.filter(w=>{const r=attRec(w.id,d);return!f||(f==='none'?!r:r&&r.status===f)})
+    .sort((a,b)=>(attRec(a.id,d)?1:0)-(attRec(b.id,d)?1:0)||siteSort(a.site,b.site)||a.name.localeCompare(b.name,'ar'));
+  const unmarked=base.filter(w=>w.active&&!attRec(w.id,d));
+  const sites=attSites();
+  let h=`<div class="atbar"><label class="atday"><span class="muted small">اليوم</span><input id="atDay" class="in num" type="date" value="${d}" max="${t}" ${tk?`min="${dayAdd(t,-1)}"`:''}></label>
+    <select id="atSite" class="in" aria-label="البناية"><option value="">كل البنايات والمواقع</option>${sites.map(s=>`<option ${A.site===s?'selected':''}>${esc(s)}</option>`).join('')}</select>
+    <input id="atQ" class="in" placeholder="بحث بالاسم أو الرمز أو المهنة…" value="${esc(A.q)}" autocomplete="off"></div>`;
+  h+=`<p class="atdl"><b>${esc(dayLong(d))}</b> <span class="muted small">· الدوام ${esc(c.start)}–${esc(c.end)} · سماح التأخير ${c.grace} د</span></p>`;
+  if(hol)h+=`<div class="banner" style="background:var(--info-soft);color:var(--info)">🏖 عطلة رسمية${A.days[d].holiday_note?': '+esc(A.days[d].holiday_note):''} — ما ينحسب غياب هذا اليوم.${boss?`<button class="btn sm" data-a="atHoliday" data-v="0">إلغاء العطلة</button>`:''}</div>`;
+  else if(off)h+=`<div class="banner" style="background:var(--info-soft);color:var(--info)">📅 ${DOW_AR[dayDow(d)]} عطلة أسبوعية — الإغلاق ما يسجّل غياب. اللي يداوم يتسجّل عادي.</div>`;
+  if(closed)h+=`<div class="banner atclosed">🔒 اليوم مغلق${A.days[d].auto?' تلقائياً':''} ${A.days[d].closed_at?'· '+esc(bgHM(A.days[d].closed_at)):''}. ${boss?'أي تعديل يحتاج كتابة السبب وينحفظ بسجل التعديلات.':'التعديل عن طريق مدير المشروع فقط.'}${boss?`<button class="btn sm" data-a="atReopen">إعادة فتح اليوم</button>`:''}</div>`;
+  else if(!attCanMark())h+=`<div class="banner" style="background:var(--sunk);color:var(--muted)">وضع المراقبة: تشوف الحضور مباشرة بدون تعديل.</div>`;
+  h+=`<div class="stats atstats">${[['','الكل',cnt.all],['none','لم يُسجّل',cnt.none],['present','حاضر',cnt.present],['late','متأخر',cnt.late],['half','نص يوم',cnt.half],['absent','غائب',cnt.absent],['leave','إجازة',cnt.leave]]
+    .map(([k,l,n])=>`<button type="button" class="stat ${A.f===k?'sel':''} ${k==='none'&&n&&!closed&&!hol?'hot':''}" data-a="atF" data-v="${k}"><b class="num">${n}</b><span>${l}</span></button>`).join('')}</div>`;
+  if(quick||boss&&!closed&&d<=t){h+=`<div class="acts atacts">`;
+    if(quick)h+=`<button class="btn pri" data-a="atScan">📷 مسح باج العامل</button>${unmarked.length?`<button class="btn" data-a="atBulk">✓ حضور للمتبقين · <span class="num">${unmarked.length}</span></button>`:''}`;
+    if(!closed&&attCanMark()&&d<=t)h+=`<button class="btn" data-a="atClose">🔒 إغلاق اليوم</button>`;
+    if(boss&&!hol)h+=`<button class="btn ghost" data-a="atHoliday" data-v="1">عطلة رسمية</button>`;
+    h+=`</div>`}
+  if(!A.workers.length)return h+`<div class="empty"><b>ما مسجّل أي عامل بعد</b>${attCanMark()?'ابدأ بإضافة العمال من تبويب «العمال»، وبعدها اطبع لكل واحد باج QR.':'العمال يضيفهم مراقب الدوام أو مدير المشروع.'}${attCanMark()?`<div class="row"><button class="btn pri" data-a="atWNew">+ إضافة عامل</button></div>`:''}</div>`;
+  if(!list.length)return h+`<div class="empty"><b>لا أحد هنا</b>${f?'ما في عمال بهذه الحالة.':'غيّر البحث أو البناية.'}</div>`;
+  return h+`<div class="atlist">${list.map(w=>attRow(w,d,quick)).join('')}</div>`}
+function attRow(w,d,quick){const r=attRec(w.id,d),work=r&&ATT_WORK.includes(r.status);
+  let tm='';if(work){tm=`<span class="num">${r.in_at?bgHM(r.in_at):'—'}</span>${r.out_at?` ← <span class="num">${bgHM(r.out_at)}</span>`:''}`}
+  else if(r&&r.reason)tm=esc(r.reason);
+  let q='';if(quick){if(!r||!work)q=`<button class="atb ok" data-a="atIn" data-v="${w.id}" aria-label="حاضر ${esc(w.name)}">✓<span>حاضر</span></button>${!r&&!isHoliday(d)?`<button class="atb bad" data-a="atAbs" data-v="${w.id}" aria-label="غائب ${esc(w.name)}">✗<span>غائب</span></button>`:''}`;
+    else if(!r.out_at)q=`<button class="atb" data-a="atOut" data-v="${w.id}" aria-label="تسجيل خروج ${esc(w.name)}">↩<span>خروج</span></button>`}
+  return`<div class="atrow ${r?'s-'+r.status:'s-none'}${w.active?'':' inact'}"><button class="atw" data-a="atOpen" data-v="${w.id}">${w.photo&&imgSrc(w.photo)?`<img class="av" src="${esc(imgSrc(w.photo))}" alt="">`:`<span class="av">${initials(w.name)}</span>`}<span class="an"><b>${esc(w.name)}</b><span class="muted small">${[w.trade,w.site,w.code].filter(Boolean).map(esc).join(' · ')}${w.active?'':' · موقوف'}</span></span></button>
+   <div class="atst">${attPill(r)}<span class="muted small attm">${tm}</span></div><div class="atq">${q}<button class="atb more" data-a="atOpen" data-v="${w.id}" aria-label="تفاصيل ${esc(w.name)}">⋯</button></div></div>`}
+
+/* worker day sheet */
+function attSheet(wid,day){const w=attWorker(wid);if(!w)return;const A=S.att;day=day||A.day||bgDay();const r=attRec(wid,day),c=attCfg();
+  const ed=attCanEdit(day),closed=isClosed(day),needReason=closed&&attBoss(),st=r?.status||'';
+  const t=bgDay(),last=[];for(let i=13;i>=0;i--){const d=dayAdd(t,-i);last.push([d,attRec(wid,d)])}
+  const ms=attSum(wid,monthStart(t),t),stk=attStreak(wid);
+  const pay=attSeesPay()&&+w.wage?`<div><span>الأجر</span><b><span class="num">${nf.format(+w.wage)}</span> د.ع ${w.pay_type==='monthly'?'شهري':'يومي'}</b></div>`:'';
+  let b=`<div class="sec"><div class="atsh-h">${w.photo&&imgSrc(w.photo)?`<img class="av lg" src="${esc(imgSrc(w.photo))}" alt="">`:`<span class="av lg">${initials(w.name)}</span>`}<div><b style="font-family:var(--display);font-size:17px">${esc(w.name)}</b><div class="meta"><span class="num">${esc(w.code)}</span>${w.trade?`<span>${esc(w.trade)}</span>`:''}${w.site?`<span>${esc(w.site)}</span>`:''}${w.team?`<span>${esc(w.team)}</span>`:''}${w.active?'':'<span class="pill p-bad">موقوف</span>'}</div></div></div>
+    <div class="kv" style="margin-top:10px">${w.phone?`<div><span>الهاتف</span><b><a class="num" href="tel:${esc(w.phone)}">${esc(w.phone)}</a></b></div>`:''}${pay}<div><span>هذا الشهر</span><b><span class="num">${ms.present+ms.late}</span> حضور · <span class="num">${ms.absent}</span> غياب${ms.late?` · <span class="num">${ms.late}</span> تأخير`:''}</b></div>${stk>=2?`<div><span>غياب متتالي</span><b class="pill p-bad"><span class="num">${stk}</span> أيام</b></div>`:''}</div>
+    <div class="athist" aria-label="آخر 14 يوم">${last.map(([d,x])=>`<button class="hd ${x?'s-'+x.status+(x.excused?' ex':''):'s-none'} ${d===day?'cur':''}" data-a="atOpenD" data-v="${wid}|${d}" title="${esc(dayLong(d))}: ${x?ATT_ST[x.status][0]:'لم يُسجّل'}"><span class="num">${+d.slice(8)}</span></button>`).join('')}</div></div>`;
+  b+=`<form class="f sec" id="atF"><h4 style="margin:0 0 8px">${esc(dayLong(day))}${closed?' <span class="pill p-mute">🔒 مغلق</span>':''}</h4>
+   <div class="seg atseg" role="radiogroup" aria-label="الحالة">${Object.entries(ATT_ST).map(([k,[l]])=>`<label><input type="radio" name="atS" value="${k}" ${st===k?'checked':''} ${ed?'':'disabled'}>${l}</label>`).join('')}</div>
+   <div class="fr" id="atTimes" ${ATT_WORK.includes(st)||!st?'':'hidden'} style="margin-top:12px"><label class="l">وقت الدخول<input id="atIn" class="in num" type="time" value="${r?.in_at?bgHM(r.in_at):''}" ${ed?'':'disabled'}></label><label class="l">وقت الخروج<input id="atOutT" class="in num" type="time" value="${r?.out_at?bgHM(r.out_at):''}" ${ed?'':'disabled'}></label></div>
+   <div id="atAbsF" ${['absent','leave'].includes(st)?'':'hidden'} style="margin-top:12px"><label class="l">السبب<input id="atReason" class="in" value="${esc(r?.reason||'')}" placeholder="مثال: مريض، ظرف عائلي، بدون عذر" ${ed?'':'disabled'}></label>
+     <label class="atchk"><input type="checkbox" id="atEx" ${r?.excused?'checked':''} ${ed?'':'disabled'}> غياب بإذن (ما ينحسب عليه)</label>
+     <label class="l" style="margin-top:8px">مرفق (تقرير طبي أو ورقة إجازة) <input id="atFile" class="in" type="file" accept="image/*" ${ed?'':'disabled'}></label>${r?.attach?`<div style="margin-top:8px">${imgTag(r.attach,'atattach','المرفق')}</div>`:''}</div>
+   ${needReason?`<label class="l" style="margin-top:12px">سبب التعديل <em>(مطلوب لأن اليوم مغلق)</em><input id="atEdit" class="in" required placeholder="مثال: كان موجود بس ما انسجل"></label>`:''}
+   ${r?.in_lat!=null?`<p class="note" style="margin:10px 0 0">📍 موقع تسجيل الدخول: <a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${r.in_lat},${r.in_lng}">على الخريطة</a>${r.in_acc?` · دقة <span class="num">${Math.round(r.in_acc)}</span> م`:''}${r.method==='qr'?' · بالباركود':''}</p>`:''}
+   ${r&&r.method==='auto'?`<p class="note" style="margin:6px 0 0">انسجل غائب تلقائياً عند إغلاق اليوم لأنه ما انسجل.</p>`:''}
+   ${r?.by_uid&&S.names[r.by_uid]?`<p class="note" style="margin:6px 0 0">آخر تسجيل: ${esc(S.names[r.by_uid].name)}${r.updated_at?' · '+esc(dt(Date.parse(r.updated_at))):''}</p>`:''}
+   <p class="note bad" id="atErr" style="margin:8px 0 0"></p>
+   <div class="acts" style="margin-top:8px">${ed?`<button class="btn pri" type="submit">حفظ</button>`:`<span class="note">${S.me?.role==='timekeeper'?(closed?'اليوم مغلق — التعديل عن طريق مدير المشروع.':'تسجّل لليوم أو أمس فقط.'):attCanMark()?'':'للعرض فقط.'}</span>`}
+   ${attCanMark()?`<button class="btn ghost" type="button" data-a="atWEdit" data-v="${w.id}">تعديل بيانات العامل</button>`:''}<button class="btn ghost" type="button" data-a="atBadge" data-v="${w.id}">باج QR</button></div></form>`;
+  overlay('att',esc(w.name),b);$('#ovroot').dataset.wid=wid;$('#ovroot').dataset.day=day;
+  const f=$('#atF'),sync=()=>{const v=f.querySelector('input[name=atS]:checked')?.value||'';$('#atTimes').hidden=!(ATT_WORK.includes(v)||!v);$('#atAbsF').hidden=!['absent','leave'].includes(v)};
+  f.addEventListener('change',e=>{if(e.target.name==='atS'){sync();const v=e.target.value;if(ATT_WORK.includes(v)&&!$('#atIn').value){$('#atIn').value=day===bgDay()?bgHM(Date.now()):c.start}}});
+  f.addEventListener('submit',async e=>{e.preventDefault();const er=$('#atErr');er.textContent='';
+    const v=f.querySelector('input[name=atS]:checked')?.value;if(!v){er.textContent='اختر الحالة';return}
+    const edit=needReason?$('#atEdit').value.trim():null;if(needReason&&!edit){er.textContent='اكتب سبب التعديل';$('#atEdit').focus();return}
+    const p={status:v,method:r?.method==='qr'&&r.status===v?'qr':'manual'};
+    if(ATT_WORK.includes(v)){const ti=$('#atIn').value,to=$('#atOutT').value;if(!ti){er.textContent='اكتب وقت الدخول';return}
+      p.in_at=dayIso(day,ti);p.out_at=to?dayIso(to<ti?dayAdd(day,1):day,to):null;
+      if(p.out_at&&Date.parse(p.out_at)-Date.parse(p.in_at)>20*36e5){er.textContent='وقت الخروج غير منطقي';return}
+      if(day===bgDay()&&Date.parse(p.in_at)>Date.now()+5*60e3){er.textContent='وقت الدخول بعده ما صار';return}
+      if(!r||!ATT_WORK.includes(r.status)){const g=attGeoNow();if(g&&day===bgDay()){p.in_lat=g.lat;p.in_lng=g.lng;p.in_acc=g.acc}}
+      p.reason=null}
+    else{p.reason=$('#atReason').value.trim()||null;p.excused=$('#atEx').checked;
+      const file=$('#atFile').files[0];if(file){const sb_=f.querySelector('[type=submit]');sb_.disabled=true;sb_.textContent='جارِ رفع المرفق…';
+        try{const s=await saveFile(file,w.name+' · '+day);p.attach=s.ref}catch(x){er.textContent=x.message;sb_.disabled=false;sb_.textContent='حفظ';return}}}
+    const btn=f.querySelector('[type=submit]');btn.disabled=true;const ok=await attSave(wid,day,p,edit);
+    if(ok){closeOv();render();toast('حُفظ: '+w.name+' — '+ATT_ST[v][0])}else{btn.disabled=false;btn.textContent='حفظ'}})}
+
+/* scanning badges */
+function attParseCode(txt){const s=String(txt||'').trim().toUpperCase().replace(/^MCW:/,'');return/^W\d{3,}$/.test(s)?s:null}
+function attScan(last){const d=S.att.day||bgDay();
+  openScanner('مسح باج العامل',(last?`<b class="${last.ok?'atok':'atbad'}">${esc(last.msg)}</b><br>`:'')+'وجّه الكاميرا على باج العامل. أول مسح = دخول، والمسح بعد ساعة أو أكثر = خروج. سكّر النافذة لما تخلص.',async txt=>{
+    const code=attParseCode(txt),w=code&&S.att.workers.find(x=>x.code===code);let res;
+    if(!w)res={ok:false,msg:'باج غير معروف: '+String(txt).slice(0,24)};
+    else if(!w.active)res={ok:false,msg:w.name+' موقوف'};
+    else{const r=attRec(w.id,d);
+      if(!r||!ATT_WORK.includes(r.status)){const p=attInPatch(w.id,d,null,'qr');const ok=await attSave(w.id,d,p);res={ok,msg:ok?`✓ ${w.name} — ${ATT_ST[p.status][0]} ${bgHM(p.in_at)}`:'تعذر تسجيل '+w.name}}
+      else if(!r.out_at&&r.in_at&&Date.now()-Date.parse(r.in_at)>=36e5){const ok=await attCheckOut(w.id,d);res={ok,msg:ok?`↩ ${w.name} — خروج ${bgHM(Date.now())}`:'تعذر تسجيل خروج '+w.name}}
+      else res={ok:true,msg:`${w.name} مسجّل مسبقاً (${ATT_ST[r.status][0]}${r.out_at?' وخرج':''})`}}
+    navigator.vibrate?.(res.ok?60:[60,60,60]);setTimeout(()=>{if($('#ovroot').dataset.kind==='scan'||!$('#ovroot').innerHTML)attScan(res)},700)})}
+
+/* bulk, close, reopen, holiday */
+function attBulk(){const A=S.att,d=A.day||bgDay(),q=A.q.trim();
+  const list=A.workers.filter(w=>w.active&&!attRec(w.id,d)&&(!A.site||w.site===A.site)&&(!q||[w.name,w.code,w.trade,w.site].join(' ').includes(q)));if(!list.length)return;
+  overlay('atbulk','حضور جماعي',`<p style="margin:0">تسجيل <b class="num">${list.length}</b> عامل حاضرين ${A.site?'في '+esc(A.site):''} ${esc(dayLabel(d))}، بوقت الآن (أو بداية الدوام إذا اليوم مو اليوم). استخدمه بس إذا شفتهم كلهم بعينك.</p>
+   <div class="atchips">${list.slice(0,40).map(w=>`<span class="pill p-mute">${esc(w.name)}</span>`).join('')}${list.length>40?`<span class="muted small">و${list.length-40} غيرهم</span>`:''}</div>
+   <div class="acts"><button class="btn pri" id="atBulkGo">تأكيد الحضور</button><button class="btn ghost" data-a="close">إلغاء</button></div>`);
+  $('#atBulkGo').addEventListener('click',async e=>{e.target.disabled=true;let ok=0;for(let i=0;i<list.length;i+=5){const part=await Promise.all(list.slice(i,i+5).map(w=>attCheckIn(w.id,d)));ok+=part.filter(Boolean).length;e.target.textContent=`جارِ التسجيل… ${ok}/${list.length}`}
+    closeOv();render();toast('انسجل '+ok+' عامل حاضر')})}
+function attCloseDlg(){const A=S.att,d=A.day||bgDay(),c=attCfg(),off=c.off.includes(dayDow(d))||isHoliday(d);
+  const un=A.workers.filter(w=>w.active&&!attRec(w.id,d)),pend=attQ().filter(x=>x.p.day===d).length;
+  overlay('atclose','إغلاق '+esc(dayLabel(d)),`<div class="rcbox"><b style="font-family:var(--display);font-size:18px">${esc(dayLong(d))}</b>
+   ${off?`<p style="margin:0">هذا يوم عطلة، فالإغلاق ما يسجّل غياب على أحد.</p>`:un.length?`<p style="margin:0"><b class="num">${un.length}</b> عامل ما انسجلوا، راح يتسجّلون <b style="color:var(--bad)">غائبين</b> تلقائياً.</p><div class="atchips">${un.slice(0,30).map(w=>`<span class="pill p-bad">${esc(w.name)}</span>`).join('')}${un.length>30?`<span class="muted small">و${un.length-30} غيرهم</span>`:''}</div>`:`<p style="margin:0">كل العمال مسجّلين ✓</p>`}
+   <p class="note" style="margin:0">بعد الإغلاق ما يگدر مراقب الدوام يعدّل هذا اليوم. التعديل بعدها عن طريق مدير المشروع مع ذكر السبب. النظام يغلق كل يوم تلقائياً الساعة 11 بالليل إذا ما انغلق.</p>
+   ${pend?`<p class="note bad" style="margin:0">عندك ${pend} تسجيل بهذا اليوم ما انرفع بعد. ارفعهم أولاً.</p>`:''}</div>
+   <div class="acts"><button class="btn pri" id="atCloseGo" ${pend||!navigator.onLine?'disabled':''}>إغلاق اليوم</button><button class="btn ghost" data-a="close">رجوع</button></div>${!navigator.onLine?'<p class="note bad">الإغلاق يحتاج إنترنت.</p>':''}`);
+  $('#atCloseGo').addEventListener('click',async e=>{e.target.disabled=true;const {data,error}=await sb.rpc('att_close_day',{p_day:d});
+    if(error){toast(attErrMsg(error));e.target.disabled=false;return}
+    await attLoad();closeOv();render();toast(data?.off?'انغلق اليوم (عطلة)':`انغلق اليوم — ${data?.absent||0} غائب${data?.alerts?' · '+data.alerts+' تنبيه غياب متكرر':''}`)})}
+function attReopenDlg(){const d=S.att.day;overlay('atreopen','إعادة فتح '+esc(dayLabel(d)),`<form class="f" id="atRo"><label class="l">سبب إعادة الفتح<input id="atRoR" class="in" required placeholder="مثال: نسينا نسجّل عمال البناية T4"></label><p class="note" style="margin:0">بعد الفتح يگدر مراقب الدوام يعدّل (إذا اليوم أو أمس). سجلات الغياب التلقائي تبقى لحد ما تتعدّل.</p><div class="acts"><button class="btn pri" type="submit">إعادة الفتح</button><button class="btn ghost" type="button" data-a="close">رجوع</button></div></form>`);
+  $('#atRo').addEventListener('submit',async e=>{e.preventDefault();const {error}=await sb.rpc('att_reopen_day',{p_day:d,p_reason:$('#atRoR').value.trim()});if(error){toast(attErrMsg(error));return}await attLoad();closeOv();render();toast('انفتح اليوم')})}
+function attHolidayDlg(on){const d=S.att.day;
+  if(!on){(async()=>{const {error}=await sb.rpc('att_set_holiday',{p_day:d,p_on:false,p_note:null});if(error)return toast(attErrMsg(error));await attLoad();render();toast('انلغت العطلة')})();return}
+  overlay('athol','عطلة رسمية — '+esc(dayLabel(d)),`<form class="f" id="atHo"><label class="l">المناسبة <em>(اختياري)</em><input id="atHoN" class="in" placeholder="مثال: عيد الأضحى"></label><p class="note" style="margin:0">ما ينحسب غياب على أحد بهذا اليوم، وأي غياب تلقائي سابق له ينشال.</p><div class="acts"><button class="btn pri" type="submit">تحديد كعطلة</button><button class="btn ghost" type="button" data-a="close">رجوع</button></div></form>`);
+  $('#atHo').addEventListener('submit',async e=>{e.preventDefault();const {error}=await sb.rpc('att_set_holiday',{p_day:d,p_on:true,p_note:$('#atHoN').value.trim()||null});if(error){toast(attErrMsg(error));return}await attLoad();closeOv();render();toast('تحدّد اليوم عطلة')})}
+function attQErrDlg(){const q=attQ();overlay('atqerr','تسجيلات ما انرفعت',`${q.filter(x=>x.err).map((x,i)=>{const w=attWorker(x.p.worker_id);return`<div class="sec"><b>${esc(w?.name||'عامل')}</b> — ${esc(dayLabel(x.p.day))} — ${esc(ATT_ST[x.p.status]?.[0]||'')}<p class="note bad" style="margin:4px 0">${esc(x.err)}</p><div class="acts"><button class="btn sm" data-a="atQRetry" data-v="${x.p.worker_id}|${x.p.day}">إعادة المحاولة</button><button class="btn sm bad" data-a="atQDrop" data-v="${x.p.worker_id}|${x.p.day}">تجاهل</button></div></div>`}).join('')||'<p class="muted">لا شيء</p>'}<p class="note">عادة السبب إن اليوم انغلق قبل ما يرجع الإنترنت. اطلب من مدير المشروع يعدّله.</p>`)}
+
+/* workers */
+function attWorkersView(){const A=S.att,q=A.wq.trim(),pay=attSeesPay();
+  const list=A.workers.filter(w=>(A.woff||w.active)&&(!A.wsite||w.site===A.wsite)&&(!q||[w.name,w.code,w.trade,w.site,w.team,w.phone].join(' ').includes(q))).sort((a,b)=>(b.active-a.active)||siteSort(a.site,b.site)||a.name.localeCompare(b.name,'ar'));
+  const act=A.workers.filter(w=>w.active).length;
+  let h=`<div class="filters">${attCanMark()?`<button class="btn pri" data-a="atWNew">+ إضافة عامل</button>`:''}<button class="btn" data-a="atPrint" ${list.some(w=>w.active)?'':'disabled'}>🖨 طباعة باجات (${list.filter(w=>w.active).length})</button>${pay?`<button class="btn" data-a="atWCsv">⬇ Excel</button>`:''}</div>
+   <div class="filters"><input id="atWQ" class="in" placeholder="بحث بالاسم أو الرمز أو المهنة أو الهاتف…" value="${esc(A.wq)}" autocomplete="off"><select id="atWSite" class="in" aria-label="البناية"><option value="">كل المواقع</option>${attSites().map(s=>`<option ${A.wsite===s?'selected':''}>${esc(s)}</option>`).join('')}</select><label class="atchk"><input type="checkbox" id="atWOff" ${A.woff?'checked':''}> إظهار الموقوفين</label></div>
+   <p class="note"><span class="num">${act}</span> عامل فعّال${A.workers.length>act?` · <span class="num">${A.workers.length-act}</span> موقوف`:''}${S.me?.role==='timekeeper'?' · الأجور يحددها مدير المشروع':''}</p>`;
+  if(!list.length)return h+`<div class="empty"><b>${A.workers.length?'لا نتائج':'ما مسجّل أي عامل بعد'}</b>${A.workers.length?'غيّر البحث.':'اضغط «+ إضافة عامل».'}</div>`;
+  return h+`<div class="sec" style="margin-top:10px">${list.map(w=>`<div class="arow"><span class="mono">${initials(w.name)}</span><div class="an"><b>${esc(w.name)}</b><span class="muted small"><span class="num">${esc(w.code)}</span>${w.trade?' · '+esc(w.trade):''}${w.site?' · '+esc(w.site):''}${w.team?' · '+esc(w.team):''}${pay&&+w.wage?` · <span class="num">${nf.format(+w.wage)}</span> ${w.pay_type==='monthly'?'شهري':'يومي'}`:pay?' · <span style="color:var(--warn)">بدون أجر</span>':''}${w.active?'':' · <span style="color:var(--bad)">موقوف</span>'}</span></div>
+    <div class="acts"><button class="btn sm" data-a="atBadge" data-v="${w.id}">باج</button>${attCanMark()?`<button class="btn sm" data-a="atWEdit" data-v="${w.id}">تعديل</button>`:''}<button class="btn sm ghost" data-a="atOpen" data-v="${w.id}">الدوام</button></div></div>`).join('')}</div>`}
+function attWForm(w){const n=!w,boss=attBoss();w=w||{active:true,pay_type:'daily',wage:0,site:S.att.site||''};
+  const trades=[...new Set([...ATT_TRADES,...S.att.workers.map(x=>x.trade).filter(Boolean)])],sites=[...new Set([...ATT_SITES,...attSites()])].sort(siteSort);
+  overlay('atw',n?'إضافة عامل':'تعديل '+esc(w.name),`<form class="f" id="atWF"><div class="fr"><label class="l">الاسم الكامل<input id="awN" class="in" required minlength="2" value="${esc(w.name||'')}" autocomplete="off"></label><label class="l">الهاتف <em>(اختياري)</em><input id="awP" class="in num" dir="ltr" inputmode="tel" value="${esc(w.phone||'')}" placeholder="07xxxxxxxxx"></label></div>
+   <div class="fr"><label class="l">المهنة<input id="awT" class="in" list="awTL" value="${esc(w.trade||'')}" placeholder="مثال: حداد"><datalist id="awTL">${trades.map(t=>`<option value="${esc(t)}">`).join('')}</datalist></label>
+   <label class="l">البناية / الموقع<input id="awS" class="in" list="awSL" value="${esc(w.site||'')}" placeholder="مثال: T3"><datalist id="awSL">${sites.map(t=>`<option value="${esc(t)}">`).join('')}</datalist></label></div>
+   <label class="l">المقاول أو الفريق <em>(اختياري)</em><input id="awG" class="in" value="${esc(w.team||'')}" placeholder="مثال: فريق أبو حسين"></label>
+   ${boss?`<div class="fr"><label class="l">نوع الأجر<select id="awPT" class="in"><option value="daily" ${w.pay_type!=='monthly'?'selected':''}>يومي</option><option value="monthly" ${w.pay_type==='monthly'?'selected':''}>شهري</option></select></label><label class="l">مبلغ الأجر (د.ع)<input id="awW" class="in num" type="number" min="0" step="250" inputmode="numeric" value="${+w.wage||''}" placeholder="مثال: 25000"></label></div>`:`<p class="note" style="margin:0">الأجر يحدده مدير المشروع.</p>`}
+   <label class="l">صورة العامل <em>(اختياري)</em><input id="awF" class="in" type="file" accept="image/*"></label>
+   <label class="l">ملاحظات<input id="awNo" class="in" value="${esc(w.notes||'')}"></label>
+   ${n?'':`<label class="atchk"><input type="checkbox" id="awA" ${w.active?'checked':''}> فعّال (يظهر بالجولة اليومية)</label>`}
+   <p class="note bad" id="awErr" style="margin:0"></p>
+   <div class="acts"><button class="btn pri" type="submit">${n?'إضافة':'حفظ'}</button><button class="btn ghost" type="button" data-a="close">إلغاء</button>${!n&&boss?`<span id="awDelC" style="margin-inline-start:auto"><button class="btn bad sm" type="button" id="awDel">حذف</button></span>`:''}</div></form>`);
+  $('#awN').focus();
+  const del=$('#awDel');if(del)del.addEventListener('click',()=>{$('#awDelC').innerHTML='<button class="btn bad sm" type="button" id="awDel2">تأكيد الحذف</button>';$('#awDel2').addEventListener('click',async()=>{
+    const {error}=await sb.from('workers').delete().eq('id',w.id);if(error){$('#awErr').textContent=/foreign key|violates/i.test(error.message)?'العامل عنده سجل حضور، ما ينحذف. شيل علامة «فعّال» حتى توقفه.':attErrMsg(error);return}
+    S.att.workers=S.att.workers.filter(x=>x.id!==w.id);closeOv();render();toast('انحذف العامل')})});
+  $('#atWF').addEventListener('submit',async e=>{e.preventDefault();const er=$('#awErr'),btn=e.target.querySelector('[type=submit]');er.textContent='';
+    const name=$('#awN').value.trim().replace(/\s+/g,' ');if(name.length<2){er.textContent='اكتب اسم العامل';return}
+    const phone=digitsOnly($('#awP').value);if(phone&&(phone.length<10||phone.length>15)){er.textContent='رقم الهاتف غير صحيح';return}
+    const dup=S.att.workers.find(x=>x.id!==w.id&&x.name===name&&(x.site||'')===($('#awS').value.trim()));if(dup&&!e.target.dataset.dupOk){er.textContent='يوجد عامل بنفس الاسم بنفس الموقع ('+dup.code+'). اضغط مرة ثانية إذا هو شخص آخر.';e.target.dataset.dupOk='1';return}
+    const o={name,phone:phone||null,trade:$('#awT').value.trim()||null,site:$('#awS').value.trim()||null,team:$('#awG').value.trim()||null,notes:$('#awNo').value.trim()||null};
+    if(boss){o.pay_type=$('#awPT').value;o.wage=Math.max(0,Math.round(+$('#awW').value||0))}
+    if(!n)o.active=$('#awA').checked;
+    btn.disabled=true;
+    try{const f=$('#awF').files[0];if(f){btn.textContent='جارِ رفع الصورة…';o.photo=(await saveFile(f)).ref}
+      const res=n?await sb.from('workers').insert(o).select().single():await sb.from('workers').update(o).eq('id',w.id).select().single();
+      if(res.error)throw res.error;const i=S.att.workers.findIndex(x=>x.id===res.data.id);if(i<0)S.att.workers.push(res.data);else S.att.workers[i]=res.data;
+      await invLog((n?'أضاف عامل: ':'عدّل بيانات العامل: ')+name+' ('+res.data.code+')','').catch(()=>{});
+      closeOv();render();toast(n?'انضاف '+name+' — رمزه '+res.data.code:'حُفظ');if(n)attBadge(res.data.id)}
+    catch(x){er.textContent=attNetErr(x)?'إضافة العمال تحتاج إنترنت':attErrMsg(x);btn.disabled=false;btn.textContent=n?'إضافة':'حفظ'}})}
+const digitsOnly=s=>String(s||'').replace(/[٠-٩]/g,d=>d.charCodeAt(0)-0x0660).replace(/[۰-۹]/g,d=>d.charCodeAt(0)-0x06F0).replace(/\D/g,'');
+function attBadge(wid){const w=attWorker(wid);if(!w)return;
+  overlay('atbadge','باج '+esc(w.name),`<div class="rcbox"><div class="atqr">${qrSvg('MCW:'+w.code,8)}</div><b style="font-family:var(--display);font-size:18px">${esc(w.name)}</b><span class="num" style="font-size:20px;letter-spacing:.08em">${esc(w.code)}</span><span class="muted">${[w.trade,w.site].filter(Boolean).map(esc).join(' · ')}</span></div>
+   <p class="note" style="margin:0">اطبعه وغلّفه، والعامل يحمله ويّاه. مراقب الدوام يمسحه بالجولة. إذا الباج ضاع، اكتب الرمز يدوياً بشاشة المسح.</p>
+   <div class="acts"><button class="btn pri" data-a="atPrint1" data-v="${w.id}">🖨 طباعة</button><button class="btn ghost" data-a="close">إغلاق</button></div>`)}
+function attPrintBadges(list){if(!list.length)return;const logo=LOGO;
+  const card=w=>`<div class="c"><div class="h"><img src="${logo}" alt=""><span>شركة المنصور</span></div><div class="b"><div class="q">${qrSvg('MCW:'+w.code,3)}</div><div class="t"><b>${esc(w.name)}</b><span>${esc(w.trade||'')}</span><span>${esc(w.site||'')}</span><i>${esc(w.code)}</i></div></div></div>`;
+  printHTML(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>باجات العمال</title><style>@page{size:A4;margin:10mm}*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;color:#111}
+   .g{display:grid;grid-template-columns:repeat(2,85.6mm);gap:6mm;justify-content:center}.c{width:85.6mm;height:54mm;border:1px solid #333;border-radius:3mm;overflow:hidden;break-inside:avoid;display:flex;flex-direction:column}
+   .h{background:#1F5468;color:#fff;display:flex;align-items:center;gap:2mm;padding:1.5mm 3mm;font-weight:700;font-size:10pt}.h img{width:7mm;height:7mm;background:#fff;border-radius:1mm}
+   .b{flex:1;display:flex;align-items:center;gap:3mm;padding:2mm 3mm}.q svg{width:30mm;height:30mm;display:block}.t{display:flex;flex-direction:column;gap:1mm;min-width:0}.t b{font-size:12pt;line-height:1.25}.t span{font-size:9pt;color:#444}.t i{font-style:normal;font-family:monospace;font-size:13pt;letter-spacing:1px;direction:ltr;text-align:right}</style></head><body><div class="g">${list.map(card).join('')}</div></body></html>`)}
+function printHTML(html){const f=document.createElement('iframe');f.setAttribute('aria-hidden','true');f.style.cssText='position:fixed;left:0;bottom:0;width:1px;height:1px;border:0;opacity:0';document.body.appendChild(f);
+  const d=f.contentDocument;d.open();d.write(html);d.close();setTimeout(()=>{try{f.contentWindow.focus();f.contentWindow.print()}catch(e){toast('تعذر فتح الطباعة')}setTimeout(()=>f.remove(),60000)},450)}
+function csvDownload(name,rows){const s='﻿'+rows.map(r=>r.map(c=>{c=String(c??'');return/[",\n\r]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(',')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'text/csv;charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+
+/* absences */
+function attAbsView(){const A=S.att,t=bgDay();A.absFrom=A.absFrom||monthStart(t);A.absTo=A.absTo&&A.absTo<=t?A.absTo:t;if(A.absFrom>A.absTo)A.absFrom=A.absTo;
+  if(A.from&&A.absFrom<A.from){attEnsure(A.absFrom,A.absTo).then(c=>{if(c)attRerender(true)});}
+  const c=attCfg(),site=A.absSite;
+  const rows=Object.values(A.rows).filter(r=>r.day>=A.absFrom&&r.day<=A.absTo&&(r.status==='absent'||(A.absAll&&r.status==='leave'))&&(A.absAll||!r.excused));
+  const by={};rows.forEach(r=>{const w=attWorker(r.worker_id);if(!w||(site&&w.site!==site))return;(by[w.id]=by[w.id]||{w,list:[]}).list.push(r)});
+  const groups=Object.values(by).sort((a,b)=>b.list.length-a.list.length||a.w.name.localeCompare(b.w.name,'ar'));
+  const streaks=A.workers.filter(w=>w.active&&(!site||w.site===site)).map(w=>[w,attStreak(w.id)]).filter(([,n])=>n>=c.alertDays).sort((a,b)=>b[1]-a[1]);
+  let h=`<div class="filters"><label class="atday"><span class="muted small">من</span><input id="atAF" class="in num" type="date" value="${A.absFrom}" max="${t}"></label><label class="atday"><span class="muted small">إلى</span><input id="atAT" class="in num" type="date" value="${A.absTo}" max="${t}"></label>
+   <select id="atASite" class="in" aria-label="الموقع"><option value="">كل المواقع</option>${attSites().map(s=>`<option ${site===s?'selected':''}>${esc(s)}</option>`).join('')}</select><label class="atchk"><input type="checkbox" id="atAAll" ${A.absAll?'checked':''}> إظهار الغياب بإذن والإجازات</label></div>`;
+  if(streaks.length)h+=`<div class="sec atwarn" style="margin-top:12px"><h4 style="margin:0 0 6px">⚠ غياب متكرر الآن (${c.alertDays} أيام أو أكثر بدون إذن)</h4>${streaks.map(([w,n])=>`<button class="orow" data-a="atOpen" data-v="${w.id}"><span class="mono">${initials(w.name)}</span><span class="an"><b>${esc(w.name)}</b><span class="muted small">${[w.trade,w.site,w.phone].filter(Boolean).map(esc).join(' · ')}</span></span><span class="pill p-bad"><span class="num">${n}</span> أيام متتالية</span></button>`).join('')}</div>`;
+  const total=groups.reduce((s,g)=>s+g.list.length,0);
+  h+=`<p class="note"><span class="num">${total}</span> يوم غياب ${A.absAll?'(كل الأنواع)':'بدون إذن'} · <span class="num">${groups.length}</span> عامل · من ${esc(dayLabel(A.absFrom))} إلى ${esc(dayLabel(A.absTo))}</p>`;
+  if(!groups.length)return h+`<div class="empty"><b>ماكو غيابات بهذه الفترة</b>${A.absAll?'':'جرّب إظهار الغياب بإذن.'}</div>`;
+  return h+`<div class="list">${groups.map(g=>`<div class="sec atabs"><div class="atabs-h"><button class="atw" data-a="atOpen" data-v="${g.w.id}"><span class="av">${initials(g.w.name)}</span><span class="an"><b>${esc(g.w.name)}</b><span class="muted small">${[g.w.trade,g.w.site,g.w.code].filter(Boolean).map(esc).join(' · ')}</span></span></button><span class="pill p-bad"><span class="num">${g.list.length}</span> يوم</span></div>
+   <div class="atchips">${g.list.sort((a,b)=>a.day<b.day?1:-1).map(r=>`<button class="atday-c ${r.excused||r.status==='leave'?'ex':''}" data-a="atOpenD" data-v="${g.w.id}|${r.day}" title="${esc(r.reason||'')}">${esc(dayLabel(r.day))}${r.status==='leave'?' · إجازة':r.excused?' · بإذن':''}${r.reason?' · '+esc(r.reason.slice(0,24)):''}${r.attach?' 📎':''}</button>`).join('')}</div></div>`).join('')}</div>`}
+
+/* reports */
+function attRepView(){const A=S.att,t=bgDay(),c=attCfg();A.repDay=A.repDay&&A.repDay<=t?A.repDay:(A.day||t);A.month=A.month||t.slice(0,7);
+  const mFrom=A.month+'-01',mTo=monthEnd(mFrom)>t?t:monthEnd(mFrom);
+  if(A.from&&(mFrom<A.from||A.repDay<A.from))attEnsure(mFrom<A.repDay?mFrom:A.repDay,t).then(ch=>{if(ch)attRerender(true)});
+  /* daily by site */
+  const d=A.repDay,bySite={};A.workers.filter(w=>w.active||attRec(w.id,d)).forEach(w=>{const s=w.site||'بدون موقع';const o=bySite[s]=bySite[s]||{all:0,present:0,late:0,half:0,absent:0,leave:0,none:0};o.all++;const r=attRec(w.id,d);o[r?r.status:'none']++});
+  const sk=Object.keys(bySite).sort(siteSort),tot={all:0,present:0,late:0,half:0,absent:0,leave:0,none:0};sk.forEach(s=>Object.keys(tot).forEach(k=>tot[k]+=bySite[s][k]));
+  const pct=o=>o.all?Math.round((o.present+o.late+o.half)/o.all*100)+'%':'—';
+  let h=`<div class="sec" style="margin-top:14px"><div class="atrh"><h4 style="margin:0">ملخص يومي حسب الموقع</h4><input id="atRD" class="in num" type="date" value="${d}" max="${t}" aria-label="اليوم"></div>
+   <p class="note" style="margin:4px 0 0">${esc(dayLong(d))}${isClosed(d)?' · مغلق':' · مفتوح'}${isHoliday(d)?' · عطلة رسمية':''}</p>
+   <div class="tbl-wrap"><table class="attbl"><thead><tr><th>الموقع</th><th>العدد</th><th>حاضر</th><th>متأخر</th><th>نص يوم</th><th>غائب</th><th>إجازة</th><th>لم يُسجّل</th><th>نسبة الحضور</th></tr></thead><tbody>
+   ${sk.map(s=>{const o=bySite[s];return`<tr><td><b>${esc(s)}</b></td><td class="q">${o.all}</td><td class="q">${o.present}</td><td class="q">${o.late}</td><td class="q">${o.half}</td><td class="q ${o.absent?'bad':''}">${o.absent}</td><td class="q">${o.leave}</td><td class="q ${o.none?'warn':''}">${o.none}</td><td class="q">${pct(o)}</td></tr>`}).join('')||'<tr><td colspan="9" class="muted">لا عمال</td></tr>'}
+   ${sk.length>1?`<tr class="tot"><td>المجموع</td><td class="q">${tot.all}</td><td class="q">${tot.present}</td><td class="q">${tot.late}</td><td class="q">${tot.half}</td><td class="q">${tot.absent}</td><td class="q">${tot.leave}</td><td class="q">${tot.none}</td><td class="q">${pct(tot)}</td></tr>`:''}</tbody></table></div></div>`;
+  /* monthly per worker */
+  const pay=attSeesPay(),site=A.repSite;const ws=A.workers.filter(w=>(!site||w.site===site)&&(w.active||Object.values(A.rows).some(r=>r.worker_id===w.id&&r.day>=mFrom&&r.day<=mTo))).sort((a,b)=>siteSort(a.site,b.site)||a.name.localeCompare(b.name,'ar'));
+  const data=ws.map(w=>{const o=attSum(w.id,mFrom,mTo);return{w,o,p:pay?attPay(w,o):null}});
+  const T=data.reduce((s,{o,p})=>{['present','late','half','absent','absX','leave','none','ot'].forEach(k=>s[k]+=o[k]);s.pay+=p||0;return s},{present:0,late:0,half:0,absent:0,absX:0,leave:0,none:0,ot:0,pay:0});
+  h+=`<div class="sec" style="margin-top:14px"><div class="atrh"><h4 style="margin:0">الكشف الشهري لكل عامل</h4><input id="atRM" class="in num" type="month" value="${A.month}" max="${t.slice(0,7)}" aria-label="الشهر">
+   <select id="atRS" class="in" aria-label="الموقع"><option value="">كل المواقع</option>${attSites().map(s=>`<option ${site===s?'selected':''}>${esc(s)}</option>`).join('')}</select>
+   <button class="btn sm" data-a="atCsv" ${data.length?'':'disabled'}>⬇ Excel</button><button class="btn sm" data-a="atPrintRep" ${data.length?'':'disabled'}>🖨 طباعة</button></div>
+   <p class="note" style="margin:4px 0 0">من ${+mFrom.slice(8)}/${+mFrom.slice(5,7)} إلى ${+mTo.slice(8)}/${+mTo.slice(5,7)} · الإضافي = الساعات فوق ${c.hours} ساعة باليوم × ${c.otRate}</p>
+   <div class="tbl-wrap"><table class="attbl"><thead><tr><th>العامل</th><th>الموقع</th><th>حضور</th><th>تأخير</th><th>نص يوم</th><th>غياب</th><th>غياب بإذن</th><th>إجازة</th><th>إضافي (س)</th>${pay?'<th>الأجر</th><th>المستحق</th>':''}</tr></thead><tbody>
+   ${data.map(({w,o,p})=>`<tr data-a="atOpen" data-v="${w.id}" class="clk"><td><b>${esc(w.name)}</b><div class="muted small num">${esc(w.code)}${w.trade?' · '+esc(w.trade):''}</div></td><td>${esc(w.site||'')}</td><td class="q">${o.present+o.late}</td><td class="q">${o.late}</td><td class="q">${o.half}</td><td class="q ${o.absent?'bad':''}">${o.absent}</td><td class="q">${o.absX}</td><td class="q">${o.leave}</td><td class="q">${o.ot||''}</td>${pay?`<td class="q">${+w.wage?nf.format(+w.wage)+(w.pay_type==='monthly'?' ش':' ي'):'<span class="muted">—</span>'}</td><td class="q">${p==null?'<span class="muted">—</span>':nf.format(Math.round(p))}</td>`:''}</tr>`).join('')||`<tr><td colspan="${pay?11:9}" class="muted">لا عمال</td></tr>`}
+   ${data.length>1?`<tr class="tot"><td>المجموع (${data.length})</td><td></td><td class="q">${T.present+T.late}</td><td class="q">${T.late}</td><td class="q">${T.half}</td><td class="q">${T.absent}</td><td class="q">${T.absX}</td><td class="q">${T.leave}</td><td class="q">${T.ot||''}</td>${pay?`<td></td><td class="q">${nf.format(Math.round(T.pay))}</td>`:''}</tr>`:''}</tbody></table></div>
+   ${pay?`<p class="note" style="margin:8px 0 0">اليومي: (الحضور + التأخير) × الأجر + نص اليوم × نص الأجر + الإضافي. الشهري: الراتب − غياب بدون إذن × (الراتب ÷ 30) − نص اليوم × نص يومية + الإضافي. الغياب بإذن والإجازة: ما تنخصم من الشهري وما تنحسب لليومي.</p>`:''}${T.none?`<p class="note bad" style="margin:6px 0 0">في <span class="num">${T.none}</span> يوم مغلق بدون تسجيل لبعض العمال (عمال انضافوا بعد الإغلاق).</p>`:''}</div>`;
+  if(attBoss())h+=attSettingsForm();
+  return h}
+function attMonthRows(){const A=S.att,t=bgDay(),mFrom=A.month+'-01',mTo=monthEnd(mFrom)>t?t:monthEnd(mFrom),pay=attSeesPay();
+  const ws=A.workers.filter(w=>(!A.repSite||w.site===A.repSite)&&(w.active||Object.values(A.rows).some(r=>r.worker_id===w.id&&r.day>=mFrom&&r.day<=mTo))).sort((a,b)=>siteSort(a.site,b.site)||a.name.localeCompare(b.name,'ar'));
+  return{mFrom,mTo,pay,rows:ws.map(w=>{const o=attSum(w.id,mFrom,mTo);return{w,o,p:pay?attPay(w,o):null}})}}
+function attCsv(){const {mFrom,mTo,pay,rows}=attMonthRows();const days=[];for(let d=mFrom;d<=mTo;d=dayAdd(d,1))days.push(d);const ab={present:'ح',late:'ت',half:'ن',absent:'غ',leave:'إ'};
+  const head=['الرمز','الاسم','المهنة','الموقع','الفريق','حضور','تأخير','نص يوم','غياب','غياب بإذن','إجازة','إضافي (ساعة)',...(pay?['نوع الأجر','الأجر','المستحق']:[]),...days.map(d=>+d.slice(8))];
+  const out=[head,...rows.map(({w,o,p})=>[w.code,w.name,w.trade||'',w.site||'',w.team||'',o.present+o.late,o.late,o.half,o.absent,o.absX,o.leave,o.ot,...(pay?[w.pay_type==='monthly'?'شهري':'يومي',+w.wage||0,p==null?'':Math.round(p)]:[]),...days.map(d=>{const r=attRec(w.id,d);return r?ab[r.status]+(r.status==='absent'&&r.excused?'*':''):''})])];
+  out.push([]);out.push(['ح = حاضر، ت = متأخر، ن = نص يوم، غ = غائب، غ* = غائب بإذن، إ = إجازة']);
+  csvDownload('دوام-العمال-'+S.att.month+(S.att.repSite?'-'+S.att.repSite:'')+'.csv',out);toast('نزل الملف — يفتح بالـ Excel')}
+function attPrintRep(){const {mFrom,mTo,pay,rows}=attMonthRows();
+  printHTML(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>كشف الدوام ${S.att.month}</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Tahoma,Arial,sans-serif;font-size:10pt;color:#111}h1{font-size:14pt;margin:0 0 2mm}p{margin:0 0 4mm;color:#444}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:1.5mm 2mm;text-align:right}th{background:#eee}td.n{text-align:center;font-variant-numeric:tabular-nums}.sig{margin-top:12mm;display:flex;gap:30mm}</style></head><body>
+   <h1>نظام شركة المنصور — كشف دوام العمال</h1><p>من ${mFrom} إلى ${mTo}${S.att.repSite?' · الموقع: '+esc(S.att.repSite):''} · طُبع ${esc(dt(Date.now()))}</p>
+   <table><thead><tr><th>#</th><th>الرمز</th><th>الاسم</th><th>المهنة</th><th>الموقع</th><th>حضور</th><th>تأخير</th><th>نص يوم</th><th>غياب</th><th>بإذن</th><th>إجازة</th><th>إضافي</th>${pay?'<th>الأجر</th><th>المستحق</th>':''}<th>التوقيع</th></tr></thead><tbody>
+   ${rows.map(({w,o,p},i)=>`<tr><td class="n">${i+1}</td><td class="n">${esc(w.code)}</td><td>${esc(w.name)}</td><td>${esc(w.trade||'')}</td><td>${esc(w.site||'')}</td><td class="n">${o.present+o.late}</td><td class="n">${o.late}</td><td class="n">${o.half}</td><td class="n">${o.absent}</td><td class="n">${o.absX}</td><td class="n">${o.leave}</td><td class="n">${o.ot||''}</td>${pay?`<td class="n">${+w.wage?nf.format(+w.wage):''}</td><td class="n">${p==null?'':nf.format(Math.round(p))}</td>`:''}<td style="width:25mm"></td></tr>`).join('')}</tbody></table>
+   <div class="sig"><span>مراقب الدوام: ..................</span><span>مدير المشروع: ..................</span></div></body></html>`)}
+function attSettingsForm(){const c=attCfg();
+  return`<form class="sec f" id="atSet" style="margin-top:14px"><h4 style="margin:0">إعدادات الدوام</h4>
+   <div class="fr"><label class="l">بداية الدوام<input id="asS" class="in num" type="time" value="${c.start}" required></label><label class="l">نهاية الدوام<input id="asE" class="in num" type="time" value="${c.end}" required></label><label class="l">سماح التأخير (دقيقة)<input id="asG" class="in num" type="number" min="0" max="180" value="${c.grace}"></label></div>
+   <div class="fr"><label class="l">تنبيه الغياب المتكرر بعد (أيام)<input id="asA" class="in num" type="number" min="2" max="30" value="${c.alertDays}"></label><label class="l">معامل الساعة الإضافية<input id="asO" class="in num" type="number" min="0" max="3" step="0.25" value="${c.otRate}"></label></div>
+   <div class="l" style="font-size:13px;font-weight:500">العطلة الأسبوعية<div class="atdows">${DOW_AR.map((n,i)=>`<label class="atchk"><input type="checkbox" name="asD" value="${i}" ${c.off.includes(i)?'checked':''}> ${n}</label>`).join('')}</div></div>
+   <div class="acts"><button class="btn pri" type="submit">حفظ الإعدادات</button><span class="note">يغلق النظام كل يوم تلقائياً الساعة 11 بالليل بتوقيت بغداد.</span></div></form>`}
+
+/* audit */
+function attAuditView(){const A=S.att;if(!A.audit){(async()=>{const {data,error}=await sb.from('att_audit').select('*').order('id',{ascending:false}).limit(300);A.audit=error?{err:error.message}:data||[];attRerender(true)})();return`<div class="empty"><b>جارِ التحميل…</b></div>`}
+  if(A.audit.err)return`<div class="empty"><b>تعذر التحميل</b>${esc(A.audit.err)}</div>`;
+  const OP={update:'عدّل',delete:'حذف',insert:'سجّل بيوم مغلق',close:'أغلق اليوم',reopen:'أعاد فتح اليوم',holiday:'حدّد عطلة رسمية',unholiday:'ألغى العطلة'};
+  const st=x=>x?(ATT_ST[x.status]?.[0]||'')+(x.status==='absent'&&x.excused?' بإذن':'')+(x.in_at?' '+bgHM(x.in_at):'')+(x.out_at?'←'+bgHM(x.out_at):''):'';
+  let h=`<div class="filters"><button class="btn sm" data-a="atAuditRe">تحديث</button><span class="note" style="align-self:center">كل تعديل بعد التسجيل، ومين سوّاه ومتى وليش. ما ينمسح.</span></div>`;
+  if(!A.audit.length)return h+`<div class="empty"><b>ماكو تعديلات بعد</b></div>`;
+  return h+`<div class="sec" style="margin-top:10px"><ul class="log">${A.audit.map(a=>{const w=a.worker_id&&attWorker(a.worker_id),who=a.by_uid?(S.names[a.by_uid]?.name||'مستخدم'):'النظام (تلقائي)';
+    let det='';if(a.op==='update')det=`${esc(st(a.old))} ← <b>${esc(st(a.new))}</b>`;else if(a.op==='delete')det=esc(st(a.old));else if(a.op==='insert')det=esc(st(a.new));
+    else if(a.op==='close'&&a.new)det=a.new.off?'عطلة':`<span class="num">${a.new.absent||0}</span> غائب تلقائي${a.new.auto?' · إغلاق تلقائي':''}`;
+    return`<li><i></i><span><b>${esc(who)}</b> ${OP[a.op]||esc(a.op)}${w?' — '+esc(w.name):''} · ${esc(dayLabel(a.day||bgDay()))}${det?'<br><span class="small">'+det+'</span>':''}${a.reason?'<br><span class="small muted">السبب: '+esc(a.reason)+'</span>':''}</span><small class="num">${esc(dt(Date.parse(a.at)))}</small></li>`}).join('')}</ul></div>`}
+
+/* ---- events ---- */
+document.addEventListener('click',async e=>{const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,v=el.dataset.v;if(!/^at[A-Z]/.test(a))return;const A=S.att;
+  switch(a){
+    case'atSub':A.sub=v;A.f='';render();break;
+    case'atF':A.f=A.f===v?'':v;render();break;
+    case'atReload':await attLoad();render();break;
+    case'atIn':el.disabled=true;await attCheckIn(v,A.day||bgDay());break;
+    case'atAbs':el.disabled=true;await attSave(v,A.day||bgDay(),{status:'absent',reason:null,excused:false,method:'manual'});break;
+    case'atOut':el.disabled=true;await attCheckOut(v,A.day||bgDay());break;
+    case'atOpen':attSheet(v,A.day||bgDay());break;
+    case'atOpenD':{const [w,d]=v.split('|');attSheet(w,d);break}
+    case'atScan':attGeoStart();attScan();break;
+    case'atBulk':attBulk();break;
+    case'atClose':attCloseDlg();break;
+    case'atReopen':attReopenDlg();break;
+    case'atHoliday':attHolidayDlg(v==='1');break;
+    case'atFlush':await attFlush();break;
+    case'atQErr':attQErrDlg();break;
+    case'atQRetry':case'atQDrop':{const [w,d]=v.split('|');let q=attQ();if(a==='atQDrop')q=q.filter(x=>!(x.p.worker_id===w&&x.p.day===d));else q=q.map(x=>x.p.worker_id===w&&x.p.day===d?{p:x.p,t:x.t}:x);attQSet(q);
+      if(a==='atQDrop'){const k=AK(w,d);if(S.att.rows[k]?._pending&&!S.att.rows[k].id)delete S.att.rows[k];else if(S.att.rows[k]){delete S.att.rows[k]._pending;delete S.att.rows[k]._err}}
+      if(a==='atQRetry')await attFlush();if(attQ().some(x=>x.err))attQErrDlg();else{closeOv();render()}break}
+    case'atWNew':attWForm();break;
+    case'atWEdit':{const w=attWorker(v);if(w)attWForm(w);break}
+    case'atBadge':attBadge(v);break;
+    case'atPrint1':{const w=attWorker(v);if(w)attPrintBadges([w]);break}
+    case'atPrint':{const q=A.wq.trim();attPrintBadges(A.workers.filter(w=>w.active&&(!A.wsite||w.site===A.wsite)&&(!q||[w.name,w.code,w.trade,w.site,w.team,w.phone].join(' ').includes(q))).sort((x,y)=>siteSort(x.site,y.site)||x.name.localeCompare(y.name,'ar')));break}
+    case'atWCsv':csvDownload('عمال-المنصور.csv',[['الرمز','الاسم','الهاتف','المهنة','الموقع','الفريق','نوع الأجر','الأجر','الحالة'],...A.workers.map(w=>[w.code,w.name,w.phone||'',w.trade||'',w.site||'',w.team||'',w.pay_type==='monthly'?'شهري':'يومي',+w.wage||0,w.active?'فعّال':'موقوف'])]);break;
+    case'atCsv':attCsv();break;
+    case'atPrintRep':attPrintRep();break;
+    case'atAuditRe':A.audit=null;render();break;
+  }});
+let attQT=0;
+document.addEventListener('input',e=>{const id=e.target.id,A=S.att;
+  if(id==='atQ'){A.q=e.target.value;clearTimeout(attQT);attQT=setTimeout(attRenderKeep,180)}
+  else if(id==='atWQ'){A.wq=e.target.value;clearTimeout(attQT);attQT=setTimeout(attRenderKeep,180)}});
+document.addEventListener('change',async e=>{const id=e.target.id,A=S.att,v=e.target.value,t=bgDay();
+  const okDay=x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=t;
+  if(id==='atDay'){if(!okDay(v))return render();A.day=v;A.f='';if(A.from&&v<A.from){await attEnsure(v,t)}render()}
+  else if(id==='atSite'){A.site=v;render()}
+  else if(id==='atWSite'){A.wsite=v;render()}
+  else if(id==='atWOff'){A.woff=e.target.checked;render()}
+  else if(id==='atAF'){if(okDay(v)){A.absFrom=v;if(A.absTo<v)A.absTo=v}render()}
+  else if(id==='atAT'){if(okDay(v)){A.absTo=v;if(A.absFrom>v)A.absFrom=v}render()}
+  else if(id==='atASite'){A.absSite=v;render()}
+  else if(id==='atAAll'){A.absAll=e.target.checked;render()}
+  else if(id==='atRD'){if(okDay(v))A.repDay=v;render()}
+  else if(id==='atRM'){if(/^\d{4}-\d{2}$/.test(v)&&v<=t.slice(0,7))A.month=v;render()}
+  else if(id==='atRS'){A.repSite=v;render()}});
+document.addEventListener('submit',async e=>{if(e.target.id!=='atSet')return;e.preventDefault();
+  const s=$('#asS').value,en=$('#asE').value;if(hm2min(s)==null||hm2min(en)==null){toast('اكتب أوقات صحيحة');return}
+  const off=[...document.querySelectorAll('input[name=asD]:checked')].map(x=>+x.value);if(off.length>3){toast('العطلة الأسبوعية 3 أيام كحد أعلى');return}
+  const att={start:s,end:en,grace:Math.min(180,Math.max(0,Math.round(+$('#asG').value||0))),alertDays:Math.min(30,Math.max(2,Math.round(+$('#asA').value||3))),otRate:Math.min(3,Math.max(0,+$('#asO').value||1)),off};
+  try{await putSettings({att});await invLog('عدّل إعدادات الدوام',`${s}–${en} · سماح ${att.grace}د`).catch(()=>{});toast('حُفظت إعدادات الدوام')}catch(x){toast('تعذر الحفظ: '+x.message)}});
+
+function attAlertN(){if(!S.att.workers.length)return 0;const c=attCfg();return S.att.workers.filter(w=>w.active&&attStreak(w.id)>=c.alertDays).length}
+
 /* ---------- render ---------- */
 const LOGO='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAIAAABMXPacAAA1M0lEQVR42u29eXhd2XEnVnXOXd+Gh30nsZEgCALcd7I3she11GqpW63FskayvEnxZBLNjBI7cTKeJY6TzDiZT18mdkYZW5atllqS1Zta6o3d3EmAIEAAxEZsJECA2JeHt917T1X+uA8gmqIkS9NoDSjeD3/wgQ/33XfqnFp+9asqZGa4f/3qLnF/CX61l/Zr+82ZmZkRERH9FwgAiID4QT4G/lqpIAYAZgDAn7nKvmD89+P9E/BLrzUu/4szO40YQKIAQAaYmZ2fWYyFbKu0MN+dnkwNXZWBbC2/SM8vYBQEIJgJQazxidB+DVQNKSAElCgB4NbUTNeN0a7Rm11DI+MTM08d2PHFp590+ttn/vevBLKKsXqLvnN/YM9hrWADMApYc4V0zwoAGRgBmBFRQ00xtV0bPHe1r6l3sLW3f3hiOgmYG7CP76oHAKHigfR86Nacd6M1deG19JHHQ8/+vr2pkQjkGstAu0d3PSAxSgTEtOdd6Ox5s7Xz5JWuyz3X0gzRUCQaigY9xzIMX9crMFxlkCalrQfZSbz+vfmZOfmVfyNLqpgZ19IQaPfCYgMCAgMjAwACEAKAFLOxpfNXun90qeNsV/fAzUkptfxIjgbogSJwPfCY9cxxAQYmBTqjwYhW0KCrZ9I/fD782a+IQOC+Cvq56sY3ukQAyAiIcSf9dkv79y+2tHcNXh+b1EwjJxQCZmJyABB80ypX3cIDDZetNRFLXdO8a10qHhOBADCvnRpa3wJgAIWIzIAsQSDikuu8dbHlGyfO9F6/NTo1o2syEgoAIxHd4SCJO9xvRAD0PVXBqIgZyH95/wT8VG8dgDUEQMGAScc929b1/71xorl3+ObUXNgwC+wQMZNiXzetPjACUQhcFQ0wkAIhAZePx/1I+GfsegKQ4MdK6Hru5ML8+Y6eb5042zs6MTk3L1iUZeU46DpK+TubARiBARBRMBCR53kJ15Oa9MNQBlDoKWRUUigGkEIzGCUC3RfAXRS+BADARCo1NrNwqrXtlXPNnaOTU4sJjSFgGoLBUQ4h47LAJAtEoUClXSYmFCiFDJl6ZVFubnYWABiFFeHHf1smYzQ+LEa7IJ1mcgVqjNp9AdzlSrlO+8jYu01tL52+eHV8ghUZQguZpmRmZgLfLVqWlhAeUzKdUsxC00Jh+0hdzbFdDXUVG4tyIjmhIAHolVtDv12DpIS74Ixfj507w+dfFU6SiNYajVhnAiAiIcSZrmuf+1+/lnIcE9FEaZmWBCTFannXryh6jzmWSCoNwkGjsbzk6aP7DzbWV+TlhGxLoLgNEEldD/ouaUTPKc/etDd14Fi86bQAdR8LusuVSLrxJce0dEOTQB4BsR8KIBOCJJQCPaKlVDpkmxVlJXs3bXz2yJ7tm6qioYChCcSMA5p0HCIKWpZKxdXCogwERCiAqINh6vW7cqs2aVZo2UG6L4CV3QqgG5quS23Z//SXhwCAQZdCAc4lEmHb2FpVdrh+83MPHd68odQWQurS10yzC7HrE5NdtyamZ+e3lRYd27vLu9G7+OLXZbRE21Apa3cbG2p0qaEeBlzzfMm9A0UYKBXj7PyiYchtVeUf3t3w0YcO1W4o1YCW807cd33kbO9AS99Aa+/g5cHhbDPwzz7+6CN7d8HsLX7n2+BocWmLut3GE58KPfKk5DCTJ4R2XwB3PQjoW1rETCg8G1+yDX1X7cZHdmz91PEjtWVly+8W8VTyUu/Qqas9LVd6z3X1zTpOyLaj0o7aIUPXEcATmoe5AQslul7XmeRIH82OZT33RallrWkYvH5PAAMxMgshUHEsnbQNua+++vjO+sf27txWvVECKXIR5MxS4kJH91stHWev9l4bnQgYVsQOh2xFApKukwRPagIAgJHR89AANKVlhZ1k4qW/XoyEsh77nDSs+yfgLgIQgiRjLBZDDffUVz+2q+GRXdu3VW3QBCoiFNpiPP5Wc9vLF9uu9A6OTE4bhpEdDACwyy4DCELM6CV/d0tALYMpMSuQMrmQPn/KO/S0zLXuY0F3QSFmlxazTOOxXY2PHN71YMPW2tKSZSQHU577o3Pnn3+rqff6yMDkrG1aWaEQM9N7k6/Iq5AeFIA6gFpl6cH0PLgfB9xxCUQAyA4GvvSh44d2bH2gfkt5Yf4yMqTmllInLl357pnm1msDNybmsq1AcXaUiIjUXSJqxPdkhnHlNAASCkACwPs54Z9cNQCo21D2x5//ZHFuth+apT1vNp64cKX7O6fOdQzdnJyJGUIvyo4CKU857EPUAMiUAZxRMgggFq5y0i4AoHKIHKVcgToiIEiNTfZ0yWuOyq1LFZQVtLOCNgClXXVzZu6dS1deOnep6/r4QjyOiCHLRAZSXmZjIzCCYBBCEKJyFbOSGigkkELTJACgFcJQvkrOeIpNVoZLKUM4pgogy/sCuJsJoKTnDU7OvH6m6YV3zg1MziiHNakHTAuBiYnvAO+EIEWplNIQU+RJCTtLC3bXbW7Ysmnn5hpisOp2Ff1ffwfxaWd0xO3oTDef9yauauklyuTb1vJMry9ekM/YuT45/W+/9fcnrnTPxBKuYoEQ0DTETNaFl9cdARDRI045DgkOmMau0sKH9u7Y3bC1tqQgbJuWaaKQsIofSKQgnVLjg6l3f0RjE6Hf/6rML7rvBa0C45gl4rWxW98900SesKRhGABAxAqIEKSflAQEDaSjPMdJh+1Afl7+3k0VHz+8t7FmYzQYtExTCrEqpvAhVGQUIKSwA1BZHyjamB4ZwsB9LOhul6PYcTGgSylYkQ8/C2QBCAJQF8JVNJdMBgN67cbi441bn3zgYG15ScjQpUR/uzuuOzE7N7UYyw2FNhYXutO3vKvNWjSXC8r0knKBGtgRc1PjB5AaW5cCQEAhBAHz6pytQBQYd9x0PB00tPqqoif2Nj73yNEtpSWr//b6rcnWodGeG6Md1wb6R8Y+/cD+r3z2E6mB7rn/5b+K2lmwbT8dOiZ2PSyKyzRGhWsMRKxfMI5XcQ99XZ9misXSQVvurt/4aOO2Txw7XF1SKjIZTLEYT7T2X2/qHTjf0XOm89piMmXqWk7QAt/R1CTZEVYpve3d9MW3ec9R8Zl/HGg4JDOfc18F/cQRAGBAYpA6ijRTPJW0Df1o/aYnd9c/enBn7YZyJgWKQIrphaXT7d2nOnvPtl3tG7klDT1g6MVGyPWUBiKTjwHQGUlqKURdELa+4yTjzpf+2Ni6R+P7KuiniEBDySinYrGgrR1prH18V+Mjuxpqy0ulFACMQptZjL/R0vpaS+ulzsGbU3OWrkdDAfaNLoBCdpAZV8XBJBDAFSj1LOzrTL75HX3DZghl3RfAT8bDkAKam1/Itcxje7Y8vm/H47t3VBYXrrwhlkj98HzLD843N3UPjk7PRO1AbjBAACtwEMIdfIdMAj9TK4AKdFQjNzCxBKGs+27onZdSqigceODI7mON9Ye21laWFvnRGQNPzC6+1XzlxfOXLg8OT83MhqxwRTTfY1f93HAHEVgwgGApGBSSASbCfS/obmDc9o0bvvYHX9xevaEkLxeAiZRSPBePv9F05aWzze1DoxMzc4Zp5EWixJykFILIpC3xNiFO3CZOADABETABCgQUIJQAQuD7ArgrGFeWl12Wn505DZ4anZl9t6XjhZNnu0YmY7Gk1ER2KMRERMwMAnBF76BEZCDFSeK06zH6WAMwEzgxhrQyBKDmomUAMQEB3oej7xYPAymXEq47Mj//w7fPv3K2ZWB6ZjGZsnUtFLCAWfn4c2YDo0AUiETkpbwkswIgomxD7KksrSopZAB94+bg7/9Lmr/lDfZxb6uZmCNOIMYk8n04erXvn9EXAHhzbu5bb5/6wZmL45Nziwk3aNhFwSwFHpFabTGXQwTlpt2A0E1Nr8qPHm6o2bN1S1VJYWFWODsURCAjv0j7yOfYcymV5Jkxp705deK7iMIBsH7twDhmWub5I/tpKyYmiTLjowAjiJTj9o/dau+99vrljksDI/MLMQFCIip2AaVkFIggMO0p5XmmrQds62BN9ZMHdtXXVBRFwyHbNHQtg8IxAyIDqGUIj1IJ73pnsrsjdPhjen4u/JoJgMh3PpiZQYjbgHwimbJ0HZCT84u6UEYk25NayvWarnR+7aXXTrb2B01TSGZATWgJx3E9JxgwN+TlPb5z26NH9tSVl4ZMXcrbh34hnlRM2aEgpRJqbp5NC8NhXdfRx/3cNKIBmvy1EgADKGaBy06Kq7yxqdnRhfmuoRvx+dhnHj9WaOm3vv11GL0Srq7X6g7qm7aKUGR0Zuaf/+U3fnz+StQKK/Lm0glL07eU5H/i6J5nH3u4PPc9u3hmYXF8Zrbr+q2uoeFtG0qfPX40efXS0l/9+0BOntpUp23fa1fXCWkBMAHgrxUWxJkiXgEAN6dm2gaGL/YMtPUOtFy/PjE9X1Nc8PjRQ4VBCTNdoZPfd8+84obL07uPaE99tnDLzv/zn/wjTX7zR+euZIcDRzbVPLmz4fHD+2pKSgBX4KB499BIx/BIU89Ac0/ftfHJkGV99eNPIAAkE27XGeJY6lRAFVarpz5pP/IxkVMsidc6L6z9Kvf6qi9GxMwkpQQQXcM3znb0nOvqP9PePTG/GLIsUzPyAlkRLWAAAoMEi82op0lI38IT3/emxsVv/E7xnuP/9Jmnc+3whsL8jz94sDwvR4AQgIg4tTB/+mrP2c7+S209PTfHPBS61CJmUDP05f2NoAVdAB310ORN75v/cX5iMvyZL2FOId67RXq+BJiZIKPr5ZWB4VcvtJ7uaG/vG1pIq7AVzA4EAACRGMBFTiMASMmaw65GpgJDGKB1npv/21hWQfWuTVVVJQWRQGCF+TwzO/faxcvvXOk6190zNLUQFQHLshhZCuEoJdCv3gAAAlaSTRDsasJOLqRf++ZSJD/7uS+idY8Ss9j30xEQJSB0DF5/6eylN5s7LncNosbRcDA/KDKwGQAxO8ApYLW62Gi5uAUME7qv8sggbKiK2gGfUTs6Nf3O5Y7Xm1rfbbk6s5iKZIWKwlHhKZXpV8DETETvLQJjYAZmT5OGiqfPnKTjH5PFJfckFkT+5oun3Sv9Qz88f/lsV2/XtSGXZUFeNhApUgx8R279J9YANQAEjoFnOWQrhwE8pUYnp99tufLihZbW/uG5hWRWMFKaH3SISNE/gOyMAKwQlTR00xFivRfpvXcJGXgFhHRYXekbevHUxXfau4dGxh3kYMAOsEhTClkggkIA9pn8jIASWAEJAGDwvLSmkoSmAQJBaaCDWiCVEgAXr1772ktvNPf0z8SXTN3IDYeYyFPkO1V0G/hcIfb6jykEWoJTHjgMnmQ0kVzLICHXOS0FQQEAMzIJBAQJAlyleodvfvO1t3/U2TU+NeelVShg2QIVMzGLZc4g8goSwwDoMaXJQWYQDFIzwU6xB2wlNAYyQGpk6BLg+vh4U0ffYtrJDoaAiIiWC7c5g0wg+VWVwKCvHDP20IsjecyawwYhmpoSzOIeKNKTBCAQUALAUjJ1uaf/+bdPN3UNTM/E5pUTClph3fSI1G0uD/rVRQzokucQIKOF5LieyX7kqtygsRTN1dy4Sixg2tNZIfqrDJqmScOwPAVMPvrPyzdFgYrZVeQpBYgGsYvC8YVjh+JFFWLplh6fNxNLBgQUEYC7/uFoZiZIOs7kwmJr3+DLpy809QwsxJJLisKWmY0BBZRmknfi8pz2PMVsGEZA18qjkX21FZtrNlaXlZbn5IAu8p75Ehz/JKVc7+YgdjSnOy7gWK/lpn1znXJdYr4DDnKJPNdlKTRdL8sK7qgoa9y0sby0cHv1RgCwq+tK/qf/IN0lmh1LDnQnL1/koVbd8xSTWL8CYGBAdFF9/92zz5842zc+nU6nU2nX0vWIrhF7HgjwC3cRBIMUqADijieBTUsvC4ePN9Yd2d1QXVqcFw4Gg5ZfTMGIWnGFKq4wGYy6XfbB405f68KL33A90JkBhZDCQyAARNRQpJXyXEcY0grq+6orHz+we0dtTWk0ErINy9Q1qRMz2CG7soYBiBu07Q/Rw88snX8z2XE5RO46PgH++SXlnbnSdaFvWCAGdT1omsQMzAIEMDKDANBAegjzqQQCB+1A3YaiTzyw/8Ed2zbk5Vim+d7uVszABMwgBAIbOhj59r5HZWW91KSfdtE14UnUUIu7qYSrdNMsK8x9aPvmjzxwYGdlZdA0NE2DO+7IpJhZSIkS7QDZlVlPf1HfdRyyCpaV4jqOA1BI3TAMDQAY6DZzEABAIgLAYtoh5rys8I7qyt969MiBHXVR2xZipYyUZ+YWJ+bmFtPOtsqKsIZO+zmYn+CiairYCHl5JqPIKxUCZmYXL3b3JxzXI5VYWrIDRm1Z4ccP7v7oQwc25OeZmlz53FgiOTM/dyuWyLGtzRvK3Imx1MW39Wg2ltfKomLdDgtNMyqrBKt1b4Qz4RIzAchVNk0gAmI8nQaAoqLsvZsrP3V4/5GGraZpSCFQIANPTM11jY/3jIxd7R260N3ravCt//m/25Ybib3+Ir/xAhaW2lv24pHHjD1HtUgUGX9w+tz3zl6aW1iqzglXby1/dE/Dhw7s2pifLwUKIQAw4aT7R8Y7hm9eHRzu6esfmJj+zUcO/PMvfJZujsT+7z/TnSRvbjD27LYPPm7U7jF1ScplTdwTUAQDIBASsJCIUsjFZArIqSgt3rm5+pkDu/bv2BoydQ0BhWSA3uuj57v6L/RcO9PZc2N6xtQNz+XCvIhkAEBp6FpAYHzKPf+y13EaP/xJ6+nP67nlRsAqyw5t31j+icP7Hj+0Kz8nLNEHOXB6fvFi31BT32Bze1db/2DCJROlYRugGQjAqDComUJpN3vTw52LnZesT3w5fPBxT7M04HsBDUUAyaChxhJiqYTjeNXFxQ/s3PTxI/uPbG/QcaW/Hl3q7T/R3nW6pf1i12DMo6htRHUbNXSVF0VDIgKDZCBgjQ0wAnpsMvntv0i7RvY/+ifPPni4Ki9aWVZamp+/gvbdmp070dZ14krHm80dNyfnc8JBS+pRWzikpJS6r+iUAk+BFvSQdc3Qui+lvvGnuh3Rdx5BcU+goYggAJNpJ+0kqyqKDm+re+bQ3oM7tpko/DJ3l6i599orF9tOt3S2DwyhwGgwGADBDMAsGJiAmN5jN5EtQs/IddSiePkF2n80uOPgkZ07ADKR3PWJqROX21+/2NbU1T+6sBgNB8vyokzMyy1SlFIpR/EqFAiAATWphczhq3Mv/U1B1TbMyV73WBAiOi4Re9sqCg401D+8o/Fgw5agaSqlCCmtVHNH78vnWy72DLYPjlpSywtnMTMRr0Bly9A1vjeXBJ7wHGKUhpkc1xK3AIA9l4QYmZx59dyl0x1X268Nj88sRYOR8qxcRa7yCPE2REIAfkub1XclUCSElJacm2AvCZC9vo0wM5vgHK4tO7Ct/vjOrds2VQVMk8lj4LSi1t7+H5679Eb71Wuj4zoaUSvAqBwgxOXuVUx+0lYhxYVymAHBFSAEIwJJkgA6Ga4e9wB0gIm5xRfPNb9yobV98EYsmQiZdjQcJj8qRmC/9s5vOoRERKgcfx0kSsmuAgnAglFo0ZBtClz/UISua7/5kccitlVZVqotJ3hJaG19A3/x6uunuvsmJ+eJIcsOCgZixctGjxhYZGoZJQgJkFLKF4oNuiA9LdLSCaalFIjCZbW0pAG0dF/7t9969cbMTF40K8sOMRMtu5J+ebDIYOACQCcNwX8kRAINCHWQSpCnKQdRR8Z7oEhPE2J37WZ/BYgolkxd7ht84d2z567235yZTSkVCQYsQm+5qdsK4C8QgYEZU0qlkFKuG/D7OyM4Eg3WTc9xecFSGkmdJToppRHEkikNRXFWtpTo0Xv2rwAAAYpZEYFLTEKXQH7HaEbhpV1viYUpQJgeuJhk8vAeaNbBwMwqlXanYvErfYMvn77YNDAyNT3vuRQKBCI6K4+8VaCj30GbmT2lQIGGpAvmgN5YVnxgW21OIABSsx88RsVFNL8Yv9ErhzqD8ZiXdPRQthSAAlyBaXJt1la7AACoiBzXkxJJgCGhMidrx+bKvds2A4As32B/6Y8wHaOxMbf7qpgcxcXh9Nyip8hY5wJgRhgcn37z3KVXz7d0jU0mko4isAzd0pHY89jPEwAAswCJAgnTnuMxSE2GDO1IXdUDexo31VSUhoLRQCASCAELa9thd8s+dFV+Kube6FdnTno/fkEgoa+4JACAQiIQOiACOp7y2FOSpRTbKyqONm7ZvbW6uiAvKxgMBWxmEPnFwSc+rZhEKgmx6Xj3xcQbPxALjuL1bQMYAB3H/fffeunbZ5vY86QwTF0TQhBRhq68nBIXCIopnkoD6lLDLUUFzz64/9i+HZX5eUHbeg8cxCClKXUTbIBIllZQRg0HtX1HRWk+M6OULjoAoKHuAqdcN+V6LCA3HDi2s/7Txx9qqCyLBmz9vXAQokRDagBgWpCVHS6tCex/JH36XdJMWmYEr0cB+B4fpxUBCtuydKEpRXSHakZ0iVNpR9P1nEh0z+by5x4+cqB+c24oaOj6ytsSaSedTodDQY3BnZ+kdFIEoxSJSJRomPqBh3VmZhifnfNcEJqWTHkeeYalN2wsfurAzmN7d2wuKQwZ1jJRGlzlLS4lpBDRcIgSS97spDRtDmZhICABKVISeOxJAYF1bwMySRIURKTgPSXUUggGiKfSHlNlcc7huk0fPbRvf32taRqmngHOZmKxwVvTNyZn+26MplLx3/3Yh8uC5vxL3/SuntMra8yqbUbjYb2w0pMSJP64pf27Zy5R3HGAotFQY/nGD+3dfnzfztLcHP/kAWDKccYmJgem5npvjl8fGd+xseSzH340OXxt7j/+b1mRMG7YqjXuhrpGEcgSWni9J2Q4w/BkZkAGZB+lBxRCKID5RMKQWF6Uf2RL9TMPH961pTpkSCGEn0Ybvnnr8rWhS9eGmjt7uq7fmk2mKoqizz3+SFlId2eHrPZ38erZNJvJ3Q8FP/Z5bDwClvVOa2fLwOCGSPa26g3PHd374K6GwuwsTTCgDgDzi7HmwRttA0MtV66e7R6YTbgBQ/+DJx5gAOGl5PUOjM94F1533ik1HnpK/9CnZGm1DmqtpzisvQrykQME9nEFIZhhMZVKuU5lYd6xHXXPPXzkSOPWVe4etV4bOtXb9+6lttMt3UsuZdmWZWhBMANCE4BAQmKAzaDkgIvEza/FxwfN3/oj78iTf/DUY4JoU2nhp48/FDRvq6+bU5MXegZPXLn66vnLNycXAqYRsYyoZYJEFL53CsKMKMdDBGNm3Hn+a4nJm4Hf/kNZWC6Y7xFmnEChsb4Qj6MGWypKD9VVfmT/7v3b6gK6niYyhVhKJi/19b/R1n3mUkfHjVGBGLbtkO2X6uJKXA0odGn5JGkJOtl5YmoA/ubPvaLK8s31//K3PqPrEkkBgMc8PHrzZGvXO23dF7v6biwu5gSD5TlZzAyALilmJuUyAIIQnMn+u4YpdANP/yAWzNZ/+w+tUGhND8EHIQC/S3MilfYoubNmw9EdW4/vati7ZZNp6K5SDESeequ948fNbRc7e1qujwZ0K2qEENhjdbs/3G3TIcEy/RXRgDzFSreMvh5zdJg312sZUrUcGB19u7ntrcvtLT1DiynOsuyyYBb5dTM/I8fF4CfcQh7M9LVSYgFCoTVVQmsuAERMp510MrmvtuaJvTuObK9trKkwNZ3JAwBiPN3a9fzJC03d/cOjE5Y0CgMhBiRQtxkNmftwSihCAFZeakmqlKdrjArI0LyA0l3XW9IAQIpro2M/PN38bkdXz+CNmXgiGAxaQXTIW5FjpvyAhcEr7Y3ZA1cDhQhILMAgI6IRa3QPZMQQDm6v29uw5ei2LVsrym5reiHPt3f93dtnz13tGxgZ100zKxgARmJa4cStbDsJaLD0Mi4k6tIyRSgJQoIOgpA8ksrzEgbA2farf/b8qyfbexg4KxjMCoYV0/L92EdAfYYSIjN6vnYjpWTSs5VIa8Jv852mOKectacFrT0zThfy2QcPZgUDCECglOJYIn25p/+Fdy+2XBu6PjGlWBRkZzMrRXSH+fZhCWL2iJRLyvE71ivPixluUgdQQgPSEVkwei4ohrHZheb+Yd0wsoOm6yqPaDWnUYC/8EzgukQOciYoEciCHEqgJwVqhAKUK4DvgTJVRonRYICJU56zmEydae956WxT2+CNsYkFZg5aJgJ4me5W71FcAKCIiJRiIAGuSIfMkBQIgBQtjlVtN9KL6dgUO1qIgJmkhohg2lbAtpOxlFLv6bfnw0EeEysSAALIIy9s6UFbZwAjnGtvfyA9M8qTw2Jhjsg1AFggr/sBDgjM7HhqZGb2rYuXXz13qXN0cnEpjoxB0xAIxC757sxy0zwhBDE7nisEegJJ0c7yDYe319ZVl5fm523MyVaaHvzoF/Tjz2J8yZwcTPW0OU1Noq9JkIvgsxFJZUp8mRGEQEHoKuWRmxIskauzcw7XbdpWV11VVlJVXADAsmxj+Mv/o+2laX7CHepJXHib20+i663/CRqMyPx3P3rr/3jxx/OLKXI9BgiZpkRUvjsCEgEEo++nukBxN62YGVR9QcFTh/cd3LW9trgw2zZN08xg2gCB3HzMzVcA+pbGwIEnEg9dW/zWfzK0EDAJIQEUgSdYQxAAHE95KeVJ5IihfXTfro8+uH/LxrLCSDhkWz7aTEBgWKKwyADg0o1G/V77gQ+nWk7FzpxU6z4fgOAp6hwZG51bsIUetC1mIuLVjQMQAAUqUknHlbrMigQPbq768MG9+7dsKsoOBSxr1Ui8TI8U102hENLQNRBkWHJTQ85X/sgQgAhpx2FmiRojxJ20zpgVtBoKCh/b03h8/+5NxYUB29KWKc8M5LfgInLJSaNmCM0AQBHJ1Y5+pLjxoB7KXtFf6xWKYGYEETIsyZCpXX8vHETEi8mkbYgNJTn7N1d/5PC+XbXVEcs2Dc23BEuJ1OzC4sjc/FIiua++NltC/OI7cnbcKC7GgmooLdOMoIjkI+LNialTbR2eAgRcSCUjEXv7xrJPPnjo0LbagmjEskyJAgBcUrPzC+MzcyMzC0WR4J6ttTR9M3n2VWmYWFrL5dVmTr4pdcwtpNXdRNcnFME+iwQZmIiEhMxAF6EJzWM1H1+yQWzIz3tkR91zjx7avqnK0uRKf//RqakrgyOt14av9g9d7B40LO2FP/2j7KKcdPMp8dJ/SkfDXkl14LGngg9/DHLKgfmVs03Pn2qaW0rV5ubWVlY99/D+Y3t35oeDy3ADLC0lukbGWodutPdda+7qG5ma/cJDB/ZsrfUmbsWf/0tjfjwVLrX27MPHnjUaj6JuoSIUYt1DEcovzQCFqAEDInos5peSAV3VlOQ/tK32N554eOfmmpX3u57XOzLW1DfwyoVLpy53zi+lQoEQM+caYWYGkEYwgGFDKs0cuOL8Rfvi4HDks1/Ckk0VJYXbN5azLn/32JGPPXTINlbSWTw+Pd3cN3SqvfuHF9r6xyctXQ8YOgrDMC2/FkFgQOiRQDqOr3871XkJP/eH1qMfJaEvt31d/1iQjxw4wEtJ1xTYUFX0SGPdR4/sa6yt0gBZEUoRS6aau6+d7uw+03K1Zeh6ClTYtMpzAxLlYjq9OjFCCALBtXMleOLE3y86icCX/9Wx/btLc3Ly8nKLcyKkFAAQ88Do2Mn2nnfaOs+0d08kkjmWXZoVQUSX1J3DrRABgSNF1uw8/c2fx20wjjytS33d5wN8XS9YLsaTJLGxpvyhrZs+cmjvts3VltQYlBQylkidbe96s7XjZHv34M1bQWEEzZCNSjAQAyO7P+kSMiuhZMqT0l16+yVz/5Pm8afqqzdkomipdQxeP3G542RHb3PvQCyVDmlmkRUmIL96gPmupENGQkd6NN3tvvqS3Pagnpu/volZjEBMk/PztsRHGhqO7qw/tqu+vnrjCkXFI/nGxdbvnbl4rrNveGwyaIXCVtBnwgkW0m8xhnc18WwgCiGJQ4YzAbFJBaBJDQAGxm99/51zb16+euXa9bhHOQEryzABmen2cDxBIJfVO8HtaT3IoITh6UGYmoJUer23q0FFHNC1Zw7v2bu19un9O2vKbjeRTDrO+bb275+99G77taGbtyzLLIhGgUCxygRlwJkBbIy4agw2IyIIwZII2RBCoRG00NY0gOHxie+fPvvD5s6WrgFFkBMO2hYirYy3WjVUzyd/LY/gEEAaM4Huap4gEKi5UuE90K7GlOI3Hn0gHAyUF+QikF8NNr8Uv9DZ8+r5S809A9duTRu6UZSTTUSej1nedqFWYTjMpJTyFCjlpuOmYhZKIUgSAGIFweseGf1/Xn79+lS8KCtLQ1C0QgWF984zZEZ2UfBytTEpz6UUo0tICAbABxAFfyACkJqor6oAYCbPUTSbSl683Pn90xfab4zeml7wFGYFIhKUl+Fo4h1wEDEzs2BWzJKRiQFZppSbFJpNurcEIryCMzOA4ylPGNlB1hHuIGatMI58kSQVSeW5jgMArASkDPZ0V0sKAgYd8OcNnl8vYFxm0CzjrfmlV85cfPFcc/eN8bnFpCllwDJZI+I0gVwuJgXJCAKJ2VFKMaTJU8rbEAkfqqvbuaWmNDcLNCPrmc+mtm+HRJJv9qWaz5i3RtlLZzBnf9GWa+D9oEMHwcCK2PNch9nxVNSQuyrL9m6qOr5vOwDoGyuyv/ovOLlIt26kOi6J3lZzYYJyStX6n6aKzKLr+sgPTp577UJb/+RsOpU2ND0rEJAIy22fV+kcIZULrpP2kFx2q3Lzj+1pONhYv6m0uCgrGAxYlmkygrFph9jUAIownTKPDy41nUi/9E0jqTLHQCgGhQyCERFd4JjnasAkgTU8trX22J7G7bU1pdFwVjBoWxYSazl58ujjBBxOpcNPLrjXriz9+AVvalLeA+RcV9Hfnzj39TdPLiWShmZGg0EEIF5xwhHB71qADhE5rq7JrEhge0XZhw7t2le3uTgnGgkEtFVdkwgYQWkgWUoMaHJLA2yo0et2i3DIZ3MySwFSCPQYEq4HAgKmvqkg+uje7Qd379xUkJcdDtiGudocEKAA0AClabFpyexjes329EC3DEXWNRaUgS9jSwl22DRsQyC9d5QOImhCei7FKR0w9exI+GjDpqcfOly/sTw3ZJvLoSwDzy8uJVOpnKyoZaCavs4LCTeSrUVzdMMwg0F99xEAIhBjkzNMbGhGLJVUQHYouKO87Nmj+/bVbd5YmBey7RUrE0sk55eWNCkKc3MxvujdHBSawbmFKpKjSWnmF8qcXAFijVkpaw7GMQBIKYTwzd8q1wZRCOF4tBiPhzR9Q1H243san33gUEN1hbmKNzg9v3hjaqZvbLKlu296cvKrX/j01rKCpddedt/4HlVVWY2P0p7DsqKCpdRBvH2p8/m3zizOx4BkKGjtrC79/BMPP7R7R27QWuE5p9LOjcmpvpsTLb0DfcM3dlWU/Lef/4w3fC32Z/9Mk8C79ll7D/GWQ5BdoEmhYK0rlNaeF4QMLtMCuBZKBlACmEgiegzxeDxkGDWlhR/Zv/2Zhw9u2VCqa5m4P5FKD45NXB4cerf16omWzomFGKLIj4T/wHGBUMWX5OyANn09cfL1+NYG61P/tbX/ET0QOXult3d4LC8ara0p+d3jDz+0oyEatFcaE92cmWsdvNHc1XfyUlvbwI2UkpGgWV2YiwCsXEjHeW7Mu9mTfP1biQefNZ/7vUDl1rXe/h8cFMG+Gy4AhQSQS/G0bcgdleVP7Kx78si+LZUbDSGEQACIxZNNPf0nr/acbO3sHBz1kG1NFkaCybQnNbmclgcSmhQBOyushnrSf/mv9LkJfuq3fufZx4TB1SWFTx7aEzAMvypWMXcN3bjY3fduZ9+p9q75hUTI1KOhsKvYLwDxHQESumYGdQTBUp14KTk3ov3On5rVW/D2KMp1DsZJKRFxOraYret7ayoe2Ln1Q/u311VusAzDn3wxvbjY1Nl3oq3z1JWeq2PjpmaGDBuZl5Pj3p0yRQRwQWr69Kj7/a871TtKtu//Hz77DCACkZDSI27tG3j7Svep1vYrvYNLaRWw7SzbRmAEZMF3jbYIQWhgtZ5Ovvg38vf+ez28zrunZwZ3gZhciOkSDjdsfqyx/qmDu7dWlq90YYqlUicvd7x8vvV8a0fvxFRWKJJjBQHBH+lODHfvm8RAiMAmmgFnfFAOduqN+4UPakp5ZeD6i+da3mpqa+sb1nQtYpuRgKEQGAgZKDOCYLW6JAGKQANWnjCFzkvtZ+zF39PD67x7OiK6nmcLcXTv9sPbaj92aPem8hIAYEqjMGYXly5c7X7xbHNzV9/g+HzQtErz8kgR8+3mTojAiOoOKAHQj7GkJGRETSdGZlBMHYPXXzp3+URre8e1G4SQH434UBCtsI0YAFkQCi0zTI8RBJNgRagBgCT0AKSmy/VfooQo8PH9u/Y11O3fXF1dUoyCPVIMuJhwTzU3v3rxSkv/8NCtyYBtZmcFQZFy1Yrdw1XHSN0dm2FCkozoz9IQcLlv+N9843snL/ehISLBACB7y+w2XA0HZQihcgUBJRR0ezUYAAQLWP/9gkAIeXzvDkNKACAmApxdip+40PaDs80dwzduzSxIqUeDQWAgRewDne+Fg24Dc7TM02HSvJQQuvLr3BEBUGoIANcnZ5oGh8HSskzdU3f05Ls9fNjPlaY9L+V5AAAoiJTLSQEWgvaBDJH8YASAIICNZRbCnOO+evLcC++c7Rgam16I66aeFQxojKQYWQCih0SQFiglSGB0FROrtFIJctOJZEk0qAkBAqlys7v7MTE559wckolZ3QhoXlyQAgBNCENqDqWAMiA2IysBAlAyKGKXlQJeSqccxwlHgpFgEAFENMc88ARODievX6fxYQFJIRg/kJ7CH4ARxlgyNTA2+XZT2w8vtI1MzSwsxViTBVlhZmJiDxgw0xlUACLqLnNSpRGQGaK2/XBd1d76TZUlxWW5OVXFBYSQdfhDaudRSKVobtTtuRK/+LbXccLyUuA3GyCUgIzAIBEYkASBpzyXwRUsgRsryg5vq91aVVFYkLspPw+YZVFZ8Av/DaQdKzbr3hyIdVzgph87iQSRt+4F4JH65mtv/dWbp6fn46l4GjURtG0Gpjt6BCAjoEfEHgjJpm1uryr78O7tDdXVlYV52aFQMGCtRNciEsVIlAGMimq5ZZ/x4IcWXvtOMpSrswcoAAQwEBAKUMwpR6FAXYraguyjO+r3Nm6tLS0qyAqHA0EpMzYWdVPkmAzAxSV6ZZ2282h678OJc6dYautdAAzEY1OzQ7emJYpAwGC+s0gPEaXAlKsc1xWGlp8bOLql5qnD+3fWVmWH3oOauUp5ruspAgRNStPQBQrdDih7c+5n/qkLJFAnz0VmXUoNtQUnoTFFLGvjxpKnD+55bMfWsvx8O2Bry6aF2E2lPdcjpZRENAxpWwHQpRHNEfseLd3cuN6JWRn7qeuaZRmslOd7F8tGUKAQiK6nFhMOSlEYjXzk0J4vfPjBmqLClSI9H72Zi8VG5xavjY6NT87ML8WFELmRUFlRQf3GspriAl1KCAZ0wNGJyXMtbei6Cdd1Fdkha9vG4n/89JP76mvzQoEVk+4RLSwujc/Hrl6/cX3s1uzCUiy2ZJtmWWF+w5aqho1lBdEsQyBkZZOmwT0wwkQxJckzWUgGBUACBKNELUGOm0xnW3Z5WcmH9m37yJF9WyvKLcN3QiCeTo1OTnUOj7b0DzV3dncO3koR66tw6bTjVuVmf+7xI08/eKiqKBdQfvfEmW+80+QoKM7NOlhT+ZnHH9hZV5MTDKx0PxubnukaGbsydONCW/fprv5kykGJutSAGQQyczrtHdha/eWPHj+2uyHLNolR3htY0MolGDQUaeD5+FI4ZNXXVjy6veHjDxzcUJRjSs3nNMwvJS73D57r6bvQ3tU+NLrouLaQmhBBueJFIgObhjG9GPt333ml+dr1r37m6V2bKh/Yu6Np4Lqp67/5yNEDdZstSxMSBQqHVP+Nm5d6B09e6T7d0T21FGcECzFs6bdz88CMGLCM1r6hP/763w6NHf/9jz8ZMnRe42mSH0BKMqNwGEhKnT2eW4jrtr5jc9lTe3c9dWhvdVmRJgWCAIDZWOx8R++p9u63Wjt6x6aCuqWhCKOFgChpxX9fjhFQARKIH7V0JMj98y9/fmd11b/+4m/k50SzTHMlpGjtH36rveudS20Xu/pdgpBuhITh97VffrhM2MUILMDWjPl4+v99+c3C3KxPP3xYCm39noBlBg6igRKZxxcWIrq+v67m4d31n3rkYEVJUSbHBWJhKX66teOVpvYfXWy5NbsQCkWidkDz2b3o9zq/894MjMy6BBmwXj5/6alDe6ofK6gpLlgZCdBybeiVlvYTZ1targ2BJsOmHTKQlpvh8Cqe8HJvIj/dBgZq86nUX//9aw/Wby0vLvCnSK/XfAABpBw3FU+FAoGn9u86uK3mQ3t31W4oRb+cEWFibuF8W+ePW9vPtnYNTi1GQsHS3NwMegO3J9beHZRByUygyAaDHOXLxSG60tX/WlPr251dF7sHgsIqyspSvgjZlxvwXRDDzPRyJGRkU+JC2nHXf5EeKuasUOgTD+7fs23Lh7dv21BSQMxKeZqUUwuLbza1vdHc3tE3NDI/ZxpGQTTMiu8oFkP+OTIWQADCr6ceuDX1V6+/+25Tx+DoRFpyYTiieejRCojxU294x2ngu2PV6xAL0lF+8pHDYTtQmOMD6yRQzCaSPzrX/Mr55pbeG9OzSxE7HDLDzB78sjwQFhlvvfvG6NdfeWMx5pREs00mxcQSfrlSL0S4BzpmkaZxTWnxyuuJpcSPzzR9/1RT6+DI7OKiaWjRqAXkuf6XZfwl+/UvM+MEYigcRAJAj30uF/Ivt3WIYP0X6QEwgyIv6bijU7Nvnm/5YXvnwM3J2ZlFQzcKIllEyg+MkZfLOX7pjwEAAF0IVugw2IAMDL84oraiqmgVk3cdo6HMeKm3/4W3z57vGlxYiE0kY0Lq4aDlFw1nAFO4MwHwn+N4MeBtGi/8l36tuRuqlPrR2Ut/+/b5uOsFLdPSLRRA9Esqhn+A4v7P9Rjx9oAhXP8JmcxMQgrouqFrQhCRi0rg+8YzWM4yLqd4PaWUYn+MFf5SJyCzNRA1TdzROX8t5CHWevWBQUjpCnAJkKUA7f1bfWDwkEmAhoL9xlBSyICAVNrvOInI4hf1ZAiIABB0FAL8cC1D810Tk7CGAmBmIhK65inFBNqaBJPLzfERPCJErCsv/ewj+zcUZi3EU0TICPwLEmwRBIAEFmmXSCAiMim/2nMtToD8kz/5kzVafUREFKc6er536uL43Ly2NgrVB9IUglK8MTd7W/XGw9vrNxUWDI9PTMzMoURCBUL8IiaH/FHQSdex7UBNcWEkFMzMvF2DL7A2AmBAxKm5hW++ffpf//V3u25MWFLK5Yz4+/gDKBglA1jSaO8bbunvNwysLCrcVl1xuLH2+vTM1ZtjhkAAiSBu/9HPSbozI4MAl+CtpisTczOludkl+XlrhAa9/wJgYkTsuNb/77776n946Y25RCJkGcuzQDKOhV+giMsv7764y3WMK2+73U/69mht/38FAEeC9q3FWHNH98jk3Ia8nNqK8oBtvd3UphTIjPbwSVu08hGcUet3/PiPyShEwNB7Rm629QwtOaquotTQ5PteM/z+e0FMgBq80tzywpkmXVghgz1WmGGs3R4L89P8flwNd660V1ql79Vy50//JjID6CMxRMxwWnnfOdmclx2ur6nIs+0COzTiJh1QAlhDSUBq1Yf+zHZ8CAwKUdOt1uHR8Zd//NDOLfUbyt53NbpWbuhSPGmQ0iAtbye2fXrVLwwy/MRv1B3r5EtVCQZyDBJSg7n4AjHrmrBMYYu0aZqKUROS3tO4lPXM9PSfacsQLWlFLBFLJNbEU3z/J2ozAYqr/cNDE5MMaKLAn76oP+mqi58f6N75Hs4IgBhAsEDg8sKcrRUVC4nElYHhZCoV0PSfYDYCAsh/QEsyBHAIdF1rqK6IhoPvuyexFiPN+QOjlf2X/xS/EhXkR7+/Yhgmw7p9/x5jjZJi+CtfqV/z6/8HMhu4+oPQkQoAAAAASUVORK5CYII=';
 const MARK=`<svg viewBox="0 0 24 24" fill="none" stroke="var(--bg)" stroke-width="1.8"><path d="M3 20h18M5 20V9l4 2V9l4 2V9l4 2v9M17 20V5h3v15"/></svg>`;
@@ -1138,11 +1694,12 @@ function rolePicker(){
   <div class="group-label">الإدارة (مراقبة)</div><div class="roles">${['admin1','admin2'].map(card).join('')}</div>
   <div class="group-label">المشتريات</div><div class="roles">${['buyer'].map(card).join('')}</div>
   <div class="group-label">كادر الآليات</div><div class="roles">${['keeper','operator','mechanic','fueler','supply'].map(card).join('')}</div>
-  <div class="group-label">عمال الأقسام</div><div class="roles">${['receiver','elec_tech','mech_tech','clerk'].map(card).join('')}</div></section>`;
+  <div class="group-label">عمال الأقسام</div><div class="roles">${['receiver','elec_tech','mech_tech','clerk'].map(card).join('')}</div>
+  <div class="group-label">حضور العمال</div><div class="roles">${['timekeeper'].map(card).join('')}</div></section>`;
 }
-function roleDesc(k){const CD={elec_tech:'طلب مواد قسم الكهرباء ومتابعتها',mech_tech:'طلب مواد قسم الميكانيك ومتابعتها',buyer:'عروض الأسعار والشراء والفواتير والتسليم بالباركود',clerk:'متابعة الإشعارات وسجل الحركات والطلبات',receiver:'استلام المواد المشتراة بالباركود نيابة عن مدير المخزن',supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
+function roleDesc(k){const CD={timekeeper:'جولة الحضور اليومية للعمال، الغيابات، باجات QR، والتقارير',elec_tech:'طلب مواد قسم الكهرباء ومتابعتها',mech_tech:'طلب مواد قسم الميكانيك ومتابعتها',buyer:'عروض الأسعار والشراء والفواتير والتسليم بالباركود',clerk:'متابعة الإشعارات وسجل الحركات والطلبات',receiver:'استلام المواد المشتراة بالباركود نيابة عن مدير المخزن',supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
 
-function tabsFor(role){const T=tabsFor0(role);const add=[];if(EXP_ROLES.includes(role))add.push(['exp','الصرفيات',0]);if(!T.some(t=>t[0]==='feed'))add.push(['feed','السجل',0]);if(INVC_ROLES.includes(role))add.push(['invc','الفواتير',(S.invoices||[]).filter(v=>(!scopeWh(role)||v.wh===scopeWh(role))&&sameDayT(v.createdAt||v.at)).length]);const i=T.findIndex(t=>t[0]==='all');if(i<0)T.push(...add);else T.splice(i,0,...add);return T}
+function tabsFor(role){if(role==='timekeeper')return attTabsTK();const T=tabsFor0(role);if(seesAtt()&&['project','admin1','admin2','clerk'].includes(role)){const i=T.findIndex(t=>t[0]==='approve');T.splice(i<0?0:i+1,0,['att','حضور العمال',attAlertN()])}const add=[];if(EXP_ROLES.includes(role))add.push(['exp','الصرفيات',0]);if(!T.some(t=>t[0]==='feed'))add.push(['feed','السجل',0]);if(INVC_ROLES.includes(role))add.push(['invc','الفواتير',(S.invoices||[]).filter(v=>(!scopeWh(role)||v.wh===scopeWh(role))&&sameDayT(v.createdAt||v.at)).length]);const i=T.findIndex(t=>t[0]==='all');if(i<0)T.push(...add);else T.splice(i,0,...add);return T}
 function tabsFor0(role){
   const k=ROLES[role].kind,q=queueFor(role);
   if(role==='operator')return[['work','آليتي',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
@@ -1158,18 +1715,20 @@ function tabsFor0(role){
   return[['buy',role==='buyer'?'للشراء':'للموافقة والشراء',q.length],['map','المواقع GPS',0],['done','مشترياتي',0],...(CREW_OF[role]&&!ROLES[role].crew?[['team','الكادر',myCrew().length]]:[])];
 }
 function roleHome(){
+  if(S.role==='timekeeper')return attHomeTK();
   const role=S.role,R=ROLES[role],tabs=tabsFor(role);
   if(!S.tab||!tabs.find(t=>t[0]===S.tab))S.tab=tabs[0][0];
   const open=reqsFor(role).filter(r=>!['done','rejected'].includes(r.status));
   const crit=open.filter(r=>r.priority==='critical').length;
   const mq=queueFor(role).length;
-  const canNew=(['dept','project','store','crew'].includes(R.kind)||role==='admin1'||role==='admin2')&&role!=='fueler'&&role!=='supply'&&role!=='receiver';
+  const canNew=(['dept','project','store','crew'].includes(R.kind)||role==='admin1'||role==='admin2')&&role!=='fueler'&&role!=='supply'&&role!=='receiver'&&S.tab!=='att';
   let h=pushBanner()+gpsBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div></div>`+(canNew?`<div class="fab" id="fab"><div class="fab-menu" role="menu"><button class="fab-item" role="menuitem" data-a="new"><span class="fi">＋</span>طلب مواد جديد</button><button class="fab-item" role="menuitem" data-a="paper"><span class="fi">📄</span>رفع ورقة طلبات</button></div><button class="fab-btn" data-a="fab" aria-label="طلب جديد" aria-expanded="false"><span class="fp">+</span><span class="fl">طلب جديد</span></button></div><div style="height:72px"></div>`:'');
   const spent=S.requests.reduce((s,r)=>s+(r.purchase?.total||0),0);
   if(R.kind!=='crew')h+=`<div class="stats">${(role==='admin1'||role==='admin2')?`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار موافقتك</span></button>`:''}${R.kind==='admin'?`<button type="button" class="stat " data-a="stat" data-v="recent"><b>${recent24()}</b><span>حركات آخر 24 ساعة</span></button>`:`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار إجرائك</span></button>`}<button type="button" class="stat " data-a="stat" data-v="open"><b>${open.length}</b><span>طلبات مفتوحة</span></button><button type="button" class="stat ${crit?'hot':''}" data-a="stat" data-v="crit"><b>${crit}</b><span>طارئة - توقف إنتاج</span></button>${R.kind==='admin'||R.kind==='purchase'?`<button type="button" class="stat " data-a="stat" data-v="spent"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></button>`:`<button type="button" class="stat " data-a="stat" data-v="low"><b>${invOf(role).filter(i=>+i.qty<=+i.min).length}</b><span>مواد تحت الحد الأدنى</span></button>`}</div>`;
   h+=`<div class="tabs" role="tablist">${tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-a="tab" data-v="${k}">${t}${c?`<span class="c num">${c}</span>`:''}</button>`).join('')}</div>`;
   h+=tabBody(role);
-  if(!S.requests.length&&!S.inventory.length)h+=`<div class="empty"><b>لا توجد بيانات بعد</b>ابدأ برفع أول طلب.</div>`;
+  if(S.tab==='att'){}
+  else if(!S.requests.length&&!S.inventory.length)h+=`<div class="empty"><b>لا توجد بيانات بعد</b>ابدأ برفع أول طلب.</div>`;
   else if(isOwner()&&(S.requests.some(r=>r.demo)||S.inventory.some(i=>i.demo)))h+=`<div class="banner" style="background:var(--sunk);color:var(--muted)">تحتوي القائمة على بيانات تجريبية معلّمة.<button class="btn sm" data-a="cleardemo">حذف البيانات التجريبية</button></div>`;
   return h;
 }
@@ -1190,6 +1749,7 @@ function card(r){
 }
 function tabBody(role){
   const t=S.tab,R=ROLES[role];
+  if(t==='att')return seesAtt()?attHub():'';
   if(t==='exp')return expView(role);
   if(t==='feed')return feedView();
   if(t==='dinv')return dlvInvView();
@@ -1988,7 +2548,8 @@ async function showTrail(id){const L=window.L,m=REPMAP.map;if(!L||!m)return;cons
   $('#trailInfo').className='note ok';$('#trailInfo').textContent=`مسار ${nm} اليوم: من ${t(data[0].at)} إلى ${t(data[data.length-1].at)} · تقريباً ${(dist/1000).toFixed(1)} كم · ${data.length} نقطة`;$('#repMap').scrollIntoView({behavior:'smooth',block:'center'})}
 
 async function afterLogin(){
-  const {data:{user}}=await sb.auth.getUser();if(!user){S.mode='login';render();return}
+  if(!navigator.onLine&&await attOfflineStart())return;
+  let user=null;try{({data:{user}}=await sb.auth.getUser())}catch(e){if(await attOfflineStart())return}if(!user){S.mode='login';render();return}
   const {data:me}=await sb.from('staff').select('id,full_name,role,active,status,admin_ok,project_ok,hidden,manager_id,machine_id,created_at').eq('id',user.id).maybeSingle();if(me){try{const {data:c}=await sb.rpc('staff_contacts');const mine=(c||[]).find(x=>x.id===me.id);if(mine){me.username=mine.username;me.phone=mine.phone}}catch(e){}}
   S.me=me||null;
   if(me&&me.status==='pending'){const {data:c}=await sb.from('staff_codes').select('code').eq('id',me.id).maybeSingle();S.myCode=c?.code||null;S.mode='db';render();
@@ -1998,7 +2559,7 @@ async function afterLogin(){
   if(!me||!me.active){S.mode='db';render();return}
   if(me.role!=='owner'){S.role=me.role}else if(S.role&&!ROLES[S.role])S.role=null;
   if(me.hidden&&!S.role&&!S.view)S.view='dev';
-  await loadAll();S.mode='db';render();subscribe();checkPush();startTracking();
+  await loadAll();S.mode='db';render();subscribe();checkPush();startTracking();if(seesAtt())attFlush();
 }
 document.addEventListener('click',e=>{const f=$('#fab');if(f&&f.classList.contains('open')&&!f.contains(e.target))f.classList.remove('open')},true);
 document.addEventListener('click',e=>{/*fab-outside*/const f=$('#fab');if(f&&f.classList.contains('open')&&!f.contains(e.target))f.classList.remove('open')},true);
