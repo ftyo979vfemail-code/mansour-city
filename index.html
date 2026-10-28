@@ -468,6 +468,7 @@ const ROLES={
   purchase2:{name:'مندوب مشتريات (سابق)',kind:'purchase',mono:'ش٢',legacy:true},
 };
 const OWNER_NAME='مسؤول النظام';
+const ATT_ONLY=!!window.ATT_ONLY; /* standalone attendance site (/attendance/) */
 const DEPTS=['الآليات','الكهرباء','الميكانيك','المخزن','الإنتاج','المشروع','الإدارة'];
 const ST={
   store_check:{t:'بانتظار المخزن',c:'info',who:['store','mstore','keeper']},
@@ -580,7 +581,7 @@ async function putInv(it){const i=S.inventory.findIndex(x=>x.id===it.id);if(i<0)
 async function delInv(id){S.inventory=S.inventory.filter(x=>x.id!==id);chk(await sb.from('inventory').delete().eq('id',id));render()}
 async function putSettings(o){S.settings={...S.settings,...o};chk(await sb.from('settings').upsert({id:'main',data:clean(S.settings)}));render()}
 async function loadAll(which){
-  const want=w=>!which||which===w;
+  const want=w=>(!which||which===w)&&(!ATT_ONLY||['settings','staff'].includes(w));
   if(want('requests')){const {data}=await sb.from('requests').select('id,data').order('updated_at',{ascending:false}).limit(2000);S.requests=(data||[]).map(d=>({...d.data,id:d.id}))}
   if(want('deliveries')){const {data}=await sb.from('deliveries').select('id,data').order('updated_at',{ascending:false}).limit(1000);S.deliveries=(data||[]).map(d=>({...d.data,id:d.id}))}
   if(want('machines')){const {data}=await sb.from('machines').select('id,data');S.machines=(data||[]).map(d=>({...d.data,id:d.id}))}
@@ -1122,9 +1123,10 @@ function plabel(l){const n=l.uid&&S.names[l.uid]?.name;return`<b>${esc(ROLES[l.r
 const isOwner=()=>S.me?.role==='owner';
 const isDev=()=>!!S.me?.hidden;
 function loginView(){
+  if(ATT_ONLY)S.authTab='login';
   const reg=S.authTab==='register';
-  return`<section class="gate"><div class="gcard"><img src="${LOGO}" alt="شعار شركة المنصور" class="glogo"><h2>${reg?'تسجيل جديد':'تسجيل الدخول'}</h2><p>نظام مخازن ومشتريات معمل الإسمنت</p>
-  <div class="seg" style="width:100%"><label><input type="radio" name="authTab" value="login" ${reg?'':'checked'}>دخول</label><label><input type="radio" name="authTab" value="register" ${reg?'checked':''}>تسجيل جديد</label></div>
+  return`<section class="gate"><div class="gcard"><img src="${LOGO}" alt="شعار شركة المنصور" class="glogo"><h2>${reg?'تسجيل جديد':'تسجيل الدخول'}</h2><p>${ATT_ONLY?'نظام حضور العمال وسجل الغيابات':'نظام مخازن ومشتريات معمل الإسمنت'}</p>
+  <div class="seg" style="width:100%" ${ATT_ONLY?'hidden':''}><label><input type="radio" name="authTab" value="login" ${reg?'':'checked'}>دخول</label><label><input type="radio" name="authTab" value="register" ${reg?'checked':''}>تسجيل جديد</label></div>
   ${reg?registerView():`<form class="f" id="fLogin" style="width:100%;text-align:start">
   <label class="l">رقم الهاتف أو اسم المستخدم<input id="lUser" class="in" autocomplete="username" autocapitalize="off" dir="ltr" required></label>
   <label class="l">كلمة السر<input id="lPass" class="in" type="password" autocomplete="current-password" dir="ltr" required></label>
@@ -1338,9 +1340,13 @@ function attTabsTK(){const t=bgDay(),un=S.att.workers.filter(w=>w.active&&!attRe
 function attHomeTK(){const tabs=attTabsTK();if(!S.tab||!tabs.find(t=>t[0]===S.tab))S.tab='round';
   return pushBanner()+`<div class="head"><div><h2>مراقب الدوام</h2><p>${roleDesc('timekeeper')}</p></div></div>`+
    `<div class="tabs" role="tablist">${tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-a="tab" data-v="${k}">${t}${c?`<span class="c num">${c}</span>`:''}</button>`).join('')}</div>`+attBody(S.tab)}
+function attOnlyHome(){
+  if(!seesAtt())return`<section class="gate"><div class="gcard"><img src="${LOGO}" alt="" class="glogo"><h2>ما عندك صلاحية</h2><p>هذا الموقع لمراقب الدوام ومدير المشروع والإدارة. صفتك «${esc(ROLES[S.me.role]?.name||S.me.role)}» تشتغل بالنظام الرئيسي.</p><a class="btn pri" href="../">فتح النظام الرئيسي</a></div></section>`;
+  if(S.me.role==='timekeeper'){S.role='timekeeper';return attHomeTK()}
+  return pushBanner()+`<div class="head"><div><h2>حضور العمال</h2><p>${esc(ROLES[S.me.role]?.name||OWNER_NAME)} · الدوام اليومي، الغيابات، التقارير${attSeesAudit()?'، وسجل التعديلات':''}</p></div></div>`+attHub()}
 function attHub(){const subs=[['round','الدوام اليومي'],['workers','العمال'],['abs','الغيابات'],['rep','التقارير'],...(attSeesAudit()?[['audit','سجل التعديلات']]:[])];
   if(!subs.find(s=>s[0]===S.att.sub))S.att.sub='round';
-  return`<div class="atsub" role="tablist">${subs.map(([k,t])=>`<button class="btn sm ${S.att.sub===k?'pri':''}" data-a="atSub" data-v="${k}">${t}</button>`).join('')}</div>`+attBody(S.att.sub)}
+  return`<div class="atsub" role="tablist">${ATT_ONLY?'':`<a class="btn sm ghost" href="attendance/" target="_blank" rel="noopener" title="موقع الحضور المستقل">↗ موقع الحضور</a>`}${subs.map(([k,t])=>`<button class="btn sm ${S.att.sub===k?'pri':''}" data-a="atSub" data-v="${k}">${t}</button>`).join('')}</div>`+attBody(S.att.sub)}
 function attBody(k){
   if(S.att.err&&!S.att.workers.length)return`<div class="empty"><b>تعذر تحميل بيانات الحضور</b>${esc(S.att.err)}<div class="row"><button class="btn" data-a="atReload">إعادة المحاولة</button></div></div>`;
   return attQBanner()+(k==='workers'?attWorkersView():k==='abs'?attAbsView():k==='rep'?attRepView():k==='audit'?attAuditView():attRoundView())}
@@ -1665,20 +1671,23 @@ function render(){
   const app=$('#app');
   const canBack=!!$('#ovroot').innerHTML||S.hist.length>0;
   const dark=isDark();
-  let h=`<header class="top"><div class="nav"><button class="ib" data-a="goback" aria-label="رجوع خطوة" title="رجوع" ${canBack?'':'disabled'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><button class="ib" data-a="theme" aria-label="${dark?'الإضاءة الصباحية':'الإضاءة الليلية'}" title="${dark?'الإضاءة الصباحية':'الإضاءة الليلية'}">${dark?SUN:MOON}</button></div><div class="brand"><div class="mark"><img src="${LOGO}" alt="شعار شركة المنصور"></div><div style="min-width:0"><h1>نظام شركة المنصور</h1><p>نظام مخازن ومشتريات معمل الإسمنت</p></div></div>`;
+  let h=`<header class="top"><div class="nav"><button class="ib" data-a="goback" aria-label="رجوع خطوة" title="رجوع" ${canBack?'':'disabled'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><button class="ib" data-a="theme" aria-label="${dark?'الإضاءة الصباحية':'الإضاءة الليلية'}" title="${dark?'الإضاءة الصباحية':'الإضاءة الليلية'}">${dark?SUN:MOON}</button></div><div class="brand"><div class="mark"><img src="${LOGO}" alt="شعار شركة المنصور"></div><div style="min-width:0"><h1>${ATT_ONLY?'حضور العمال':'نظام شركة المنصور'}</h1><p>${ATT_ONLY?'شركة المنصور — الدوام والغيابات':'نظام مخازن ومشتريات معمل الإسمنت'}</p></div></div>`;
   if(S.me){
+    if(ATT_ONLY){h+=`<div class="who"><span class="wn"><b>${esc(S.me.full_name||S.me.username)}</b><span>${esc(ROLES[S.me.role]?.name||(isOwner()?OWNER_NAME:''))}</span></span>`;if(S.me.role!=='timekeeper')h+=`<a class="btn sm" href="../">النظام الرئيسي</a>`;h+=`<button class="btn sm ghost" data-a="logout">خروج</button></div>`}
+    else{
     h+=`<div class="who"><span class="wn"><b>${esc(S.me.full_name||S.me.username)}</b><span>${S.role&&!S.view?esc(ROLES[S.role].name):(isDev()?'مطوّر النظام':isOwner()?OWNER_NAME:'')}</span></span>`;
     if(isDev()&&S.view!=='dev')h+=`<button class="btn sm pri" data-a="devPanel">لوحة المطوّر</button>`;
     if(isOwner()&&S.view!=='org')h+=`<button class="btn sm" data-a="orgView">الموظفين</button>`;
     if(isOwner())h+=`${S.view!=='accounts'?`<button class="btn sm" data-a="accounts">الحسابات</button>`:''}${S.role||S.view?`<button class="btn sm" data-a="switch">الواجهات</button>`:''}`;
     if(seesNotifs()&&S.me.active){const u=unread();h+=`<button class="ib bell" data-a="bell" aria-label="الإشعارات" title="الإشعارات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>${u?`<span class="bdg num">${u>99?'99+':u}</span>`:''}</button>`}
     h+=`<button class="btn sm ghost" data-a="logout">خروج</button></div>`;
-  }
+  }}
   h+=`</header>`;
-  if(S.mode==='loading')h+=`<div class="empty"><b>جارِ التحميل…</b>تحميل الطلبات والمخزون</div>`;
+  if(S.mode==='loading')h+=`<div class="empty"><b>جارِ التحميل…</b>${ATT_ONLY?'تحميل العمال والدوام':'تحميل الطلبات والمخزون'}</div>`;
   else if(S.mode==='login')h+=loginView();
   else if(S.me&&S.me.status==='pending')h+=pendingView();
   else if(!S.me||!S.me.active||(!isOwner()&&!ROLES[S.me.role]))h+=noRoleView();
+  else if(ATT_ONLY)h+=attOnlyHome();
   else if(isOwner()&&S.view==='accounts')h+=accountsView();
   else if(isDev()&&S.view==='dev')h+=devView();
   else if(seesOrg()&&S.view==='org')h+=orgView();
