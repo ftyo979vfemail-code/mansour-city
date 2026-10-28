@@ -147,6 +147,10 @@ button{cursor:pointer}
 .fab-item .fi{width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:15px}
 .fab-item:hover{border-color:var(--accent)}
 body.ovopen .fab{display:none}
+.sugbox{margin-top:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;max-height:150px;overflow:auto;padding:6px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+.sugh{flex:1 1 100%;font-size:11.5px;color:var(--muted);padding:2px 6px}
+.sugi{border:1px solid var(--line);background:var(--sunk);color:var(--ink);font:500 14px var(--body);padding:8px 12px;border-radius:20px;cursor:pointer}
+.sugi:hover,.sugi:active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .ilist{display:grid;gap:10px;margin-top:12px}
 .icard{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:12px 14px;display:grid;gap:10px}
 .icard.low{border-color:var(--bad);box-shadow:inset 3px 0 0 var(--bad)}
@@ -759,7 +763,7 @@ function openMachine(m){S.openM=m.id;const st=MST[m.status]||MST.idle,d=mDue(m),
 }
 function machineForm(m){const n=!m;m=m||{type:'شفل',status:'work',unit:'ساعة'};
   const b=`<form class="f" id="fM"><div class="fr"><label class="l">اسم الآلية<input id="mfName" class="in" required value="${esc(m.name||'')}" placeholder="مثال: شفل كاتربلر 966"></label><label class="l">النوع<select id="mfType" class="in">${MTYPES.map(t=>`<option ${m.type===t?'selected':''}>${t}</option>`).join('')}</select></label></div>
-   <div class="fr"><label class="l">الموديل<input id="mfModel" class="in" value="${esc(m.model||'')}"></label><label class="l">الرقم / اللوحة<input id="mfPlate" class="in num" value="${esc(m.plate||'')}"></label><label class="l">المشغّل<input id="mfOp" class="in" value="${esc(m.operator||'')}"></label></div>
+   <div class="fr"><label class="l">الموديل<input id="mfModel" class="in" value="${esc(m.model||'')}"></label><label class="l">الرقم / اللوحة<input id="mfPlate" class="in num" value="${esc(m.plate||'')}"></label><label class="l">المشغّل<input id="mfOp" class="in" data-sug="people" autocomplete="off" value="${esc(m.operator||'')}"></label></div>
    <div class="fr"><label class="l">المكان<input id="mfSite" class="in" list="areas2" value="${esc(m.site||'')}"></label><label class="l">العدّاد بالـ<select id="mfUnit" class="in"><option ${m.unit!=='كم'?'selected':''}>ساعة</option><option ${m.unit==='كم'?'selected':''}>كم</option></select></label><label class="l">القراءة الحالية<input id="mfHours" class="in num" type="number" min="0" step="any" value="${m.hours??''}"></label></div>
    <div class="fr"><label class="l">الصيانة الدورية كل<input id="mfEvery" class="in num" type="number" min="0" step="any" value="${m.serviceEvery??''}" placeholder="مثال: 500"></label><label class="l">آخر صيانة عند قراءة<input id="mfLast" class="in num" type="number" min="0" step="any" value="${m.lastService??''}"></label></div>
    ${fileField('fMImg','صورة الآلية','اختياري',true)}
@@ -857,7 +861,7 @@ function keeperIssueView(){
   if(!items.length)return`<div class="empty"><b>لا توجد مواد بالرصيد</b>أضف مواد مخزن الآليات من تبويب المخزون.</div>`;
   return`<form class="f sec" id="fKI" style="margin-top:14px"><h4>صرف مادة مباشرة لآلية</h4><div class="fr"><label class="l">المادة<select id="kiItem" class="in">${items.map(i=>`<option value="${i.id}">${esc(i.name)}${i.wh==='mach'?' (الآليات)':''} — الرصيد ${nf.format(+i.qty)} ${esc(i.unit)}</option>`).join('')}</select></label><label class="l">الكمية<input id="kiQty" class="in num" type="number" min="0" step="any" value="1" required></label></div>
    <label class="l">الآلية<select id="kiMach" class="in" required><option value="">— اختر الآلية —</option>${[...S.machines].sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(m=>`<option value="${m.id}">${esc(m.name)}${m.plate?' · '+esc(m.plate):''}</option>`).join('')}</select></label>
-   <label class="l">استلمها<input id="kiTo" class="in" placeholder="اسم المستلم (مشغّل أو فني)"></label><div class="err" id="kiErr"></div><button class="btn pri" type="submit">صرف وتسجيل على الآلية</button></form>`}
+   <label class="l">استلمها<input id="kiTo" class="in" data-sug="people" autocomplete="off" placeholder="اسم المستلم (مشغّل أو فني)"></label><div class="err" id="kiErr"></div><button class="btn pri" type="submit">صرف وتسجيل على الآلية</button></form>`}
 function noteForm(title,label,onSave,withPhoto,needMeter,m){
   overlay('mnote',title,`<form class="f" id="fNote">${needMeter?`<label class="l">قراءة العدّاد<input id="nfH" class="in num" type="number" min="0" step="any" value="${m?.hours??''}" required></label>`:''}<label class="l">${label}<textarea id="nfT" class="in" ${needMeter?'':'required'}></textarea></label>${withPhoto?fileField('nfImg','صورة','اختياري',true):''}<div class="err" id="nfE"></div><div class="acts"><button class="btn pri" type="submit" id="nfS">حفظ</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
   if(withPhoto)bindPreview('nfImg');
@@ -898,10 +902,10 @@ async function putDlv(d){d.updatedAt=Date.now();const i=S.deliveries.findIndex(x
 function dLog(d,a,note){d.log=[...(d.log||[]),{t:Date.now(),role:S.me?.role,uid:S.me?.id||null,a,note:note||''}]}
 function dlvForm(){
   const reqOpts=S.requests.filter(r=>['buy','buying','receive'].includes(r.status)).map(r=>`<option value="${r.id}">#${esc(r.code)} — ${esc(r.item)}</option>`).join('');
-  const b=`<form class="f" id="fDlv"><div class="fr"><label class="l">المادة<input id="dMat" class="in" list="dmats" required placeholder="مثال: رمل"></label><label class="l">الكمية<input id="dQty" class="in num" type="number" min="0" step="any" required></label><label class="l">الوحدة<input id="dUnit" class="in" list="dunits" value="طن"></label></div>
-   <div class="fr"><label class="l">المورد<input id="dSup" class="in" placeholder="اسم الشركة أو المحل"></label><label class="l">رقم الشاحنة<input id="dTruck" class="in num" placeholder="بغداد 12345"></label></div>
-   <div class="fr"><label class="l">السائق<input id="dDriver" class="in"></label><label class="l">هاتف السائق<input id="dPhone" class="in num" dir="ltr" inputmode="tel"></label></div>
-   <label class="l">مكان التنزيل<input id="dDest" class="in" list="ddest" placeholder="مثال: ساحة الحجر الجيري أو عمارة T1"></label>
+  const b=`<form class="f" id="fDlv"><div class="fr"><label class="l">المادة<input id="dMat" class="in" data-sug="materials" autocomplete="off" required placeholder="مثال: رمل"></label><label class="l">الكمية<input id="dQty" class="in num" type="number" min="0" step="any" required></label><label class="l">الوحدة<input id="dUnit" class="in" list="dunits" value="طن"></label></div>
+   <div class="fr"><label class="l">المورد<input id="dSup" class="in" data-sug="suppliers" autocomplete="off" placeholder="اسم الشركة أو المحل"></label><label class="l">رقم الشاحنة<input id="dTruck" class="in num" data-sug="trucks" autocomplete="off" placeholder="بغداد 12345"></label></div>
+   <div class="fr"><label class="l">السائق<input id="dDriver" class="in" data-sug="drivers" autocomplete="off" placeholder="اكتب أو اختار من الأسماء السابقة"></label><label class="l">هاتف السائق<input id="dPhone" class="in num" dir="ltr" inputmode="tel"></label></div>
+   <label class="l">مكان التنزيل<input id="dDest" class="in" data-sug="dests" autocomplete="off" placeholder="مثال: ساحة الحجر الجيري أو عمارة T1"></label>
    ${reqOpts?`<label class="l">مرتبطة بطلب شراء <em>(اختياري)</em><select id="dReq" class="in"><option value="">— بدون —</option>${reqOpts}</select></label>`:''}
    ${fileField('fDImg','صورة وصل التسليم أو الشاحنة','تفتح الكاميرا مباشرة',true)}
    <datalist id="dmats">${MATS.map(m=>`<option value="${m}">`).join('')}</datalist><datalist id="dunits">${DUNITS.map(u=>`<option value="${u}">`).join('')}</datalist><datalist id="ddest">${AREAS.map(a=>`<option value="${a}">`).join('')}</datalist>
@@ -917,7 +921,7 @@ function openDlv(d){S.openD=d.id;const st=DST[d.status]||DST.wait,m=d.machineId&
    <div><span>وصلت</span><b class="num">${dt(d.createdAt)}</b></div>${d.doneAt?`<div><span>انتهى التنزيل</span><b class="num">${dt(d.doneAt)}</b></div><div><span>مدة الانتظار والتنزيل</span><b class="num">${Math.round((d.doneAt-d.createdAt)/60000)} دقيقة</b></div>`:''}${r?`<div><span>طلب الشراء</span><b class="num">#${esc(r.code)}</b></div>`:''}</div>
    ${(d.img||d.doneImg)?`<div class="photos" style="margin-top:12px">${d.img?`<div class="ph">وصل التسليم${imgTag(d.img,'','وصل التسليم')}</div>`:''}${d.doneImg?`<div class="ph">بعد التنزيل${imgTag(d.doneImg,'','بعد التنزيل')}</div>`:''}</div>`:''}</div>`;
   if(ed&&d.status==='wait')b+=`<div class="sec"><h4>بدء التنزيل</h4><label class="l">الآلية المستخدمة بالتنزيل<select id="dMach" class="in"><option value="">— يدوي / بدون آلية —</option>${S.machines.filter(x=>x.status==='work').map(x=>`<option value="${x.id}">${esc(x.name)}${x.plate?' · '+esc(x.plate):''}</option>`).join('')}</select></label><div class="acts" style="margin-top:10px"><button class="btn pri" data-a="dlvStart">بدء التنزيل</button><button class="btn bad" data-a="dlvReject">رفض الحمولة</button></div></div>`;
-  if(ed&&d.status==='unload')b+=`<div class="sec"><h4>إنهاء التنزيل</h4><div class="fr"><label class="l">الكمية المستلمة فعلياً<input id="dGot" class="in num" type="number" min="0" step="any" value="${d.qty}"></label><label class="l">مكان التنزيل<input id="dDest2" class="in" list="ddest2" value="${esc(d.dest||'')}"></label></div><datalist id="ddest2">${AREAS.map(a=>`<option value="${a}">`).join('')}</datalist>
+  if(ed&&d.status==='unload')b+=`<div class="sec"><h4>إنهاء التنزيل</h4><div class="fr"><label class="l">الكمية المستلمة فعلياً<input id="dGot" class="in num" type="number" min="0" step="any" value="${d.qty}"></label><label class="l">مكان التنزيل<input id="dDest2" class="in" data-sug="dests" autocomplete="off" value="${esc(d.dest||'')}"></label></div><datalist id="ddest2">${AREAS.map(a=>`<option value="${a}">`).join('')}</datalist>
    <label class="l" style="margin-top:8px">ملاحظة<input id="dNote" class="in" placeholder="نقص، تلف، ملاحظات…"></label><div style="margin-top:8px">${fileField('fDone','صورة بعد التنزيل','اختياري',true)}</div><div class="acts" style="margin-top:10px"><button class="btn ok" data-a="dlvDone">تم التنزيل</button></div></div>`;
   b+=`<div class="sec"><h4>السجل</h4><ul class="log">${[...(d.log||[])].reverse().map(l=>`<li><i></i><span>${plabel(l)} ${esc(l.a)}${l.note?' — '+esc(l.note):''}</span><small class="num">${dt(l.t)}</small></li>`).join('')}</ul></div>`;
   overlay('dlv',`شاحنة ${esc(d.material)}`,b);if($('#fDone'))bindPreview('fDone')}
@@ -1351,12 +1355,12 @@ function bindGps(btnId,inId,noteId){
 function newReqForm(pre){
   pre=pre||{};const R=ROLES[S.role],isSt=['store','mstore','keeper'].includes(S.role);
   const b=`<form class="f" id="fNew">
-   <div class="fr"><label class="l">اسم المادة المطلوبة<input id="fItem" class="in" required placeholder="مثال: محمل SKF 22320" value="${esc(pre.item||'')}"></label>
+   <div class="fr"><label class="l">اسم المادة المطلوبة<input id="fItem" class="in" required data-sug="items" autocomplete="off" placeholder="مثال: محمل SKF 22320" value="${esc(pre.item||'')}"></label>
    <label class="l">القسم<select id="fDept" class="in">${DEPTS.map(d=>`<option ${d===(R.dept||(S.role==='project'?'المشروع':S.role==='store'?'المخزن':(S.role==='admin1'||S.role==='admin2')?'الإدارة':''))?'selected':''}>${d}</option>`).join('')}</select></label></div>
    ${S.machines.length?`<label class="l">الآلية <em>(اختياري — لتُحسب الكلفة عليها)</em><select id="fMach" class="in"><option value="">— بدون —</option>${[...S.machines].sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(m=>`<option value="${m.id}" ${S.preMach===m.id?'selected':''}>${esc(m.name)}${m.plate?' · '+esc(m.plate):''}</option>`).join('')}</select></label>`:''}
    <div class="fr"><label class="l">الكمية<input id="fQty" class="in num" type="number" min="0" step="any" required value="${pre.qty||1}"></label>
    <label class="l">الوحدة<input id="fUnit" class="in" list="units" value="${esc(pre.unit||'قطعة')}"></label>
-   <label class="l">مكان العمل<input id="fArea" class="in" list="areas" placeholder="مثال: الفرن الدوار"></label></div>
+   <label class="l">مكان العمل<input id="fArea" class="in" data-sug="areas" autocomplete="off" placeholder="مثال: الفرن الدوار"></label></div>
    <div class="l" style="font-size:13px;font-weight:500">الأولوية<div class="seg">${Object.entries(PRI).map(([k,v],i)=>`<label><input type="radio" name="pri" value="${k}" ${i?'':'checked'}>${v[0]}</label>`).join('')}</div></div>
    <div class="fr">${fileField('fProd','صورة المنتج المطلوب','صوّر القطعة القديمة أو لوحة المواصفات',true)}${fileField('fSite','صورة مكان العمل','تُقرأ إحداثيات GPS من صورة الهاتف تلقائياً',true)}</div>
    <label class="l">إحداثيات مكان العمل <em>(تُملأ من الصورة أو الصقها من خرائط Google)</em><div class="gps"><input id="fGps" class="in num" placeholder="33.3152, 44.3661"><button type="button" class="btn" id="fGpsBtn">موقعي الحالي</button></div><span class="note" id="fGpsN"></span></label>
@@ -1404,7 +1408,7 @@ function quotesHTML(r){
   return h+`</div>`}
 function quoteForm(r){
   const b=`<div class="sec"><div class="kv"><div><span>المادة</span><b>${esc(r.item)}</b></div><div><span>الكمية</span><b><span class="num">${nf.format(r.qty)}</span> ${esc(r.unit)}</b></div></div></div>
-  <form class="f" id="fQ"><div class="fr"><label class="l">اسم المحل / المورد<input id="qSup" class="in" required placeholder="مثال: محلات الرافدين - سوق الشيخ عمر"></label><label class="l">سعر الوحدة (دينار)<input id="qPrice" class="in num" type="number" min="0" step="any" required oninput="const n=this.closest('label').querySelector('.qTot');const v=+this.value||0;n.textContent=v?'المجموع: '+money(v*(+this.dataset.q||1)):''" data-q="${r.qty}"><span class="note qTot"></span></label></div>
+  <form class="f" id="fQ"><div class="fr"><label class="l">اسم المحل / المورد<input id="qSup" class="in" required data-sug="suppliers" autocomplete="off" placeholder="مثال: محلات الرافدين - سوق الشيخ عمر"></label><label class="l">سعر الوحدة (دينار)<input id="qPrice" class="in num" type="number" min="0" step="any" required oninput="const n=this.closest('label').querySelector('.qTot');const v=+this.value||0;n.textContent=v?'المجموع: '+money(v*(+this.dataset.q||1)):''" data-q="${r.qty}"><span class="note qTot"></span></label></div>
   <div class="fr"><label class="l">الماركة / بلد المنشأ<input id="qBrand" class="in" placeholder="مثال: SKF سويدي، FAG ألماني، صيني"></label><label class="l">الضمان (بالأشهر)<input id="qWar" class="in num" type="number" min="0" value="0"></label><label class="l">مدة التوفير (أيام)<input id="qDays" class="in num" type="number" min="0" value="0"><em>0 = متوفر فوراً</em></label></div>
   <div class="l" style="font-size:13px;font-weight:500">حالة القطعة<div class="seg">${Object.entries(COND).map(([k,v],i)=>`<label><input type="radio" name="qc" value="${k}" ${i?'':'checked'}>${v}</label>`).join('')}</div></div>
   <label class="l">ملاحظات<textarea id="qNotes" class="in" placeholder="مواصفات، شروط الدفع، التوصيل…"></textarea></label>
@@ -1471,7 +1475,7 @@ function bindInvoice(r){
     const g=await exifGps(f);if(g&&!$('#bGps').value){$('#bGps').value=g.lat+', '+g.lng;$('#bGpsN').className='note ok';$('#bGpsN').textContent='أُخذ الموقع من صورة الفاتورة'}})}
 function buyForm(r){
   const b=`<div class="sec"><div class="kv"><div><span>المادة</span><b>${esc(r.item)}</b></div><div><span>الكمية</span><b><span class="num">${nf.format(r.qty)}</span> ${esc(r.unit)}</b></div><div><span>مكان العمل</span><b>${esc(r.area||'—')}</b></div></div></div>
-  <form class="f" id="fBuy"><div class="fr"><label class="l">اسم المورد / المحل<input id="bSup" class="in" required placeholder="مثال: مكتب الرافدين للمحامل"></label>
+  <form class="f" id="fBuy"><div class="fr"><label class="l">اسم المورد / المحل<input id="bSup" class="in" required data-sug="suppliers" autocomplete="off" placeholder="مثال: مكتب الرافدين للمحامل"></label>
   <label class="l">سعر الوحدة (دينار)<input id="bUnit" class="in num" type="number" min="0" step="any" required></label>
   <label class="l">المجموع (دينار)<input id="bTot" class="in num" type="number" min="0" step="any" required></label></div>
   ${fileField('fInv','صوّر الفاتورة بالكاميرا الآن','تفتح الكاميرا مباشرة. لا تُقبل صور قديمة من المعرض',true)}<div class="err" id="invErr"></div>
@@ -1509,7 +1513,7 @@ function invForm(it){
   const n=!it;it=it||{id:uid(),name:'',sku:'',qty:0,unit:'قطعة',min:0,shelf:'',wh:(S.role==='mstore'||S.role==='keeper'||S.whF==='mach')?'mach':'main'};const whSel=!isStoreRole(S.role);
   const b=`<form class="f" id="fInvE"><div class="fr"><label class="l">اسم المادة<input id="vName" class="in" required value="${esc(it.name)}"></label><label class="l">الرمز<input id="vSku" class="in num" value="${esc(it.sku)}"></label></div>
    <div class="fr"><label class="l">الرصيد<input id="vQty" class="in num" type="number" step="any" value="${it.qty}"></label><label class="l">الوحدة<input id="vUnit" class="in" list="units2" value="${esc(it.unit)}"></label><label class="l">الحد الأدنى<input id="vMin" class="in num" type="number" step="any" value="${it.min}"></label><label class="l">الرف<input id="vShelf" class="in num" value="${esc(it.shelf)}"></label></div>
-   <div class="fr"><label class="l">سعر الوحدة (دينار) <em>(اختياري)</em><input id="vPrice" class="in num" type="number" min="0" step="any" value="${it.price??''}" placeholder="مثال: 25000"></label><label class="l">المورد <em>(اختياري)</em><input id="vSup" class="in" value="${esc(it.supplier||'')}" placeholder="اسم المحل أو المورد"></label></div>
+   <div class="fr"><label class="l">سعر الوحدة (دينار) <em>(اختياري)</em><input id="vPrice" class="in num" type="number" min="0" step="any" value="${it.price??''}" placeholder="مثال: 25000"></label><label class="l">المورد <em>(اختياري)</em><input id="vSup" class="in" data-sug="suppliers" autocomplete="off" value="${esc(it.supplier||'')}" placeholder="اسم المحل أو المورد"></label></div>
    <p class="note" id="vVal"></p>
    ${whSel?`<label class="l">المخزن<select id="vWh" class="in"><option value="main" ${it.wh!=='mach'?'selected':''}>المخزن الرئيسي</option><option value="mach" ${it.wh==='mach'?'selected':''}>مخزن الآليات</option></select></label>`:''}
    <datalist id="units2">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist>
@@ -1630,10 +1634,10 @@ function fuelPanel(){const f=fuelItem(),q=+(f?.qty||0),low=f&&f.min&&q<=+f.min;c
   const logs=f?.log||[];const inT=logs.filter(l=>l.k==='in'&&new Date(l.t).toDateString()===today).reduce((a,l)=>a+l.l,0),outT=logs.filter(l=>l.k==='out'&&new Date(l.t).toDateString()===today).reduce((a,l)=>a+l.l,0);
   return`<div class="sec" style="margin-top:14px"><h4>⛽ الكاز (الوقود)</h4>
    <div class="stats" style="margin-top:6px"><div class="stat ${low?'hot':''}"><b class="num">${nf.format(q)}</b><span>لتر بالخزان${low?' — تحت الحد':''}</span></div><div class="stat"><b class="num" style="color:var(--ok)">${nf.format(inT)}</b><span>استلام اليوم (لتر)</span></div><div class="stat"><b class="num">${nf.format(outT)}</b><span>صرف اليوم (لتر)</span></div>${f?.price?`<div class="stat"><b class="num" style="font-size:18px">${money(+f.price)}</b><span>سعر اللتر</span></div>`:''}</div>
-   ${logs.length?`<ul class="log" style="margin-top:10px">${logs.slice(-5).reverse().map(l=>`<li><i></i><span>${l.k==='adj'&&l.open?'📌 رصيد افتتاحي <b class="num">'+nf.format(l.to_qty)+'</b> لتر':l.k==='adj'?'✎ تصحيح الرصيد من <b class="num">'+nf.format(l.from)+'</b> إلى <b class="num">'+nf.format(l.to_qty)+'</b> لتر':l.k==='in'?'⛽ وصل <b class="num">'+nf.format(l.l)+'</b> لتر'+(l.sup?' — '+esc(l.sup):''):'تعبئة <b class="num">'+nf.format(l.l)+'</b> لتر ← '+esc(l.to||'')} <span class="muted">· ${esc(S.names[l.uid]?.name||'')}</span>${(l.edits||[]).length?' <span class="pill p-mute">معدّلة</span>':''}${canEditFuel(l)?` <button class="btn sm ghost" data-a="fuelEdit" data-v="${l.t}" style="padding:2px 8px">تعديل${editLeft(l)}</button>`:''}</span><small class="num">${dt(l.t)}</small></li>`).join('')}</ul>`:''}
+   ${logs.length?`<ul class="log" style="margin-top:10px">${logs.slice(-5).reverse().map(l=>`<li><i></i><span>${l.k==='adj'&&l.open?'📌 رصيد افتتاحي <b class="num">'+nf.format(l.to_qty)+'</b> لتر':l.k==='adj'?'✎ تصحيح الرصيد من <b class="num">'+nf.format(l.from)+'</b> إلى <b class="num">'+nf.format(l.to_qty)+'</b> لتر':l.k==='in'?'⛽ وصل <b class="num">'+nf.format(l.l)+'</b> لتر'+(l.sup?' — '+esc(l.sup):''):'تعبئة <b class="num">'+nf.format(l.l)+'</b> لتر ← '+esc(l.to||'')+(l.driver?' · السائق '+esc(l.driver):'')} <span class="muted">· ${esc(S.names[l.uid]?.name||'')}</span>${(l.edits||[]).length?' <span class="pill p-mute">معدّلة</span>':''}${canEditFuel(l)?` <button class="btn sm ghost" data-a="fuelEdit" data-v="${l.t}" style="padding:2px 8px">تعديل${editLeft(l)}</button>`:''}</span><small class="num">${dt(l.t)}</small></li>`).join('')}</ul>`:''}
    ${canFuel()?`<div class="acts" style="margin-top:10px"><button class="btn pri" data-a="fuelIn">+ استلام كاز</button><button class="btn" data-a="fuelOut">⛽ تعبئة كاز</button>${f?`<button class="btn ghost" data-a="fuelLog">السجل</button>`:''}${f&&['machines','project','owner'].includes(S.me?.role)?`<button class="btn ghost" data-a="fuelAdj">تصحيح الرصيد</button>`:''}</div>`:f?`<div class="acts" style="margin-top:10px"><button class="btn ghost" data-a="fuelLog">السجل</button></div>`:''}</div>`}
 function fuelIn(){const f=fuelItem();overlay('fuel','استلام كاز',`<form class="f" id="fFi"><div class="fr"><label class="l">الكمية (لتر)<input id="fiL" class="in num" type="number" min="1" step="any" required></label><label class="l">سعر اللتر (دينار)<input id="fiP" class="in num" type="number" min="0" step="any" value="${f?.price??''}"></label></div>
-  <div class="fr"><label class="l">المورد / التانكر<input id="fiS" class="in" placeholder="مثال: محطة الدورة"></label><label class="l">الحد الأدنى للتنبيه (لتر)<input id="fiM" class="in num" type="number" min="0" step="any" value="${f?.min??''}"></label></div>
+  <div class="fr"><label class="l">المورد / التانكر<input id="fiS" class="in" data-sug="suppliers" autocomplete="off" placeholder="مثال: محطة الدورة"></label><label class="l">الحد الأدنى للتنبيه (لتر)<input id="fiM" class="in num" type="number" min="0" step="any" value="${f?.min??''}"></label></div>
   <label class="l">ملاحظة<input id="fiN" class="in" placeholder="رقم الوصل أو السيارة"></label><div class="err" id="fiE"></div>
   <div class="acts"><button class="btn pri" type="submit">حفظ الاستلام</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
   $('#fFi').addEventListener('submit',async e=>{e.preventDefault();const L=+$('#fiL').value,P=$('#fiP').value===''?null:+$('#fiP').value;const cur=clean(fuelItem()||{id:FUEL_ID,kind:'fuel',name:'كاز (ديزل)',unit:'لتر',qty:0,min:0,wh:'mach',sku:'FUEL',shelf:'الخزان',log:[]});
@@ -1659,16 +1663,17 @@ function fuelOut(){const f=fuelItem();const ms=[...S.machines].sort((a,b)=>a.nam
    <div class="acts" style="margin-top:10px"><button type="button" class="btn" data-a="fuelTo" data-v="">آلية غير مسجلة / جهة أخرى</button><button type="button" class="btn ghost" data-a="close">إلغاء</button></div>`);
   $('#fpQ')?.addEventListener('input',e=>{const q=e.target.value.trim();document.querySelectorAll('#fpList .fpick').forEach(b=>b.style.display=!q||b.dataset.s.includes(q)?'':'none')})}
 function fuelTo(mid){const f=fuelItem();const m=mid?S.machines.find(x=>x.id===mid):null;
-  overlay('fuel',m?'تعبئة — '+esc(m.name):'تعبئة كاز',`<form class="f" id="fFo">${m?`<div class="sec" style="padding:10px 12px"><b>${esc(m.name)}</b> <span class="muted">${esc(m.type||'')}${m.plate?' · '+esc(m.plate):''}</span><div class="small muted">${lastFill(m)}</div></div>`:`<label class="l">اسم الآلية أو الجهة<input id="foT" class="in" required placeholder="مثال: مولدة المعمل"></label>`}
+  overlay('fuel',m?'تعبئة — '+esc(m.name):'تعبئة كاز',`<form class="f" id="fFo">${m?`<div class="sec" style="padding:10px 12px"><b>${esc(m.name)}</b> <span class="muted">${esc(m.type||'')}${m.plate?' · '+esc(m.plate):''}</span><div class="small muted">${lastFill(m)}</div></div>`:`<label class="l">اسم الآلية أو الجهة<input id="foT" class="in" required data-sug="fueltargets" autocomplete="off" placeholder="مثال: مولدة المعمل"></label>`}
   <p class="muted" style="margin:0">بالخزان: <b class="num">${nf.format(+(f?.qty||0))}</b> لتر</p>
-  <div class="fr"><label class="l">الكمية (لتر)<input id="foL" class="in num" type="number" min="1" step="any" required autofocus></label>${m?`<label class="l">قراءة العدّاد <em>(اختياري)</em><input id="foH" class="in num" type="number" min="0" step="any" value="${m.hours??''}"></label>`:''}</div>
+  <label class="l">اسم السائق / المشغّل<input id="foD" class="in" data-sug="drivers" autocomplete="off" placeholder="اكتب أو اختار من الأسماء السابقة" value="${esc(m?.operator||'')}"></label>
+  <div class="fr"><label class="l">الكمية (لتر)<input id="foL" class="in num" type="number" min="1" step="any" required></label>${m?`<label class="l">قراءة العدّاد <em>(اختياري)</em><input id="foH" class="in num" type="number" min="0" step="any" value="${m.hours??''}"></label>`:''}</div>
   <div class="err" id="foE"></div><div class="acts"><button class="btn pri" type="submit">حفظ التعبئة</button><button class="btn ghost" type="button" data-a="fuelOut">رجوع للآليات</button></div></form>`);
   $('#fFo').addEventListener('submit',async e=>{e.preventDefault();const L=+$('#foL').value,tx=$('#foT')?.value.trim()||'',H=$('#foH')&&$('#foH').value!==''?+$('#foH').value:null;
     const cur=fuelItem();if(!cur||+cur.qty<L){$('#foE').textContent='الرصيد ما يكفي. سجّل استلام كاز أولاً.';return}
     if(!m&&!tx){$('#foE').textContent='اكتب اسم الآلية أو الجهة.';return}
-    const t=Date.now(),nu=clean(cur);nu.qty=+((+nu.qty)-L).toFixed(2);
-    nu.log=[...(nu.log||[]),{t,k:'out',l:L,p:+cur.price||null,to:m?m.name:tx,mid:m?.id||null,uid:S.me?.id||null,role:S.role}].slice(-500);
-    try{await putInv(nu);if(m){const nm=clean(m);nm.fuel=[...(nm.fuel||[]),{t,liters:L,hours:H,note:'من خزان الكاز',uid:S.me?.id||null}];if(H!=null&&H>=(+nm.hours||0))nm.hours=H;mLog(nm,'عبّأ وقود',L+' لتر');await putMachine(nm)}
+    const t=Date.now(),nu=clean(cur),drv=$('#foD').value.trim();nu.qty=+((+nu.qty)-L).toFixed(2);
+    nu.log=[...(nu.log||[]),{t,k:'out',l:L,p:+cur.price||null,to:m?m.name:tx,driver:drv||null,mid:m?.id||null,uid:S.me?.id||null,role:S.role}].slice(-500);
+    try{await putInv(nu);if(m){const nm=clean(m);nm.fuel=[...(nm.fuel||[]),{t,liters:L,hours:H,note:'من خزان الكاز',driver:drv||null,uid:S.me?.id||null}];if(H!=null&&H>=(+nm.hours||0))nm.hours=H;mLog(nm,'عبّأ وقود',L+' لتر');await putMachine(nm)}
       await invLog('صرف كاز: '+nf.format(L)+' لتر',m?m.name:tx);closeOv();render();toast('سُجّلت تعبئة '+nf.format(L)+' لتر — '+(m?m.name:tx))}catch(x){$('#foE').textContent='تعذر الحفظ: '+(x.message||x)}})}
 function fuelEdit(t){const f=fuelItem();const i=(f?.log||[]).findIndex(l=>String(l.t)===String(t));const l=f?.log?.[i];if(!l||!canEditFuel(l)){toast(l&&Date.now()-l.t>=FUEL_EDIT_MS?'انتهى وقت التعديل (15 دقيقة). التعديل بعدها بس من مالك النظام':'ما تكدر تعدّل هاي الحركة');return}
   overlay('fuel','تعديل كمية الكاز',`<form class="f" id="fFe"><div class="sec" style="padding:10px 12px"><b>${l.k==='in'?'استلام':'تعبئة'} ${l.k==='in'?esc(l.sup||''):'← '+esc(l.to||'')}</b><div class="small muted">${dt(l.t)} · ${esc(S.names[l.uid]?.name||'')}</div></div>
@@ -1687,7 +1692,7 @@ function fuelEdit(t){const f=fuelItem();const i=(f?.log||[]).findIndex(l=>String
 setInterval(()=>{if(S.mode==='db'&&!$('#ovroot')?.dataset.kind&&document.querySelector('[data-a=fuelEdit]'))render()},60000);
 function fuelLogView(){const f=fuelItem();const rows=(f?.log||[]).slice().reverse().slice(0,200);
   const what=l=>l.k==='adj'?`<span class="pill p-info">${l.open?'رصيد افتتاحي':'تصحيح'}</span>`:l.k==='in'?'<span class="pill p-ok">استلام</span>':'<span class="pill p-warn">تعبئة</span>';
-  const det=l=>l.k==='adj'?esc((l.open?'':'من '+nf.format(l.from)+' إلى '+nf.format(l.to_qty)+' لتر')+(l.note?' — '+l.note:'')):esc(l.k==='in'?[l.sup,l.p!=null?money(l.p)+'/لتر':''].filter(Boolean).join(' · '):(l.to||''));
+  const det=l=>l.k==='adj'?esc((l.open?'':'من '+nf.format(l.from)+' إلى '+nf.format(l.to_qty)+' لتر')+(l.note?' — '+l.note:'')):esc(l.k==='in'?[l.sup,l.p!=null?money(l.p)+'/لتر':''].filter(Boolean).join(' · '):(l.to||'')+(l.driver?' · السائق '+l.driver:''));
   overlay('fuel','سجل الكاز',rows.length?`<div class="list">${rows.map(l=>`<div class="card" style="cursor:default;align-items:center"><div class="mid"><div class="t">${what(l)} <b class="num">${nf.format(l.k==='adj'&&!l.open?l.l:l.k==='adj'?l.to_qty:l.l)}</b> لتر ${(l.edits||[]).length?'<span class="pill p-mute">معدّلة</span>':''}</div><div class="meta"><span>${det(l)}</span><span>${esc(S.names[l.uid]?.name||'')}</span><span class="num">${dt(l.t)}</span></div>${(l.edits||[]).length?`<div class="meta"><span class="muted">${(l.edits||[]).map(x=>`كانت ${nf.format(x.from)}${x.note?' ('+esc(x.note)+')':''}`).join('، ')}</span></div>`:''}</div>${canEditFuel(l)?`<div class="end"><button class="btn sm" data-a="fuelEdit" data-v="${l.t}">تعديل${editLeft(l)}</button></div>`:''}</div>`).join('')}</div>`:'<div class="empty"><b>ماكو حركات بعد</b></div>')}
 
 /* ===== expenses (الصرفيات), external invoices, bulk price import ===== */
@@ -1725,7 +1730,7 @@ function invcView(role){const fixed=scopeWh(role);const list=(S.invoices||[]).fi
   return h+`<div class="list" style="margin-top:12px">${list.map(v=>`<button class="card" data-a="invcOpen" data-v="${v.id}">${v.img?imgTag(v.img,'thumb'):`<div class="thumb">🧾</div>`}<div class="mid"><div class="t">${esc(v.supplier||'فاتورة')}</div><div class="meta"><span>${v.wh==='mach'?'مخزن الآليات':'المخزن الرئيسي'}</span><span>${(v.lines||[]).length} مادة</span><span>${esc(S.names[v.uid]?.name||'')}</span></div></div><div class="end"><b class="num">${money(+v.total)}</b><span class="small muted">${ago(v.at)}</span></div></button>`).join('')}</div>`}
 function lineRow(l){l=l||{};return`<div class="ivl"><div class="ivh"><input class="in ivN" placeholder="اسم المادة" value="${esc(l.name||'')}"><button type="button" class="btn sm ghost ivX" aria-label="حذف">×</button></div><div class="ivg"><label class="l">العدد<input class="in num ivQ" type="number" min="0" step="any" value="${l.qty??1}"></label><label class="l">سعر القطعة<input class="in num ivP" type="number" min="0" step="any" value="${l.price??''}" placeholder="0"></label><div class="l">المجموع<b class="num ivT">—</b></div></div></div>`}
 function invcForm(){const fixed=scopeWh(S.role);const canStock=INV_WRITE.includes(S.role)||isOwner();
-  overlay('invc','رفع فاتورة / دفعة',`<form class="f" id="fIv"><div class="fr"><label class="l">المورد / الجهة<input id="ivS" class="in" required placeholder="مثال: محلات الرافدين"></label>${fixed?'':`<label class="l">تابعة لـ<select id="ivW" class="in"><option value="main">المخزن الرئيسي</option><option value="mach">مخزن الآليات</option></select></label>`}<label class="l">التاريخ<input id="ivD" class="in num" type="date" value="${new Date().toISOString().slice(0,10)}"></label></div>
+  overlay('invc','رفع فاتورة / دفعة',`<form class="f" id="fIv"><div class="fr"><label class="l">المورد / الجهة<input id="ivS" class="in" required data-sug="suppliers" autocomplete="off" placeholder="مثال: محلات الرافدين"></label>${fixed?'':`<label class="l">تابعة لـ<select id="ivW" class="in"><option value="main">المخزن الرئيسي</option><option value="mach">مخزن الآليات</option></select></label>`}<label class="l">التاريخ<input id="ivD" class="in num" type="date" value="${new Date().toISOString().slice(0,10)}"></label></div>
    <div id="ivRows">${lineRow()}</div>
    <div class="acts"><button type="button" class="btn sm" id="ivAdd">+ مادة ثانية</button><span style="margin-inline-start:auto">المجموع الكلي: <b class="num" id="ivTot">—</b></span></div>
    ${fileField('ivImg','صورة الفاتورة','صوّرها بالكاميرا أو اختارها من الملفات',false)}
@@ -1826,6 +1831,33 @@ function myInvoices(){const me=S.me?.id;const out=[];
   return out.sort((a,b)=>b.t-a.t)}
 function myInvSheet(){const L=myInvoices();
   overlay('myinv',`🧾 الفواتير اللي رفعتها <span class="num muted">(${L.length})</span>`,L.length?`<div class="photos">${L.map(x=>`<div class="ph"><a href="${esc(imgSrc(x.img))}" target="_blank" rel="noopener">${imgTag(x.img,'',x.k)}</a><b style="color:var(--ink);font-size:13px">${esc(x.k)}</b><span>${esc(x.d)}${x.a?` · <span class="num">${money(+x.a)}</span>`:''}</span><span class="num">${dt(x.t)}</span><button class="btn sm ghost" data-a="${x.open[0]}" data-v="${esc(x.open[1])}">التفاصيل</button></div>`).join('')}</div>`:`<div class="empty"><b>ما رفعت فواتير بعد</b>صور فواتير الشراء والفواتير الخارجية ووصولات الشاحنات اللي ترفعها تطلع هنا.</div>`)}
+
+/* remembered names: tap a field to see every name entered before */
+function sugList(kind){const c={};const put=(v,w=1)=>{v=String(v||'').trim();if(v.length>1)c[v]=(c[v]||0)+w};
+  const fuel=(fuelItem()?.log||[]);
+  if(kind==='drivers'){S.deliveries.forEach(d=>put(d.driver));fuel.forEach(l=>put(l.driver));S.machines.forEach(m=>{put(m.operator);(m.fuel||[]).forEach(f=>put(f.driver))})}
+  if(kind==='suppliers'){S.deliveries.forEach(d=>put(d.supplier));(S.invoices||[]).forEach(v=>put(v.supplier));S.requests.forEach(r=>{put(r.purchase?.supplier);(r.quotes||[]).forEach(q=>put(q.supplier))});fuel.forEach(l=>put(l.sup));S.inventory.forEach(i=>put(i.supplier))}
+  if(kind==='materials')S.deliveries.forEach(d=>put(d.material));
+  if(kind==='trucks')S.deliveries.forEach(d=>put(d.truck));
+  if(kind==='dests'){S.deliveries.forEach(d=>put(d.dest));(typeof AREAS!=='undefined'?AREAS:[]).forEach(a=>put(a,0.1))}
+  if(kind==='areas'){S.requests.forEach(r=>put(r.area));(typeof AREAS!=='undefined'?AREAS:[]).forEach(a=>put(a,0.1))}
+  if(kind==='fueltargets')fuel.forEach(l=>{if(!l.mid)put(l.to)});
+  if(kind==='people'){S.machines.forEach(m=>{put(m.operator);(m.issues||[]).forEach(x=>put(x.to))});S.deliveries.forEach(d=>put(d.driver));S.staff.forEach(p=>put(p.full_name,0.5))}
+  if(kind==='items'){S.inventory.forEach(i=>{if(i.kind!=='fuel')put(i.name,2)});S.requests.forEach(r=>put(r.item))}
+  return Object.entries(c).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'ar')).map(x=>x[0])}
+function sugShow(inp){sugHide();const all=sugList(inp.dataset.sug);if(!all.length)return;const q=inp.value.trim();
+  const L=(q?all.filter(n=>n.includes(q)&&n!==q):all).slice(0,40);if(!L.length)return;
+  const box=document.createElement('div');box.className='sugbox';box.id='sugbox';
+  box.innerHTML=`<div class="sugh">${q?'أسماء مطابقة':'الأسماء السابقة'} <span class="num">(${L.length})</span></div>`+L.map(n=>`<button type="button" class="sugi">${esc(n)}</button>`).join('');
+  box.addEventListener('mousedown',e=>e.preventDefault());
+  box.addEventListener('click',e=>{const b=e.target.closest('.sugi');if(!b)return;inp.value=b.textContent;inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}));sugHide();
+    if(inp.id==='dDriver'){const d=S.deliveries.find(x=>x.driver===inp.value&&x.driverPhone);const ph=$('#dPhone');if(d&&ph&&!ph.value)ph.value=d.driverPhone}
+    const nx=inp.closest('form')?.querySelectorAll('input:not([type=hidden]):not([disabled]),select,textarea');if(nx){const a=[...nx],i=a.indexOf(inp);if(a[i+1])a[i+1].focus()}});
+  inp.insertAdjacentElement('afterend',box);inp._sug=box}
+function sugHide(){const b=$('#sugbox');if(b)b.remove()}
+document.addEventListener('focusin',e=>{if(e.target.matches?.('input[data-sug]'))sugShow(e.target);else if(!e.target.closest?.('#sugbox'))sugHide()});
+document.addEventListener('input',e=>{if(e.target.matches?.('input[data-sug]'))sugShow(e.target)});
+document.addEventListener('focusout',e=>{if(e.target.matches?.('input[data-sug]'))setTimeout(()=>{if(!document.activeElement?.matches?.('input[data-sug]'))sugHide()},150)});
 
 /* clickable stat tiles */
 function scrollToList(){setTimeout(()=>{const el=$('#app .filters')||$('#app .list')||$('#app .tbl-wrap');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}
