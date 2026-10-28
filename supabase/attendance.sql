@@ -393,3 +393,6 @@ alter table public.workers add column if not exists origin text check (origin is
 --     is_internal(): outsiders can't read requests, inventory, invlog, machines, deliveries, staff, files
 --     can_write() excludes outsiders; attendance/workers readable by engineer (all) and contractor (own crew only)
 --     att_set_scope(p_id, p_team) for project/owner; worker self sign-up functions revoked
+
+-- 13) staff has column-level SELECT grants: every new column must be granted explicitly
+grant select (company, specialty, att_team) on public.staff to authenticated;
