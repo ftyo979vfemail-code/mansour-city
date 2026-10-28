@@ -481,7 +481,7 @@ async function saveFile(file,stamp){
 function imgSrc(ref){if(!ref)return'';return S.imgCache[ref.slice(2)]||''}
 async function signAll(){
   const refs=new Set();const add=x=>{if(x&&x.startsWith('s:')&&!S.imgCache[x.slice(2)])refs.add(x.slice(2))};
-  S.requests.forEach(r=>{add(r.productImg);add(r.siteImg);add(r.paperImg);add(r.purchase?.invoice?.ref);(r.quotes||[]).forEach(q=>add(q.img))});(S.invoices||[]).forEach(v=>add(v.img));
+  S.requests.forEach(r=>{add(r.productImg);add(r.siteImg);add(r.paperImg);add(r.purchase?.invoice?.ref);(r.quotes||[]).forEach(q=>add(q.img))});(S.invoices||[]).forEach(v=>add(v.img));S.deliveries.forEach(d=>{add(d.img);add(d.doneImg)});S.machines.forEach(m=>{add(m.img);(m.log||[]).forEach(l=>add(l.img))});
   if(!refs.size)return false;
   const {data}=await sb.storage.from('files').createSignedUrls([...refs],604800);
   (data||[]).forEach(d=>{if(d.signedUrl)S.imgCache[d.path]=d.signedUrl});return true}
@@ -1142,8 +1142,8 @@ function tabsFor0(role){
   if(role==='mechanic')return[['work','أعمال الصيانة',S.machines.filter(m=>m.status==='down').length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='fueler')return[['work','تعبئة الوقود',0],['mach','الآليات',0]];
   if(role==='receiver')return[['receive','للاستلام',S.requests.filter(r=>r.status==='receive'&&canAct(r,role)).length],['inv','المخزون',0],['all','كل الطلبات',0]];
-  if(role==='supply')return[['dlv','التنزيل',dlvOpen().length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
-  if(role==='machines')return[['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['dlv','تجهيز المواد',dlvOpen().length],['team','الكادر',myCrew().length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0]];
+  if(role==='supply')return[['dlv','التنزيل',dlvOpen().length],['dinv','الفواتير',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
+  if(role==='machines')return[['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['dlv','تجهيز المواد',dlvOpen().length],['dinv','وصولات التجهيز',0],['team','الكادر',myCrew().length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0]];
   if(k==='dept'||role==='elec_tech'||role==='mech_tech')return[['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length],['closed','المنجزة',0],...(CREW_OF[role]&&!ROLES[role].crew?[['team','الكادر',myCrew().length]]:[])];
   if(k==='store')return[['check','للفحص',S.requests.filter(r=>r.status==='store_check'&&canAct(r,role)).length],['receive','للاستلام',S.requests.filter(r=>r.status==='receive'&&canAct(r,role)).length],['inv','المخزون',invOf(role).filter(i=>+i.qty<=+i.min).length],...(role==='store'?[['team','الكادر',myCrew().length]]:role==='mstore'?[['team','الكادر',myCrew().length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length]]:role==='keeper'?[['issue','صرف لآلية',0],['mach','الآليات',0]]:[]),...(role==='receiver'?[]:[['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]]),['all','كل الطلبات',0]];
   if(k==='project')return[['approve','للموافقة',q.length],['reps','مواقع المندوبين',repsOnline()],['open','كل المفتوحة',S.requests.filter(r=>!['done','rejected'].includes(r.status)).length],['notif','الإشعارات',unread()],['join','طلبات الانضمام',pendingStaff().length],['inv','المخزون',S.inventory.filter(i=>+i.qty<=+i.min).length],['mach','الآليات',S.machines.filter(m=>m.status==='down').length],['dlv','تجهيز المواد',dlvOpen().length],['team','الكادر',myCrew().length],['org','الموظفين والأقسام',S.staff.filter(p=>!p.hidden).length],['all','كل الطلبات',0]];
@@ -1185,6 +1185,7 @@ function tabBody(role){
   const t=S.tab,R=ROLES[role];
   if(t==='exp')return expView(role);
   if(t==='feed')return feedView();
+  if(t==='dinv')return dlvInvView();
   if(t==='invc')return invcView(role);
   if(t==='mach')return machinesView();
   if(t==='team')return teamView();
@@ -1612,8 +1613,8 @@ document.addEventListener('submit',async e=>{if(e.target.id!=='fKI')return;e.pre
   if(!it||!m||q<=0){$('#kiErr').textContent='اختر المادة والآلية والكمية';return}if(q>+it.qty){$('#kiErr').textContent='الرصيد لا يكفي';return}
   try{const {data:left,error}=await sb.rpc('issue_stock',{p_item:it.id,p_qty:q});if(error)throw new Error(error.message);it.qty=+left;const x=clean(m);x.issues=[...(x.issues||[]),{t:Date.now(),item:it.name,qty:q,unit:it.unit,to,uid:S.me?.id||null,price:+it.price||0,total:+((+it.price||0)*q).toFixed(2)}];mLog(x,'صُرف لها من المخزن',q+' '+it.unit+' '+it.name+(to?' · المستلم '+to:''));await putMachine(x);
     await invLog('صرف '+q+' '+it.unit+' من '+it.name+' للآلية '+m.name,to?'المستلم: '+to:'');toast('تم الصرف وسُجّل على '+m.name);render()}catch(x){$('#kiErr').textContent=x.message}});
-document.addEventListener('change',e=>{if(e.target.name==='dlvF'){S.dlvF=e.target.value;render();return}if(e.target.id==='whF'){S.whF=e.target.value;render();return}if(e.target.id==='expWh'){S.expWh=e.target.value;render();return}if(e.target.name==='expP'){S.expP=e.target.value;render();return}if(e.target.id==='mFilter'){S.mFilter=e.target.value;render();return}if(e.target.name==='authTab'){S.authTab=e.target.value;render();return}if(e.target.id==='feedRole'){S.feedRole=e.target.value;render()}});
-document.addEventListener('input',e=>{if(e.target.id==='orgQ'){S.orgQ=e.target.value;const pos=e.target.selectionStart;render();const q=$('#orgQ');if(q){q.focus();q.setSelectionRange(pos,pos)}return}if(e.target.id==='q'){S.q=e.target.value;const pos=e.target.selectionStart;render();const q=$('#q');if(q){q.focus();q.setSelectionRange(pos,pos)}}});
+document.addEventListener('change',e=>{if(e.target.name==='dlvF'){S.dlvF=e.target.value;render();return}if(e.target.id==='whF'){S.whF=e.target.value;render();return}if(e.target.id==='expWh'){S.expWh=e.target.value;render();return}if(e.target.name==='dinvP'){S.dinvP=e.target.value;render();return}if(e.target.name==='expP'){S.expP=e.target.value;render();return}if(e.target.id==='mFilter'){S.mFilter=e.target.value;render();return}if(e.target.name==='authTab'){S.authTab=e.target.value;render();return}if(e.target.id==='feedRole'){S.feedRole=e.target.value;render()}});
+document.addEventListener('input',e=>{if(e.target.id==='dinvQ'){S.dinvQ=e.target.value;const pos=e.target.selectionStart;render();const q=$('#dinvQ');if(q){q.focus();q.setSelectionRange(pos,pos)}return}if(e.target.id==='orgQ'){S.orgQ=e.target.value;const pos=e.target.selectionStart;render();const q=$('#orgQ');if(q){q.focus();q.setSelectionRange(pos,pos)}return}if(e.target.id==='q'){S.q=e.target.value;const pos=e.target.selectionStart;render();const q=$('#q');if(q){q.focus();q.setSelectionRange(pos,pos)}}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#ovroot').innerHTML)goBack()});
 
 /* ---------- boot ---------- */
@@ -1798,6 +1799,18 @@ function drawImport(){const P=S.imp,wh=P.fixed||S.impWh||'main';const exist=n=>S
         else it={id:uid(),name:x.name,sku:x.sku||'',qty:mode==='skip'?0:(x.qty||0),unit:x.unit||'قطعة',min:x.min||0,shelf:'',wh,price:x.price};
         await putInv(it);n++;if(n%10===0)btn.textContent=`جارِ الحفظ ${n} من ${list.length}…`}
       await invLog('رفع ملف أسعار: '+P.file,n+' مادة · '+whName(wh));closeOv();S.imp=null;render();toast('حُفظت '+n+' مادة')}catch(x){$('#impE').textContent='توقف عند المادة '+(n+1)+': '+(x.message||x);btn.disabled=false;btn.textContent='إعادة المحاولة'}})}
+
+/* delivery receipts (فواتير التجهيز) */
+function dlvInvView(){const per=S.dinvP||'month',q=(S.dinvQ||'').trim();
+  const inPer=d=>{const t=d.doneAt||d.createdAt;return per==='all'||(per==='today'?sameDayT(t):sameMonthT(t))};
+  const list=S.deliveries.filter(d=>inPer(d)&&(!q||[d.material,d.supplier,d.truck,d.driver,d.dest].join(' ').includes(q))).sort((a,b)=>(b.doneAt||b.createdAt)-(a.doneAt||a.createdAt));
+  const done=list.filter(d=>d.status==='done'),withImg=list.filter(d=>d.img||d.doneImg).length;
+  const byMat={};done.forEach(d=>{const k=d.material+'|'+(d.unit||'');byMat[k]=(byMat[k]||0)+(+d.qty||0)});
+  let h=`<div class="filters"><input id="dinvQ" class="in" placeholder="بحث بالمادة أو المورد أو رقم الشاحنة…" value="${esc(q)}" style="flex:1 1 200px"><div class="seg" style="flex:1 1 220px">${[['today','اليوم'],['month','هذا الشهر'],['all','الكل']].map(([k,t])=>`<label><input type="radio" name="dinvP" value="${k}" ${per===k?'checked':''}>${t}</label>`).join('')}</div></div>
+   <div class="stats"><div class="stat"><b>${list.length}</b><span>شاحنة</span></div><div class="stat"><b style="color:var(--ok)">${done.length}</b><span>مكتملة</span></div><div class="stat"><b>${withImg}</b><span>بيها صورة وصل</span></div></div>
+   ${Object.keys(byMat).length?`<div class="sec" style="margin-top:12px"><h4>المجموع المنزّل</h4><div class="kv">${Object.entries(byMat).map(([k,v])=>{const [m,u]=k.split('|');return`<div><span>${esc(m)}</span><b><span class="num">${nf.format(v)}</span> ${esc(u)}</b></div>`}).join('')}</div></div>`:''}`;
+  if(!list.length)return h+`<div class="empty"><b>ماكو فواتير بهاي الفترة</b>كل شاحنة تسجّلها ويّا صورة الوصل تطلع هنا.</div>`;
+  return h+`<div class="list" style="margin-top:12px">${list.map(d=>{const st=DST[d.status]||DST.wait;return`<button class="card" data-a="dlvOpen" data-v="${d.id}">${d.img?imgTag(d.img,'thumb'):d.doneImg?imgTag(d.doneImg,'thumb'):`<div class="thumb">🧾</div>`}<div class="mid"><div class="t">${esc(d.material)} — <span class="num">${nf.format(+d.qty||0)}</span> ${esc(d.unit||'')}</div><div class="meta">${d.supplier?`<span>${esc(d.supplier)}</span>`:''}${d.truck?`<span class="num">${esc(d.truck)}</span>`:''}${d.dest?`<span>${esc(d.dest)}</span>`:''}</div><div class="meta"><span>وصلت ${dt(d.createdAt)}</span>${d.doneAt?`<span>كملت ${dt(d.doneAt)}</span>`:''}</div></div><div class="end"><span class="pill p-${st[1]}">${st[0]}</span>${d.img||d.doneImg?'<span class="small muted">📷 وصل</span>':'<span class="small muted">بدون صورة</span>'}</div></button>`}).join('')}</div>`}
 
 /* clickable stat tiles */
 function scrollToList(){setTimeout(()=>{const el=$('#app .filters')||$('#app .list')||$('#app .tbl-wrap');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}
