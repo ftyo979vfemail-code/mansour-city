@@ -362,8 +362,24 @@ button.orow:hover{background:var(--sunk)}
 }
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(12px);opacity:.6}}}
 /* attendance */
+.atbar #atQ{grid-column:1/-1}
+.atgrp{margin-top:18px}
+.atgh{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:16px;padding:6px 2px;border-bottom:2px solid var(--brand);color:var(--brand)}
+.atgf{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:8px;padding:10px 12px;border-radius:var(--r);background:var(--sunk);border:1px solid var(--line);font-size:13.5px}
+.atgf .g-ok b{color:var(--ok)}.atgf .g-bad b{color:var(--bad)}.atgf .g-warn b{color:var(--warn)}
+.atsubl{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline}
+.attr{font-weight:600;color:var(--ink)}
+.atsum{margin-top:18px}
+.attbl.atsmall{min-width:0}.attbl.atsmall th,.attbl.atsmall td{padding:8px 6px}
+.attbl td.q.ok{color:var(--ok)}
+.attbl tr.grp td{background:var(--brand);color:var(--bg);font-weight:600;font-family:var(--display)}
+.attbl tr.sub td{background:var(--sunk);font-weight:600}
+.atseg2{display:inline-flex}
+.atseg2 button{border:0;background:none;padding:6px 10px;font-size:13px;cursor:pointer}
+.atseg2 button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+@media (max-width:640px){.atbar{grid-template-columns:1fr 1fr}.atbar .atday{grid-column:1/-1}}
 .atsub{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
-.atbar{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.4fr);gap:8px;margin-top:14px;align-items:end}
+.atbar{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:14px;align-items:end}
 .atday{display:flex;flex-direction:column;gap:2px}
 .atday .in{min-width:150px}
 .atdl{margin:10px 0 0}
@@ -1186,7 +1202,7 @@ function accForm(p){const n=!p;p=p||{full_name:'',username:'',role:'machines',ac
 const ATT_ST={present:['حاضر','ok'],late:['متأخر','warn'],half:['نص يوم','info'],absent:['غائب','bad'],leave:['إجازة','mute']};
 const ATT_WORK=['present','late','half'];
 const ATT_VIEW_ROLES=['timekeeper','project','owner','admin1','admin2','clerk'];
-const ATT_TRADES=['عامل خدمة','حداد','نجار','بنّاء','كهربائي','سبّاك','صبّاغ','لحّام','سائق','مشغّل آلية','حارس','كاشي','جبس','فني تبريد'];
+const ATT_TRADES=['طباخ','عامل خدمة','حداد','نجار','بنّاء','كهربائي','سبّاك','صبّاغ','لحّام','سائق','مشغّل آلية','حارس','كاشي','جبس','فني تبريد'];
 const ATT_SITES=[...Array.from({length:22},(_,i)=>'T'+(i+1)),'المعمل','الساحة العامة','المخزن'];
 const DOW_AR=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const seesAtt=()=>ATT_VIEW_ROLES.includes(S.me?.role);
@@ -1213,7 +1229,7 @@ function attCfg(){const c=S.settings?.att||{};const start=c.start||'07:00',end=c
   return{start,end,grace:Math.max(0,+(c.grace??15)),off:Array.isArray(c.off)?c.off.map(Number):[5],alertDays:Math.max(2,+(c.alertDays||3)),otRate:+(c.otRate??1)||1,hours:em>sm?(em-sm)/60:8}}
 
 /* ---- state ---- */
-S.att={workers:[],rows:{},byId:{},days:{},from:null,to:null,day:null,site:'',q:'',f:'',sub:'round',
+S.att={orig:'',worig:'',absOrig:'',repBy:'origin',workers:[],rows:{},byId:{},days:{},from:null,to:null,day:null,site:'',q:'',f:'',sub:'round',
   wq:'',wsite:'',woff:false,absFrom:null,absTo:null,absSite:'',absAll:false,month:null,repSite:'',repDay:null,audit:null,geo:null,geoW:null,dirty:false,err:null};
 const AK=(w,d)=>w+'|'+d;
 const attRec=(w,d)=>S.att.rows[AK(w,d)];
@@ -1222,6 +1238,17 @@ function attPut(r){const A=S.att;const old=A.byId[r.id];if(old){const k0=AK(old.
 function attDrop(id){const A=S.att,r=A.byId[id];if(!r)return;delete A.byId[id];const k=AK(r.worker_id,r.day);if(A.rows[k]&&A.rows[k].id===id)delete A.rows[k]}
 const siteSort=(a,b)=>{const na=/^T(\d+)$/.exec(a||''),nb=/^T(\d+)$/.exec(b||'');if(na&&nb)return na[1]-nb[1];if(na)return-1;if(nb)return 1;return String(a||'').localeCompare(String(b||''),'ar')};
 const attSites=()=>[...new Set(S.att.workers.map(w=>w.site).filter(Boolean))].sort(siteSort);
+/* nationality groups (الأصل) — one shared log, shown in sections */
+const ATT_ORIGINS=['الأتراك','الأفغان','الأكراد','البنغلادش','الباكستان','الإيرانيين','السوريين'];
+const NO_ORIG='بدون جنسية';
+const origOf=w=>String(w?.origin||'').trim()||NO_ORIG;
+const origRank=o=>{const i=ATT_ORIGINS.indexOf(o);return i>=0?i:o===NO_ORIG?999:100};
+const origSort=(a,b)=>origRank(a)-origRank(b)||a.localeCompare(b,'ar');
+const attOrigins=()=>[...new Set(S.att.workers.map(origOf))].sort(origSort);
+function attGroup(ws,key){key=key||origOf;const g={};ws.forEach(w=>{const k=key(w);(g[k]=g[k]||[]).push(w)});return Object.keys(g).sort(key===origOf?origSort:siteSort).map(k=>[k,g[k]])}
+function attDayCount(ws,d){const o={all:ws.length,work:0,present:0,late:0,half:0,absent:0,leave:0,none:0};ws.forEach(w=>{const r=attRec(w.id,d);if(!r)o.none++;else{o[r.status]++;if(ATT_WORK.includes(r.status))o.work++}});return o}
+const attGrpFoot=(o,label)=>`<div class="atgf"><b>${esc(label)}:</b><span class="g-ok">مداوم <b class="num">${o.work}</b></span><span class="g-bad">غائب <b class="num">${o.absent}</b></span>${o.leave?`<span>إجازة <b class="num">${o.leave}</b></span>`:''}${o.none?`<span class="g-warn">لم يُسجّل <b class="num">${o.none}</b></span>`:''}<span class="muted">من <b class="num">${o.all}</b></span></div>`;
+const origSel=(id,val,all)=>`<select id="${id}" class="in" aria-label="الجنسية"><option value="">${all||'كل الجنسيات'}</option>${attOrigins().map(o=>`<option ${val===o?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
 const initials=n=>esc(String(n||'؟').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join(''));
 
 /* ---- loading ---- */
@@ -1362,16 +1389,16 @@ function attRoundView(){
   const d=A.day,closed=isClosed(d),hol=isHoliday(d),off=c.off.includes(dayDow(d)),ed=attCanEdit(d),boss=attBoss(),quick=ed&&!closed;
   setTimeout(()=>{if(quick&&d===t)attGeoStart()},0);
   const ws=A.workers.filter(w=>w.active||attRec(w.id,d));
-  const q=A.q.trim(),inSite=w=>!A.site||w.site===A.site,inQ=w=>!q||[w.name,w.code,w.trade,w.site,w.team,w.phone].join(' ').includes(q);
-  const base=ws.filter(w=>inSite(w)&&inQ(w));
+  const q=A.q.trim(),inSite=w=>!A.site||w.site===A.site,inO=w=>!A.orig||origOf(w)===A.orig,inQ=w=>!q||[w.name,w.code,w.trade,w.site,w.team,w.phone,w.origin].join(' ').includes(q);
+  const base=ws.filter(w=>inSite(w)&&inO(w)&&inQ(w));
   const cnt={all:base.length,present:0,late:0,half:0,absent:0,leave:0,none:0};base.forEach(w=>{const r=attRec(w.id,d);cnt[r?r.status:'none']++});
   const f=A.f,list=base.filter(w=>{const r=attRec(w.id,d);return!f||(f==='none'?!r:r&&r.status===f)})
     .sort((a,b)=>(attRec(a.id,d)?1:0)-(attRec(b.id,d)?1:0)||siteSort(a.site,b.site)||a.name.localeCompare(b.name,'ar'));
   const unmarked=base.filter(w=>w.active&&!attRec(w.id,d));
   const sites=attSites();
   let h=`<div class="atbar"><label class="atday"><span class="muted small">اليوم</span><input id="atDay" class="in num" type="date" value="${d}" max="${t}" ${tk?`min="${dayAdd(t,-1)}"`:''}></label>
-    <select id="atSite" class="in" aria-label="البناية"><option value="">كل البنايات والمواقع</option>${sites.map(s=>`<option ${A.site===s?'selected':''}>${esc(s)}</option>`).join('')}</select>
-    <input id="atQ" class="in" placeholder="بحث بالاسم أو الرمز أو المهنة…" value="${esc(A.q)}" autocomplete="off"></div>`;
+    <select id="atSite" class="in" aria-label="البناية"><option value="">كل البنايات والمواقع</option>${sites.map(s=>`<option ${A.site===s?'selected':''}>${esc(s)}</option>`).join('')}</select>${origSel('atOrig',A.orig)}
+    <input id="atQ" class="in" placeholder="بحث بالاسم أو الرمز أو المهنة أو الهاتف…" value="${esc(A.q)}" autocomplete="off"></div>`;
   h+=`<p class="atdl"><b>${esc(dayLong(d))}</b> <span class="muted small">· الدوام ${esc(c.start)}–${esc(c.end)} · سماح التأخير ${c.grace} د</span></p>`;
   if(hol)h+=`<div class="banner" style="background:var(--info-soft);color:var(--info)">🏖 عطلة رسمية${A.days[d].holiday_note?': '+esc(A.days[d].holiday_note):''} — ما ينحسب غياب هذا اليوم.${boss?`<button class="btn sm" data-a="atHoliday" data-v="0">إلغاء العطلة</button>`:''}</div>`;
   else if(off)h+=`<div class="banner" style="background:var(--info-soft);color:var(--info)">📅 ${DOW_AR[dayDow(d)]} عطلة أسبوعية — الإغلاق ما يسجّل غياب. اللي يداوم يتسجّل عادي.</div>`;
@@ -1386,13 +1413,22 @@ function attRoundView(){
     h+=`</div>`}
   if(!A.workers.length)return h+`<div class="empty"><b>ما مسجّل أي عامل بعد</b>${attCanMark()?'ابدأ بإضافة العمال من تبويب «العمال»، وبعدها اطبع لكل واحد باج QR.':'العمال يضيفهم مراقب الدوام أو مدير المشروع.'}${attCanMark()?`<div class="row"><button class="btn pri" data-a="atWNew">+ إضافة عامل</button></div>`:''}</div>`;
   if(!list.length)return h+`<div class="empty"><b>لا أحد هنا</b>${f?'ما في عمال بهذه الحالة.':'غيّر البحث أو البناية.'}</div>`;
-  return h+`<div class="atlist">${list.map(w=>attRow(w,d,quick)).join('')}</div>`}
+  const groups=attGroup(list);
+  h+=groups.map(([o,gw])=>{const all=base.filter(w=>origOf(w)===o),oc=attDayCount(all,d);
+    return`<section class="atgrp"><h3 class="atgh"><span>${esc(o)}</span><span class="muted small"><span class="num">${oc.work}</span> مداوم · <span class="num">${oc.absent}</span> غائب · <span class="num">${all.length}</span> عامل</span></h3>
+     <div class="atlist">${gw.map(w=>attRow(w,d,quick)).join('')}</div>${attGrpFoot(oc,'مجموع '+o)}</section>`}).join('');
+  const og=attGroup(base);
+  if(og.length>1){const T=attDayCount(base,d);
+    h+=`<div class="sec atsum"><h4 style="margin:0">ملخص ${esc(dayLabel(d))} حسب الجنسية</h4><div class="tbl-wrap"><table class="attbl atsmall"><thead><tr><th>الجنسية</th><th>مداوم</th><th>غائب</th><th>إجازة</th><th>لم يُسجّل</th><th>العدد</th></tr></thead><tbody>
+     ${og.map(([o,gw])=>{const c2=attDayCount(gw,d);return`<tr><td><b>${esc(o)}</b></td><td class="q ok">${c2.work}</td><td class="q ${c2.absent?'bad':''}">${c2.absent}</td><td class="q">${c2.leave}</td><td class="q ${c2.none?'warn':''}">${c2.none}</td><td class="q">${c2.all}</td></tr>`}).join('')}
+     <tr class="tot"><td>المجموع</td><td class="q">${T.work}</td><td class="q">${T.absent}</td><td class="q">${T.leave}</td><td class="q">${T.none}</td><td class="q">${T.all}</td></tr></tbody></table></div></div>`}
+  return h}
 function attRow(w,d,quick){const r=attRec(w.id,d),work=r&&ATT_WORK.includes(r.status);
   let tm='';if(work){tm=`<span class="num">${r.in_at?bgHM(r.in_at):'—'}</span>${r.out_at?` ← <span class="num">${bgHM(r.out_at)}</span>`:''}`}
   else if(r&&r.reason)tm=esc(r.reason);
   let q='';if(quick){if(!r||!work)q=`<button class="atb ok" data-a="atIn" data-v="${w.id}" aria-label="حاضر ${esc(w.name)}">✓<span>حاضر</span></button>${!r&&!isHoliday(d)?`<button class="atb bad" data-a="atAbs" data-v="${w.id}" aria-label="غائب ${esc(w.name)}">✗<span>غائب</span></button>`:''}`;
     else if(!r.out_at)q=`<button class="atb" data-a="atOut" data-v="${w.id}" aria-label="تسجيل خروج ${esc(w.name)}">↩<span>خروج</span></button>`}
-  return`<div class="atrow ${r?'s-'+r.status:'s-none'}${w.active?'':' inact'}"><button class="atw" data-a="atOpen" data-v="${w.id}">${w.photo&&imgSrc(w.photo)?`<img class="av" src="${esc(imgSrc(w.photo))}" alt="">`:`<span class="av">${initials(w.name)}</span>`}<span class="an"><b>${esc(w.name)}</b><span class="muted small">${[w.trade,w.site,w.code].filter(Boolean).map(esc).join(' · ')}${w.active?'':' · موقوف'}</span></span></button>
+  return`<div class="atrow ${r?'s-'+r.status:'s-none'}${w.active?'':' inact'}"><button class="atw" data-a="atOpen" data-v="${w.id}">${w.photo&&imgSrc(w.photo)?`<img class="av" src="${esc(imgSrc(w.photo))}" alt="">`:`<span class="av">${initials(w.name)}</span>`}<span class="an"><b>${esc(w.name)}</b><span class="small atsubl">${w.trade?`<b class="attr">${esc(w.trade)}</b>`:''}${w.phone?`<span class="num">${esc(w.phone)}</span>`:''}<span class="muted">${[w.site,w.code].filter(Boolean).map(esc).join(' · ')}${w.active?'':' · موقوف'}</span></span></span></button>
    <div class="atst">${attPill(r)}<span class="muted small attm">${tm}</span></div><div class="atq">${q}<button class="atb more" data-a="atOpen" data-v="${w.id}" aria-label="تفاصيل ${esc(w.name)}">⋯</button></div></div>`}
 
 /* worker day sheet */
@@ -1401,7 +1437,7 @@ function attSheet(wid,day){const w=attWorker(wid);if(!w)return;const A=S.att;day
   const t=bgDay(),last=[];for(let i=13;i>=0;i--){const d=dayAdd(t,-i);last.push([d,attRec(wid,d)])}
   const ms=attSum(wid,monthStart(t),t),stk=attStreak(wid);
   const pay=attSeesPay()&&+w.wage?`<div><span>الأجر</span><b><span class="num">${nf.format(+w.wage)}</span> د.ع ${w.pay_type==='monthly'?'شهري':'يومي'}</b></div>`:'';
-  let b=`<div class="sec"><div class="atsh-h">${w.photo&&imgSrc(w.photo)?`<img class="av lg" src="${esc(imgSrc(w.photo))}" alt="">`:`<span class="av lg">${initials(w.name)}</span>`}<div><b style="font-family:var(--display);font-size:17px">${esc(w.name)}</b><div class="meta"><span class="num">${esc(w.code)}</span>${w.trade?`<span>${esc(w.trade)}</span>`:''}${w.site?`<span>${esc(w.site)}</span>`:''}${w.team?`<span>${esc(w.team)}</span>`:''}${w.active?'':'<span class="pill p-bad">موقوف</span>'}</div></div></div>
+  let b=`<div class="sec"><div class="atsh-h">${w.photo&&imgSrc(w.photo)?`<img class="av lg" src="${esc(imgSrc(w.photo))}" alt="">`:`<span class="av lg">${initials(w.name)}</span>`}<div><b style="font-family:var(--display);font-size:17px">${esc(w.name)}</b><div class="meta"><span class="num">${esc(w.code)}</span><span>${esc(origOf(w))}</span>${w.trade?`<span>${esc(w.trade)}</span>`:''}${w.site?`<span>${esc(w.site)}</span>`:''}${w.team?`<span>${esc(w.team)}</span>`:''}${w.active?'':'<span class="pill p-bad">موقوف</span>'}</div></div></div>
     <div class="kv" style="margin-top:10px">${w.phone?`<div><span>الهاتف</span><b><a class="num" href="tel:${esc(w.phone)}">${esc(w.phone)}</a></b></div>`:''}${pay}<div><span>هذا الشهر</span><b><span class="num">${ms.present+ms.late}</span> حضور · <span class="num">${ms.absent}</span> غياب${ms.late?` · <span class="num">${ms.late}</span> تأخير`:''}</b></div>${stk>=2?`<div><span>غياب متتالي</span><b class="pill p-bad"><span class="num">${stk}</span> أيام</b></div>`:''}</div>
     <div class="athist" aria-label="آخر 14 يوم">${last.map(([d,x])=>`<button class="hd ${x?'s-'+x.status+(x.excused?' ex':''):'s-none'} ${d===day?'cur':''}" data-a="atOpenD" data-v="${wid}|${d}" title="${esc(dayLong(d))}: ${x?ATT_ST[x.status][0]:'لم يُسجّل'}"><span class="num">${+d.slice(8)}</span></button>`).join('')}</div></div>`;
   b+=`<form class="f sec" id="atF"><h4 style="margin:0 0 8px">${esc(dayLong(day))}${closed?' <span class="pill p-mute">🔒 مغلق</span>':''}</h4>
@@ -1477,19 +1513,21 @@ function attQErrDlg(){const q=attQ();overlay('atqerr','تسجيلات ما ان�
 
 /* workers */
 function attWorkersView(){const A=S.att,q=A.wq.trim(),pay=attSeesPay();
-  const list=A.workers.filter(w=>(A.woff||w.active)&&(!A.wsite||w.site===A.wsite)&&(!q||[w.name,w.code,w.trade,w.site,w.team,w.phone].join(' ').includes(q))).sort((a,b)=>(b.active-a.active)||siteSort(a.site,b.site)||a.name.localeCompare(b.name,'ar'));
+  const list=A.workers.filter(w=>(A.woff||w.active)&&(!A.wsite||w.site===A.wsite)&&(!A.worig||origOf(w)===A.worig)&&(!q||[w.name,w.code,w.trade,w.site,w.team,w.phone,w.origin].join(' ').includes(q))).sort((a,b)=>(b.active-a.active)||a.name.localeCompare(b.name,'ar'));
   const act=A.workers.filter(w=>w.active).length;
   let h=`<div class="filters">${attCanMark()?`<button class="btn pri" data-a="atWNew">+ إضافة عامل</button>`:''}<button class="btn" data-a="atPrint" ${list.some(w=>w.active)?'':'disabled'}>🖨 طباعة باجات (${list.filter(w=>w.active).length})</button>${pay?`<button class="btn" data-a="atWCsv">⬇ Excel</button>`:''}</div>
-   <div class="filters"><input id="atWQ" class="in" placeholder="بحث بالاسم أو الرمز أو المهنة أو الهاتف…" value="${esc(A.wq)}" autocomplete="off"><select id="atWSite" class="in" aria-label="البناية"><option value="">كل المواقع</option>${attSites().map(s=>`<option ${A.wsite===s?'selected':''}>${esc(s)}</option>`).join('')}</select><label class="atchk"><input type="checkbox" id="atWOff" ${A.woff?'checked':''}> إظهار الموقوفين</label></div>
+   <div class="filters"><input id="atWQ" class="in" placeholder="بحث بالاسم أو الرمز أو المهنة أو الهاتف…" value="${esc(A.wq)}" autocomplete="off">${origSel('atWOrig',A.worig)}<select id="atWSite" class="in" aria-label="البناية"><option value="">كل المواقع</option>${attSites().map(s=>`<option ${A.wsite===s?'selected':''}>${esc(s)}</option>`).join('')}</select><label class="atchk"><input type="checkbox" id="atWOff" ${A.woff?'checked':''}> إظهار الموقوفين</label></div>
    <p class="note"><span class="num">${act}</span> عامل فعّال${A.workers.length>act?` · <span class="num">${A.workers.length-act}</span> موقوف`:''}${S.me?.role==='timekeeper'?' · الأجور يحددها مدير المشروع':''}</p>`;
   if(!list.length)return h+`<div class="empty"><b>${A.workers.length?'لا نتائج':'ما مسجّل أي عامل بعد'}</b>${A.workers.length?'غيّر البحث.':'اضغط «+ إضافة عامل».'}</div>`;
-  return h+`<div class="sec" style="margin-top:10px">${list.map(w=>`<div class="arow"><span class="mono">${initials(w.name)}</span><div class="an"><b>${esc(w.name)}</b><span class="muted small"><span class="num">${esc(w.code)}</span>${w.trade?' · '+esc(w.trade):''}${w.site?' · '+esc(w.site):''}${w.team?' · '+esc(w.team):''}${pay&&+w.wage?` · <span class="num">${nf.format(+w.wage)}</span> ${w.pay_type==='monthly'?'شهري':'يومي'}`:pay?' · <span style="color:var(--warn)">بدون أجر</span>':''}${w.active?'':' · <span style="color:var(--bad)">موقوف</span>'}</span></div>
-    <div class="acts"><button class="btn sm" data-a="atBadge" data-v="${w.id}">باج</button>${attCanMark()?`<button class="btn sm" data-a="atWEdit" data-v="${w.id}">تعديل</button>`:''}<button class="btn sm ghost" data-a="atOpen" data-v="${w.id}">الدوام</button></div></div>`).join('')}</div>`}
-function attWForm(w){const n=!w,boss=attBoss();w=w||{active:true,pay_type:'daily',wage:0,site:S.att.site||''};
+  return h+attGroup(list).map(([o,gw])=>`<section class="atgrp"><h3 class="atgh"><span>${esc(o)}</span><span class="muted small"><span class="num">${gw.filter(w=>w.active).length}</span> عامل</span></h3><div class="sec">${gw.map(w=>`<div class="arow"><span class="mono">${initials(w.name)}</span><div class="an"><b>${esc(w.name)}</b><span class="small atsubl">${w.trade?`<b class="attr">${esc(w.trade)}</b>`:'<span style="color:var(--warn)">بدون مهنة</span>'}${w.phone?`<a class="num" href="tel:${esc(w.phone)}">${esc(w.phone)}</a>`:''}<span class="muted"><span class="num">${esc(w.code)}</span>${w.site?' · '+esc(w.site):''}${w.team?' · '+esc(w.team):''}${pay&&+w.wage?` · <span class="num">${nf.format(+w.wage)}</span> ${w.pay_type==='monthly'?'شهري':'يومي'}`:pay?' · <span style="color:var(--warn)">بدون أجر</span>':''}${w.active?'':' · <span style="color:var(--bad)">موقوف</span>'}</span></span></div>
+    <div class="acts"><button class="btn sm" data-a="atBadge" data-v="${w.id}">باج</button>${attCanMark()?`<button class="btn sm" data-a="atWEdit" data-v="${w.id}">تعديل</button>`:''}<button class="btn sm ghost" data-a="atOpen" data-v="${w.id}">الدوام</button></div></div>`).join('')}</div></section>`).join('')}
+function attWForm(w){const n=!w,boss=attBoss();w=w||{active:true,pay_type:'daily',wage:0,site:S.att.site||'',origin:S.att.orig&&S.att.orig!==NO_ORIG?S.att.orig:''};
   const trades=[...new Set([...ATT_TRADES,...S.att.workers.map(x=>x.trade).filter(Boolean)])],sites=[...new Set([...ATT_SITES,...attSites()])].sort(siteSort);
   overlay('atw',n?'إضافة عامل':'تعديل '+esc(w.name),`<form class="f" id="atWF"><div class="fr"><label class="l">الاسم الكامل<input id="awN" class="in" required minlength="2" value="${esc(w.name||'')}" autocomplete="off"></label><label class="l">الهاتف <em>(اختياري)</em><input id="awP" class="in num" dir="ltr" inputmode="tel" value="${esc(w.phone||'')}" placeholder="07xxxxxxxxx"></label></div>
-   <div class="fr"><label class="l">المهنة<input id="awT" class="in" list="awTL" value="${esc(w.trade||'')}" placeholder="مثال: حداد"><datalist id="awTL">${trades.map(t=>`<option value="${esc(t)}">`).join('')}</datalist></label>
+   <div class="fr"><label class="l">المهنة<input id="awT" class="in" list="awTL" value="${esc(w.trade||'')}" placeholder="مثال: طباخ، حداد" required><datalist id="awTL">${trades.map(t=>`<option value="${esc(t)}">`).join('')}</datalist></label>
    <label class="l">البناية / الموقع<input id="awS" class="in" list="awSL" value="${esc(w.site||'')}" placeholder="مثال: T3"><datalist id="awSL">${sites.map(t=>`<option value="${esc(t)}">`).join('')}</datalist></label></div>
+   <div class="fr"><label class="l">الجنسية / الأصل<select id="awO" class="in" required><option value="">— اختر —</option>${[...new Set([...ATT_ORIGINS,...attOrigins().filter(o=>o!==NO_ORIG)])].map(o=>`<option ${w.origin===o?'selected':''}>${esc(o)}</option>`).join('')}<option value="__o">أخرى…</option></select></label>
+   <label class="l" id="awOOL" hidden>اكتب الجنسية<input id="awOO" class="in" placeholder="مثال: المصريين"></label></div>
    <label class="l">المقاول أو الفريق <em>(اختياري)</em><input id="awG" class="in" value="${esc(w.team||'')}" placeholder="مثال: فريق أبو حسين"></label>
    ${boss?`<div class="fr"><label class="l">نوع الأجر<select id="awPT" class="in"><option value="daily" ${w.pay_type!=='monthly'?'selected':''}>يومي</option><option value="monthly" ${w.pay_type==='monthly'?'selected':''}>شهري</option></select></label><label class="l">مبلغ الأجر (د.ع)<input id="awW" class="in num" type="number" min="0" step="250" inputmode="numeric" value="${+w.wage||''}" placeholder="مثال: 25000"></label></div>`:`<p class="note" style="margin:0">الأجر يحدده مدير المشروع.</p>`}
    <label class="l">صورة العامل <em>(اختياري)</em><input id="awF" class="in" type="file" accept="image/*"></label>
@@ -1497,7 +1535,7 @@ function attWForm(w){const n=!w,boss=attBoss();w=w||{active:true,pay_type:'daily
    ${n?'':`<label class="atchk"><input type="checkbox" id="awA" ${w.active?'checked':''}> فعّال (يظهر بالجولة اليومية)</label>`}
    <p class="note bad" id="awErr" style="margin:0"></p>
    <div class="acts"><button class="btn pri" type="submit">${n?'إضافة':'حفظ'}</button><button class="btn ghost" type="button" data-a="close">إلغاء</button>${!n&&boss?`<span id="awDelC" style="margin-inline-start:auto"><button class="btn bad sm" type="button" id="awDel">حذف</button></span>`:''}</div></form>`);
-  $('#awN').focus();
+  $('#awN').focus();$('#awO').addEventListener('change',e=>{const ot=e.target.value==='__o';$('#awOOL').hidden=!ot;if(ot)$('#awOO').focus()});
   const del=$('#awDel');if(del)del.addEventListener('click',()=>{$('#awDelC').innerHTML='<button class="btn bad sm" type="button" id="awDel2">تأكيد الحذف</button>';$('#awDel2').addEventListener('click',async()=>{
     const {error}=await sb.from('workers').delete().eq('id',w.id);if(error){$('#awErr').textContent=/foreign key|violates/i.test(error.message)?'العامل عنده سجل حضور، ما ينحذف. شيل علامة «فعّال» حتى توقفه.':attErrMsg(error);return}
     S.att.workers=S.att.workers.filter(x=>x.id!==w.id);closeOv();render();toast('انحذف العامل')})});
@@ -1505,7 +1543,9 @@ function attWForm(w){const n=!w,boss=attBoss();w=w||{active:true,pay_type:'daily
     const name=$('#awN').value.trim().replace(/\s+/g,' ');if(name.length<2){er.textContent='اكتب اسم العامل';return}
     const phone=digitsOnly($('#awP').value);if(phone&&(phone.length<10||phone.length>15)){er.textContent='رقم الهاتف غير صحيح';return}
     const dup=S.att.workers.find(x=>x.id!==w.id&&x.name===name&&(x.site||'')===($('#awS').value.trim()));if(dup&&!e.target.dataset.dupOk){er.textContent='يوجد عامل بنفس الاسم بنفس الموقع ('+dup.code+'). اضغط مرة ثانية إذا هو شخص آخر.';e.target.dataset.dupOk='1';return}
-    const o={name,phone:phone||null,trade:$('#awT').value.trim()||null,site:$('#awS').value.trim()||null,team:$('#awG').value.trim()||null,notes:$('#awNo').value.trim()||null};
+    const ov=$('#awO').value==='__o'?$('#awOO').value.trim().replace(/\s+/g,' '):$('#awO').value;if(!ov||ov.length<2){er.textContent='اختر جنسية العامل';return}
+    if(!$('#awT').value.trim()){er.textContent='اكتب مهنة العامل (مثال: طباخ، حداد)';$('#awT').focus();return}
+    const o={name,origin:ov,phone:phone||null,trade:$('#awT').value.trim()||null,site:$('#awS').value.trim()||null,team:$('#awG').value.trim()||null,notes:$('#awNo').value.trim()||null};
     if(boss){o.pay_type=$('#awPT').value;o.wage=Math.max(0,Math.round(+$('#awW').value||0))}
     if(!n)o.active=$('#awA').checked;
     btn.disabled=true;
@@ -1534,60 +1574,72 @@ function csvDownload(name,rows){const s='﻿'+rows.map(r=>r.map(c=>{c=String(c??
 /* absences */
 function attAbsView(){const A=S.att,t=bgDay();A.absFrom=A.absFrom||monthStart(t);A.absTo=A.absTo&&A.absTo<=t?A.absTo:t;if(A.absFrom>A.absTo)A.absFrom=A.absTo;
   if(A.from&&A.absFrom<A.from){attEnsure(A.absFrom,A.absTo).then(c=>{if(c)attRerender(true)});}
-  const c=attCfg(),site=A.absSite;
+  const c=attCfg(),site=A.absSite,org=A.absOrig,okW=w=>w&&(!site||w.site===site)&&(!org||origOf(w)===org);
   const rows=Object.values(A.rows).filter(r=>r.day>=A.absFrom&&r.day<=A.absTo&&(r.status==='absent'||(A.absAll&&r.status==='leave'))&&(A.absAll||!r.excused));
-  const by={};rows.forEach(r=>{const w=attWorker(r.worker_id);if(!w||(site&&w.site!==site))return;(by[w.id]=by[w.id]||{w,list:[]}).list.push(r)});
-  const groups=Object.values(by).sort((a,b)=>b.list.length-a.list.length||a.w.name.localeCompare(b.w.name,'ar'));
-  const streaks=A.workers.filter(w=>w.active&&(!site||w.site===site)).map(w=>[w,attStreak(w.id)]).filter(([,n])=>n>=c.alertDays).sort((a,b)=>b[1]-a[1]);
+  const by={};rows.forEach(r=>{const w=attWorker(r.worker_id);if(!okW(w))return;(by[w.id]=by[w.id]||{w,list:[]}).list.push(r)});
+  const groups=Object.values(by);
+  const streaks=A.workers.filter(w=>w.active&&okW(w)).map(w=>[w,attStreak(w.id)]).filter(([,n])=>n>=c.alertDays).sort((a,b)=>b[1]-a[1]);
   let h=`<div class="filters"><label class="atday"><span class="muted small">من</span><input id="atAF" class="in num" type="date" value="${A.absFrom}" max="${t}"></label><label class="atday"><span class="muted small">إلى</span><input id="atAT" class="in num" type="date" value="${A.absTo}" max="${t}"></label>
-   <select id="atASite" class="in" aria-label="الموقع"><option value="">كل المواقع</option>${attSites().map(s=>`<option ${site===s?'selected':''}>${esc(s)}</option>`).join('')}</select><label class="atchk"><input type="checkbox" id="atAAll" ${A.absAll?'checked':''}> إظهار الغياب بإذن والإجازات</label></div>`;
-  if(streaks.length)h+=`<div class="sec atwarn" style="margin-top:12px"><h4 style="margin:0 0 6px">⚠ غياب متكرر الآن (${c.alertDays} أيام أو أكثر بدون إذن)</h4>${streaks.map(([w,n])=>`<button class="orow" data-a="atOpen" data-v="${w.id}"><span class="mono">${initials(w.name)}</span><span class="an"><b>${esc(w.name)}</b><span class="muted small">${[w.trade,w.site,w.phone].filter(Boolean).map(esc).join(' · ')}</span></span><span class="pill p-bad"><span class="num">${n}</span> أيام متتالية</span></button>`).join('')}</div>`;
+   ${origSel('atAOrig',org)}<select id="atASite" class="in" aria-label="الموقع"><option value="">كل المواقع</option>${attSites().map(s=>`<option ${site===s?'selected':''}>${esc(s)}</option>`).join('')}</select><label class="atchk"><input type="checkbox" id="atAAll" ${A.absAll?'checked':''}> إظهار الغياب بإذن والإجازات</label></div>`;
+  if(streaks.length)h+=`<div class="sec atwarn" style="margin-top:12px"><h4 style="margin:0 0 6px">⚠ غياب متكرر الآن (${c.alertDays} أيام أو أكثر بدون إذن)</h4>${streaks.map(([w,n])=>`<button class="orow" data-a="atOpen" data-v="${w.id}"><span class="mono">${initials(w.name)}</span><span class="an"><b>${esc(w.name)}</b><span class="muted small">${[origOf(w),w.trade,w.site,w.phone].filter(Boolean).map(esc).join(' · ')}</span></span><span class="pill p-bad"><span class="num">${n}</span> أيام متتالية</span></button>`).join('')}</div>`;
   const total=groups.reduce((s,g)=>s+g.list.length,0);
   h+=`<p class="note"><span class="num">${total}</span> يوم غياب ${A.absAll?'(كل الأنواع)':'بدون إذن'} · <span class="num">${groups.length}</span> عامل · من ${esc(dayLabel(A.absFrom))} إلى ${esc(dayLabel(A.absTo))}</p>`;
   if(!groups.length)return h+`<div class="empty"><b>ماكو غيابات بهذه الفترة</b>${A.absAll?'':'جرّب إظهار الغياب بإذن.'}</div>`;
-  return h+`<div class="list">${groups.map(g=>`<div class="sec atabs"><div class="atabs-h"><button class="atw" data-a="atOpen" data-v="${g.w.id}"><span class="av">${initials(g.w.name)}</span><span class="an"><b>${esc(g.w.name)}</b><span class="muted small">${[g.w.trade,g.w.site,g.w.code].filter(Boolean).map(esc).join(' · ')}</span></span></button><span class="pill p-bad"><span class="num">${g.list.length}</span> يوم</span></div>
-   <div class="atchips">${g.list.sort((a,b)=>a.day<b.day?1:-1).map(r=>`<button class="atday-c ${r.excused||r.status==='leave'?'ex':''}" data-a="atOpenD" data-v="${g.w.id}|${r.day}" title="${esc(r.reason||'')}">${esc(dayLabel(r.day))}${r.status==='leave'?' · إجازة':r.excused?' · بإذن':''}${r.reason?' · '+esc(r.reason.slice(0,24)):''}${r.attach?' 📎':''}</button>`).join('')}</div></div>`).join('')}</div>`}
-
+  const byO={};groups.forEach(g=>{const o=origOf(g.w);(byO[o]=byO[o]||[]).push(g)});
+  return h+Object.keys(byO).sort(origSort).map(o=>{const gs=byO[o].sort((a,b)=>b.list.length-a.list.length||a.w.name.localeCompare(b.w.name,'ar')),n=gs.reduce((s,g)=>s+g.list.length,0);
+    return`<section class="atgrp"><h3 class="atgh"><span>${esc(o)}</span><span class="muted small"><span class="num">${n}</span> يوم غياب · <span class="num">${gs.length}</span> عامل</span></h3><div class="list" style="margin-top:6px">${gs.map(g=>`<div class="sec atabs"><div class="atabs-h"><button class="atw" data-a="atOpen" data-v="${g.w.id}"><span class="av">${initials(g.w.name)}</span><span class="an"><b>${esc(g.w.name)}</b><span class="small atsubl">${g.w.trade?`<b class="attr">${esc(g.w.trade)}</b>`:''}${g.w.phone?`<span class="num">${esc(g.w.phone)}</span>`:''}<span class="muted">${[g.w.site,g.w.code].filter(Boolean).map(esc).join(' · ')}</span></span></span></button><span class="pill p-bad"><span class="num">${g.list.length}</span> يوم</span></div>
+   <div class="atchips">${g.list.sort((a,b)=>a.day<b.day?1:-1).map(r=>`<button class="atday-c ${r.excused||r.status==='leave'?'ex':''}" data-a="atOpenD" data-v="${g.w.id}|${r.day}" title="${esc(r.reason||'')}">${esc(dayLabel(r.day))}${r.status==='leave'?' · إجازة':r.excused?' · بإذن':''}${r.reason?' · '+esc(r.reason.slice(0,24)):''}${r.attach?' 📎':''}</button>`).join('')}</div></div>`).join('')}</div>
+   <div class="atgf"><b>مجموع ${esc(o)}:</b><span class="g-bad">غياب <b class="num">${n}</b> يوم</span><span class="muted"><b class="num">${gs.length}</b> عامل</span></div></section>`}).join('')}
 /* reports */
 function attRepView(){const A=S.att,t=bgDay(),c=attCfg();A.repDay=A.repDay&&A.repDay<=t?A.repDay:(A.day||t);A.month=A.month||t.slice(0,7);
   const mFrom=A.month+'-01',mTo=monthEnd(mFrom)>t?t:monthEnd(mFrom);
   if(A.from&&(mFrom<A.from||A.repDay<A.from))attEnsure(mFrom<A.repDay?mFrom:A.repDay,t).then(ch=>{if(ch)attRerender(true)});
-  /* daily by site */
-  const d=A.repDay,bySite={};A.workers.filter(w=>w.active||attRec(w.id,d)).forEach(w=>{const s=w.site||'بدون موقع';const o=bySite[s]=bySite[s]||{all:0,present:0,late:0,half:0,absent:0,leave:0,none:0};o.all++;const r=attRec(w.id,d);o[r?r.status:'none']++});
-  const sk=Object.keys(bySite).sort(siteSort),tot={all:0,present:0,late:0,half:0,absent:0,leave:0,none:0};sk.forEach(s=>Object.keys(tot).forEach(k=>tot[k]+=bySite[s][k]));
-  const pct=o=>o.all?Math.round((o.present+o.late+o.half)/o.all*100)+'%':'—';
-  let h=`<div class="sec" style="margin-top:14px"><div class="atrh"><h4 style="margin:0">ملخص يومي حسب الموقع</h4><input id="atRD" class="in num" type="date" value="${d}" max="${t}" aria-label="اليوم"></div>
+  /* daily by nationality or by site */
+  const d=A.repDay,bySite=A.repBy==='site',key=bySite?(w=>w.site||'بدون موقع'):origOf;
+  const dw=A.workers.filter(w=>w.active||attRec(w.id,d)),gs=attGroup(dw,key),tot=attDayCount(dw,d);
+  const pct=o=>o.all?Math.round(o.work/o.all*100)+'%':'—';
+  const drow=(lab,o,cls)=>`<tr class="${cls||''}"><td><b>${esc(lab)}</b></td><td class="q">${o.all}</td><td class="q ok">${o.work}</td><td class="q">${o.late}</td><td class="q">${o.half}</td><td class="q ${o.absent?'bad':''}">${o.absent}</td><td class="q">${o.leave}</td><td class="q ${o.none?'warn':''}">${o.none}</td><td class="q">${pct(o)}</td></tr>`;
+  let h=`<div class="sec" style="margin-top:14px"><div class="atrh"><h4 style="margin:0">ملخص يومي</h4><div class="seg atseg2"><button type="button" class="${bySite?'':'on'}" data-a="atRepBy" data-v="origin">حسب الجنسية</button><button type="button" class="${bySite?'on':''}" data-a="atRepBy" data-v="site">حسب الموقع</button></div><input id="atRD" class="in num" type="date" value="${d}" max="${t}" aria-label="اليوم"></div>
    <p class="note" style="margin:4px 0 0">${esc(dayLong(d))}${isClosed(d)?' · مغلق':' · مفتوح'}${isHoliday(d)?' · عطلة رسمية':''}</p>
-   <div class="tbl-wrap"><table class="attbl"><thead><tr><th>الموقع</th><th>العدد</th><th>حاضر</th><th>متأخر</th><th>نص يوم</th><th>غائب</th><th>إجازة</th><th>لم يُسجّل</th><th>نسبة الحضور</th></tr></thead><tbody>
-   ${sk.map(s=>{const o=bySite[s];return`<tr><td><b>${esc(s)}</b></td><td class="q">${o.all}</td><td class="q">${o.present}</td><td class="q">${o.late}</td><td class="q">${o.half}</td><td class="q ${o.absent?'bad':''}">${o.absent}</td><td class="q">${o.leave}</td><td class="q ${o.none?'warn':''}">${o.none}</td><td class="q">${pct(o)}</td></tr>`}).join('')||'<tr><td colspan="9" class="muted">لا عمال</td></tr>'}
-   ${sk.length>1?`<tr class="tot"><td>المجموع</td><td class="q">${tot.all}</td><td class="q">${tot.present}</td><td class="q">${tot.late}</td><td class="q">${tot.half}</td><td class="q">${tot.absent}</td><td class="q">${tot.leave}</td><td class="q">${tot.none}</td><td class="q">${pct(tot)}</td></tr>`:''}</tbody></table></div></div>`;
-  /* monthly per worker */
-  const pay=attSeesPay(),site=A.repSite;const ws=A.workers.filter(w=>(!site||w.site===site)&&(w.active||Object.values(A.rows).some(r=>r.worker_id===w.id&&r.day>=mFrom&&r.day<=mTo))).sort((a,b)=>siteSort(a.site,b.site)||a.name.localeCompare(b.name,'ar'));
-  const data=ws.map(w=>{const o=attSum(w.id,mFrom,mTo);return{w,o,p:pay?attPay(w,o):null}});
-  const T=data.reduce((s,{o,p})=>{['present','late','half','absent','absX','leave','none','ot'].forEach(k=>s[k]+=o[k]);s.pay+=p||0;return s},{present:0,late:0,half:0,absent:0,absX:0,leave:0,none:0,ot:0,pay:0});
+   <div class="tbl-wrap"><table class="attbl"><thead><tr><th>${bySite?'الموقع':'الجنسية'}</th><th>العدد</th><th>مداوم</th><th>منهم متأخر</th><th>منهم نص يوم</th><th>غائب</th><th>إجازة</th><th>لم يُسجّل</th><th>نسبة الدوام</th></tr></thead><tbody>
+   ${gs.map(([k,ws])=>drow(k,attDayCount(ws,d))).join('')||'<tr><td colspan="9" class="muted">لا عمال</td></tr>'}
+   ${gs.length>1?drow('المجموع',tot,'tot'):''}</tbody></table></div></div>`;
+  /* monthly per worker, grouped by nationality */
+  const {pay,rows:data}=attMonthRows();
+  const sumOf=list=>list.reduce((s,{o,p})=>{['present','late','half','absent','absX','leave','none','ot'].forEach(k=>s[k]+=o[k]);s.pay+=p||0;return s},{present:0,late:0,half:0,absent:0,absX:0,leave:0,none:0,ot:0,pay:0});
+  const T=sumOf(data);
+  const srow=(lab,S2,cls)=>`<tr class="${cls}"><td>${lab}</td><td></td><td class="q">${S2.present+S2.late}</td><td class="q">${S2.late}</td><td class="q">${S2.half}</td><td class="q">${S2.absent}</td><td class="q">${S2.absX}</td><td class="q">${S2.leave}</td><td class="q">${S2.ot||''}</td>${pay?`<td></td><td class="q">${nf.format(Math.round(S2.pay))}</td>`:''}</tr>`;
+  const byO={};data.forEach(x=>{const o=origOf(x.w);(byO[o]=byO[o]||[]).push(x)});const ok=Object.keys(byO).sort(origSort);
   h+=`<div class="sec" style="margin-top:14px"><div class="atrh"><h4 style="margin:0">الكشف الشهري لكل عامل</h4><input id="atRM" class="in num" type="month" value="${A.month}" max="${t.slice(0,7)}" aria-label="الشهر">
-   <select id="atRS" class="in" aria-label="الموقع"><option value="">كل المواقع</option>${attSites().map(s=>`<option ${site===s?'selected':''}>${esc(s)}</option>`).join('')}</select>
+   ${origSel('atRO',A.repOrig)}<select id="atRS" class="in" aria-label="الموقع"><option value="">كل المواقع</option>${attSites().map(s=>`<option ${A.repSite===s?'selected':''}>${esc(s)}</option>`).join('')}</select>
    <button class="btn sm" data-a="atCsv" ${data.length?'':'disabled'}>⬇ Excel</button><button class="btn sm" data-a="atPrintRep" ${data.length?'':'disabled'}>🖨 طباعة</button></div>
    <p class="note" style="margin:4px 0 0">من ${+mFrom.slice(8)}/${+mFrom.slice(5,7)} إلى ${+mTo.slice(8)}/${+mTo.slice(5,7)} · الإضافي = الساعات فوق ${c.hours} ساعة باليوم × ${c.otRate}</p>
-   <div class="tbl-wrap"><table class="attbl"><thead><tr><th>العامل</th><th>الموقع</th><th>حضور</th><th>تأخير</th><th>نص يوم</th><th>غياب</th><th>غياب بإذن</th><th>إجازة</th><th>إضافي (س)</th>${pay?'<th>الأجر</th><th>المستحق</th>':''}</tr></thead><tbody>
-   ${data.map(({w,o,p})=>`<tr data-a="atOpen" data-v="${w.id}" class="clk"><td><b>${esc(w.name)}</b><div class="muted small num">${esc(w.code)}${w.trade?' · '+esc(w.trade):''}</div></td><td>${esc(w.site||'')}</td><td class="q">${o.present+o.late}</td><td class="q">${o.late}</td><td class="q">${o.half}</td><td class="q ${o.absent?'bad':''}">${o.absent}</td><td class="q">${o.absX}</td><td class="q">${o.leave}</td><td class="q">${o.ot||''}</td>${pay?`<td class="q">${+w.wage?nf.format(+w.wage)+(w.pay_type==='monthly'?' ش':' ي'):'<span class="muted">—</span>'}</td><td class="q">${p==null?'<span class="muted">—</span>':nf.format(Math.round(p))}</td>`:''}</tr>`).join('')||`<tr><td colspan="${pay?11:9}" class="muted">لا عمال</td></tr>`}
-   ${data.length>1?`<tr class="tot"><td>المجموع (${data.length})</td><td></td><td class="q">${T.present+T.late}</td><td class="q">${T.late}</td><td class="q">${T.half}</td><td class="q">${T.absent}</td><td class="q">${T.absX}</td><td class="q">${T.leave}</td><td class="q">${T.ot||''}</td>${pay?`<td></td><td class="q">${nf.format(Math.round(T.pay))}</td>`:''}</tr>`:''}</tbody></table></div>
+   <div class="tbl-wrap"><table class="attbl"><thead><tr><th>العامل</th><th>الموقع</th><th>مداوم</th><th>تأخير</th><th>نص يوم</th><th>غياب</th><th>غياب بإذن</th><th>إجازة</th><th>إضافي (س)</th>${pay?'<th>الأجر</th><th>المستحق</th>':''}</tr></thead><tbody>
+   ${ok.map(o=>`<tr class="grp"><td colspan="${pay?11:9}">${esc(o)}</td></tr>`+byO[o].map(({w,o:x,p})=>`<tr data-a="atOpen" data-v="${w.id}" class="clk"><td><b>${esc(w.name)}</b><div class="muted small">${w.trade?esc(w.trade)+' · ':''}<span class="num">${esc(w.phone||w.code)}</span></div></td><td>${esc(w.site||'')}</td><td class="q">${x.present+x.late}</td><td class="q">${x.late}</td><td class="q">${x.half}</td><td class="q ${x.absent?'bad':''}">${x.absent}</td><td class="q">${x.absX}</td><td class="q">${x.leave}</td><td class="q">${x.ot||''}</td>${pay?`<td class="q">${+w.wage?nf.format(+w.wage)+(w.pay_type==='monthly'?' ش':' ي'):'<span class="muted">—</span>'}</td><td class="q">${p==null?'<span class="muted">—</span>':nf.format(Math.round(p))}</td>`:''}</tr>`).join('')+srow('مجموع '+esc(o)+` (${byO[o].length})`,sumOf(byO[o]),'sub')).join('')||`<tr><td colspan="${pay?11:9}" class="muted">لا عمال</td></tr>`}
+   ${ok.length>1?srow(`المجموع الكلي (${data.length})`,T,'tot'):''}</tbody></table></div>
    ${pay?`<p class="note" style="margin:8px 0 0">اليومي: (الحضور + التأخير) × الأجر + نص اليوم × نص الأجر + الإضافي. الشهري: الراتب − غياب بدون إذن × (الراتب ÷ 30) − نص اليوم × نص يومية + الإضافي. الغياب بإذن والإجازة: ما تنخصم من الشهري وما تنحسب لليومي.</p>`:''}${T.none?`<p class="note bad" style="margin:6px 0 0">في <span class="num">${T.none}</span> يوم مغلق بدون تسجيل لبعض العمال (عمال انضافوا بعد الإغلاق).</p>`:''}</div>`;
   if(attBoss())h+=attSettingsForm();
   return h}
 function attMonthRows(){const A=S.att,t=bgDay(),mFrom=A.month+'-01',mTo=monthEnd(mFrom)>t?t:monthEnd(mFrom),pay=attSeesPay();
-  const ws=A.workers.filter(w=>(!A.repSite||w.site===A.repSite)&&(w.active||Object.values(A.rows).some(r=>r.worker_id===w.id&&r.day>=mFrom&&r.day<=mTo))).sort((a,b)=>siteSort(a.site,b.site)||a.name.localeCompare(b.name,'ar'));
+  const ws=A.workers.filter(w=>(!A.repSite||w.site===A.repSite)&&(!A.repOrig||origOf(w)===A.repOrig)&&(w.active||Object.values(A.rows).some(r=>r.worker_id===w.id&&r.day>=mFrom&&r.day<=mTo))).sort((a,b)=>origSort(origOf(a),origOf(b))||a.name.localeCompare(b.name,'ar'));
   return{mFrom,mTo,pay,rows:ws.map(w=>{const o=attSum(w.id,mFrom,mTo);return{w,o,p:pay?attPay(w,o):null}})}}
 function attCsv(){const {mFrom,mTo,pay,rows}=attMonthRows();const days=[];for(let d=mFrom;d<=mTo;d=dayAdd(d,1))days.push(d);const ab={present:'ح',late:'ت',half:'ن',absent:'غ',leave:'إ'};
-  const head=['الرمز','الاسم','المهنة','الموقع','الفريق','حضور','تأخير','نص يوم','غياب','غياب بإذن','إجازة','إضافي (ساعة)',...(pay?['نوع الأجر','الأجر','المستحق']:[]),...days.map(d=>+d.slice(8))];
-  const out=[head,...rows.map(({w,o,p})=>[w.code,w.name,w.trade||'',w.site||'',w.team||'',o.present+o.late,o.late,o.half,o.absent,o.absX,o.leave,o.ot,...(pay?[w.pay_type==='monthly'?'شهري':'يومي',+w.wage||0,p==null?'':Math.round(p)]:[]),...days.map(d=>{const r=attRec(w.id,d);return r?ab[r.status]+(r.status==='absent'&&r.excused?'*':''):''})])];
-  out.push([]);out.push(['ح = حاضر، ت = متأخر، ن = نص يوم، غ = غائب، غ* = غائب بإذن، إ = إجازة']);
-  csvDownload('دوام-العمال-'+S.att.month+(S.att.repSite?'-'+S.att.repSite:'')+'.csv',out);toast('نزل الملف — يفتح بالـ Excel')}
-function attPrintRep(){const {mFrom,mTo,pay,rows}=attMonthRows();
-  printHTML(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>كشف الدوام ${S.att.month}</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Tahoma,Arial,sans-serif;font-size:10pt;color:#111}h1{font-size:14pt;margin:0 0 2mm}p{margin:0 0 4mm;color:#444}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:1.5mm 2mm;text-align:right}th{background:#eee}td.n{text-align:center;font-variant-numeric:tabular-nums}.sig{margin-top:12mm;display:flex;gap:30mm}</style></head><body>
-   <h1>نظام شركة المنصور — كشف دوام العمال</h1><p>من ${mFrom} إلى ${mTo}${S.att.repSite?' · الموقع: '+esc(S.att.repSite):''} · طُبع ${esc(dt(Date.now()))}</p>
-   <table><thead><tr><th>#</th><th>الرمز</th><th>الاسم</th><th>المهنة</th><th>الموقع</th><th>حضور</th><th>تأخير</th><th>نص يوم</th><th>غياب</th><th>بإذن</th><th>إجازة</th><th>إضافي</th>${pay?'<th>الأجر</th><th>المستحق</th>':''}<th>التوقيع</th></tr></thead><tbody>
-   ${rows.map(({w,o,p},i)=>`<tr><td class="n">${i+1}</td><td class="n">${esc(w.code)}</td><td>${esc(w.name)}</td><td>${esc(w.trade||'')}</td><td>${esc(w.site||'')}</td><td class="n">${o.present+o.late}</td><td class="n">${o.late}</td><td class="n">${o.half}</td><td class="n">${o.absent}</td><td class="n">${o.absX}</td><td class="n">${o.leave}</td><td class="n">${o.ot||''}</td>${pay?`<td class="n">${+w.wage?nf.format(+w.wage):''}</td><td class="n">${p==null?'':nf.format(Math.round(p))}</td>`:''}<td style="width:25mm"></td></tr>`).join('')}</tbody></table>
+  const head=['الجنسية','الرمز','الاسم','المهنة','الهاتف','الموقع','الفريق','مداوم','تأخير','نص يوم','غياب','غياب بإذن','إجازة','إضافي (ساعة)',...(pay?['نوع الأجر','الأجر','المستحق']:[]),...days.map(d=>+d.slice(8))];
+  const out=[head];let cur=null,acc=null;
+  const flush=()=>{if(cur!==null)out.push(['مجموع '+cur,'','','','','','',acc.w,acc.l,acc.h,acc.a,acc.x,acc.v,acc.ot,...(pay?['','',Math.round(acc.p)]:[])])};
+  rows.forEach(({w,o,p})=>{const g=origOf(w);if(g!==cur){flush();cur=g;acc={w:0,l:0,h:0,a:0,x:0,v:0,ot:0,p:0}}
+    acc.w+=o.present+o.late;acc.l+=o.late;acc.h+=o.half;acc.a+=o.absent;acc.x+=o.absX;acc.v+=o.leave;acc.ot+=o.ot;acc.p+=p||0;
+    out.push([g,w.code,w.name,w.trade||'',w.phone||'',w.site||'',w.team||'',o.present+o.late,o.late,o.half,o.absent,o.absX,o.leave,o.ot,...(pay?[w.pay_type==='monthly'?'شهري':'يومي',+w.wage||0,p==null?'':Math.round(p)]:[]),...days.map(d=>{const r=attRec(w.id,d);return r?ab[r.status]+(r.status==='absent'&&r.excused?'*':''):''})])});
+  flush();out.push([]);out.push(['ح = حاضر، ت = متأخر، ن = نص يوم، غ = غائب، غ* = غائب بإذن، إ = إجازة']);
+  csvDownload('دوام-العمال-'+S.att.month+(S.att.repOrig?'-'+S.att.repOrig:'')+(S.att.repSite?'-'+S.att.repSite:'')+'.csv',out);toast('نزل الملف — يفتح بالـ Excel')}
+function attPrintRep(){const {mFrom,mTo,pay,rows}=attMonthRows();const byO={};rows.forEach(x=>{const o=origOf(x.w);(byO[o]=byO[o]||[]).push(x)});let i=0;
+  const cols=pay?15:13,sub=(lab,l)=>{const s=l.reduce((a,{o,p})=>{a.w+=o.present+o.late;a.l+=o.late;a.h+=o.half;a.a+=o.absent;a.x+=o.absX;a.v+=o.leave;a.ot+=o.ot;a.p+=p||0;return a},{w:0,l:0,h:0,a:0,x:0,v:0,ot:0,p:0});
+    return`<tr class="s"><td colspan="5">${esc(lab)}</td><td class="n">${s.w}</td><td class="n">${s.l}</td><td class="n">${s.h}</td><td class="n">${s.a}</td><td class="n">${s.x}</td><td class="n">${s.v}</td><td class="n">${s.ot||''}</td>${pay?`<td></td><td class="n">${nf.format(Math.round(s.p))}</td>`:''}<td></td></tr>`};
+  printHTML(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>كشف الدوام ${S.att.month}</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Tahoma,Arial,sans-serif;font-size:10pt;color:#111}h1{font-size:14pt;margin:0 0 2mm}p{margin:0 0 4mm;color:#444}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:1.5mm 2mm;text-align:right}th{background:#eee}td.n{text-align:center;font-variant-numeric:tabular-nums}tr.g td{background:#1F5468;color:#fff;font-weight:700}tr.s td{background:#f1f1f1;font-weight:700}.sig{margin-top:12mm;display:flex;gap:30mm}</style></head><body>
+   <h1>نظام شركة المنصور — كشف دوام العمال</h1><p>من ${mFrom} إلى ${mTo}${S.att.repOrig?' · '+esc(S.att.repOrig):''}${S.att.repSite?' · الموقع: '+esc(S.att.repSite):''} · طُبع ${esc(dt(Date.now()))}</p>
+   <table><thead><tr><th>#</th><th>الرمز</th><th>الاسم</th><th>المهنة</th><th>الهاتف</th><th>مداوم</th><th>تأخير</th><th>نص يوم</th><th>غياب</th><th>بإذن</th><th>إجازة</th><th>إضافي</th>${pay?'<th>الأجر</th><th>المستحق</th>':''}<th>التوقيع</th></tr></thead><tbody>
+   ${Object.keys(byO).sort(origSort).map(o=>`<tr class="g"><td colspan="${cols}">${esc(o)}</td></tr>`+byO[o].map(({w,o:x,p})=>`<tr><td class="n">${++i}</td><td class="n">${esc(w.code)}</td><td>${esc(w.name)}</td><td>${esc(w.trade||'')}</td><td class="n">${esc(w.phone||'')}</td><td class="n">${x.present+x.late}</td><td class="n">${x.late}</td><td class="n">${x.half}</td><td class="n">${x.absent}</td><td class="n">${x.absX}</td><td class="n">${x.leave}</td><td class="n">${x.ot||''}</td>${pay?`<td class="n">${+w.wage?nf.format(+w.wage):''}</td><td class="n">${p==null?'':nf.format(Math.round(p))}</td>`:''}<td style="width:22mm"></td></tr>`).join('')+sub('مجموع '+o+' ('+byO[o].length+')',byO[o])).join('')}
+   ${Object.keys(byO).length>1?sub('المجموع الكلي ('+rows.length+')',rows):''}</tbody></table>
    <div class="sig"><span>مراقب الدوام: ..................</span><span>مدير المشروع: ..................</span></div></body></html>`)}
 function attSettingsForm(){const c=attCfg();
   return`<form class="sec f" id="atSet" style="margin-top:14px"><h4 style="margin:0">إعدادات الدوام</h4>
@@ -1634,10 +1686,11 @@ document.addEventListener('click',async e=>{const el=e.target.closest('[data-a]'
     case'atBadge':attBadge(v);break;
     case'atPrint1':{const w=attWorker(v);if(w)attPrintBadges([w]);break}
     case'atPrint':{const q=A.wq.trim();attPrintBadges(A.workers.filter(w=>w.active&&(!A.wsite||w.site===A.wsite)&&(!q||[w.name,w.code,w.trade,w.site,w.team,w.phone].join(' ').includes(q))).sort((x,y)=>siteSort(x.site,y.site)||x.name.localeCompare(y.name,'ar')));break}
-    case'atWCsv':csvDownload('عمال-المنصور.csv',[['الرمز','الاسم','الهاتف','المهنة','الموقع','الفريق','نوع الأجر','الأجر','الحالة'],...A.workers.map(w=>[w.code,w.name,w.phone||'',w.trade||'',w.site||'',w.team||'',w.pay_type==='monthly'?'شهري':'يومي',+w.wage||0,w.active?'فعّال':'موقوف'])]);break;
+    case'atWCsv':csvDownload('عمال-المنصور.csv',[['الجنسية','الرمز','الاسم','الهاتف','المهنة','الموقع','الفريق','نوع الأجر','الأجر','الحالة'],...[...A.workers].sort((a,b)=>origSort(origOf(a),origOf(b))||a.name.localeCompare(b.name,'ar')).map(w=>[origOf(w),w.code,w.name,w.phone||'',w.trade||'',w.site||'',w.team||'',w.pay_type==='monthly'?'شهري':'يومي',+w.wage||0,w.active?'فعّال':'موقوف'])]);break;
     case'atCsv':attCsv();break;
     case'atPrintRep':attPrintRep();break;
     case'atAuditRe':A.audit=null;render();break;
+    case'atRepBy':A.repBy=v;render();break;
   }});
 let attQT=0;
 document.addEventListener('input',e=>{const id=e.target.id,A=S.att;
@@ -1647,6 +1700,10 @@ document.addEventListener('change',async e=>{const id=e.target.id,A=S.att,v=e.ta
   const okDay=x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=t;
   if(id==='atDay'){if(!okDay(v))return render();A.day=v;A.f='';if(A.from&&v<A.from){await attEnsure(v,t)}render()}
   else if(id==='atSite'){A.site=v;render()}
+  else if(id==='atOrig'){A.orig=v;A.f='';render()}
+  else if(id==='atWOrig'){A.worig=v;render()}
+  else if(id==='atAOrig'){A.absOrig=v;render()}
+  else if(id==='atRO'){A.repOrig=v;render()}
   else if(id==='atWSite'){A.wsite=v;render()}
   else if(id==='atWOff'){A.woff=e.target.checked;render()}
   else if(id==='atAF'){if(okDay(v)){A.absFrom=v;if(A.absTo<v)A.absTo=v}render()}
