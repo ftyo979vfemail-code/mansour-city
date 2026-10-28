@@ -1781,21 +1781,32 @@ function mapCols(head){const m={};const H=head.map(h=>String(h||'').trim().toLow
   m.price=find(['سعر','السعر','price','cost','الكلفة']);m.qty=find(['كمية','الكمية','العدد','عدد','رصيد','الرصيد','qty','quantity','stock']);
   m.unit=find(['وحدة','الوحدة','unit']);m.sku=find(['رمز','الرمز','كود','code','sku','رقم القطعة']);m.min=find(['حد','الحد','min']);return m}
 function importForm(){const fixed=isStoreRole(S.role)?myWh(S.role):null;
-  overlay('imp','رفع ملف أسعار ومواد',`<div class="f"><p class="muted" style="margin:0">اسحب ملف Excel أو CSV فيه أسماء المواد وأسعارها (وممكن الكمية والوحدة والرمز). النظام يتعرّف على الأعمدة وحده.</p>
-   <label class="drop" id="impDrop" style="display:block;text-align:center;padding:26px 14px;border:2px dashed var(--line);border-radius:12px;cursor:pointer"><input type="file" id="impF" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" hidden><div style="font-size:30px">📥</div><b>اسحب الملف هنا أو اضغط للاختيار</b><div class="small muted">xlsx · xls · csv</div></label>
+  overlay('imp','رفع ملف أسعار ومواد',`<div class="f"><p class="muted" style="margin:0">اسحب ملف Excel أو CSV أو PDF، أو صورة قائمة الأسعار، فيه أسماء المواد وأسعارها (وممكن الكمية والوحدة والرمز). النظام يقرا الملف ويرتبه وحده.</p>
+   <label class="drop" id="impDrop" style="display:block;text-align:center;padding:26px 14px;border:2px dashed var(--line);border-radius:12px;cursor:pointer"><input type="file" id="impF" accept=".xlsx,.xls,.xlsm,.ods,.csv,.pdf,image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" hidden><div style="font-size:30px">📥</div><b>اسحب الملف هنا أو اضغط للاختيار</b><div class="small muted">Excel · CSV · PDF · صورة</div></label>
    <div id="impBody"></div></div>`);
   const drop=$('#impDrop'),inp=$('#impF');
   ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.style.borderColor='var(--accent)'}));
   ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.style.borderColor=''}));
   drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)readImport(f,fixed)});
   inp.addEventListener('change',()=>{if(inp.files[0])readImport(inp.files[0],fixed)})}
+async function readImportAI(f,fixed){const box=$('#impBody');const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);
+  box.innerHTML=`<div class="rcbox"><div class="spin"></div><b>جارِ قراءة ${isPdf?'ملف PDF':'الصورة'} بالذكاء الاصطناعي…</b><span class="note">ممكن ياخذ دقيقة إذا القائمة طويلة</span></div>`;
+  if(isPdf&&f.size>20*1024*1024)throw new Error('ملف الـPDF كبير (أكثر من 20 ميغا). قسّمه أو صوّر الصفحات.');
+  const blob=isPdf?f:await compress(f,2000,.85);const b64=(await blobToData(blob)).split(',')[1];
+  const {data,error}=await sb.functions.invoke('scan-list',{body:{mode:'prices',image:b64,mime:isPdf?'application/pdf':'image/jpeg'}});
+  let code=data?.code;if(error){try{code=(await error.context.json()).code}catch(x){code='upstream'}}
+  if(code)throw new Error({no_key:'القراءة تحتاج تفعيل مفتاح الذكاء الاصطناعي. راجع مطوّر النظام.',rate_limited:'طلبات كثيرة، حاول بعد دقيقة.',bad_image:'الملف كبير أو تالف.',forbidden:'غير متاح لصفتك.'}[code]||'تعذرت قراءة الملف. جرّب صورة أوضح أو ملف Excel.');
+  const items=(data.items||[]).map(x=>({name:x.name,price:x.price,qty:x.qty,unit:x.unit||'',sku:x.sku||'',min:null,on:true}));
+  if(!items.length)throw new Error('ما لكيت مواد وأسعار بالملف.');
+  S.imp={items,fixed,file:f.name+(data.supplier?' — '+data.supplier:''),supplier:data.supplier||''};drawImport()}
 async function readImport(f,fixed){const box=$('#impBody');box.innerHTML='<p class="note">جارِ قراءة الملف…</p>';
-  try{const X=await loadXLSX();let wb;if(/\.csv$/i.test(f.name)||f.type==='text/csv'){const txt=new TextDecoder('utf-8').decode(await f.arrayBuffer());wb=X.read(txt,{type:'string'})}else wb=X.read(new Uint8Array(await f.arrayBuffer()),{type:'array'});
+  try{if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)||f.type.startsWith('image/')||/\.(jpe?g|png|webp|heic)$/i.test(f.name)){await readImportAI(f,fixed);return}
+    if(/\.(docx?|pptx?|zip|rar)$/i.test(f.name))throw new Error('هذا ملف Word أو مضغوط. احفظه PDF أو Excel، أو صوّر القائمة، وارفعه.');const X=await loadXLSX();let wb;if(/\.csv$/i.test(f.name)||f.type==='text/csv'){const txt=new TextDecoder('utf-8').decode(await f.arrayBuffer());wb=X.read(txt,{type:'string'})}else wb=X.read(new Uint8Array(await f.arrayBuffer()),{type:'array'});
     const rows=X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',raw:true}).filter(r=>r.some(c=>String(c).trim()!==''));
     if(!rows.length)throw new Error('الملف فارغ');
     let hi=rows.findIndex(r=>{const m=mapCols(r);return m.name>=0&&(m.price>=0||m.qty>=0)});let cols;
     if(hi<0||hi>5){hi=-1;cols={name:0,price:1,qty:2,unit:3,sku:-1,min:-1}}else cols=mapCols(rows[hi]);
-    const items=rows.slice(hi+1).map(r=>({name:String(r[cols.name]??'').trim(),price:cols.price>=0?toNum(r[cols.price]):null,qty:cols.qty>=0?toNum(r[cols.qty]):null,unit:cols.unit>=0?String(r[cols.unit]||'').trim():'',sku:cols.sku>=0?String(r[cols.sku]||'').trim():'',min:cols.min>=0?toNum(r[cols.min]):null,on:true})).filter(x=>x.name&&!/^(المجموع|total)/i.test(x.name)).slice(0,2000);
+    const items=rows.slice(hi+1).map(r=>({name:String(r[cols.name]??'').trim(),price:cols.price>=0?toNum(r[cols.price]):null,qty:cols.qty>=0?toNum(r[cols.qty]):null,unit:cols.unit>=0?String(r[cols.unit]||'').trim():'',sku:cols.sku>=0?String(r[cols.sku]||'').trim():'',min:cols.min>=0?toNum(r[cols.min]):null,on:true})).filter(x=>x.name&&!/^(المجموع|total)/i.test(x.name)&&!/[\u0000-\u0008\uFFFD]/.test(x.name)&&!/^%PDF|obj$|stream$/.test(x.name)).slice(0,2000);
     if(!items.length)throw new Error('ما لكيت أسماء مواد بالملف. خلي أول عمود اسم المادة والثاني السعر.');
     S.imp={items,fixed,file:f.name};drawImport()}catch(x){box.innerHTML=`<div class="err">${esc(x.message||String(x))}</div>`}}
 function impWh(){return S.imp.fixed||$('#impW')?.value||'main'}
@@ -1812,7 +1823,7 @@ function drawImport(){const P=S.imp,wh=P.fixed||S.impWh||'main';const exist=n=>S
   $('#impGo').addEventListener('click',async()=>{const btn=$('#impGo'),mode=$('#impQ').value,list=P.items.filter(x=>x.on);if(!list.length)return;btn.disabled=true;let n=0;
     try{for(const x of list){const ex=exist(x.name);let it;
         if(ex){it=clean(ex);if(x.price!=null)it.price=x.price;if(x.qty!=null&&mode==='add')it.qty=+((+it.qty||0)+x.qty).toFixed(3);if(x.qty!=null&&mode==='set')it.qty=x.qty;if(x.unit)it.unit=x.unit;if(x.sku)it.sku=x.sku;if(x.min!=null)it.min=x.min}
-        else it={id:uid(),name:x.name,sku:x.sku||'',qty:mode==='skip'?0:(x.qty||0),unit:x.unit||'قطعة',min:x.min||0,shelf:'',wh,price:x.price};
+        else it={id:uid(),name:x.name,sku:x.sku||'',qty:mode==='skip'?0:(x.qty||0),unit:x.unit||'قطعة',min:x.min||0,shelf:'',wh,price:x.price,supplier:P.supplier||''};
         await putInv(it);n++;if(n%10===0)btn.textContent=`جارِ الحفظ ${n} من ${list.length}…`}
       await invLog('رفع ملف أسعار: '+P.file,n+' مادة · '+whName(wh));closeOv();S.imp=null;render();toast('حُفظت '+n+' مادة')}catch(x){$('#impE').textContent='توقف عند المادة '+(n+1)+': '+(x.message||x);btn.disabled=false;btn.textContent='إعادة المحاولة'}})}
 

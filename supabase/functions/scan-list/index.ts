@@ -1,4 +1,3 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 // Reads a photographed (handwritten or printed) materials list and returns structured items.
@@ -18,6 +17,15 @@ ${stock ? `هذه أسماء مواد موجودة بالمخزن، إذا كا�
 أجب بـ JSON فقط بهذا الشكل:
 {"items":[{"name":"اسم المادة واضح ومختصر مع المواصفة","qty":رقم,"unit":"الوحدة","category":"الفئة","notes":"رقم القطعة أو الماكنة أو أي ملاحظة مكتوبة","match":"اسم المادة المطابقة بالمخزن أو نص فارغ","confidence":رقم من 0 إلى 1}],"header":{"date":"التاريخ إن وجد","signed_by":"الاسم أو التوقيع إن وجد","machine":"الماكنة أو المكان إن ذُكر"},"unreadable":"أي أجزاء لم تُقرأ، أو نص فارغ"}`;
 
+const PRICE_PROMPT = `أمامك ملف أو صورة فيها قائمة مواد/منتجات مع أسعارها (قائمة أسعار، فاتورة، عرض سعر، جرد مخزن). قد تكون بالعربي أو الإنكليزي، مطبوعة أو بخط اليد، وقد تكون جدولاً أو أسطراً.
+استخرج كل مادة كسطر مستقل. لا تخترع مواد. لا تُدخل أسطر المجموع أو الضريبة أو الخصم أو العناوين.
+- name: اسم المادة كما مكتوب (مع المواصفة أو الحجم إن وجد).
+- price: سعر القطعة الواحدة بالدينار العراقي كرقم فقط بدون فواصل. إذا المكتوب سعر إجمالي وكمية فاقسم الإجمالي على الكمية. إذا السعر بالآلاف (مثل 25 ألف) اكتبه 25000. إذا لا يوجد سعر ضع null.
+- qty: الكمية كرقم إن وجدت وإلا null.
+- unit: الوحدة إن ذُكرت (قطعة، كارتون، علبة، متر، كغم، طن، لتر، برميل، لفة، كيس، طقم) وإلا "".
+- sku: رمز أو رقم المادة إن وجد وإلا "".
+أجب بـ JSON فقط: {"items":[{"name":"","price":0,"qty":null,"unit":"","sku":""}],"supplier":"اسم المورد أو المحل إن ظهر","currency":"العملة المكتوبة إن وجدت"}`;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -30,9 +38,30 @@ Deno.serve(async (req) => {
 
     const key = Deno.env.get("ANTHROPIC_API_KEY");
     if (!key) return json({ code: "no_key" }, 400);
-    const { image, mime, dept, stock } = await req.json();
-    if (typeof image !== "string" || image.length < 1000 || image.length > 7_000_000) return json({ code: "bad_image" }, 400);
-    const media = ["image/jpeg", "image/png", "image/webp"].includes(mime) ? mime : "image/jpeg";
+    const { image, mime, dept, stock, mode } = await req.json();
+    const isPdf = mime === "application/pdf";
+    if (typeof image !== "string" || image.length < 200 || image.length > (isPdf ? 30_000_000 : 7_000_000)) return json({ code: "bad_image" }, 400);
+    const media = ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mime) ? mime : "image/jpeg";
+    if (mode === "prices") {
+      const block = isPdf ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } } : { type: "image", source: { type: "base64", media_type: media, data: image } };
+      const rp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 16000, messages: [{ role: "user", content: [block, { type: "text", text: PRICE_PROMPT }] }] }),
+      });
+      if (rp.status === 429) return json({ code: "rate_limited" }, 429);
+      if (!rp.ok) return json({ code: "upstream", detail: (await rp.text()).slice(0, 300) }, 502);
+      const o = await rp.json();
+      const tx: string = (o.content || []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("");
+      const mm = tx.match(/\{[\s\S]*\}/);
+      if (!mm) return json({ code: "bad_output" }, 502);
+      const pj = JSON.parse(mm[0]);
+      const num = (v: unknown) => { if (v === null || v === undefined || v === "") return null; const n = Number(String(v).replace(/[^\d.\-]/g, "")); return isFinite(n) ? n : null; };
+      const items = (Array.isArray(pj.items) ? pj.items : []).slice(0, 2000).map((x: Record<string, unknown>) => ({
+        name: String(x.name || "").trim().slice(0, 160), price: num(x.price), qty: num(x.qty), unit: String(x.unit || "").slice(0, 20), sku: String(x.sku || "").slice(0, 60),
+      })).filter((x: { name: string }) => x.name);
+      return json({ items, supplier: String(pj.supplier || "").slice(0, 120), currency: String(pj.currency || "") });
+    }
     const stockList = Array.isArray(stock) ? stock.slice(0, 300).map((s: unknown) => String(s).slice(0, 80)).join("، ") : "";
 
     const r = await fetch("https://api.anthropic.com/v1/messages", {
