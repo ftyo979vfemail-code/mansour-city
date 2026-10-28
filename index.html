@@ -1218,13 +1218,16 @@ function allEvents(){
   S.invlog.forEach(l=>ev.push({...l,inv:true}));
   return ev.sort((a,b)=>b.t-a.t)}
 function recent24(){const c=Date.now()-864e5;return allEvents().filter(e=>e.t>=c).length}
-function feedScope(e,role){const R=ROLES[role];if(!R||['project','owner'].includes(role)||R.kind==='admin')return true;
+function feedScope(e,role){if(['project','owner','admin1','admin2'].includes(S.me?.role)&&['project','owner','admin1','admin2'].includes(role))return true;return !!S.me&&e.uid===S.me.id}
+function feedScopeOld(e,role){const R=ROLES[role];if(!R||['project','owner'].includes(role)||R.kind==='admin')return true;
   const w=scopeWh(role);
   if(e.req){if(w)return whOf(e.req)===w;if(R.kind==='purchase')return !!(e.req.purchase||['buy','buying','receive','pur_ok'].includes(e.req.status))||(e.req.log||[]).some(l=>ROLES[l.role]?.kind==='purchase');return mine(role).some(r=>r.id===e.req.id)}
   if(w==='main')return ['store','receiver'].includes(e.role);if(w==='mach')return MACH_TEAM.includes(e.role);return e.uid===S.me?.id}
 function feedView(){
   let ev=allEvents().filter(e=>feedScope(e,S.role));if(S.feedRole)ev=ev.filter(e=>e.role===S.feedRole);
-  let h=`<div class="filters"><select id="feedRole" class="in" aria-label="تصفية حسب الشخص"><option value="">كل الأشخاص</option>${Object.entries(ROLES).filter(([k,r])=>r.kind!=='admin').map(([k,r])=>`<option value="${k}" ${S.feedRole===k?'selected':''}>${r.name}</option>`).join('')}</select></div>`;
+  const own=!['project','owner','admin1','admin2'].includes(S.role);
+  let h=own?`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">سجل عملي</h3><p class="muted" style="margin:2px 0 0">كل شي سوّيته انت بالنظام، بالوقت.</p></div><div class="acts"><button class="btn pri" data-a="myInv">🧾 الفواتير</button></div></div>`:`<div class="filters"><button class="btn" data-a="myInv">🧾 فواتيري</button><select id="feedRole" class="in" aria-label="تصفية حسب الشخص"><option value="">كل الأشخاص</option>${Object.entries(ROLES).filter(([k,r])=>r.kind!=='admin').map(([k,r])=>`<option value="${k}" ${S.feedRole===k?'selected':''}>${r.name}</option>`).join('')}</select></div>`;
+  if(!ev.length&&own)return h+`<div class="empty"><b>ما سوّيت شي بعد</b>كل طلب أو موافقة أو صرف أو تعبئة تسوّيها تطلع هنا.</div>`;
   if(!ev.length)return h+`<div class="empty"><b>لا توجد حركات بعد</b>كل طلب وموافقة ورفض وشراء وصرف وتعديل بالمخزون يظهر هنا بالوقت والاسم.</div>`;
   let day='';h+=`<div class="feed">`;
   ev.slice(0,300).forEach(e=>{const d=new Date(e.t).toLocaleDateString('ar-IQ-u-nu-latn',{weekday:'long',day:'numeric',month:'long'});
@@ -1582,6 +1585,7 @@ document.addEventListener('click',async e=>{
     case'fab':{const f=$('#fab');const o=f.classList.toggle('open');el.setAttribute('aria-expanded',o);break}
     case'new':$('#fab')?.classList.remove('open');newReqForm();break;
     case'fuelIn':fuelIn();break;
+    case'myInv':myInvSheet();break;
     case'invcNew':invcForm();break;
     case'invcOpen':invcOpen(v);break;
     case'impOpen':importForm();break;
@@ -1811,6 +1815,17 @@ function dlvInvView(){const per=S.dinvP||'month',q=(S.dinvQ||'').trim();
    ${Object.keys(byMat).length?`<div class="sec" style="margin-top:12px"><h4>المجموع المنزّل</h4><div class="kv">${Object.entries(byMat).map(([k,v])=>{const [m,u]=k.split('|');return`<div><span>${esc(m)}</span><b><span class="num">${nf.format(v)}</span> ${esc(u)}</b></div>`}).join('')}</div></div>`:''}`;
   if(!list.length)return h+`<div class="empty"><b>ماكو فواتير بهاي الفترة</b>كل شاحنة تسجّلها ويّا صورة الوصل تطلع هنا.</div>`;
   return h+`<div class="list" style="margin-top:12px">${list.map(d=>{const st=DST[d.status]||DST.wait;return`<button class="card" data-a="dlvOpen" data-v="${d.id}">${d.img?imgTag(d.img,'thumb'):d.doneImg?imgTag(d.doneImg,'thumb'):`<div class="thumb">🧾</div>`}<div class="mid"><div class="t">${esc(d.material)} — <span class="num">${nf.format(+d.qty||0)}</span> ${esc(d.unit||'')}</div><div class="meta">${d.supplier?`<span>${esc(d.supplier)}</span>`:''}${d.truck?`<span class="num">${esc(d.truck)}</span>`:''}${d.dest?`<span>${esc(d.dest)}</span>`:''}</div><div class="meta"><span>وصلت ${dt(d.createdAt)}</span>${d.doneAt?`<span>كملت ${dt(d.doneAt)}</span>`:''}</div></div><div class="end"><span class="pill p-${st[1]}">${st[0]}</span>${d.img||d.doneImg?'<span class="small muted">📷 وصل</span>':'<span class="small muted">بدون صورة</span>'}</div></button>`}).join('')}</div>`}
+
+/* my uploaded invoice photos */
+function myInvoices(){const me=S.me?.id;const out=[];
+  S.requests.forEach(r=>{const inv=r.purchase?.invoice;if(inv?.ref&&!inv.pdf&&(r.log||[]).some(l=>l.uid===me&&/الفاتورة/.test(l.a)))out.push({t:r.purchase.at||r.updatedAt,img:inv.ref,k:'فاتورة شراء',d:r.item+' #'+r.code,a:r.purchase.total,open:['open',r.id]})});
+  (S.invoices||[]).forEach(v=>{if(v.uid===me&&v.img)out.push({t:v.at||v.createdAt,img:v.img,k:'فاتورة خارجية',d:v.supplier||'',a:v.total,open:['invcOpen',v.id]})});
+  S.deliveries.forEach(d=>{const by=a=>(d.log||[]).some(l=>l.uid===me&&a.test(l.a));
+    if(d.img&&(by(/وصول/)||(d.log||[])[0]?.uid===me))out.push({t:d.createdAt,img:d.img,k:'وصل شاحنة',d:d.material+' '+nf.format(+d.qty||0)+' '+(d.unit||''),open:['dlvOpen',d.id]});
+    if(d.doneImg&&by(/تم التنزيل/))out.push({t:d.doneAt||d.createdAt,img:d.doneImg,k:'بعد التنزيل',d:d.material,open:['dlvOpen',d.id]})});
+  return out.sort((a,b)=>b.t-a.t)}
+function myInvSheet(){const L=myInvoices();
+  overlay('myinv',`🧾 الفواتير اللي رفعتها <span class="num muted">(${L.length})</span>`,L.length?`<div class="photos">${L.map(x=>`<div class="ph"><a href="${esc(imgSrc(x.img))}" target="_blank" rel="noopener">${imgTag(x.img,'',x.k)}</a><b style="color:var(--ink);font-size:13px">${esc(x.k)}</b><span>${esc(x.d)}${x.a?` · <span class="num">${money(+x.a)}</span>`:''}</span><span class="num">${dt(x.t)}</span><button class="btn sm ghost" data-a="${x.open[0]}" data-v="${esc(x.open[1])}">التفاصيل</button></div>`).join('')}</div>`:`<div class="empty"><b>ما رفعت فواتير بعد</b>صور فواتير الشراء والفواتير الخارجية ووصولات الشاحنات اللي ترفعها تطلع هنا.</div>`)}
 
 /* clickable stat tiles */
 function scrollToList(){setTimeout(()=>{const el=$('#app .filters')||$('#app .list')||$('#app .tbl-wrap');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}
