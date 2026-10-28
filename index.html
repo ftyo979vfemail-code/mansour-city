@@ -1532,11 +1532,20 @@ function invForm(it){
    <p class="note" id="vVal"></p>
    ${whSel?`<label class="l">المخزن<select id="vWh" class="in"><option value="main" ${it.wh!=='mach'?'selected':''}>المخزن الرئيسي</option><option value="mach" ${it.wh==='mach'?'selected':''}>مخزن الآليات</option></select></label>`:''}
    <datalist id="units2">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist>
-   <div class="acts"><button class="btn pri" type="submit">حفظ</button>${n?'':`<button class="btn bad" type="button" id="vDel">حذف المادة</button><span id="vConf"></span>`}</div></form>`;
+   ${n?`<div id="vMore"></div><button type="button" class="btn" id="vAddMore" style="justify-self:start">+ إضافة مادة ثانية</button>`:''}
+   <div class="acts"><button class="btn pri" type="submit" id="vSave">حفظ</button>${n?'':`<button class="btn bad" type="button" id="vDel">حذف المادة</button><span id="vConf"></span>`}</div></form>`;
   overlay('inv',n?'إضافة مادة':'تعديل مادة',b);
   {const upd=()=>{const q=+$('#vQty').value||0,p=+$('#vPrice').value||0;$('#vVal').textContent=p?`سعر القطعة ${money(p)} × ${nf.format(q)} ${$('#vUnit').value||''} = القيمة الكلية ${money(p*q)}`:''};['vQty','vPrice','vUnit'].forEach(i=>$('#'+i).addEventListener('input',upd));upd()}
-  $('#fInvE').addEventListener('submit',async e=>{e.preventDefault();const nu={...it,wh:$('#vWh')?$('#vWh').value:it.wh,name:$('#vName').value.trim(),sku:$('#vSku').value.trim(),qty:+$('#vQty').value||0,unit:$('#vUnit').value.trim(),min:+$('#vMin').value||0,shelf:$('#vShelf').value.trim(),price:$('#vPrice').value===''?null:+$('#vPrice').value,supplier:$('#vSup').value.trim()};await putInv(nu);
-    await invLog(n?'أضاف مادة للمخزون: '+nu.name:'عدّل مادة بالمخزون: '+nu.name,n?'الرصيد '+nu.qty+' '+nu.unit:(+it.qty!==nu.qty?'الرصيد من '+it.qty+' إلى '+nu.qty+' '+nu.unit:''));closeOv();render();toast('حُفظت المادة')});
+  if(n){const row=()=>`<div class="ivl vm"><div class="ivh"><input class="in vmN" data-sug="items" autocomplete="off" placeholder="اسم المادة"><button type="button" class="btn sm ghost vmX" aria-label="حذف">×</button></div><div class="ivg"><label class="l">الرصيد<input class="in num vmQ" type="number" step="any" value="0"></label><label class="l">الوحدة<input class="in vmU" list="units2" value="قطعة"></label><label class="l">سعر القطعة<input class="in num vmP" type="number" min="0" step="any" placeholder="0"></label></div><div class="small muted vmT"></div></div>`;
+    const upd=()=>{const k=document.querySelectorAll('#vMore .vm').length;$('#vSave').textContent=k?`حفظ ${k+1} مواد`:'حفظ';document.querySelectorAll('#vMore .vm').forEach(r=>{const q=+r.querySelector('.vmQ').value||0,p=+r.querySelector('.vmP').value||0;r.querySelector('.vmT').textContent=p?`القيمة: ${money(p*q)}`:''})};
+    $('#vAddMore').addEventListener('click',()=>{$('#vMore').insertAdjacentHTML('beforeend',row());$('#vMore .vm:last-child .vmN').focus();upd()});
+    $('#vMore').addEventListener('input',upd);$('#vMore').addEventListener('click',e=>{if(e.target.classList.contains('vmX')){e.target.closest('.vm').remove();upd()}})}
+  $('#fInvE').addEventListener('submit',async e=>{e.preventDefault();const btn=$('#vSave');btn.disabled=true;const nu={...it,wh:$('#vWh')?$('#vWh').value:it.wh,name:$('#vName').value.trim(),sku:$('#vSku').value.trim(),qty:+$('#vQty').value||0,unit:$('#vUnit').value.trim(),min:+$('#vMin').value||0,shelf:$('#vShelf').value.trim(),price:$('#vPrice').value===''?null:+$('#vPrice').value,supplier:$('#vSup').value.trim()};await putInv(nu);
+    await invLog(n?'أضاف مادة للمخزون: '+nu.name:'عدّل مادة بالمخزون: '+nu.name,n?'الرصيد '+nu.qty+' '+nu.unit:(+it.qty!==nu.qty?'الرصيد من '+it.qty+' إلى '+nu.qty+' '+nu.unit:''));
+    let k=0;if(n){for(const r of document.querySelectorAll('#vMore .vm')){const nm=r.querySelector('.vmN').value.trim();if(!nm)continue;const p=r.querySelector('.vmP').value;
+      const x={id:uid(),name:nm,sku:'',qty:+r.querySelector('.vmQ').value||0,unit:r.querySelector('.vmU').value.trim()||'قطعة',min:0,shelf:'',wh:nu.wh,price:p===''?null:+p,supplier:nu.supplier};
+      btn.textContent='جارِ حفظ '+nm+'…';await putInv(x);await invLog('أضاف مادة للمخزون: '+x.name,'الرصيد '+x.qty+' '+x.unit);k++}}
+    closeOv();render();toast(k?'حُفظت '+(k+1)+' مواد':'حُفظت المادة')});
   if(!n)$('#vDel').addEventListener('click',()=>{$('#vConf').innerHTML=`<button class="btn bad sm" type="button" id="vDel2">تأكيد الحذف</button>`;$('#vDel2').addEventListener('click',async()=>{await delInv(it.id);await invLog('حذف مادة من المخزون: '+it.name,'كان الرصيد '+it.qty+' '+it.unit);closeOv();toast('حُذفت المادة')})});
 }
 
