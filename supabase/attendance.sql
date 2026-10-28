@@ -379,3 +379,11 @@ end $$;
 create extension if not exists pg_cron;
 select cron.schedule('att-auto-close', '0 20 * * *', 'select private.att_cron()');
 alter function private.bg_today() set search_path = pg_catalog;
+
+-- 10) nationality on workers
+alter table public.workers add column if not exists origin text check (origin is null or length(btrim(origin)) between 2 and 40);
+
+-- 11) worker self sign-up (public site), approval by timekeeper/project, worker "my account" by phone + PIN
+--     tables/functions: worker_requests, att_worker_register, att_worker_me (5 wrong PINs => 15 min lock),
+--     att_requests_list, att_request_decide, notification kind 'att_join'
+--     (applied as migrations: worker_self_signup, worker_me_lockout_fix)
