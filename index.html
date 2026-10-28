@@ -1765,7 +1765,7 @@ function rolePicker(){
 }
 function roleDesc(k){const CD={timekeeper:'جولة الحضور اليومية للعمال، الغيابات، باجات QR، والتقارير',elec_tech:'طلب مواد قسم الكهرباء ومتابعتها',mech_tech:'طلب مواد قسم الميكانيك ومتابعتها',buyer:'عروض الأسعار والشراء والفواتير والتسليم بالباركود',clerk:'متابعة الإشعارات وسجل الحركات والطلبات',receiver:'استلام المواد المشتراة بالباركود نيابة عن مدير المخزن',supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
 
-function tabsFor(role){if(role==='timekeeper')return attTabsTK();const T=tabsFor0(role);if(seesAtt()&&['project','admin1','admin2','clerk'].includes(role)){const i=T.findIndex(t=>t[0]==='approve');T.splice(i<0?0:i+1,0,['att','حضور العمال',attAlertN()])}const add=[];if(EXP_ROLES.includes(role))add.push(['exp','الصرفيات',0]);if(['store','mstore','keeper'].includes(role))add.unshift(['outs','المخرجات',S.invlog.filter(e=>e.kind==='out'&&e.wh===myWh(role)&&sameDayT(e.at||e.t)).length]);if(!T.some(t=>t[0]==='feed'))add.push(['feed','السجل',0]);if(INVC_ROLES.includes(role))add.push(['invc','الفواتير',(S.invoices||[]).filter(v=>(!scopeWh(role)||v.wh===scopeWh(role))&&sameDayT(v.createdAt||v.at)).length]);const i=T.findIndex(t=>t[0]==='all');if(i<0)T.push(...add);else T.splice(i,0,...add);return T}
+function tabsFor(role){if(role==='timekeeper')return attTabsTK();const T=tabsFor0(role);if(seesAtt()&&['project','admin1','admin2','clerk'].includes(role)){const i=T.findIndex(t=>t[0]==='approve');T.splice(i<0?0:i+1,0,['att','حضور العمال',attAlertN()])}const add=[];if(EXP_ROLES.includes(role))add.push(['exp','الصرفيات',0]);if(['store','mstore','keeper'].includes(role))add.unshift(['ins','المدخلات',(S.invoices||[]).filter(v=>v.kind==='in'&&v.wh===myWh(role)&&sameDayT(v.createdAt||v.at)).length],['outs','المخرجات',S.invlog.filter(e=>e.kind==='out'&&e.wh===myWh(role)&&sameDayT(e.at||e.t)).length]);if(!T.some(t=>t[0]==='feed'))add.push(['feed','السجل',0]);if(INVC_ROLES.includes(role))add.push(['invc','الفواتير',(S.invoices||[]).filter(v=>(!scopeWh(role)||v.wh===scopeWh(role))&&sameDayT(v.createdAt||v.at)).length]);const i=T.findIndex(t=>t[0]==='all');if(i<0)T.push(...add);else T.splice(i,0,...add);return T}
 function tabsFor0(role){
   const k=ROLES[role].kind,q=queueFor(role);
   if(role==='operator')return[['work','آليتي',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
@@ -1820,6 +1820,7 @@ function tabBody(role){
   if(t==='feed')return feedView();
   if(t==='dinv')return dlvInvView();
   if(t==='outs')return outsView(role);
+  if(t==='ins')return insView(role);
   if(t==='invc')return invcView(role);
   if(t==='mach')return machinesView();
   if(t==='team')return teamView();
@@ -2241,6 +2242,7 @@ document.addEventListener('click',async e=>{
     case'new':$('#fab')?.classList.remove('open');newReqForm();break;
     case'fuelIn':fuelIn();break;
     case'outNew':outForm();break;
+    case'inNew':inForm();break;
     case'myInv':myInvSheet();break;
     case'invcNew':invcForm();break;
     case'invcOpen':invcOpen(v);break;
@@ -2273,8 +2275,8 @@ document.addEventListener('submit',async e=>{if(e.target.id!=='fKI')return;e.pre
   if(!it||!m||q<=0){$('#kiErr').textContent='اختر المادة والآلية والكمية';return}if(q>+it.qty){$('#kiErr').textContent='الرصيد لا يكفي';return}
   try{const {data:left,error}=await sb.rpc('issue_stock',{p_item:it.id,p_qty:q});if(error)throw new Error(error.message);it.qty=+left;const x=clean(m);x.issues=[...(x.issues||[]),{t:readDt('kiWhen'),item:it.name,qty:q,unit:it.unit,to,uid:S.me?.id||null,price:+it.price||0,total:+((+it.price||0)*q).toFixed(2)}];mLog(x,'صُرف لها من المخزن',q+' '+it.unit+' '+it.name+(to?' · المستلم '+to:''));await putMachine(x);
     await invLog('صرف '+q+' '+it.unit+' من '+it.name+' للآلية '+m.name,to?'المستلم: '+to:'');toast('تم الصرف وسُجّل على '+m.name);render()}catch(x){$('#kiErr').textContent=x.message}});
-document.addEventListener('change',e=>{if(e.target.name==='dlvF'){S.dlvF=e.target.value;render();return}if(e.target.id==='whF'){S.whF=e.target.value;render();return}if(e.target.id==='expWh'){S.expWh=e.target.value;render();return}if(e.target.name==='dinvP'){S.dinvP=e.target.value;render();return}if(e.target.name==='outP'){S.outP=e.target.value;render();return}if(e.target.name==='expP'){S.expP=e.target.value;render();return}if(e.target.id==='mFilter'){S.mFilter=e.target.value;render();return}if(e.target.name==='authTab'){S.authTab=e.target.value;render();return}if(e.target.id==='feedRole'){S.feedRole=e.target.value;render()}});
-document.addEventListener('input',e=>{if(e.target.id==='dinvQ'){S.dinvQ=e.target.value;const pos=e.target.selectionStart;render();const q=$('#dinvQ');if(q){q.focus();q.setSelectionRange(pos,pos)}return}if(e.target.id==='orgQ'){S.orgQ=e.target.value;const pos=e.target.selectionStart;render();const q=$('#orgQ');if(q){q.focus();q.setSelectionRange(pos,pos)}return}if(e.target.id==='q'){S.q=e.target.value;const pos=e.target.selectionStart;render();const q=$('#q');if(q){q.focus();q.setSelectionRange(pos,pos)}}});
+document.addEventListener('change',e=>{if(e.target.name==='dlvF'){S.dlvF=e.target.value;render();return}if(e.target.id==='whF'){S.whF=e.target.value;render();return}if(e.target.id==='expWh'){S.expWh=e.target.value;render();return}if(e.target.name==='dinvP'){S.dinvP=e.target.value;render();return}if(e.target.name==='outP'){S.outP=e.target.value;render();return}if(e.target.name==='inP'){S.inP=e.target.value;render();return}if(e.target.name==='expP'){S.expP=e.target.value;render();return}if(e.target.id==='mFilter'){S.mFilter=e.target.value;render();return}if(e.target.name==='authTab'){S.authTab=e.target.value;render();return}if(e.target.id==='feedRole'){S.feedRole=e.target.value;render()}});
+document.addEventListener('input',e=>{if(e.target.id==='inQ'){S.inQ=e.target.value;const pos=e.target.selectionStart;render();const q=$('#inQ');if(q){q.focus();q.setSelectionRange(pos,pos)}return}if(e.target.id==='dinvQ'){S.dinvQ=e.target.value;const pos=e.target.selectionStart;render();const q=$('#dinvQ');if(q){q.focus();q.setSelectionRange(pos,pos)}return}if(e.target.id==='orgQ'){S.orgQ=e.target.value;const pos=e.target.selectionStart;render();const q=$('#orgQ');if(q){q.focus();q.setSelectionRange(pos,pos)}return}if(e.target.id==='q'){S.q=e.target.value;const pos=e.target.selectionStart;render();const q=$('#q');if(q){q.focus();q.setSelectionRange(pos,pos)}}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#ovroot').innerHTML)goBack()});
 
 /* ---------- boot ---------- */
@@ -2364,9 +2366,9 @@ function expEntries(wh){const E=[];const ok=w=>!wh||w===wh;
   if(ok('mach')){S.machines.forEach(m=>(m.issues||[]).forEach(x=>E.push({t:x.t,k:'issue',d:`${x.item} × ${nf.format(x.qty)} ${x.unit||''} ← ${m.name}`,a:x.total||0,uid:x.uid,wh:'mach'})));
     const f=fuelItem();(f?.log||[]).forEach(l=>{if(l.k==='adj')return;if(l.k==='in')E.push({t:l.at||l.t,k:'fuelin',d:`استلام كاز ${nf.format(l.l)} لتر${l.sup?' — '+l.sup:''}`,a:l.p?l.l*l.p:0,uid:l.uid,wh:'mach'});else E.push({t:l.at||l.t,k:'fuelout',d:`كاز ${nf.format(l.l)} لتر ← ${l.to||''}`,a:l.p?l.l*l.p:0,uid:l.uid,wh:'mach'})})}
   S.invlog.forEach(e=>{if(e.kind==='out'&&ok(e.wh))E.push({t:e.at||e.t,k:'out',d:`${e.item} × ${nf.format(e.qty)} ${e.unit||''}${e.to?' ← '+e.to:''}${e.dept?' ('+e.dept+')':''}`,a:e.total||0,uid:e.uid,wh:e.wh})});
-  (S.invoices||[]).forEach(v=>{if(ok(v.wh))E.push({t:v.at||v.createdAt,k:'inv',d:`فاتورة ${v.supplier||''}${v.lines?.length?' — '+v.lines.length+' مادة':''}`,a:+v.total||0,uid:v.uid,wh:v.wh,id:v.id})});
+  (S.invoices||[]).forEach(v=>{if(ok(v.wh))E.push({t:v.at||v.createdAt,k:v.kind==='in'?'in':'inv',d:`فاتورة${v.number?' #'+v.number:''} ${v.supplier||''}${v.lines?.length?' — '+v.lines.length+' مادة':''}`,a:+v.total||0,uid:v.uid,wh:v.wh,id:v.id})});
   return E.sort((a,b)=>b.t-a.t)}
-const EXPK={out:['مخرجات يدوية','info'],issue:['صرف من المخزن','info'],buy:['شراء','accent'],inv:['فاتورة خارجية','warn'],fuelin:['استلام كاز','ok'],fuelout:['صرف كاز','mute']};
+const EXPK={in:['مدخلات (فواتير)','accent'],out:['مخرجات يدوية','info'],issue:['صرف من المخزن','info'],buy:['شراء','accent'],inv:['فاتورة خارجية','warn'],fuelin:['استلام كاز','ok'],fuelout:['صرف كاز','mute']};
 function expView(role){const fixed=scopeWh(role),wh=fixed||S.expWh||'';const per=S.expP||'month';
   const all=expEntries(wh||null),list=all.filter(e=>per==='all'||(per==='today'?sameDayT(e.t):sameMonthT(e.t)));
   const sum=k=>list.filter(e=>!k||e.k===k).reduce((a,e)=>a+(+e.a||0),0);
@@ -2385,7 +2387,7 @@ function invcView(role){const fixed=scopeWh(role);const list=(S.invoices||[]).fi
   return h+`<div class="list" style="margin-top:12px">${list.map(v=>`<button class="card" data-a="invcOpen" data-v="${v.id}">${v.img?imgTag(v.img,'thumb'):`<div class="thumb">🧾</div>`}<div class="mid"><div class="t">${esc(v.supplier||'فاتورة')}</div><div class="meta"><span>${v.wh==='mach'?'مخزن الآليات':'المخزن الرئيسي'}</span><span>${(v.lines||[]).length} مادة</span><span>${esc(S.names[v.uid]?.name||'')}</span></div></div><div class="end"><b class="num">${money(+v.total)}</b><span class="small muted num">${dt(v.at)}</span></div></button>`).join('')}</div>`}
 function lineRow(l){l=l||{};return`<div class="ivl"><div class="ivh"><input class="in ivN" placeholder="اسم المادة" value="${esc(l.name||'')}"><button type="button" class="btn sm ghost ivX" aria-label="حذف">×</button></div><div class="ivg"><label class="l">العدد<input class="in num ivQ" type="number" min="0" step="any" value="${l.qty??1}"></label><label class="l">سعر القطعة<input class="in num ivP" type="number" min="0" step="any" value="${l.price??''}" placeholder="0"></label><div class="l">المجموع<b class="num ivT">—</b></div></div></div>`}
 function invcForm(){const fixed=scopeWh(S.role);const canStock=INV_WRITE.includes(S.role)||isOwner();
-  overlay('invc','رفع فاتورة / دفعة',`<form class="f" id="fIv"><div class="fr"><label class="l">المورد / الجهة<input id="ivS" class="in" required data-sug="suppliers" autocomplete="off" placeholder="مثال: محلات الرافدين"></label>${fixed?'':`<label class="l">تابعة لـ<select id="ivW" class="in"><option value="main">المخزن الرئيسي</option><option value="mach">مخزن الآليات</option></select></label>`}${dtField('ivD','تاريخ الفاتورة')}</div>
+  overlay('invc','رفع فاتورة / دفعة',`<form class="f" id="fIv"><div class="fr"><label class="l">المورد / الجهة<input id="ivS" class="in" required data-sug="suppliers" autocomplete="off" placeholder="مثال: محلات الرافدين"></label>${fixed?'':`<label class="l">تابعة لـ<select id="ivW" class="in"><option value="main">المخزن الرئيسي</option><option value="mach">مخزن الآليات</option></select></label>`}<label class="l">رقم الفاتورة<input id="ivNo" class="in num" placeholder="اختياري"></label>${dtField('ivD','تاريخ الفاتورة')}</div>
    <div id="ivRows">${lineRow()}</div>
    <div class="acts"><button type="button" class="btn sm" id="ivAdd">+ مادة ثانية</button><span style="margin-inline-start:auto">المجموع الكلي: <b class="num" id="ivTot">—</b></span></div>
    ${fileField('ivImg','صورة الفاتورة','صوّرها بالكاميرا أو اختارها من الملفات',false)}
@@ -2403,7 +2405,7 @@ function invcForm(){const fixed=scopeWh(S.role);const canStock=INV_WRITE.include
     const f=$('#ivImg').files[0];if(!f){$('#ivE').textContent='صوّر الفاتورة أو اختار صورتها.';return}
     sb_.disabled=true;sb_.textContent='جارِ الرفع…';
     try{const img=await saveFile(f,'فاتورة خارجية · '+$('#ivS').value.trim());const wh=fixed||$('#ivW').value;const d=readDt('ivD');
-      const v={id:uid(),wh,supplier:$('#ivS').value.trim(),lines,total:lines.reduce((a,l)=>a+l.total,0),img:img?.ref||null,note:$('#ivNote').value.trim(),at:d,createdAt:Date.now(),uid:S.me?.id||null,role:S.role,stocked:!!$('#ivStock')?.checked};
+      const v={id:uid(),wh,number:$('#ivNo').value.trim(),supplier:$('#ivS').value.trim(),lines,total:lines.reduce((a,l)=>a+l.total,0),img:img?.ref||null,note:$('#ivNote').value.trim(),at:d,createdAt:Date.now(),uid:S.me?.id||null,role:S.role,stocked:!!$('#ivStock')?.checked};
       const res=await sb.from('invoices').insert({id:v.id,wh,data:v});if(res.error)throw new Error(res.error.message);
       S.invoices=[v,...(S.invoices||[])];
       if(v.stocked){for(const l of lines){const ex=S.inventory.find(i=>i.kind!=='fuel'&&(i.wh==='mach'?'mach':'main')===wh&&i.name.trim()===l.name);
@@ -2412,7 +2414,7 @@ function invcForm(){const fixed=scopeWh(S.role);const canStock=INV_WRITE.include
     catch(x){$('#ivE').textContent='تعذر الحفظ: '+(x.message||x);sb_.disabled=false;sb_.textContent='حفظ الفاتورة'}});
   calc()}
 function invcOpen(id){const v=(S.invoices||[]).find(x=>x.id===id);if(!v)return;const canDel=S.me?.role==='owner';
-  overlay('invcv',`فاتورة — ${esc(v.supplier||'')}`,`<div class="sec"><div class="kv"><div><span>المورد</span><b>${esc(v.supplier||'—')}</b></div><div><span>تابعة لـ</span><b>${v.wh==='mach'?'مخزن الآليات':'المخزن الرئيسي'}</b></div><div><span>التاريخ</span><b class="num">${new Date(v.at).toLocaleDateString('ar-IQ-u-nu-latn')}</b></div><div><span>رفعها</span><b>${esc(S.names[v.uid]?.name||'—')}</b></div></div></div>
+  overlay('invcv',`فاتورة — ${esc(v.supplier||'')}`,`<div class="sec"><div class="kv">${v.number?`<div><span>رقم الفاتورة</span><b class="num">${esc(v.number)}</b></div>`:''}${v.pay?`<div><span>الدفع</span><b>${v.pay==='credit'?'آجل (دين)':'نقد'}</b></div>`:''}<div><span>المورد</span><b>${esc(v.supplier||'—')}</b></div><div><span>تابعة لـ</span><b>${v.wh==='mach'?'مخزن الآليات':'المخزن الرئيسي'}</b></div><div><span>التاريخ</span><b class="num">${new Date(v.at).toLocaleDateString('ar-IQ-u-nu-latn')}</b></div><div><span>رفعها</span><b>${esc(S.names[v.uid]?.name||'—')}</b></div></div></div>
    <div class="tbl-wrap"><table><thead><tr><th>المادة</th><th>العدد</th><th>سعر القطعة</th><th>المجموع</th></tr></thead><tbody>${(v.lines||[]).map(l=>`<tr><td>${esc(l.name)}</td><td class="num">${nf.format(l.qty)}</td><td class="num">${money(l.price)}</td><td class="num">${money(l.total)}</td></tr>`).join('')}<tr><td colspan="3"><b>المجموع الكلي</b></td><td class="num"><b>${money(+v.total)}</b></td></tr></tbody></table></div>
    ${v.note?`<p class="note">${esc(v.note)}</p>`:''}${v.stocked?'<p class="note ok">أُضيفت موادها للمخزون.</p>':''}
    <div class="photos" style="margin-top:12px"><div class="ph">صورة الفاتورة${imgTag(v.img,'pimg')}</div></div>
@@ -2561,6 +2563,54 @@ function outForm(){overlay('out','تسجيل مخرج من المخزن',`<form 
         const name=x.it?x.it.name:x.free,unit=x.it?.unit||'قطعة',price=+x.it?.price||0;
         await invLog('مخرج يدوي: '+nf.format(x.q)+' '+unit+' '+name,(to?'لـ '+to:'')+(dept?' · '+dept:'')+(left!=null?' · الباقي '+nf.format(left):''),{kind:'out',item:name,itemId:x.it?.id||null,qty:x.q,unit,price,total:+(price*x.q).toFixed(2),to,dept,note,at,wh,img:img?.ref||null,free:!x.it})}
       await loadAll('inventory');closeOv();render();toast('سُجّل '+(rows.length>1?rows.length+' مواد':'المخرج')+' وانخصم من الرصيد')}catch(x){err.textContent='تعذر الحفظ: '+(x.message||x);btn.disabled=false;btn.textContent='إعادة المحاولة'}});
+  calc()}
+
+/* inputs (المدخلات) — stock received with invoice number, date, supplier */
+function insView(role){const wh=myWh(role),per=S.inP||'month',q=(S.inQ||'').trim();
+  const all=(S.invoices||[]).filter(v=>v.kind==='in'&&v.wh===wh).sort((a,b)=>(b.at||0)-(a.at||0));
+  const list=all.filter(v=>(per==='all'||(per==='today'?sameDayT(v.at):sameMonthT(v.at)))&&(!q||[v.number,v.supplier,...(v.lines||[]).map(l=>l.name)].join(' ').includes(q)));
+  const tot=list.reduce((a,v)=>a+(+v.total||0),0),credit=list.filter(v=>v.pay==='credit').reduce((a,v)=>a+(+v.total||0),0);
+  let h=`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">المدخلات</h3><p class="muted" style="margin:2px 0 0">كل مادة تدخل المخزن تنسجل بفاتورتها: رقم الفاتورة، التاريخ، المورد، والمواد بأسعارها. تنضاف للرصيد وحدها.</p></div><div class="acts"><button class="btn pri" data-a="inNew">+ تسجيل مدخل</button></div></div>
+   <div class="filters"><input id="inQ" class="in" placeholder="بحث برقم الفاتورة أو المورد أو المادة…" value="${esc(q)}" style="flex:1 1 200px"><div class="seg" style="flex:1 1 220px">${[['today','اليوم'],['month','هذا الشهر'],['all','الكل']].map(([k,t])=>`<label><input type="radio" name="inP" value="${k}" ${per===k?'checked':''}>${t}</label>`).join('')}</div></div>
+   <div class="stats"><div class="stat"><b>${list.length}</b><span>فاتورة</span></div><div class="stat"><b class="num" style="font-size:18px">${money(tot)}</b><span>المجموع</span></div>${credit?`<div class="stat hot"><b class="num" style="font-size:18px">${money(credit)}</b><span>منها آجل (دين)</span></div>`:''}</div>`;
+  if(!list.length)return h+`<div class="empty"><b>ماكو مدخلات بهاي الفترة</b>اضغط «+ تسجيل مدخل» واكتب رقم الفاتورة والمواد.</div>`;
+  return h+`<div class="list" style="margin-top:12px">${list.map(v=>`<button class="card" data-a="invcOpen" data-v="${v.id}">${v.img?imgTag(v.img,'thumb'):`<div class="thumb">📥</div>`}<div class="mid"><div class="t">فاتورة <span class="num">#${esc(v.number||'—')}</span> — ${esc(v.supplier||'')}</div><div class="meta"><span>${(v.lines||[]).length} مادة</span><span class="num">${new Date(v.at).toLocaleDateString('ar-IQ-u-nu-latn')}</span><span>${esc(S.names[v.uid]?.name||'')}</span></div></div><div class="end"><b class="num">${money(+v.total)}</b>${v.pay==='credit'?'<span class="pill p-warn">آجل</span>':'<span class="pill p-ok">نقد</span>'}</div></button>`).join('')}</div>`}
+function inRow(){const items=invOf(S.role).filter(i=>i.kind!=='fuel').sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+  return`<div class="ivl inr"><div class="ivh"><select class="in nI"><option value="__new">مادة جديدة (تنضاف للمخزون)</option>${items.map(i=>`<option value="${i.id}">${esc(i.name)} — الرصيد ${nf.format(+i.qty)} ${esc(i.unit||'')}</option>`).join('')}</select><button type="button" class="btn sm ghost nX" aria-label="حذف">×</button></div>
+   <input class="in nN" data-sug="items" autocomplete="off" placeholder="اسم المادة الجديدة">
+   <div class="ivg"><label class="l">العدد<input class="in num nQ" type="number" min="0" step="any" value="1"></label><label class="l">الوحدة<input class="in nU" list="units" value="قطعة"></label><label class="l">سعر القطعة<input class="in num nP" type="number" min="0" step="any" placeholder="0"></label></div><div class="small muted nT"></div></div>`}
+function inForm(){const wh=myWh(S.role);
+  overlay('in','تسجيل مدخل — فاتورة',`<form class="f" id="fIn"><p class="muted" style="margin:0">${whName(wh)}</p>
+   <div class="fr"><label class="l">رقم الفاتورة<input id="nNo" class="in num" required placeholder="مثال: 10452"></label>${dtField('nWhen','تاريخ الفاتورة')}</div>
+   <div class="fr"><label class="l">المورد / المحل<input id="nSup" class="in" data-sug="suppliers" autocomplete="off" required placeholder="اسم المورد"></label><label class="l">طريقة الدفع<select id="nPay" class="in"><option value="cash">نقد</option><option value="credit">آجل (دين)</option></select></label></div>
+   <div id="nDup" class="note bad"></div>
+   <div id="nRows">${inRow()}</div><button type="button" class="btn" id="nAdd" style="justify-self:start">+ مادة ثانية</button>
+   <div class="acts"><span style="margin-inline-start:auto">المجموع الكلي: <b class="num" id="nTot">—</b></span></div>
+   ${fileField('nImg','صورة الفاتورة','صوّرها أو اختارها من الملفات',false)}
+   <label class="l">ملاحظة<input id="nNote" class="in" placeholder="مثال: استلمها فلان، رقم السيارة…"></label>
+   <div class="err" id="nErr"></div><div class="acts"><button class="btn pri" type="submit" id="nSub">حفظ وإضافة للمخزون</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
+  bindPreview('nImg');
+  const calc=()=>{let T=0;document.querySelectorAll('#nRows .inr').forEach(r=>{const sel=r.querySelector('.nI').value,it=S.inventory.find(i=>i.id===sel);r.querySelector('.nN').style.display=sel==='__new'?'':'none';
+      if(it&&!r.dataset.f){r.dataset.f=sel;r.querySelector('.nU').value=it.unit||'قطعة';if(it.price&&!r.querySelector('.nP').value)r.querySelector('.nP').value=it.price}
+      const q=+r.querySelector('.nQ').value||0,p=+r.querySelector('.nP').value||0;T+=q*p;r.querySelector('.nT').textContent=p?`المجموع: ${money(q*p)}`:''});
+    $('#nTot').textContent=T?money(T):'—';const n=document.querySelectorAll('#nRows .inr').length;$('#nSub').textContent=n>1?`حفظ ${n} مواد وإضافتها للمخزون`:'حفظ وإضافة للمخزون';
+    const no=$('#nNo').value.trim(),sup=$('#nSup').value.trim();const d=no&&(S.invoices||[]).find(v=>v.kind==='in'&&String(v.number).trim()===no&&(!sup||v.supplier===sup));$('#nDup').textContent=d?`⚠ فاتورة بنفس الرقم مسجلة من قبل (${d.supplier}، ${new Date(d.at).toLocaleDateString('ar-IQ-u-nu-latn')})`:''};
+  $('#fIn').addEventListener('input',calc);$('#nRows').addEventListener('change',e=>{if(e.target.classList.contains('nI'))e.target.closest('.inr').dataset.f='';calc()});
+  $('#nRows').addEventListener('click',e=>{if(e.target.classList.contains('nX')&&document.querySelectorAll('#nRows .inr').length>1){e.target.closest('.inr').remove();calc()}});
+  $('#nAdd').addEventListener('click',()=>{$('#nRows').insertAdjacentHTML('beforeend',inRow());calc()});
+  $('#fIn').addEventListener('submit',async e=>{e.preventDefault();const btn=$('#nSub'),err=$('#nErr');err.textContent='';
+    const rows=[...document.querySelectorAll('#nRows .inr')].map(r=>{const sel=r.querySelector('.nI').value,it=S.inventory.find(i=>i.id===sel);return{it,name:it?it.name:r.querySelector('.nN').value.trim(),qty:+r.querySelector('.nQ').value||0,unit:r.querySelector('.nU').value.trim()||'قطعة',price:+r.querySelector('.nP').value||0}}).filter(x=>x.name&&x.qty>0);
+    if(!rows.length){err.textContent='اكتب مادة وحدة على الأقل بعددها.';return}
+    btn.disabled=true;btn.textContent='جارِ الحفظ…';
+    try{const img=await saveFile($('#nImg').files[0],'فاتورة مدخلات #'+$('#nNo').value.trim());const at=readDt('nWhen');
+      const lines=rows.map(x=>({name:x.name,qty:x.qty,unit:x.unit,price:x.price,total:+(x.qty*x.price).toFixed(2),itemId:x.it?.id||null}));
+      const v={id:uid(),kind:'in',wh,number:$('#nNo').value.trim(),supplier:$('#nSup').value.trim(),pay:$('#nPay').value,lines,total:lines.reduce((a,l)=>a+l.total,0),img:img?.ref||null,note:$('#nNote').value.trim(),at,createdAt:Date.now(),uid:S.me?.id||null,role:S.role,stocked:true};
+      const res=await sb.from('invoices').insert({id:v.id,wh,data:v});if(res.error)throw new Error(res.error.message);S.invoices=[v,...(S.invoices||[])];
+      for(const x of rows){const ex=x.it||S.inventory.find(i=>i.kind!=='fuel'&&(i.wh==='mach'?'mach':'main')===wh&&i.name.trim()===x.name);
+        const it=ex?{...clean(ex),qty:+((+ex.qty||0)+x.qty).toFixed(3),price:x.price||ex.price,supplier:v.supplier}:{id:uid(),name:x.name,sku:'',qty:x.qty,unit:x.unit,min:0,shelf:'',wh,price:x.price||null,supplier:v.supplier};
+        await putInv(it)}
+      await invLog('مدخل فاتورة #'+v.number+' — '+v.supplier,lines.length+' مادة · '+money(v.total)+(v.pay==='credit'?' · آجل':''));await signAll();closeOv();render();toast('سُجّلت الفاتورة #'+v.number+' وانضافت للمخزون')}
+    catch(x){err.textContent='تعذر الحفظ: '+(x.message||x);btn.disabled=false;btn.textContent='إعادة المحاولة'}});
   calc()}
 
 /* clickable stat tiles */
