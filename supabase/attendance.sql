@@ -387,3 +387,9 @@ alter table public.workers add column if not exists origin text check (origin is
 --     tables/functions: worker_requests, att_worker_register, att_worker_me (5 wrong PINs => 15 min lock),
 --     att_requests_list, att_request_decide, notification kind 'att_join'
 --     (applied as migrations: worker_self_signup, worker_me_lockout_fix)
+
+-- 12) remote supervisors (engineer / contractor), applied as migration remote_engineers_contractors:
+--     roles engineer, contractor; staff.company, staff.specialty, staff.att_team (contractor crew = workers.team)
+--     is_internal(): outsiders can't read requests, inventory, invlog, machines, deliveries, staff, files
+--     can_write() excludes outsiders; attendance/workers readable by engineer (all) and contractor (own crew only)
+--     att_set_scope(p_id, p_team) for project/owner; worker self sign-up functions revoked
