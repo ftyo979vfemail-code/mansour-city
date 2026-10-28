@@ -1135,7 +1135,7 @@ function rolePicker(){
 }
 function roleDesc(k){const CD={elec_tech:'طلب مواد قسم الكهرباء ومتابعتها',mech_tech:'طلب مواد قسم الميكانيك ومتابعتها',buyer:'عروض الأسعار والشراء والفواتير والتسليم بالباركود',clerk:'متابعة الإشعارات وسجل الحركات والطلبات',receiver:'استلام المواد المشتراة بالباركود نيابة عن مدير المخزن',supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
 
-function tabsFor(role){const T=tabsFor0(role);const add=[];if(EXP_ROLES.includes(role))add.push(['exp','الصرفيات',0]);if(INVC_ROLES.includes(role))add.push(['invc','الفواتير',(S.invoices||[]).filter(v=>(!scopeWh(role)||v.wh===scopeWh(role))&&sameDayT(v.createdAt||v.at)).length]);const i=T.findIndex(t=>t[0]==='all');if(i<0)T.push(...add);else T.splice(i,0,...add);return T}
+function tabsFor(role){const T=tabsFor0(role);const add=[];if(EXP_ROLES.includes(role))add.push(['exp','الصرفيات',0]);if(!T.some(t=>t[0]==='feed'))add.push(['feed','السجل',0]);if(INVC_ROLES.includes(role))add.push(['invc','الفواتير',(S.invoices||[]).filter(v=>(!scopeWh(role)||v.wh===scopeWh(role))&&sameDayT(v.createdAt||v.at)).length]);const i=T.findIndex(t=>t[0]==='all');if(i<0)T.push(...add);else T.splice(i,0,...add);return T}
 function tabsFor0(role){
   const k=ROLES[role].kind,q=queueFor(role);
   if(role==='operator')return[['work','آليتي',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
@@ -1184,6 +1184,7 @@ function card(r){
 function tabBody(role){
   const t=S.tab,R=ROLES[role];
   if(t==='exp')return expView(role);
+  if(t==='feed')return feedView();
   if(t==='invc')return invcView(role);
   if(t==='mach')return machinesView();
   if(t==='team')return teamView();
@@ -1216,8 +1217,12 @@ function allEvents(){
   S.invlog.forEach(l=>ev.push({...l,inv:true}));
   return ev.sort((a,b)=>b.t-a.t)}
 function recent24(){const c=Date.now()-864e5;return allEvents().filter(e=>e.t>=c).length}
+function feedScope(e,role){const R=ROLES[role];if(!R||['project','owner'].includes(role)||R.kind==='admin')return true;
+  const w=scopeWh(role);
+  if(e.req){if(w)return whOf(e.req)===w;if(R.kind==='purchase')return !!(e.req.purchase||['buy','buying','receive','pur_ok'].includes(e.req.status))||(e.req.log||[]).some(l=>ROLES[l.role]?.kind==='purchase');return mine(role).some(r=>r.id===e.req.id)}
+  if(w==='main')return ['store','receiver'].includes(e.role);if(w==='mach')return MACH_TEAM.includes(e.role);return e.uid===S.me?.id}
 function feedView(){
-  let ev=allEvents();if(S.feedRole)ev=ev.filter(e=>e.role===S.feedRole);
+  let ev=allEvents().filter(e=>feedScope(e,S.role));if(S.feedRole)ev=ev.filter(e=>e.role===S.feedRole);
   let h=`<div class="filters"><select id="feedRole" class="in" aria-label="تصفية حسب الشخص"><option value="">كل الأشخاص</option>${Object.entries(ROLES).filter(([k,r])=>r.kind!=='admin').map(([k,r])=>`<option value="${k}" ${S.feedRole===k?'selected':''}>${r.name}</option>`).join('')}</select></div>`;
   if(!ev.length)return h+`<div class="empty"><b>لا توجد حركات بعد</b>كل طلب وموافقة ورفض وشراء وصرف وتعديل بالمخزون يظهر هنا بالوقت والاسم.</div>`;
   let day='';h+=`<div class="feed">`;
