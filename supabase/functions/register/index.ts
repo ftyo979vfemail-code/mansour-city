@@ -1,8 +1,7 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const DOMAIN = "staff.mansourcity.app";
-const ROLES = ["machines","elec","mech","store","mstore","project","admin1","admin2","buyer","engineer","contractor"];
+const ROLES = ["machines","elec","mech","store","mstore","project","admin1","admin2","buyer","engineer","contractor","driver"];
 const EXT = ["engineer","contractor"]; // remote supervisors of the attendance site
 const cors = {
   "Access-Control-Allow-Origin": "*",

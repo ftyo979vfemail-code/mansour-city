@@ -798,7 +798,7 @@ function apScan(){openScanner('مسح باركود موظف','امسح البا�
   await loadAll('staff');closeOv();render();toast(data.activated?`تفعّل حساب ${data.name}`:`سُجّلت توصيتك على ${data.name}. التفعيل بيد مدير المشروع`)})}
 /* registration */
 function registerView(){
-  const roleOpts=Object.entries(ROLES).filter(([k,r])=>(!r.crew||k==='buyer')&&!r.legacy&&!r.ext).map(([k,r])=>`<label class="rpick"><input type="radio" name="rRole" value="${k}"><span class="mono">${r.mono}</span><span>${r.name}</span></label>`).join('');
+  const roleOpts=Object.entries(ROLES).filter(([k,r])=>(!r.crew||k==='buyer'||k==='driver')&&!r.legacy&&!r.ext).map(([k,r])=>`<label class="rpick"><input type="radio" name="rRole" value="${k}"><span class="mono">${r.mono}</span><span>${r.name}</span></label>`).join('');
   return`<form class="f" id="fReg" style="width:100%;text-align:start"><div class="l" style="font-size:13px;font-weight:500">اختر دورك المهني<div class="rgrid">${roleOpts}</div></div>
    <label class="l">الاسم الكامل<input id="rName" class="in" required autocomplete="name"></label>
    <label class="l">رقم الهاتف<input id="rPhone" class="in num" dir="ltr" inputmode="tel" required placeholder="07xxxxxxxxx" autocomplete="tel"></label>
