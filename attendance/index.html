@@ -1029,7 +1029,7 @@ function dlvForm(){
    <div class="fr"><label class="l">السائق<input id="dDriver" class="in" data-sug="drivers" autocomplete="off" placeholder="اكتب أو اختار من الأسماء السابقة"></label><label class="l">هاتف السائق<input id="dPhone" class="in num" dir="ltr" inputmode="tel"></label></div>
    <label class="l">مكان التنزيل<input id="dDest" class="in" data-sug="dests" autocomplete="off" placeholder="مثال: ساحة الحجر الجيري أو عمارة T1"></label>${dtField('dWhen','تاريخ ووقت الوصول')}
    ${reqOpts?`<label class="l">مرتبطة بطلب شراء <em>(اختياري)</em><select id="dReq" class="in"><option value="">— بدون —</option>${reqOpts}</select></label>`:''}
-   ${fileField('fDImg','صورة وصل التسليم أو الشاحنة','تفتح الكاميرا مباشرة',true)}
+   ${fileField('fDImg','صورة وصل التسليم','📷 خلي الوصل كامل بالصورة — ابتعد شوية حتى تبين الحواف الأربعة',true)}
    <datalist id="dmats">${MATS.map(m=>`<option value="${m}">`).join('')}</datalist><datalist id="dunits">${DUNITS.map(u=>`<option value="${u}">`).join('')}</datalist><datalist id="ddest">${AREAS.map(a=>`<option value="${a}">`).join('')}</datalist>
    <div class="err" id="dErr"></div><div class="acts"><button class="btn pri" type="submit" id="dSub">تسجيل الشاحنة</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`;
   overlay('dlvf','تسجيل شاحنة واصلة',b);bindPreview('fDImg');guardPhoto('fDImg','delivery');
@@ -2555,11 +2555,12 @@ function invcForm(){const fixed=scopeWh(S.role);const canStock=INV_WRITE.include
   overlay('invc','رفع فاتورة / دفعة',`<form class="f" id="fIv"><div class="fr"><label class="l">المورد / الجهة<input id="ivS" class="in" required data-sug="suppliers" autocomplete="off" placeholder="مثال: محلات الرافدين"></label>${fixed?'':`<label class="l">تابعة لـ<select id="ivW" class="in"><option value="main">المخزن الرئيسي</option><option value="mach">مخزن الآليات</option></select></label>`}<label class="l">رقم الفاتورة<input id="ivNo" class="in num" placeholder="اختياري"></label>${dtField('ivD','تاريخ الفاتورة')}</div>
    <div id="ivRows">${lineRow()}</div>
    <div class="acts"><button type="button" class="btn sm" id="ivAdd">+ مادة ثانية</button><span style="margin-inline-start:auto">المجموع الكلي: <b class="num" id="ivTot">—</b></span></div>
-   ${fileField('ivImg','صورة الفاتورة','تفتح الكاميرا — لا تُقبل صور قديمة أو مكررة',true)}
+   ${fileField('ivImg','صورة الفاتورة','📷 خلي الفاتورة كاملة بالصورة — ابتعد شوية حتى تبين الحواف الأربعة',true)}
    <label class="l">ملاحظة<input id="ivNote" class="in" placeholder="مثال: دفعة نقدية، رقم الوصل…"></label>
    ${canStock?`<label class="l" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="ivStock"> أضف المواد للمخزون (تزيد الرصيد ويتحدث السعر)</label>`:''}
    <div class="err" id="ivE"></div><div class="acts"><button class="btn pri" type="submit" id="ivSub">حفظ الفاتورة</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
-  bindPreview('ivImg');guardPhoto('ivImg','ext_invoice');
+  bindPreview('ivImg');guardPhoto('ivImg','ext_invoice',{onRead:v=>{if(v.number&&!$('#ivNo').value)$('#ivNo').value=v.number;if(v.supplier&&!$('#ivS').value)$('#ivS').value=v.supplier;
+    const rows=document.querySelectorAll('#ivRows .ivl');if(v.items?.length&&rows.length===1&&!rows[0].querySelector('.ivN').value){v.items.forEach((it,i)=>{if(i)$('#ivRows').insertAdjacentHTML('beforeend',lineRow());const r=document.querySelectorAll('#ivRows .ivl')[i];r.querySelector('.ivN').value=it.name;if(it.qty)r.querySelector('.ivQ').value=it.qty;if(it.price)r.querySelector('.ivP').value=it.price});$('#ivRows').dispatchEvent(new Event('input'));toast('تعبّت المواد من الفاتورة — راجعها قبل الحفظ')}}});
   const calc=()=>{let T=0;document.querySelectorAll('#ivRows .ivl').forEach(tr=>{const q=+tr.querySelector('.ivQ').value||0,p=+tr.querySelector('.ivP').value||0,t=q*p;T+=t;tr.querySelector('.ivT').textContent=t?money(t):'—'});$('#ivTot').textContent=T?money(T):'—';return T};
   $('#ivRows').addEventListener('input',calc);
   $('#ivRows').addEventListener('click',e=>{if(e.target.classList.contains('ivX')){const rows=document.querySelectorAll('#ivRows .ivl');if(rows.length>1)e.target.closest('.ivl').remove();calc()}});
@@ -2713,7 +2714,7 @@ function outForm(){overlay('out','تسجيل مخرج من المخزن',`<form 
    <div class="fr"><label class="l">طلعت لـ (اسم المستلم)<input id="oTo" class="in" data-sug="people" autocomplete="off" required placeholder="مثال: حسين الكهربائي"></label><label class="l">الجهة / القسم<input id="oDept" class="in" list="oDepts" placeholder="مثال: الكهرباء أو عمارة T3"><datalist id="oDepts">${DEPTS.map(d=>`<option value="${d}">`).join('')}</datalist></label></div>
    ${dtField('oWhen','تاريخ الإخراج')}
    <label class="l">ملاحظة / السبب<input id="oNote" class="in" placeholder="مثال: طلب شفهي من مدير المشروع"></label>
-   ${fileField('oImg','صورة وصل الإخراج (اختياري)','تفتح الكاميرا — لا تُقبل صور قديمة أو مكررة',true)}
+   ${fileField('oImg','صورة وصل الإخراج (اختياري)','📷 خلي الفاتورة كاملة بالصورة — ابتعد شوية حتى تبين الحواف الأربعة',true)}
    <div class="err" id="oErr"></div><div class="acts"><button class="btn pri" type="submit" id="oSub">حفظ المخرج</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
   bindPreview('oImg');guardPhoto('oImg','out_voucher');
   const calc=()=>{const rows=document.querySelectorAll('#oRows .orow2');rows.forEach(r=>{const id=r.querySelector('.oI').value,it=S.inventory.find(i=>i.id===id),q=+r.querySelector('.oQ').value||0;r.querySelector('.oF').style.display=id==='__free'?'':'none';r.querySelector('.oT').textContent=it&&+it.price?money(+it.price*q):'—'});$('#oSub').textContent=rows.length>1?`حفظ ${rows.length} مواد`:'حفظ المخرج'};
@@ -2754,10 +2755,12 @@ function inForm(){const wh=myWh(S.role);
    <div id="nDup" class="note bad"></div>
    <div id="nRows">${inRow()}</div><button type="button" class="btn" id="nAdd" style="justify-self:start">+ مادة ثانية</button>
    <div class="acts"><span style="margin-inline-start:auto">المجموع الكلي: <b class="num" id="nTot">—</b></span></div>
-   ${fileField('nImg','صورة الفاتورة','تفتح الكاميرا — لا تُقبل صور قديمة أو مكررة',true)}
+   ${fileField('nImg','صورة الفاتورة','📷 خلي الفاتورة كاملة بالصورة — ابتعد شوية حتى تبين الحواف الأربعة',true)}
    <label class="l">ملاحظة<input id="nNote" class="in" placeholder="مثال: استلمها فلان، رقم السيارة…"></label>
    <div class="err" id="nErr"></div><div class="acts"><button class="btn pri" type="submit" id="nSub">حفظ وإضافة للمخزون</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
-  bindPreview('nImg');guardPhoto('nImg','in_invoice');
+  bindPreview('nImg');guardPhoto('nImg','in_invoice',{onRead:v=>{if(v.number&&!$('#nNo').value)$('#nNo').value=v.number;if(v.supplier&&!$('#nSup').value)$('#nSup').value=v.supplier;
+    const rows=document.querySelectorAll('#nRows .inr');if(v.items?.length&&rows.length===1&&!rows[0].querySelector('.nN').value&&rows[0].querySelector('.nI').value==='__new'){v.items.forEach((it,i)=>{if(i)$('#nRows').insertAdjacentHTML('beforeend',inRow());const r=document.querySelectorAll('#nRows .inr')[i];const ex=S.inventory.find(x=>x.kind!=='fuel'&&(x.wh==='mach'?'mach':'main')===wh&&x.name.trim()===it.name.trim());if(ex)r.querySelector('.nI').value=ex.id;else r.querySelector('.nN').value=it.name;if(it.qty)r.querySelector('.nQ').value=it.qty;if(it.price)r.querySelector('.nP').value=it.price});toast('تعبّت المواد من الفاتورة — راجعها قبل الحفظ')}
+    $('#fIn').dispatchEvent(new Event('input'))}});
   const calc=()=>{let T=0;document.querySelectorAll('#nRows .inr').forEach(r=>{const sel=r.querySelector('.nI').value,it=S.inventory.find(i=>i.id===sel);r.querySelector('.nN').style.display=sel==='__new'?'':'none';
       if(it&&!r.dataset.f){r.dataset.f=sel;r.querySelector('.nU').value=it.unit||'قطعة';if(it.price&&!r.querySelector('.nP').value)r.querySelector('.nP').value=it.price}
       const q=+r.querySelector('.nQ').value||0,p=+r.querySelector('.nP').value||0;T+=q*p;r.querySelector('.nT').textContent=p?`المجموع: ${money(q*p)}`:''});
@@ -2809,7 +2812,7 @@ function fuelSendForm(){const f=fuelItem();const me=S.me?.full_name||'';
    <div class="fr"><label class="l">كمية الكاز (لتر)<input id="sdL" class="in num" type="number" min="1" step="any" required></label><label class="l">اسم المرسل<input id="sdS" class="in" data-sug="people" autocomplete="off" required value="${esc(me)}"></label></div>
    <label class="l">اسم المستلم / السائق <em>(اختياري)</em><input id="sdD" class="in" data-sug="drivers" autocomplete="off"></label>
    ${dtField('sdW','تاريخ الإرسال')}
-   ${fileField('sdImg','فاتورة / وصل صرف الكاز','تفتح الكاميرا — لا تُقبل صور قديمة أو مكررة',true)}
+   ${fileField('sdImg','فاتورة / وصل صرف الكاز','📷 خلي الفاتورة كاملة بالصورة — ابتعد شوية حتى تبين الحواف الأربعة',true)}
    <label class="l">ملاحظة<input id="sdN" class="in" placeholder="مثال: للموقع T3"></label>
    <div class="err" id="sdE"></div><div class="acts"><button class="btn pri" type="submit" id="sdSub">إرسال</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
   bindPreview('sdImg');guardPhoto('sdImg','fuel_send');
@@ -2857,7 +2860,20 @@ function guardPhoto(id,kind,opt){const inp=$('#'+id);if(!inp)return;const drop=i
     if(!shot||now-shot>MAX_AGE||shot-now>MAX_AGE)return bad('هاي الصورة قديمة ('+(shot?new Date(shot).toLocaleString('ar-IQ-u-nu-latn',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'تاريخها غير معروف')+'). صوّر الفاتورة هسه بالكاميرا.');
     const h=await fileHash(f);
     if(h){const {data}=await sb.rpc('photo_seen',{p_hash:h});if(data)return bad('هاي الصورة مرفوعة من قبل'+(data.by?' من '+data.by:'')+' بتاريخ '+new Date(data.at).toLocaleString('ar-IQ-u-nu-latn',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'. صوّر الفاتورة الجديدة.')}
-    inp.dataset.ok='1';inp.dataset.hash=h;inp.dataset.kind=kind});}
+    note.className='note';note.innerHTML='<span class="spin" style="display:inline-block;width:14px;height:14px;vertical-align:middle"></span> جارِ فحص الفاتورة بالذكاء الاصطناعي…';
+    const sub=inp.closest('form')?.querySelector('button[type=submit]');if(sub)sub.disabled=true;
+    let v=null;try{const big=await compress(f,1600,.82);const b64=(await blobToData(big)).split(',')[1];const {data,error}=await sb.functions.invoke('scan-list',{body:{mode:'verify',image:b64,mime:'image/jpeg',dept:INV_KIND[kind]||''}});
+      let code=data?.code;if(error){try{code=(await error.context.json()).code}catch(x){code='upstream'}}
+      if(code){if(sub)sub.disabled=false;note.className='err';return bad(code==='no_key'?'فحص الفواتير يحتاج تفعيل مفتاح الذكاء الاصطناعي. راجع مطوّر النظام.':code==='rate_limited'?'الفحص مشغول، حاول بعد دقيقة.':'تعذر فحص الصورة. تأكد من الإنترنت وصوّرها مرة ثانية.')}
+      v=data}catch(x){if(sub)sub.disabled=false;note.className='err';return bad('تعذر فحص الصورة. تأكد من الإنترنت وصوّرها مرة ثانية.')}
+    if(sub)sub.disabled=false;note.className='err';
+    if(!v.is_invoice)return bad('📄 هاي مو صورة فاتورة أو وصل. صوّر الفاتورة نفسها بس.');
+    if(!v.complete)return bad('↔ الفاتورة مو كاملة بالصورة. ابتعد شوية حتى تطلع كلها والحواف الأربعة ظاهرة، وصوّر مرة ثانية.');
+    if(!v.readable)return bad(v.problem==='dark'?'💡 الصورة مظلمة. صوّرها بمكان بيه ضوء.':v.problem==='too_far'?'🔍 الفاتورة بعيدة والكتابة ما تنقرا. قرّب شوية بس خليها كاملة.':'📷 الصورة مو واضحة (مهزوزة). ثبّت الموبايل وصوّر مرة ثانية.');
+    inp.dataset.ok='1';inp.dataset.hash=h;inp.dataset.kind=kind;inp._ai=v;
+    note.className='note ok';note.textContent='✓ انقرت الفاتورة'+(v.number?' — رقم '+v.number:'')+(v.supplier?' — '+v.supplier:'')+(v.total?' — المجموع '+money(v.total):'');
+    if(opt&&opt.onRead)try{opt.onRead(v)}catch(e){}});}
+const INV_KIND={fuel_send:'وصل صرف وقود (كاز)',in_invoice:'فاتورة شراء مواد للمخزن',ext_invoice:'فاتورة أو وصل دفع',out_voucher:'وصل إخراج مواد من المخزن',delivery:'وصل تسليم مواد (شاحنة)'};
 function photoOk(id,required){const inp=$('#'+id);if(!inp)return true;if(!inp.files[0])return !required;return inp.dataset.ok==='1'}
 async function photoClaim(id){const inp=$('#'+id);if(inp?.dataset.hash){try{await sb.rpc('photo_claim',{p_hash:inp.dataset.hash,p_kind:inp.dataset.kind||''})}catch(e){}}}
 

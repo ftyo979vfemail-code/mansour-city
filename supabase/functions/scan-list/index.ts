@@ -26,6 +26,15 @@ const PRICE_PROMPT = `أمامك ملف أو صورة فيها قائمة موا
 - sku: رمز أو رقم المادة إن وجد وإلا "".
 أجب بـ JSON فقط: {"items":[{"name":"","price":0,"qty":null,"unit":"","sku":""}],"supplier":"اسم المورد أو المحل إن ظهر","currency":"العملة المكتوبة إن وجدت"}`;
 
+const VERIFY_PROMPT = (kind: string) => `أنت مدقق فواتير. أمامك صورة التقطها موظف مخزن بالكاميرا ويُفترض أنها ${kind || "فاتورة أو وصل"} (فاتورة شراء، وصل استلام، وصل صرف وقود، قائمة مواد بأسعار، أو أي مستند ورقي/مطبوع/مكتوب بخط اليد فيه بيانات معاملة).
+افحص بدقة:
+1) is_invoice: هل الصورة لمستند ورقي من هذا النوع؟ (false إذا كانت صورة شخص، مكان، شاشة فارغة، منتج، آلية، أو أي شيء ليس مستنداً)
+2) complete: هل المستند ظاهر كاملاً داخل الصورة بحوافه الأربعة دون قص لأي جزء مهم (الرأس، الجدول، المجموع، التوقيع)؟ إذا كان مقصوصاً أو قريباً جداً فهو false.
+3) readable: هل الكتابة واضحة ومقروءة (غير مهزوزة/مظلمة/بعيدة جداً)؟
+ثم استخرج ما تستطيع قراءته.
+أجب بـ JSON فقط:
+{"is_invoice":true,"complete":true,"readable":true,"problem":"too_close|cropped|blurry|dark|too_far|not_document|none","doc_type":"نوع المستند","number":"رقم الفاتورة أو الوصل أو فارغ","date":"التاريخ المكتوب أو فارغ","supplier":"اسم المورد أو الجهة أو فارغ","total":رقم أو null,"items":[{"name":"","qty":null,"price":null}]}`;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -42,6 +51,24 @@ Deno.serve(async (req) => {
     const isPdf = mime === "application/pdf";
     if (typeof image !== "string" || image.length < 200 || image.length > (isPdf ? 30_000_000 : 7_000_000)) return json({ code: "bad_image" }, 400);
     const media = ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mime) ? mime : "image/jpeg";
+    if (mode === "verify") {
+      const rv = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 2000, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: media, data: image } }, { type: "text", text: VERIFY_PROMPT(String(dept || "")) }] }] }),
+      });
+      if (rv.status === 429) return json({ code: "rate_limited" }, 429);
+      if (!rv.ok) return json({ code: "upstream", detail: (await rv.text()).slice(0, 300) }, 502);
+      const o = await rv.json();
+      const tx: string = (o.content || []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("");
+      const mm = tx.match(/\{[\s\S]*\}/);
+      if (!mm) return json({ code: "bad_output" }, 502);
+      const v = JSON.parse(mm[0]);
+      const num = (x: unknown) => { if (x === null || x === undefined || x === "") return null; const n = Number(String(x).replace(/[^\d.\-]/g, "")); return isFinite(n) ? n : null; };
+      return json({ is_invoice: !!v.is_invoice, complete: !!v.complete, readable: !!v.readable, problem: String(v.problem || ""), doc_type: String(v.doc_type || "").slice(0, 60),
+        number: String(v.number || "").slice(0, 40), date: String(v.date || "").slice(0, 40), supplier: String(v.supplier || "").slice(0, 120), total: num(v.total),
+        items: (Array.isArray(v.items) ? v.items : []).slice(0, 60).map((x: Record<string, unknown>) => ({ name: String(x.name || "").slice(0, 120), qty: num(x.qty), price: num(x.price) })).filter((x: { name: string }) => x.name) });
+    }
     if (mode === "prices") {
       const block = isPdf ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } } : { type: "image", source: { type: "base64", media_type: media, data: image } };
       const rp = await fetch("https://api.anthropic.com/v1/messages", {
