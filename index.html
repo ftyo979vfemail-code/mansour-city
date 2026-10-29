@@ -147,6 +147,14 @@ button{cursor:pointer}
 .fab-item .fi{width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:15px}
 .fab-item:hover{border-color:var(--accent)}
 body.ovopen .fab{display:none}
+#printArea{display:none}
+@media print{body.printing>*:not(#printArea){display:none!important}body.printing #printArea{display:block!important}body.printing{background:#fff!important;color:#000!important;padding:0!important}@page{margin:12mm}}
+.pdoc{font-family:var(--body);color:#000;direction:rtl;font-size:13px}
+.pdoc .ph1{display:flex;align-items:center;gap:12px;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:12px}.pdoc .ph1 img{width:54px;height:54px;object-fit:contain}.pdoc .ph1 b{display:block;font-size:18px}.pdoc .ph1 span{font-size:13px}.pdoc .pdate{margin-inline-start:auto;font-size:11px;color:#444}
+.pdoc table{width:100%;border-collapse:collapse;margin:8px 0}.pdoc th,.pdoc td{border:1px solid #999;padding:6px 8px;text-align:start}.pdoc .pkv th{width:32%;background:#f2f2f2;font-weight:600}.pdoc .plines thead th{background:#e8e8e8}.pdoc tfoot td{font-weight:700;background:#f2f2f2}
+.pdoc .psign{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:26px 0 14px;font-size:12px}.pdoc .psign span{display:block;border-bottom:1px solid #000;height:34px}
+.pdoc .pfig{margin:12px 0;text-align:center;page-break-inside:avoid}.pdoc .pfig img{max-width:100%;max-height:230mm;border:1px solid #ccc}.pdoc figcaption{font-size:11px;color:#444;margin-top:4px}
+.ph img,.photos img,.thumb[data-ref],img.pimg{cursor:zoom-in}
 .sugbox{margin-top:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;max-height:150px;overflow:auto;padding:6px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
 .sugh{flex:1 1 100%;font-size:11.5px;color:var(--muted);padding:2px 6px}
 .sugi{border:1px solid var(--line);background:var(--sunk);color:var(--ink);font:500 14px var(--body);padding:8px 12px;border-radius:20px;cursor:pointer}
@@ -1037,6 +1045,7 @@ function openDlv(d){S.openD=d.id;const st=DST[d.status]||DST.wait,m=d.machineId&
   if(ed&&d.status==='unload')b+=`<div class="sec"><h4>إنهاء التنزيل</h4><div class="fr"><label class="l">الكمية المستلمة فعلياً<input id="dGot" class="in num" type="number" min="0" step="any" value="${d.qty}"></label><label class="l">مكان التنزيل<input id="dDest2" class="in" data-sug="dests" autocomplete="off" value="${esc(d.dest||'')}"></label></div><datalist id="ddest2">${AREAS.map(a=>`<option value="${a}">`).join('')}</datalist>
    <label class="l" style="margin-top:8px">ملاحظة<input id="dNote" class="in" placeholder="نقص، تلف، ملاحظات…"></label><div style="margin-top:8px">${fileField('fDone','صورة بعد التنزيل','اختياري',true)}</div><div class="acts" style="margin-top:10px"><button class="btn ok" data-a="dlvDone">تم التنزيل</button></div></div>`;
   b+=`<div class="sec"><h4>السجل</h4><ul class="log">${[...(d.log||[])].reverse().map(l=>`<li><i></i><span>${plabel(l)} ${esc(l.a)}${l.note?' — '+esc(l.note):''}</span><small class="num">${dt(l.t)}</small></li>`).join('')}</ul></div>`;
+  b+=`<div class="acts" style="margin-top:12px"><button class="btn" data-a="printDlv" data-v="${d.id}">🖨 طباعة الوصل</button></div>`;
   overlay('dlv',`شاحنة ${esc(d.material)}`,b);if($('#fDone'))bindPreview('fDone')}
 
 /* ---------- paper list → requests ---------- */
@@ -2088,7 +2097,7 @@ function openReq(r,keep){
   b+=`<div class="sec"><h4>الصور والموقع</h4><div class="photos"><div class="ph">صورة المنتج المطلوب${imgTag(r.productImg,'','صورة المنتج')}</div><div class="ph">صورة مكان العمل${imgTag(r.siteImg,'','صورة مكان العمل')}</div>
    <div class="ph">إحداثيات مكان العمل${r.site?`<div class="none" style="aspect-ratio:auto;padding:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-start"><b class="num" style="color:var(--ink)">${r.site.lat}, ${r.site.lng}</b><a href="${gmap(r.site)}" target="_blank" rel="noopener">فتح في خرائط Google ↗</a><a href="${gdir(r.site)}" target="_blank" rel="noopener">الاتجاهات ↗</a>${S.settings.plant?`<span>يبعد <span class="num">${km(S.settings.plant,r.site).toFixed(2)}</span> كم عن المعمل</span>`:''}</div>`:'<div class="none">لم تُحدد</div>'}</div></div></div>`;
   b+=quotesHTML(r);
-  if(pu)b+=`<div class="sec"><h4>بيانات الشراء</h4><div class="kv"><div><span>المورد</span><b>${esc(pu.supplier||'—')}</b></div><div><span>سعر الوحدة</span><b class="num">${money(pu.unitPrice)}</b></div><div><span>المجموع</span><b class="num">${money(pu.total)}</b></div><div><span>تاريخ الشراء</span><b class="num">${pu.at?dt(pu.at):'—'}</b></div></div>
+  if(pu)b+=`<div class="sec"><h4 style="display:flex;align-items:center;gap:8px">بيانات الشراء <button class="btn sm" data-a="printPur" data-v="${r.id}" style="margin-inline-start:auto">🖨 طباعة الفاتورة</button></h4><div class="kv"><div><span>المورد</span><b>${esc(pu.supplier||'—')}</b></div><div><span>سعر الوحدة</span><b class="num">${money(pu.unitPrice)}</b></div><div><span>المجموع</span><b class="num">${money(pu.total)}</b></div><div><span>تاريخ الشراء</span><b class="num">${pu.at?dt(pu.at):'—'}</b></div></div>
    <div class="photos" style="margin-top:12px">${pu.invoice?(pu.invoice.pdf?`<div class="ph">الفاتورة<a href="/_blob/${esc(pu.invoice.ref.slice(2))}" target="_blank" rel="noopener">فتح فاتورة PDF ↗</a></div>`:`<div class="ph">الفاتورة${imgTag(pu.invoice.ref,'','الفاتورة')}</div>`):'<div class="ph">الفاتورة<div class="none">غير مرفقة</div></div>'}
    ${pu.loc?`<div class="ph">موقع المورد<div class="none" style="aspect-ratio:auto;padding:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-start"><b class="num" style="color:var(--ink)">${pu.loc.lat}, ${pu.loc.lng}</b><a href="${gmap(pu.loc)}" target="_blank" rel="noopener">فتح في الخرائط ↗</a></div></div>`:''}</div></div>`;
   b+=`<div class="sec"><h4>السجل</h4><ul class="log">${(r.log||[]).map(l=>`<li><i></i><span>${plabel(l)} ${esc(l.a)}${l.note?' — '+esc(l.note):''}</span><small class="num">${dt(l.t)}</small></li>`).join('')}</ul></div>`;
@@ -2387,6 +2396,10 @@ document.addEventListener('click',async e=>{
     case'fab':{const f=$('#fab');const o=f.classList.toggle('open');el.setAttribute('aria-expanded',o);break}
     case'new':$('#fab')?.classList.remove('open');newReqForm();break;
     case'fuelIn':fuelIn();break;
+    case'printInv':printInvoice(v);break;
+    case'printPur':{const r=S.requests.find(x=>x.id===v);if(r)printPurchase(r);break}
+    case'printDlv':{const d=S.deliveries.find(x=>x.id===v);if(d)printDelivery(d);break}
+    case'printImg':{if(v)printImage(v,'صورة');else{printHTML('صورة',`<figure class="pfig"><img src="${esc(el.dataset.src)}" alt=""></figure>`)}break}
     case'outNew':outForm();break;
     case'inNew':inForm();break;
     case'myInv':myInvSheet();break;
@@ -2564,7 +2577,7 @@ function invcOpen(id){const v=(S.invoices||[]).find(x=>x.id===id);if(!v)return;c
    <div class="tbl-wrap"><table><thead><tr><th>المادة</th><th>العدد</th><th>سعر القطعة</th><th>المجموع</th></tr></thead><tbody>${(v.lines||[]).map(l=>`<tr><td>${esc(l.name)}</td><td class="num">${nf.format(l.qty)}</td><td class="num">${money(l.price)}</td><td class="num">${money(l.total)}</td></tr>`).join('')}<tr><td colspan="3"><b>المجموع الكلي</b></td><td class="num"><b>${money(+v.total)}</b></td></tr></tbody></table></div>
    ${v.note?`<p class="note">${esc(v.note)}</p>`:''}${v.stocked?'<p class="note ok">أُضيفت موادها للمخزون.</p>':''}
    <div class="photos" style="margin-top:12px"><div class="ph">صورة الفاتورة${imgTag(v.img,'pimg')}</div></div>
-   ${canDel?`<div class="acts" style="margin-top:12px"><button class="btn bad sm" id="ivDel">حذف الفاتورة</button><span id="ivDelC"></span></div>`:''}`);
+   <div class="acts" style="margin-top:12px"><button class="btn pri" data-a="printInv" data-v="${v.id}">🖨 طباعة الفاتورة</button>${canDel?`<button class="btn bad sm" id="ivDel">حذف الفاتورة</button><span id="ivDelC"></span>`:''}</div>`);
   const dl=$('#ivDel');if(dl)dl.addEventListener('click',()=>{$('#ivDelC').innerHTML='<button class="btn bad sm" id="ivDel2">تأكيد الحذف</button>';$('#ivDel2').addEventListener('click',async()=>{const r=await sb.from('invoices').delete().eq('id',v.id);if(r.error){toast('تعذر الحذف: '+r.error.message);return}S.invoices=S.invoices.filter(x=>x.id!==v.id);await invLog('حذف فاتورة خارجية: '+v.supplier,money(v.total));closeOv();render();toast('حُذفت')})})}
 
 /* bulk import of products & prices from a spreadsheet */
@@ -2644,7 +2657,7 @@ function myInvoices(){const me=S.me?.id;const out=[];
     if(d.doneImg&&by(/تم التنزيل/))out.push({t:d.doneAt||d.createdAt,img:d.doneImg,k:'بعد التنزيل',d:d.material,open:['dlvOpen',d.id]})});
   return out.sort((a,b)=>b.t-a.t)}
 function myInvSheet(){const L=myInvoices();
-  overlay('myinv',`🧾 الفواتير اللي رفعتها <span class="num muted">(${L.length})</span>`,L.length?`<div class="photos">${L.map(x=>`<div class="ph"><a href="${esc(imgSrc(x.img))}" target="_blank" rel="noopener">${imgTag(x.img,'',x.k)}</a><b style="color:var(--ink);font-size:13px">${esc(x.k)}</b><span>${esc(x.d)}${x.a?` · <span class="num">${money(+x.a)}</span>`:''}</span><span class="num">${dt(x.t)}</span><button class="btn sm ghost" data-a="${x.open[0]}" data-v="${esc(x.open[1])}">التفاصيل</button></div>`).join('')}</div>`:`<div class="empty"><b>ما رفعت فواتير بعد</b>صور فواتير الشراء والفواتير الخارجية ووصولات الشاحنات اللي ترفعها تطلع هنا.</div>`)}
+  overlay('myinv',`🧾 الفواتير اللي رفعتها <span class="num muted">(${L.length})</span>`,L.length?`<div class="photos">${L.map(x=>`<div class="ph"><a href="${esc(imgSrc(x.img))}" target="_blank" rel="noopener">${imgTag(x.img,'',x.k)}</a><b style="color:var(--ink);font-size:13px">${esc(x.k)}</b><span>${esc(x.d)}${x.a?` · <span class="num">${money(+x.a)}</span>`:''}</span><span class="num">${dt(x.t)}</span><div class="acts"><button class="btn sm ghost" data-a="${x.open[0]}" data-v="${esc(x.open[1])}">التفاصيل</button><button class="btn sm ghost" data-a="printImg" data-v="${esc(x.img)}">🖨</button></div></div>`).join('')}</div>`:`<div class="empty"><b>ما رفعت فواتير بعد</b>صور فواتير الشراء والفواتير الخارجية ووصولات الشاحنات اللي ترفعها تطلع هنا.</div>`)}
 
 /* remembered names: tap a field to see every name entered before */
 function sugList(kind){const c={};const put=(v,w=1)=>{v=String(v||'').trim();if(v.length>1)c[v]=(c[v]||0)+w};
@@ -2758,6 +2771,25 @@ function inForm(){const wh=myWh(S.role);
       await invLog('مدخل فاتورة #'+v.number+' — '+v.supplier,lines.length+' مادة · '+money(v.total)+(v.pay==='credit'?' · آجل':''));await signAll();closeOv();render();toast('سُجّلت الفاتورة #'+v.number+' وانضافت للمخزون')}
     catch(x){err.textContent='تعذر الحفظ: '+(x.message||x);btn.disabled=false;btn.textContent='إعادة المحاولة'}});
   calc()}
+
+/* ===== printing: invoices and any image ===== */
+function printHTML(title,body){let a=$('#printArea');if(!a){a=document.createElement('div');a.id='printArea';document.body.appendChild(a)}
+  a.innerHTML=`<div class="pdoc"><div class="ph1"><img src="${LOGO}" alt=""><div><b>نظام شركة المنصور</b><span>${esc(title)}</span></div><span class="pdate">طُبعت <bdi>${new Date().toLocaleString('ar-IQ-u-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</bdi></span></div>${body}</div>`;
+  const imgs=[...a.querySelectorAll('img')];let done=false;const go=()=>{if(done)return;done=true;document.body.classList.add('printing');setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('printing'),500)},60)};
+  Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))).then(go);setTimeout(go,4000)}
+const pkv=rows=>`<table class="pkv">${rows.filter(r=>r[1]!==''&&r[1]!=null).map(([k,v])=>`<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>`;
+const plines=(lines,total)=>`<table class="plines"><thead><tr><th>#</th><th>المادة</th><th>العدد</th><th>سعر القطعة</th><th>المجموع</th></tr></thead><tbody>${lines.map((l,i)=>`<tr><td class="num">${i+1}</td><td>${esc(l.name)}</td><td class="num">${nf.format(+l.qty||0)} ${esc(l.unit||'')}</td><td class="num">${l.price?money(+l.price):'—'}</td><td class="num">${l.total?money(+l.total):'—'}</td></tr>`).join('')}</tbody>${total!=null?`<tfoot><tr><td colspan="4">المجموع الكلي</td><td class="num">${money(+total)}</td></tr></tfoot>`:''}</table>`;
+const pimg=(ref,cap)=>ref&&imgSrc(ref)?`<figure class="pfig"><img src="${esc(imgSrc(ref))}" alt=""><figcaption>${esc(cap||'')}</figcaption></figure>`:'';
+const psign=()=>`<div class="psign"><div>توقيع المستلم<span></span></div><div>توقيع أمين المخزن<span></span></div><div>توقيع المدير<span></span></div></div>`;
+function printInvoice(id){const v=(S.invoices||[]).find(x=>x.id===id);if(!v)return;
+  printHTML(v.kind==='in'?'فاتورة مدخلات مخزنية':'فاتورة / دفعة خارجية',pkv([['رقم الفاتورة',v.number?`<span class="num">${esc(v.number)}</span>`:''],['التاريخ',`<bdi>${new Date(v.at).toLocaleString('ar-IQ-u-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</bdi>`],['المورد / المحل',esc(v.supplier||'')],['المخزن',whName(v.wh)],['طريقة الدفع',v.pay?(v.pay==='credit'?'آجل (دين)':'نقد'):''],['سجّلها',esc(S.names[v.uid]?.name||'')],['ملاحظة',esc(v.note||'')]])+plines(v.lines||[],v.total)+psign()+pimg(v.img,'صورة الفاتورة الأصلية'))}
+function printPurchase(r){const pu=r.purchase;if(!pu)return;
+  printHTML('فاتورة شراء',pkv([['رقم الطلب',`<span class="num">#${esc(r.code)}</span>`],['تاريخ الشراء',`<bdi>${new Date(pu.at||r.updatedAt).toLocaleString('ar-IQ-u-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</bdi>`],['القسم',esc(r.dept||'')],['المورد',esc(pu.supplier||'')],['المخزن',whName(whOf(r))],['الحالة',ST[r.status]?.t||'']])+plines([{name:r.item,qty:r.qty,unit:r.unit,price:pu.unitPrice,total:pu.total}],pu.total)+psign()+(pu.invoice&&!pu.invoice.pdf?pimg(pu.invoice.ref,'صورة فاتورة الشراء'):''))}
+function printDelivery(d){printHTML('وصل استلام مواد (شاحنة)',pkv([['المادة',esc(d.material)],['الكمية',`<span class="num">${nf.format(+d.qty||0)}</span> ${esc(d.unit||'')}`],['المورد',esc(d.supplier||'')],['رقم الشاحنة',esc(d.truck||'')],['السائق',esc(d.driver||'')],['مكان التنزيل',esc(d.dest||'')],['وقت الوصول',`<span class="num">${dt(d.createdAt)}</span>`],['انتهى التنزيل',d.doneAt?`<span class="num">${dt(d.doneAt)}</span>`:''],['الحالة',(DST[d.status]||DST.wait)[0]]])+psign()+pimg(d.img,'صورة الوصل')+pimg(d.doneImg,'بعد التنزيل'))}
+function printImage(ref,cap){printHTML(cap||'صورة',pimg(ref,cap))}
+function viewImage(img){const ref=img.dataset.ref,src=img.currentSrc||img.src;if(!src)return;
+  overlay('img','الصورة',`<div style="text-align:center"><img src="${esc(src)}" alt="" style="max-width:100%;max-height:70vh;border-radius:10px;border:1px solid var(--line)"></div><div class="acts" style="margin-top:12px;justify-content:center"><button class="btn pri" data-a="printImg" data-v="${esc(ref||'')}" data-src="${esc(src)}">🖨 طباعة</button><a class="btn" href="${esc(src)}" target="_blank" rel="noopener" download>⬇ تنزيل / فتح</a><button class="btn ghost" data-a="close">إغلاق</button></div>`)}
+document.addEventListener('click',e=>{const im=e.target.closest?.('img[data-ref]');if(!im||im.closest('#printArea')||im.closest('.mark'))return;const inBtn=im.closest('button,a,[data-a]');if(inBtn&&!im.closest('.ph,.photos'))return;e.preventDefault();e.stopPropagation();viewImage(im)},true);
 
 /* clickable stat tiles */
 function scrollToList(){setTimeout(()=>{const el=$('#app .filters')||$('#app .list')||$('#app .tbl-wrap');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}
