@@ -1031,9 +1031,10 @@ function dlvForm(){
    ${fileField('fDImg','صورة وصل التسليم أو الشاحنة','تفتح الكاميرا مباشرة',true)}
    <datalist id="dmats">${MATS.map(m=>`<option value="${m}">`).join('')}</datalist><datalist id="dunits">${DUNITS.map(u=>`<option value="${u}">`).join('')}</datalist><datalist id="ddest">${AREAS.map(a=>`<option value="${a}">`).join('')}</datalist>
    <div class="err" id="dErr"></div><div class="acts"><button class="btn pri" type="submit" id="dSub">تسجيل الشاحنة</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`;
-  overlay('dlvf','تسجيل شاحنة واصلة',b);bindPreview('fDImg');
+  overlay('dlvf','تسجيل شاحنة واصلة',b);bindPreview('fDImg');guardPhoto('fDImg','delivery');
   $('#fDlv').addEventListener('submit',async e=>{e.preventDefault();const sb_=$('#dSub');sb_.disabled=true;
-    try{const img=await saveFile($('#fDImg').files[0]);
+    if(!photoOk('fDImg',false)){$('#dErr').textContent='صورة الوصل قديمة أو مكررة. صوّرها هسه.';sb_.disabled=false;return}
+    try{const img=await saveFile($('#fDImg').files[0]);await photoClaim('fDImg');
       const d={id:uid(),material:$('#dMat').value.trim(),qty:+$('#dQty').value||0,unit:$('#dUnit').value.trim()||'طن',supplier:$('#dSup').value.trim(),truck:$('#dTruck').value.trim(),driver:$('#dDriver').value.trim(),driverPhone:normDigits($('#dPhone').value).replace(/\D/g,''),dest:$('#dDest').value.trim(),reqId:$('#dReq')?.value||null,img:img?.ref||null,status:'wait',createdAt:readDt('dWhen'),recordedAt:Date.now(),log:[]};
       dLog(d,'سجّل وصول الشاحنة','');await putDlv(d);closeOv();toast('سُجّلت الشاحنة')}catch(x){$('#dErr').textContent='تعذر الحفظ: '+x.message;sb_.disabled=false}})}
 function openDlv(d){S.openD=d.id;const st=DST[d.status]||DST.wait,m=d.machineId&&S.machines.find(x=>x.id===d.machineId),r=d.reqId&&S.requests.find(x=>x.id===d.reqId),ed=canDlv();
@@ -2553,11 +2554,11 @@ function invcForm(){const fixed=scopeWh(S.role);const canStock=INV_WRITE.include
   overlay('invc','رفع فاتورة / دفعة',`<form class="f" id="fIv"><div class="fr"><label class="l">المورد / الجهة<input id="ivS" class="in" required data-sug="suppliers" autocomplete="off" placeholder="مثال: محلات الرافدين"></label>${fixed?'':`<label class="l">تابعة لـ<select id="ivW" class="in"><option value="main">المخزن الرئيسي</option><option value="mach">مخزن الآليات</option></select></label>`}<label class="l">رقم الفاتورة<input id="ivNo" class="in num" placeholder="اختياري"></label>${dtField('ivD','تاريخ الفاتورة')}</div>
    <div id="ivRows">${lineRow()}</div>
    <div class="acts"><button type="button" class="btn sm" id="ivAdd">+ مادة ثانية</button><span style="margin-inline-start:auto">المجموع الكلي: <b class="num" id="ivTot">—</b></span></div>
-   ${fileField('ivImg','صورة الفاتورة','صوّرها بالكاميرا أو اختارها من الملفات',false)}
+   ${fileField('ivImg','صورة الفاتورة','تفتح الكاميرا — لا تُقبل صور قديمة أو مكررة',true)}
    <label class="l">ملاحظة<input id="ivNote" class="in" placeholder="مثال: دفعة نقدية، رقم الوصل…"></label>
    ${canStock?`<label class="l" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="ivStock"> أضف المواد للمخزون (تزيد الرصيد ويتحدث السعر)</label>`:''}
    <div class="err" id="ivE"></div><div class="acts"><button class="btn pri" type="submit" id="ivSub">حفظ الفاتورة</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
-  bindPreview('ivImg');
+  bindPreview('ivImg');guardPhoto('ivImg','ext_invoice');
   const calc=()=>{let T=0;document.querySelectorAll('#ivRows .ivl').forEach(tr=>{const q=+tr.querySelector('.ivQ').value||0,p=+tr.querySelector('.ivP').value||0,t=q*p;T+=t;tr.querySelector('.ivT').textContent=t?money(t):'—'});$('#ivTot').textContent=T?money(T):'—';return T};
   $('#ivRows').addEventListener('input',calc);
   $('#ivRows').addEventListener('click',e=>{if(e.target.classList.contains('ivX')){const rows=document.querySelectorAll('#ivRows .ivl');if(rows.length>1)e.target.closest('.ivl').remove();calc()}});
@@ -2565,9 +2566,9 @@ function invcForm(){const fixed=scopeWh(S.role);const canStock=INV_WRITE.include
   $('#fIv').addEventListener('submit',async e=>{e.preventDefault();const sb_=$('#ivSub');
     const lines=[...document.querySelectorAll('#ivRows .ivl')].map(tr=>({name:tr.querySelector('.ivN').value.trim(),qty:+tr.querySelector('.ivQ').value||0,price:+tr.querySelector('.ivP').value||0})).filter(l=>l.name).map(l=>({...l,total:+(l.qty*l.price).toFixed(2)}));
     if(!lines.length){$('#ivE').textContent='اكتب مادة وحدة على الأقل.';return}
-    const f=$('#ivImg').files[0];if(!f){$('#ivE').textContent='صوّر الفاتورة أو اختار صورتها.';return}
+    const f=$('#ivImg').files[0];if(!f){$('#ivE').textContent='صوّر الفاتورة بالكاميرا.';return}if(!photoOk('ivImg',true)){$('#ivE').textContent='صورة الفاتورة قديمة أو مكررة. صوّرها هسه.';return}
     sb_.disabled=true;sb_.textContent='جارِ الرفع…';
-    try{const img=await saveFile(f,'فاتورة خارجية · '+$('#ivS').value.trim());const wh=fixed||$('#ivW').value;const d=readDt('ivD');
+    try{const img=await saveFile(f,'فاتورة خارجية · '+$('#ivS').value.trim());await photoClaim('ivImg');const wh=fixed||$('#ivW').value;const d=readDt('ivD');
       const v={id:uid(),wh,number:$('#ivNo').value.trim(),supplier:$('#ivS').value.trim(),lines,total:lines.reduce((a,l)=>a+l.total,0),img:img?.ref||null,note:$('#ivNote').value.trim(),at:d,createdAt:Date.now(),uid:S.me?.id||null,role:S.role,stocked:!!$('#ivStock')?.checked};
       const res=await sb.from('invoices').insert({id:v.id,wh,data:v});if(res.error)throw new Error(res.error.message);
       S.invoices=[v,...(S.invoices||[])];
@@ -2711,9 +2712,9 @@ function outForm(){overlay('out','تسجيل مخرج من المخزن',`<form 
    <div class="fr"><label class="l">طلعت لـ (اسم المستلم)<input id="oTo" class="in" data-sug="people" autocomplete="off" required placeholder="مثال: حسين الكهربائي"></label><label class="l">الجهة / القسم<input id="oDept" class="in" list="oDepts" placeholder="مثال: الكهرباء أو عمارة T3"><datalist id="oDepts">${DEPTS.map(d=>`<option value="${d}">`).join('')}</datalist></label></div>
    ${dtField('oWhen','تاريخ الإخراج')}
    <label class="l">ملاحظة / السبب<input id="oNote" class="in" placeholder="مثال: طلب شفهي من مدير المشروع"></label>
-   ${fileField('oImg','صورة (اختياري)','وصل أو ورقة الإخراج',false)}
+   ${fileField('oImg','صورة وصل الإخراج (اختياري)','تفتح الكاميرا — لا تُقبل صور قديمة أو مكررة',true)}
    <div class="err" id="oErr"></div><div class="acts"><button class="btn pri" type="submit" id="oSub">حفظ المخرج</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
-  bindPreview('oImg');
+  bindPreview('oImg');guardPhoto('oImg','out_voucher');
   const calc=()=>{const rows=document.querySelectorAll('#oRows .orow2');rows.forEach(r=>{const id=r.querySelector('.oI').value,it=S.inventory.find(i=>i.id===id),q=+r.querySelector('.oQ').value||0;r.querySelector('.oF').style.display=id==='__free'?'':'none';r.querySelector('.oT').textContent=it&&+it.price?money(+it.price*q):'—'});$('#oSub').textContent=rows.length>1?`حفظ ${rows.length} مواد`:'حفظ المخرج'};
   $('#oRows').addEventListener('input',calc);$('#oRows').addEventListener('change',calc);
   $('#oRows').addEventListener('click',e=>{if(e.target.classList.contains('oX')&&document.querySelectorAll('#oRows .orow2').length>1){e.target.closest('.orow2').remove();calc()}});
@@ -2722,8 +2723,9 @@ function outForm(){overlay('out','تسجيل مخرج من المخزن',`<form 
     const rows=[...document.querySelectorAll('#oRows .orow2')].map(r=>{const id=r.querySelector('.oI').value;return{id,it:S.inventory.find(i=>i.id===id),free:id==='__free'?r.querySelector('.oF').value.trim():'',q:+r.querySelector('.oQ').value||0}}).filter(x=>(x.it||x.free)&&x.q>0);
     if(!rows.length){err.textContent='اختار مادة وحدة على الأقل واكتب الكمية.';return}
     for(const x of rows)if(x.it&&x.q>+x.it.qty){err.textContent=`رصيد ${x.it.name} ما يكفي (المتوفر ${nf.format(+x.it.qty)}).`;return}
+    if(!photoOk('oImg',false)){err.textContent='صورة الوصل قديمة أو مكررة. صوّرها هسه أو شيلها.';return}
     btn.disabled=true;btn.textContent='جارِ الحفظ…';
-    try{const img=await saveFile($('#oImg').files[0],'مخرج من المخزن');const at=readDt('oWhen'),to=$('#oTo').value.trim(),dept=$('#oDept').value.trim(),note=$('#oNote').value.trim(),wh=myWh(S.role);
+    try{const img=await saveFile($('#oImg').files[0],'مخرج من المخزن');await photoClaim('oImg');const at=readDt('oWhen'),to=$('#oTo').value.trim(),dept=$('#oDept').value.trim(),note=$('#oNote').value.trim(),wh=myWh(S.role);
       for(const x of rows){let left=null;if(x.it){const {data,error}=await sb.rpc('issue_stock',{p_item:x.it.id,p_qty:x.q});if(error)throw new Error(error.message);left=+data;x.it.qty=left}
         const name=x.it?x.it.name:x.free,unit=x.it?.unit||'قطعة',price=+x.it?.price||0;
         await invLog('مخرج يدوي: '+nf.format(x.q)+' '+unit+' '+name,(to?'لـ '+to:'')+(dept?' · '+dept:'')+(left!=null?' · الباقي '+nf.format(left):''),{kind:'out',item:name,itemId:x.it?.id||null,qty:x.q,unit,price,total:+(price*x.q).toFixed(2),to,dept,note,at,wh,img:img?.ref||null,free:!x.it})}
@@ -2751,10 +2753,10 @@ function inForm(){const wh=myWh(S.role);
    <div id="nDup" class="note bad"></div>
    <div id="nRows">${inRow()}</div><button type="button" class="btn" id="nAdd" style="justify-self:start">+ مادة ثانية</button>
    <div class="acts"><span style="margin-inline-start:auto">المجموع الكلي: <b class="num" id="nTot">—</b></span></div>
-   ${fileField('nImg','صورة الفاتورة','صوّرها أو اختارها من الملفات',false)}
+   ${fileField('nImg','صورة الفاتورة','تفتح الكاميرا — لا تُقبل صور قديمة أو مكررة',true)}
    <label class="l">ملاحظة<input id="nNote" class="in" placeholder="مثال: استلمها فلان، رقم السيارة…"></label>
    <div class="err" id="nErr"></div><div class="acts"><button class="btn pri" type="submit" id="nSub">حفظ وإضافة للمخزون</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
-  bindPreview('nImg');
+  bindPreview('nImg');guardPhoto('nImg','in_invoice');
   const calc=()=>{let T=0;document.querySelectorAll('#nRows .inr').forEach(r=>{const sel=r.querySelector('.nI').value,it=S.inventory.find(i=>i.id===sel);r.querySelector('.nN').style.display=sel==='__new'?'':'none';
       if(it&&!r.dataset.f){r.dataset.f=sel;r.querySelector('.nU').value=it.unit||'قطعة';if(it.price&&!r.querySelector('.nP').value)r.querySelector('.nP').value=it.price}
       const q=+r.querySelector('.nQ').value||0,p=+r.querySelector('.nP').value||0;T+=q*p;r.querySelector('.nT').textContent=p?`المجموع: ${money(q*p)}`:''});
@@ -2766,8 +2768,9 @@ function inForm(){const wh=myWh(S.role);
   $('#fIn').addEventListener('submit',async e=>{e.preventDefault();const btn=$('#nSub'),err=$('#nErr');err.textContent='';
     const rows=[...document.querySelectorAll('#nRows .inr')].map(r=>{const sel=r.querySelector('.nI').value,it=S.inventory.find(i=>i.id===sel);return{it,name:it?it.name:r.querySelector('.nN').value.trim(),qty:+r.querySelector('.nQ').value||0,unit:r.querySelector('.nU').value.trim()||'قطعة',price:+r.querySelector('.nP').value||0}}).filter(x=>x.name&&x.qty>0);
     if(!rows.length){err.textContent='اكتب مادة وحدة على الأقل بعددها.';return}
+    if(!photoOk('nImg',false)){err.textContent='صورة الفاتورة قديمة أو مكررة. صوّرها هسه.';return}
     btn.disabled=true;btn.textContent='جارِ الحفظ…';
-    try{const img=await saveFile($('#nImg').files[0],'فاتورة مدخلات #'+$('#nNo').value.trim());const at=readDt('nWhen');
+    try{const img=await saveFile($('#nImg').files[0],'فاتورة مدخلات #'+$('#nNo').value.trim());await photoClaim('nImg');const at=readDt('nWhen');
       const lines=rows.map(x=>({name:x.name,qty:x.qty,unit:x.unit,price:x.price,total:+(x.qty*x.price).toFixed(2),itemId:x.it?.id||null}));
       const v={id:uid(),kind:'in',wh,number:$('#nNo').value.trim(),supplier:$('#nSup').value.trim(),pay:$('#nPay').value,lines,total:lines.reduce((a,l)=>a+l.total,0),img:img?.ref||null,note:$('#nNote').value.trim(),at,createdAt:Date.now(),uid:S.me?.id||null,role:S.role,stocked:true};
       const res=await sb.from('invoices').insert({id:v.id,wh,data:v});if(res.error)throw new Error(res.error.message);S.invoices=[v,...(S.invoices||[])];
@@ -2805,17 +2808,18 @@ function fuelSendForm(){const f=fuelItem();const me=S.me?.full_name||'';
    <div class="fr"><label class="l">كمية الكاز (لتر)<input id="sdL" class="in num" type="number" min="1" step="any" required></label><label class="l">اسم المرسل<input id="sdS" class="in" data-sug="people" autocomplete="off" required value="${esc(me)}"></label></div>
    <label class="l">اسم المستلم / السائق <em>(اختياري)</em><input id="sdD" class="in" data-sug="drivers" autocomplete="off"></label>
    ${dtField('sdW','تاريخ الإرسال')}
-   ${fileField('sdImg','فاتورة / وصل صرف الكاز','صوّرها أو اختارها',false)}
+   ${fileField('sdImg','فاتورة / وصل صرف الكاز','تفتح الكاميرا — لا تُقبل صور قديمة أو مكررة',true)}
    <label class="l">ملاحظة<input id="sdN" class="in" placeholder="مثال: للموقع T3"></label>
    <div class="err" id="sdE"></div><div class="acts"><button class="btn pri" type="submit" id="sdSub">إرسال</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
-  bindPreview('sdImg');
+  bindPreview('sdImg');guardPhoto('sdImg','fuel_send');
   const fill=()=>{const n=$('#sdM').value.trim(),m=S.machines.find(x=>x.name===n);if(m&&m.plate&&!$('#sdP').value)$('#sdP').value=m.plate;if(m&&m.operator&&!$('#sdD').value)$('#sdD').value=m.operator};
   $('#sdM').addEventListener('change',fill);$('#sdM').addEventListener('blur',fill);
   $('#fSend').addEventListener('submit',async e=>{e.preventDefault();const btn=$('#sdSub'),err=$('#sdE');err.textContent='';
     const L=+$('#sdL').value,name=$('#sdM').value.trim(),plate=$('#sdP').value.trim(),sender=$('#sdS').value.trim(),drv=$('#sdD').value.trim();
     const cur=fuelItem();if(!cur||+cur.qty<L){err.textContent='رصيد الخزان ما يكفي. سجّل استلام كاز أولاً.';return}
+    if(!photoOk('sdImg',true)){err.textContent='صوّر فاتورة صرف الكاز هسه بالكاميرا.';return}
     btn.disabled=true;btn.textContent='جارِ الإرسال…';
-    try{const img=await saveFile($('#sdImg').files[0],'صرف كاز — '+name);const t=Date.now(),at=readDt('sdW');
+    try{const img=await saveFile($('#sdImg').files[0],'صرف كاز — '+name);await photoClaim('sdImg');const t=Date.now(),at=readDt('sdW');
       const m=S.machines.find(x=>x.name===name||(plate&&x.plate===plate));
       const no='K-'+String(t).slice(-6);
       const nu=clean(cur);nu.qty=+((+nu.qty)-L).toFixed(2);
@@ -2841,6 +2845,20 @@ function sendOpen(t){const l=sendsList().find(x=>String(x.t)===String(t));if(!l)
    <div class="acts" style="margin-top:12px"><button class="btn pri" data-a="printSend" data-v="${l.t}">🖨 طباعة فاتورة صرف الكاز</button>${canEditFuel(l)?`<button class="btn" data-a="fuelEdit" data-v="${l.t}">تعديل الكمية${editLeft(l)}</button>`:''}</div>`)}
 function printSend(t){const l=sendsList().find(x=>String(x.t)===String(t));if(!l)return;
   printHTML('فاتورة صرف كاز',pkv([['رقم الإرسالية',`<bdi>${esc(l.no||'')}</bdi>`],['التاريخ',`<bdi>${new Date(l.at||l.t).toLocaleString('ar-IQ-u-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</bdi>`],['اسم الآلية',esc(l.to||'')],['رقم الآلية',`<bdi>${esc(l.plate||'')}</bdi>`],['كمية الكاز',`<bdi>${nf.format(l.l)}</bdi> لتر`],['اسم المرسل',esc(l.sender||'')],['المستلم / السائق',esc(l.driver||'')],['ملاحظة',esc(l.note||'')],['سجّلها',esc(S.names[l.uid]?.name||'')]])+psign()+pimg(l.img,'صورة وصل الصرف'))}
+
+/* invoice photos must be fresh camera shots, and never reused */
+async function fileHash(f){try{const b=await crypto.subtle.digest('SHA-256',await f.arrayBuffer());return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return''}}
+function guardPhoto(id,kind,opt){const inp=$('#'+id);if(!inp)return;const drop=inp.closest('.drop');const note=document.createElement('div');note.className='err';drop.after(note);
+  inp.addEventListener('change',async()=>{const f=inp.files[0];note.textContent='';inp.dataset.ok='';inp.dataset.hash='';if(!f)return;
+    const bad=m=>{note.textContent=m;inp.value='';inp.dataset.ok='';const pv=$('#'+id+'P');if(pv&&pv.tagName==='IMG')pv.outerHTML=`<div class="thumb" id="${id}P" style="width:72px;height:60px">صورة</div>`};
+    if(!f.type.startsWith('image/'))return bad('لازم تكون صورة ملتقطة بالكاميرا.');
+    const ex=await exifDate(f),now=Date.now(),shot=ex||f.lastModified||0;
+    if(!shot||now-shot>MAX_AGE||shot-now>MAX_AGE)return bad('هاي الصورة قديمة ('+(shot?new Date(shot).toLocaleString('ar-IQ-u-nu-latn',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'تاريخها غير معروف')+'). صوّر الفاتورة هسه بالكاميرا.');
+    const h=await fileHash(f);
+    if(h){const {data}=await sb.rpc('photo_seen',{p_hash:h});if(data)return bad('هاي الصورة مرفوعة من قبل'+(data.by?' من '+data.by:'')+' بتاريخ '+new Date(data.at).toLocaleString('ar-IQ-u-nu-latn',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'. صوّر الفاتورة الجديدة.')}
+    inp.dataset.ok='1';inp.dataset.hash=h;inp.dataset.kind=kind});}
+function photoOk(id,required){const inp=$('#'+id);if(!inp)return true;if(!inp.files[0])return !required;return inp.dataset.ok==='1'}
+async function photoClaim(id){const inp=$('#'+id);if(inp?.dataset.hash){try{await sb.rpc('photo_claim',{p_hash:inp.dataset.hash,p_kind:inp.dataset.kind||''})}catch(e){}}}
 
 /* clickable stat tiles */
 function scrollToList(){setTimeout(()=>{const el=$('#app .filters')||$('#app .list')||$('#app .tbl-wrap');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}
