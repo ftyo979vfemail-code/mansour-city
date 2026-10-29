@@ -838,7 +838,7 @@ async function enablePush(){
     const r=swReg||await navigator.serviceWorker.ready;const {data:key}=await sb.rpc('vapid_public_key');
     let sub=await r.pushManager.getSubscription();if(!sub)sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(key)});
     await saveSub(sub);S.push='on';render();toast('تم تفعيل الإشعارات على هذا الجهاز')}catch(e){toast('تعذر التفعيل: '+(e.message||e))}}
-async function disablePush(){try{const r=swReg||await navigator.serviceWorker.ready;const sub=await r.pushManager.getSubscription();if(sub){await sb.from('push_subs').delete().eq('endpoint',sub.endpoint);await sub.unsubscribe()}}catch(e){}S.push='off'}
+async function disablePush(){try{const r=swReg||(navigator.serviceWorker?await Promise.race([navigator.serviceWorker.ready,new Promise((_,j)=>setTimeout(()=>j(new Error('no sw')),1500))]):null);if(!r)throw 0;const sub=await r.pushManager.getSubscription();if(sub){await sb.from('push_subs').delete().eq('endpoint',sub.endpoint);await sub.unsubscribe()}}catch(e){}S.push='off'}
 function pushBanner(){if(!S.me?.active||S.push==='on'||S.push==='checking'||S.push==='unsupported')return'';
   if(S.push==='denied')return`<div class="banner">الإشعارات محظورة لهذا الموقع. افتح إعدادات المتصفح ← إعدادات الموقع ← الإشعارات واسمح بها.</div>`;
   return`<div class="banner pushb"><span><b>فعّل الإشعارات</b> حتى تصلك الطلبات على موبايلك حتى لو الموقع مسدود.</span><button class="btn sm pri" data-a="pushOn">تفعيل الإشعارات</button></div>`}
@@ -2401,7 +2401,9 @@ document.addEventListener('click',async e=>{
     case'openReq':{const r=S.requests.find(x=>x.id===v);if(r)openReq(r);break}
     case'recheck':await afterLogin();break;
     case'accEdit':accForm(S.staff.find(p=>p.id===v));break;
-    case'logout':stopTracking();await disablePush();await sb.auth.signOut();S.me=null;S.role=null;S.view=null;S.hist=[];S.mode='login';closeOv();render();break;
+    case'logout':{el.disabled=true;el.textContent='جارِ الخروج…';const tmo=(p,ms)=>Promise.race([p,new Promise(r=>setTimeout(r,ms))]);try{stopTracking()}catch(x){}
+      await tmo(disablePush().catch(()=>{}),2500);await tmo(sb.auth.signOut().catch(()=>{}),4000);try{Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k))}catch(x){}
+      S.me=null;S.role=null;S.view=null;S.hist=[];S.mode='login';closeOv();render();break}
     case'theme':document.documentElement.dataset.theme=isDark()?'light':'dark';try{localStorage.setItem('cm_theme',document.documentElement.dataset.theme)}catch(x){}render();break;
     case'open':{const r=S.requests.find(x=>x.id===v);if(r)openReq(r);break}
     case'stat':e.preventDefault();statGo(v);break;
