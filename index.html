@@ -838,7 +838,7 @@ function pushBanner(){if(!S.me?.active||S.push==='on'||S.push==='checking'||S.pu
 /* ---------- machines ---------- */
 const MTYPES=['شفل','حفارة','قلاب','رافعة','بلدوزر','كريدر','حادلة','خباطة','مضخة كونكريت','رافعة شوكية','مولدة','سيارة نقل','أخرى'];
 const MST={work:['شغالة','ok'],down:['عاطلة','bad'],service:['بالصيانة','warn'],idle:['متوقفة','mute']};
-const canEditM=()=>['machines','mstore','project','owner'].includes(S.me?.role);
+const canEditM=()=>['machines','mstore','keeper','project','owner'].includes(S.me?.role);
 function mCost(m){return S.requests.filter(r=>r.machineId===m.id).reduce((a,r)=>a+(+r.purchase?.total||0)+(+r.issue?.total||0),0)+(m.issues||[]).reduce((a,x)=>a+(+x.total||0),0)}
 function mFuel(m){return (m.fuel||[]).reduce((a,f)=>a+(+f.liters||0),0)}
 function mDue(m){if(!m.serviceEvery||m.hours==null)return null;const next=(+m.lastService||0)+(+m.serviceEvery);return next-(+m.hours)}
