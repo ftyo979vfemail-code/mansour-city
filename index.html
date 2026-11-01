@@ -518,6 +518,7 @@ const ROLES={
   project:{name:'مدير المشروع',kind:'project',mono:'مش'},
   admin1:{name:'الإداري الأول',kind:'admin',mono:'إ١'},
   admin2:{name:'الإداري الثاني',kind:'admin',mono:'إ٢'},
+  accountant:{name:'مسؤول الحسابات',kind:'acct',mono:'حس'},
   purchase:{name:'مندوب مشتريات (سابق)',kind:'purchase',mono:'ش١',legacy:true},
   purchase2:{name:'مندوب مشتريات (سابق)',kind:'purchase',mono:'ش٢',legacy:true},
 };
@@ -645,6 +646,7 @@ async function loadAll(which){
   if(want('notifications')&&seesNotifs()){const {data}=await sb.from('notifications').select('id,kind,data,created_at').order('id',{ascending:false}).limit(200);const prevTop=S.notifs[0]?.id||0;S.notifs=data||[];if(which==='notifications')S.notifs.filter(n=>n.id>prevTop).forEach(sysNotify)}
   if(want('staff')){const {data}=await sb.from('staff').select('id,full_name,role,active,status,admin_ok,project_ok,hidden,manager_id,machine_id,created_at,company,specialty,att_team,branch,branches,cur_branch');S.staff=data||[];try{const {data:c}=await sb.rpc('staff_contacts');const cm={};(c||[]).forEach(x=>cm[x.id]=x);S.staff.forEach(p=>{if(cm[p.id]){p.username=cm[p.id].username;p.phone=cm[p.id].phone}})}catch(e){}S.staff.forEach(p=>S.names[p.id]={name:p.full_name||p.username||'—'})}
   if(want('invoices')&&(INVC_ROLES.includes(S.me?.role)||EXP_ROLES.includes(S.me?.role)||S.me?.role==='owner')){const {data}=await sb.from('invoices').select('id,wh,data').order('created_at',{ascending:false}).limit(1000);S.invoices=(data||[]).map(d=>({...d.data,id:d.id,wh:d.wh}))}
+  if(want('cash')&&seesCash())await cashLoad();
   if(!which&&seesAtt())await attLoad();
   if(want('staff_locations')&&seesReps()){const {data}=await sb.from('staff_locations').select('id,lat,lng,acc,at');S.locs=data||[]}
   await signAll()}
@@ -652,7 +654,7 @@ let rtTimers={};
 function subscribe(){
   const ch=sb.channel('all');
   if(seesReps())ch.on('postgres_changes',{event:'*',schema:'public',table:'staff_locations'},e=>{const n=e.new;if(!n||!n.id)return;S.locs=S.locs||[];const i=S.locs.findIndex(x=>x.id===n.id);if(i<0)S.locs.push(n);else S.locs[i]=n;repsRefresh()});
-  ['requests','inventory','invlog','settings','staff','notifications','machines','deliveries','invoices'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(rtTimers[t]);rtTimers[t]=setTimeout(async()=>{await loadAll(t);if(t==='requests'&&S.rcFor){const r=S.requests.find(x=>x.id===S.rcFor);if(r&&r.status==='done'){S.rcFor=null;overlay('ok','تم الاستلام',`<div class="rcbox"><div class="okmark">✓</div><b>مسح مندوب المشتريات الباركود وتم الاستلام</b><p class="muted" style="margin:0">${esc(r.item)}</p></div><div class="acts"><button class="btn" data-a="close">إغلاق</button></div>`)}}if(t==='staff'&&S.me?.status==='pending'){await afterLogin();return}if(t==='deliveries'&&S.openD&&$('#ovroot').dataset.kind==='dlv'){const d=S.deliveries.find(x=>x.id===S.openD);if(d)openDlv(d)}if(t==='machines'&&S.openM&&$('#ovroot').dataset.kind==='mach'){const m=S.machines.find(x=>x.id===S.openM);if(m)openMachine(m)}render()},300)}));
+  [...['requests','inventory','invlog','settings','staff','notifications','machines','deliveries','invoices'],...(seesCash()?['cash']:[])].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(rtTimers[t]);rtTimers[t]=setTimeout(async()=>{await loadAll(t);if(t==='requests'&&S.rcFor){const r=S.requests.find(x=>x.id===S.rcFor);if(r&&r.status==='done'){S.rcFor=null;overlay('ok','تم الاستلام',`<div class="rcbox"><div class="okmark">✓</div><b>مسح مندوب المشتريات الباركود وتم الاستلام</b><p class="muted" style="margin:0">${esc(r.item)}</p></div><div class="acts"><button class="btn" data-a="close">إغلاق</button></div>`)}}if(t==='staff'&&S.me?.status==='pending'){await afterLogin();return}if(t==='deliveries'&&S.openD&&$('#ovroot').dataset.kind==='dlv'){const d=S.deliveries.find(x=>x.id===S.openD);if(d)openDlv(d)}if(t==='machines'&&S.openM&&$('#ovroot').dataset.kind==='mach'){const m=S.machines.find(x=>x.id===S.openM);if(m)openMachine(m)}render()},300)}));
   if(seesAtt())['workers','attendance','att_days'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},e=>attRT(t,e)));
   ch.subscribe()}
 
@@ -802,7 +804,7 @@ function apScan(){openScanner('مسح باركود موظف','امسح البا�
   await loadAll('staff');closeOv();render();toast(data.activated?`تفعّل حساب ${data.name}`:`سُجّلت توصيتك على ${data.name}. التفعيل بيد مدير المشروع`)})}
 /* registration */
 function registerView(){
-  const roleOpts=Object.entries(ROLES).filter(([k,r])=>(!r.crew||k==='buyer'||k==='driver'||k==='foreman')&&!r.legacy&&!r.ext).map(([k,r])=>`<label class="rpick"><input type="radio" name="rRole" value="${k}"><span class="mono">${r.mono}</span><span>${r.name}</span></label>`).join('');
+  const roleOpts=Object.entries(ROLES).filter(([k,r])=>(!r.crew||k==='buyer'||k==='driver'||k==='foreman')&&!r.legacy&&!r.ext&&k!=='accountant').map(([k,r])=>`<label class="rpick"><input type="radio" name="rRole" value="${k}"><span class="mono">${r.mono}</span><span>${r.name}</span></label>`).join('');
   return`<form class="f" id="fReg" style="width:100%;text-align:start"><div class="l" style="font-size:13px;font-weight:500">اختر دورك المهني<div class="rgrid">${roleOpts}</div></div>
    <label class="l">الاسم الكامل<input id="rName" class="in" required autocomplete="name"></label>
    <label class="l">رقم الهاتف<input id="rPhone" class="in num" dir="ltr" inputmode="tel" required placeholder="07xxxxxxxxx" autocomplete="tel"></label>
@@ -1945,16 +1947,18 @@ function rolePicker(){
   <div class="group-label">رؤساء الأقسام</div><div class="roles">${['machines','elec','mech'].map(card).join('')}</div>
   <div class="group-label">المخزن والمشروع</div><div class="roles">${['store','mstore','project'].map(card).join('')}</div>
   <div class="group-label">الإدارة (مراقبة)</div><div class="roles">${['admin1','admin2'].map(card).join('')}</div>
+  <div class="group-label">الحسابات</div><div class="roles">${['accountant'].map(card).join('')}</div>
   <div class="group-label">المشتريات</div><div class="roles">${['buyer'].map(card).join('')}</div>
   <div class="group-label">كادر الآليات</div><div class="roles">${['keeper','operator','driver','mechanic','fueler','supply','guard'].map(card).join('')}</div>
   <div class="group-label">عمال الأقسام</div><div class="roles">${['receiver','elec_tech','mech_tech','clerk'].map(card).join('')}</div>
   <div class="group-label">حضور العمال</div><div class="roles">${['timekeeper'].map(card).join('')}</div></section>`;
 }
-function roleDesc(k){const CD={foreman:'رفع صور الجداول وصور العمل اليومي ويّا أسماء الكادر، وطلب المواد',driver:'آليتي ومراحل شغلي: دخول، تحميل، خروج، وصول',guard:'مسح باركود الآليات عند خروجها من البوابة لبدء الرحلة',timekeeper:'جولة الحضور اليومية للعمال، الغيابات، باجات QR، والتقارير',elec_tech:'طلب مواد قسم الكهرباء ومتابعتها',mech_tech:'طلب مواد قسم الميكانيك ومتابعتها',buyer:'عروض الأسعار والشراء والفواتير والتسليم بالباركود',clerk:'متابعة الإشعارات وسجل الحركات والطلبات',receiver:'استلام المواد المشتراة بالباركود نيابة عن مدير المخزن',supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
+function roleDesc(k){const CD={accountant:'الصندوق: الواردات والمصروفات، الرصيد، الملخص الشهري، والصرفيات والفواتير',foreman:'رفع صور الجداول وصور العمل اليومي ويّا أسماء الكادر، وطلب المواد',driver:'آليتي ومراحل شغلي: دخول، تحميل، خروج، وصول',guard:'مسح باركود الآليات عند خروجها من البوابة لبدء الرحلة',timekeeper:'جولة الحضور اليومية للعمال، الغيابات، باجات QR، والتقارير',elec_tech:'طلب مواد قسم الكهرباء ومتابعتها',mech_tech:'طلب مواد قسم الميكانيك ومتابعتها',buyer:'عروض الأسعار والشراء والفواتير والتسليم بالباركود',clerk:'متابعة الإشعارات وسجل الحركات والطلبات',receiver:'استلام المواد المشتراة بالباركود نيابة عن مدير المخزن',supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
 
-function tabsFor(role){if(role==='timekeeper')return attTabsTK();const T=tabsFor0(role);if(seesAtt()&&['project','admin1','admin2','clerk'].includes(role)){const i=T.findIndex(t=>t[0]==='approve');T.splice(i<0?0:i+1,0,['att','حضور العمال',attAlertN()])}const add=[];if(EXP_ROLES.includes(role))add.push(['exp','الصرفيات',0]);if(auditScopes().length)add.push(['jrd','الجرد',0]);if(['owner','project','admin1','admin2'].includes(S.me?.role)&&['owner','project','admin1','admin2'].includes(role))add.push(['fph','صور الفورمن',0]);if(['machines','mstore','keeper','supply','project','admin1','admin2'].includes(role))add.unshift(['gate','عمل الآليات',S.machines.filter(m=>m.cycle).length]);if(['keeper','mstore','machines'].includes(role))add.unshift(['sends','المرسلات',sendsList().filter(l=>sameDayT(l.at||l.t)).length]);if(['store','mstore','keeper'].includes(role))add.unshift(['ins','المدخلات',(S.invoices||[]).filter(v=>v.kind==='in'&&v.wh===myWh(role)&&sameDayT(v.createdAt||v.at)).length],['outs','المخرجات',S.invlog.filter(e=>e.kind==='out'&&e.wh===myWh(role)&&sameDayT(e.at||e.t)).length]);if(!T.some(t=>t[0]==='feed'))add.push(['feed','السجل',0]);if(INVC_ROLES.includes(role))add.push(['invc','الفواتير',(S.invoices||[]).filter(v=>(!scopeWh(role)||v.wh===scopeWh(role))&&sameDayT(v.createdAt||v.at)).length]);const i=T.findIndex(t=>t[0]==='all');if(i<0)T.push(...add);else T.splice(i,0,...add);return T}
+function tabsFor(role){if(role==='timekeeper')return attTabsTK();const T=tabsFor0(role);if(seesAtt()&&['project','admin1','admin2','clerk'].includes(role)){const i=T.findIndex(t=>t[0]==='approve');T.splice(i<0?0:i+1,0,['att','حضور العمال',attAlertN()])}const add=[];if(['project','admin1','admin2'].includes(role)&&seesCash())add.push(['cash','الصندوق',0]);if(EXP_ROLES.includes(role))add.push(['exp','الصرفيات',0]);if(auditScopes().length)add.push(['jrd','الجرد',0]);if(['owner','project','admin1','admin2'].includes(S.me?.role)&&['owner','project','admin1','admin2'].includes(role))add.push(['fph','صور الفورمن',0]);if(['machines','mstore','keeper','supply','project','admin1','admin2'].includes(role))add.unshift(['gate','عمل الآليات',S.machines.filter(m=>m.cycle).length]);if(['keeper','mstore','machines'].includes(role))add.unshift(['sends','المرسلات',sendsList().filter(l=>sameDayT(l.at||l.t)).length]);if(['store','mstore','keeper'].includes(role))add.unshift(['ins','المدخلات',(S.invoices||[]).filter(v=>v.kind==='in'&&v.wh===myWh(role)&&sameDayT(v.createdAt||v.at)).length],['outs','المخرجات',S.invlog.filter(e=>e.kind==='out'&&e.wh===myWh(role)&&sameDayT(e.at||e.t)).length]);if(!T.some(t=>t[0]==='feed'))add.push(['feed','السجل',0]);if(INVC_ROLES.includes(role))add.push(['invc','الفواتير',(S.invoices||[]).filter(v=>(!scopeWh(role)||v.wh===scopeWh(role))&&sameDayT(v.createdAt||v.at)).length]);const i=T.findIndex(t=>t[0]==='all');if(i<0)T.push(...add);else T.splice(i,0,...add);return T}
 function tabsFor0(role){
   const k=ROLES[role].kind,q=queueFor(role);
+  if(k==='acct')return[['cash','الصندوق',0],['acsum','الملخص الشهري',0]];
   if(role==='operator')return[['work','آليتي',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='mechanic')return[['work','أعمال الصيانة',S.machines.filter(m=>m.status==='down').length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='guard')return[['gate','البوابة',S.machines.filter(m=>m.cycle).length]];
@@ -1978,12 +1982,13 @@ function roleHome(){
   const crit=open.filter(r=>r.priority==='critical').length;
   const mq=queueFor(role).length;
   const canNew=(['dept','project','store','crew'].includes(R.kind)||role==='admin1'||role==='admin2')&&role!=='fueler'&&role!=='supply'&&role!=='receiver'&&role!=='guard'&&role!=='driver'&&S.tab!=='att';
-  let h=pushBanner()+gpsBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div></div>`+(canNew?`<div class="fab" id="fab"><div class="fab-menu" role="menu"><button class="fab-item" role="menuitem" data-a="new"><span class="fi">＋</span>طلب مواد جديد</button><button class="fab-item" role="menuitem" data-a="paper"><span class="fi">📄</span>رفع ورقة طلبات</button>${role==='foreman'?'':`<button class="fab-item" role="menuitem" data-a="tripScan"><span class="fi">▦</span>مسح باركود آلية</button>`}</div><button class="fab-btn" data-a="fab" aria-label="طلب جديد" aria-expanded="false"><span class="fp">+</span><span class="fl">طلب جديد</span></button></div>${MACH_SCAN.includes(role)?`<div class="fab fab-l"><button class="fab-btn" data-a="tripScan" aria-label="مسح باركود آلية"><span class="fp" style="font-size:20px">▦</span><span class="fl">باركود</span></button></div>`:''}<div style="height:72px"></div>`:((R.kind==='admin'||R.kind==='att'||S.tab==='att'||ATT_ONLY||role==='driver'||role==='foreman')?'':`<div class="fab" id="fab"><button class="fab-btn" data-a="tripScan" aria-label="مسح باركود آلية"><span class="fp" style="font-size:20px">▦</span><span class="fl">باركود</span></button></div><div style="height:72px"></div>`));
+  let h=pushBanner()+gpsBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div></div>`+(canNew?`<div class="fab" id="fab"><div class="fab-menu" role="menu"><button class="fab-item" role="menuitem" data-a="new"><span class="fi">＋</span>طلب مواد جديد</button><button class="fab-item" role="menuitem" data-a="paper"><span class="fi">📄</span>رفع ورقة طلبات</button>${role==='foreman'?'':`<button class="fab-item" role="menuitem" data-a="tripScan"><span class="fi">▦</span>مسح باركود آلية</button>`}</div><button class="fab-btn" data-a="fab" aria-label="طلب جديد" aria-expanded="false"><span class="fp">+</span><span class="fl">طلب جديد</span></button></div>${MACH_SCAN.includes(role)?`<div class="fab fab-l"><button class="fab-btn" data-a="tripScan" aria-label="مسح باركود آلية"><span class="fp" style="font-size:20px">▦</span><span class="fl">باركود</span></button></div>`:''}<div style="height:72px"></div>`:((R.kind==='admin'||R.kind==='acct'||R.kind==='att'||S.tab==='att'||ATT_ONLY||role==='driver'||role==='foreman')?'':`<div class="fab" id="fab"><button class="fab-btn" data-a="tripScan" aria-label="مسح باركود آلية"><span class="fp" style="font-size:20px">▦</span><span class="fl">باركود</span></button></div><div style="height:72px"></div>`));
   const spent=S.requests.reduce((s,r)=>s+(r.purchase?.total||0),0);
-  if(R.kind!=='crew')h+=`<div class="stats">${(role==='admin1'||role==='admin2')?`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار موافقتك</span></button>`:''}${R.kind==='admin'?`<button type="button" class="stat " data-a="stat" data-v="recent"><b>${recent24()}</b><span>حركات آخر 24 ساعة</span></button>`:`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار إجرائك</span></button>`}<button type="button" class="stat " data-a="stat" data-v="open"><b>${open.length}</b><span>طلبات مفتوحة</span></button><button type="button" class="stat ${crit?'hot':''}" data-a="stat" data-v="crit"><b>${crit}</b><span>طارئة - توقف إنتاج</span></button>${R.kind==='admin'||R.kind==='purchase'?`<button type="button" class="stat " data-a="stat" data-v="spent"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></button>`:`<button type="button" class="stat " data-a="stat" data-v="low"><b>${invOf(role).filter(i=>+i.qty<=+i.min).length}</b><span>مواد تحت الحد الأدنى</span></button>`}</div>`;
+  if(R.kind!=='crew'&&R.kind!=='acct')h+=`<div class="stats">${(role==='admin1'||role==='admin2')?`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار موافقتك</span></button>`:''}${R.kind==='admin'?`<button type="button" class="stat " data-a="stat" data-v="recent"><b>${recent24()}</b><span>حركات آخر 24 ساعة</span></button>`:`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار إجرائك</span></button>`}<button type="button" class="stat " data-a="stat" data-v="open"><b>${open.length}</b><span>طلبات مفتوحة</span></button><button type="button" class="stat ${crit?'hot':''}" data-a="stat" data-v="crit"><b>${crit}</b><span>طارئة - توقف إنتاج</span></button>${R.kind==='admin'||R.kind==='purchase'?`<button type="button" class="stat " data-a="stat" data-v="spent"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></button>`:`<button type="button" class="stat " data-a="stat" data-v="low"><b>${invOf(role).filter(i=>+i.qty<=+i.min).length}</b><span>مواد تحت الحد الأدنى</span></button>`}</div>`;
   h+=`<div class="tabs" role="tablist">${tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-a="tab" data-v="${k}">${t}${c?`<span class="c num">${c}</span>`:''}</button>`).join('')}</div>`;
   h+=tabBody(role);
   if(S.tab==='att'){}
+  else if(R.kind==='acct'||S.tab==='cash'||S.tab==='acsum'){}
   else if(!S.requests.length&&!S.inventory.length)h+=`<div class="empty"><b>لا توجد بيانات بعد</b>ابدأ برفع أول طلب.</div>`;
   else if(isOwner()&&(S.requests.some(r=>r.demo)||S.inventory.some(i=>i.demo)))h+=`<div class="banner" style="background:var(--sunk);color:var(--muted)">تحتوي القائمة على بيانات تجريبية معلّمة.<button class="btn sm" data-a="cleardemo">حذف البيانات التجريبية</button></div>`;
   return h;
@@ -2005,6 +2010,8 @@ function card(r){
 }
 function tabBody(role){
   const t=S.tab,R=ROLES[role];
+  if(t==='cash')return seesCash()?cashView():'';
+  if(t==='acsum')return seesCash()?acsumView():'';
   if(t==='att')return seesAtt()?attHub():'';
   if(t==='exp')return expView(role);
   if(t==='jrd')return auditView(role);
@@ -2115,6 +2122,97 @@ function mapView(){
   h+=`<div class="mapgrid"><div class="mapbox">${svg}</div><div class="sites">${pts.sort((a,b)=>a.d-b.d).map(p=>`<div class="site"><div class="r1"><b>${esc(p.r.item)}</b><span class="pill p-${ST[p.r.status].c}">${ST[p.r.status].t}</span></div><div class="meta"><span class="num">#${esc(p.r.code)}</span><span>${esc(p.r.area||'')}</span><span>${plant?'يبعد':'عن المركز'} <span class="num">${p.d<1?Math.round(p.d*1000)+' م':p.d.toFixed(1)+' كم'}</span></span></div><div class="r1"><a href="${gdir(p.r.site)}" target="_blank" rel="noopener">الاتجاهات في خرائط Google ↗</a><span class="num small muted">${p.r.site.lat}, ${p.r.site.lng}</span></div></div>`).join('')}</div></div>`;
   return h;
 }
+
+/* ===== الصندوق: الواردات والمصروفات — مسؤول الحسابات ===== */
+const CASH_SEE=['accountant','owner','project','admin1','admin2'];
+const seesCash=()=>CASH_SEE.includes(S.me?.role);
+const writesCash=()=>['accountant','owner'].includes(S.me?.role);
+const CASH_CAT={out:['سلف وحسابات المقاولين','رواتب وأجور','مواد بناء وإنهاءات','كهرباء ومولدات','وقود ومحروقات','إيجار آليات ونقل','صيانة آليات وقطع غيار','صحيات وماء ومجاري','طعام وضيافة','قرطاسية واتصالات وإنترنت','إكراميات وهدايا','فحوص ومعاملات ورسوم','أثاث وأجهزة','مبالغ مسلّمة للإدارة','أخرى'],
+  in:['مستلم من الإدارة','إيرادات مبيعات','إيجارات','سلفة مستردة','رصيد افتتاحي','أخرى']};
+const MONTHS_AR=['كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'];
+const monName=m=>{const [y,mm]=m.split('-');return MONTHS_AR[+mm-1]+' '+y};
+const iqd=n=>nf.format(Math.round(+n||0));
+async function cashLoad(){if(!seesCash())return;const all=[];
+  for(let f=0;;f+=1000){const {data,error}=await sb.from('cash').select('*').order('day',{ascending:false}).order('created_at',{ascending:false}).range(f,f+999);if(error){S.cashErr=error.message;break}all.push(...(data||[]));if(!data||data.length<1000)break}
+  S.cash=all}
+const cashLive=()=>(S.cash||[]).filter(c=>!c.voided);
+const cashSum=(list,k)=>list.filter(c=>!c.voided&&(!k||c.kind===k)).reduce((a,c)=>a+(+c.amount||0),0);
+function cashMonths(){const set=new Set((S.cash||[]).map(c=>c.day.slice(0,7)));set.add(bgDay().slice(0,7));return[...set].sort().reverse()}
+function cashFiltered(){const m=S.cashM===undefined?bgDay().slice(0,7):S.cashM,k=S.cashK||'',q=(S.cashQ||'').trim();
+  return(S.cash||[]).filter(c=>(!m||c.day.startsWith(m))&&(!k||c.kind===k)&&(!q||[c.note,c.party,c.category,c.ref,String(c.amount)].join(' ').includes(q)))}
+function cashView(){
+  if(!S.cash)return`<div class="empty"><b>جارِ تحميل الصندوق…</b></div>`;
+  const m=S.cashM===undefined?bgDay().slice(0,7):S.cashM,list=cashFiltered(),live=cashLive();
+  const bal=cashSum(live,'in')-cashSum(live,'out'),pin=cashSum(list,'in'),pout=cashSum(list,'out');
+  let h=`<div class="filters"><select id="cashM" class="in" style="flex:1 1 150px"><option value="" ${m===''?'selected':''}>كل الفترات</option>${cashMonths().map(x=>`<option value="${x}" ${m===x?'selected':''}>${monName(x)}</option>`).join('')}</select>
+    <div class="seg" style="flex:1 1 220px">${[['','الكل'],['in','الوارد'],['out','المصروف']].map(([k,t])=>`<label><input type="radio" name="cashK" value="${k}" ${(S.cashK||'')===k?'checked':''}>${t}</label>`).join('')}</div>
+    <input id="cashQ" class="in" placeholder="بحث بالبيان أو الجهة أو المبلغ" value="${esc(S.cashQ||'')}" style="flex:2 1 200px"></div>
+   <div class="stats"><div class="stat ${bal<0?'hot':''}"><b class="num" style="font-size:18px">${iqd(bal)}</b><span>رصيد الصندوق الحالي (د.ع)</span></div>
+    <div class="stat"><b class="num" style="font-size:16px;color:var(--ok)">${iqd(pin)}</b><span>الوارد ${m?'— '+monName(m):''}</span></div>
+    <div class="stat"><b class="num" style="font-size:16px;color:var(--bad)">${iqd(pout)}</b><span>المصروف ${m?'— '+monName(m):''}</span></div>
+    <div class="stat"><b class="num" style="font-size:16px">${iqd(pin-pout)}</b><span>الصافي</span></div></div>
+   <div class="acts" style="margin:10px 0">${writesCash()?`<button class="btn ok" data-a="cashNew" data-v="in">＋ وارد</button><button class="btn pri" data-a="cashNew" data-v="out">－ صرف</button>`:''}<button class="btn" data-a="cashCsv">تصدير Excel</button></div>`;
+  if(S.cashErr)h+=`<div class="err">${esc(S.cashErr)}</div>`;
+  if(!list.length)return h+`<div class="empty"><b>ماكو حركات ${m?'بـ'+monName(m):''}</b>${writesCash()?'سجّل أول حركة بزر «وارد» أو «صرف». ابدأ بـ«رصيد افتتاحي» إذا الصندوق بيه فلوس.':''}</div>`;
+  return h+`<div class="tbl-wrap"><table style="min-width:0"><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th></tr></thead><tbody>${list.slice(0,1500).map(c=>`<tr data-a="cashOpen" data-v="${c.id}" style="cursor:pointer;${c.voided?'opacity:.5;text-decoration:line-through':''}"><td class="num small" style="white-space:nowrap">${c.day.slice(5)}<div class="muted">${c.day.slice(0,4)}</div></td><td>${esc(c.note||'')}${c.voided?' <span class="pill p-mute">ملغاة</span>':''}${c.attach?' <span title="بيها صورة">📎</span>':''}<div class="small muted">${esc(c.category)}${c.party?' · '+esc(c.party):''}</div></td><td class="num" style="white-space:nowrap;font-weight:700;color:var(--${c.kind==='in'?'ok':'bad'})">${c.kind==='in'?'+':'−'}${iqd(c.amount)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><th colspan="2">الوارد / المصروف (بدون الملغاة)</th><th class="num" style="white-space:nowrap"><span style="color:var(--ok)">+${iqd(pin)}</span><br><span style="color:var(--bad)">−${iqd(pout)}</span></th></tr></tfoot></table></div>`}
+function acsumView(){
+  if(!S.cash)return`<div class="empty"><b>جارِ التحميل…</b></div>`;
+  const live=cashLive(),months=[...new Set(live.map(c=>c.day.slice(0,7)))].sort();
+  if(!months.length)return`<div class="empty"><b>ماكو حركات بعد</b>الملخص يطلع بعد ما تسجّل حركات بالصندوق.</div>`;
+  let run=0;const rows=months.map(m=>{const l=live.filter(c=>c.day.startsWith(m)),i=cashSum(l,'in'),o=cashSum(l,'out');run+=i-o;return{m,i,o,run}}).reverse();
+  const sel=S.acM&&months.includes(S.acM)?S.acM:months[months.length-1];const l=live.filter(c=>c.day.startsWith(sel));
+  const byCat=k=>{const o={};l.filter(c=>c.kind===k).forEach(c=>o[c.category]=(o[c.category]||0)+(+c.amount));return Object.entries(o).sort((a,b)=>b[1]-a[1])};
+  const bars=(arr,col)=>{const mx=Math.max(1,...arr.map(x=>x[1]));return arr.length?arr.map(([n,v])=>`<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;gap:8px" class="small"><span>${esc(n)}</span><b class="num">${iqd(v)}</b></div><div style="height:8px;border-radius:5px;background:var(--sunk)"><div style="height:8px;border-radius:5px;width:${(v/mx*100).toFixed(1)}%;background:${col}"></div></div></div>`).join(''):'<p class="muted small">ماكو</p>'};
+  const sysOut=expEntries(null).filter(e=>{const d=new Date(e.t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')===sel&&['buy','inv','in'].includes(e.k)}).reduce((a,e)=>a+(+e.a||0),0);
+  return`<div class="sec" style="margin-top:12px"><h4>كل شهر</h4><div class="tbl-wrap"><table style="min-width:520px"><thead><tr><th>الشهر</th><th>الوارد</th><th>المصروف</th><th>الصافي</th><th>الرصيد بنهاية الشهر</th></tr></thead><tbody>${rows.map(r=>`<tr data-a="acM" data-v="${r.m}" style="cursor:pointer;${r.m===sel?'background:var(--sunk)':''}"><td>${monName(r.m)}</td><td class="num" style="color:var(--ok)">${iqd(r.i)}</td><td class="num" style="color:var(--bad)">${iqd(r.o)}</td><td class="num">${iqd(r.i-r.o)}</td><td class="num"><b>${iqd(r.run)}</b></td></tr>`).join('')}</tbody></table></div></div>
+   <div class="sec" style="margin-top:12px"><h4>تفاصيل ${monName(sel)}</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px">
+    <div><b style="color:var(--bad)">المصروف حسب الفئة</b>${bars(byCat('out'),'var(--bad)')}</div><div><b style="color:var(--ok)">الوارد حسب المصدر</b>${bars(byCat('in'),'var(--ok)')}</div></div>
+    <p class="note" style="margin-top:12px">للمقارنة: مشتريات وفواتير مسجلة بالنظام (المخازن والمندوبين) لهذا الشهر: <b class="num">${iqd(sysOut)}</b> د.ع</p></div>`}
+function cashForm(kind,c){const n=!c;c=c||{kind:kind||'out',day:bgDay(),category:'',amount:'',party:'',note:'',ref:''};let k=c.kind;
+  const cats=kk=>'<option value="">— اختر الفئة —</option>'+CASH_CAT[kk].map(x=>`<option ${c.category===x?'selected':''}>${x}</option>`).join('');
+  overlay('cash',n?(k==='in'?'تسجيل وارد':'تسجيل صرف'):'تعديل حركة',`<form class="f" id="fCash">
+   <div class="seg" style="width:100%"><label><input type="radio" name="cK" value="in" ${k==='in'?'checked':''}>وارد (دخل للصندوق)</label><label><input type="radio" name="cK" value="out" ${k==='out'?'checked':''}>صرف (طلع من الصندوق)</label></div>
+   <div class="fr"><label class="l">المبلغ (دينار)<input id="cAmt" class="in num" dir="ltr" inputmode="numeric" required value="${c.amount?iqd(c.amount):''}" placeholder="250,000"></label>
+   <label class="l">التاريخ<input id="cDay" class="in num" type="date" required value="${c.day}" max="${bgDay()}"></label></div>
+   <div class="fr"><label class="l">الفئة<select id="cCat" class="in" required>${cats(k)}</select></label>
+   <label class="l">${k==='in'?'المصدر / من سلّم':'الجهة / المستلم'}<input id="cParty" class="in" maxlength="120" value="${esc(c.party||'')}"></label></div>
+   <label class="l">البيان<textarea id="cNote" class="in" rows="2" maxlength="600" required placeholder="مثال: غداء العاملين ليوم الاثنين">${esc(c.note||'')}</textarea></label>
+   <div class="fr"><label class="l">رقم الوصل / القائمة <em>(اختياري)</em><input id="cRef" class="in num" dir="ltr" maxlength="60" value="${esc(c.ref||'')}"></label>
+   <label class="l">ما يعادل بالدولار <em>(اختياري)</em><div class="gps"><input id="cUsd" class="in num" dir="ltr" inputmode="decimal" placeholder="$" value="${c.usd??''}"><input id="cRate" class="in num" dir="ltr" inputmode="decimal" placeholder="سعر الصرف" value="${c.rate??''}"></div></label></div>
+   <label class="l">صورة الوصل <em>(اختياري)</em><input id="cImg" class="in" type="file" accept="image/*" capture="environment"></label>
+   <div class="err" id="cErr"></div><div class="acts"><button class="btn pri" type="submit" id="cSub">${n?'حفظ':'حفظ التعديل'}</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
+  const amt=$('#cAmt');amt.addEventListener('input',()=>{const d=normDigits(amt.value).replace(/\D/g,'');amt.value=d?nf.format(+d):''});
+  document.querySelectorAll('input[name=cK]').forEach(i=>i.addEventListener('change',()=>{k=i.value;$('#cCat').innerHTML=cats(k)}));
+  const syncUsd=()=>{const u=+normDigits($('#cUsd').value),r=+normDigits($('#cRate').value);if(u>0&&r>0&&!amt.value)amt.value=nf.format(Math.round(u*r))};$('#cRate').addEventListener('change',syncUsd);$('#cUsd').addEventListener('change',syncUsd);
+  $('#fCash').addEventListener('submit',async e=>{e.preventDefault();const b=$('#cSub');b.disabled=true;$('#cErr').textContent='';
+    try{const a=+normDigits(amt.value).replace(/\D/g,'');if(!(a>0))throw new Error('اكتب المبلغ');
+      if(!$('#cCat').value)throw new Error('اختر الفئة');const u=$('#cUsd').value.trim(),r=$('#cRate').value.trim();
+      const row={kind:k,amount:a,day:$('#cDay').value,category:$('#cCat').value,party:$('#cParty').value.trim()||null,note:$('#cNote').value.trim(),ref:$('#cRef').value.trim()||null,usd:u?+normDigits(u):null,rate:r?+normDigits(r):null};
+      const f=$('#cImg').files[0];if(f)row.attach=(await saveFile(f)).ref;
+      const res=n?await sb.from('cash').insert(row).select().single():await sb.from('cash').update(row).eq('id',c.id).select().single();
+      if(res.error)throw new Error(res.error.message);await cashLoad();closeOv();render();toast(n?'انحفظت الحركة':'انحفظ التعديل')}
+    catch(x){$('#cErr').textContent=x.message;b.disabled=false}})}
+function cashOpen(id){const c=(S.cash||[]).find(x=>x.id===id);if(!c)return;
+  const nm=u=>esc(S.names?.[u]?.name||S.staff.find(p=>p.id===u)?.full_name||'—');
+  const canEdit=writesCash()&&!c.voided&&(S.me.role==='owner'||(c.by_uid===S.me.id&&Date.now()-new Date(c.created_at).getTime()<48*3600e3));
+  overlay('cashv',(c.kind==='in'?'وارد':'صرف')+' — '+iqd(c.amount)+' د.ع',`<div class="sec">
+   ${c.voided?`<div class="banner" style="background:var(--bad-soft);color:var(--bad)">ملغاة: ${esc(c.void_reason||'')}</div>`:''}
+   <div class="small" style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px"><span class="muted">التاريخ</span><b class="num">${c.day}</b><span class="muted">الفئة</span><b>${esc(c.category)}</b><span class="muted">${c.kind==='in'?'المصدر':'الجهة'}</span><b>${esc(c.party||'—')}</b><span class="muted">البيان</span><b>${esc(c.note||'—')}</b><span class="muted">رقم الوصل</span><b class="num">${esc(c.ref||'—')}</b>${c.usd?`<span class="muted">بالدولار</span><b class="num">${c.usd}$ × ${c.rate||'—'}</b>`:''}<span class="muted">سجّلها</span><b>${nm(c.by_uid)}</b></div>
+   ${c.attach?`<div style="margin-top:10px"><img id="cashImg" alt="صورة الوصل" style="max-width:100%;border-radius:10px"></div>`:''}
+   <h4 style="margin-top:14px">السجل</h4>${(c.log||[]).map(l=>`<div class="small"><span class="num muted">${new Date(l.t).toLocaleString('ar-IQ-u-nu-latn',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</span> · ${nm(l.uid)}: ${esc(l.a)}${l.note?' — '+esc(l.note):''}</div>`).join('')}
+   <div class="acts" style="margin-top:12px">${canEdit?`<button class="btn" id="cEd">تعديل</button>`:''}${writesCash()&&!c.voided?`<button class="btn bad" id="cVoid">إلغاء الحركة</button>`:''}${S.me.role==='owner'&&c.voided?`<button class="btn" id="cUnvoid">إرجاع الحركة</button>`:''}</div><div id="cVoidF"></div><div class="err" id="cvErr"></div></div>`);
+  if(c.attach){const p=c.attach.replace(/^s:/,'');sb.storage.from('files').createSignedUrl(p,3600).then(({data})=>{const i=$('#cashImg');if(i&&data)i.src=data.signedUrl})}
+  $('#cEd')?.addEventListener('click',()=>cashForm(c.kind,c));
+  const upd=async o=>{const r=await sb.from('cash').update(o).eq('id',c.id);if(r.error){$('#cvErr').textContent=r.error.message;return}await cashLoad();closeOv();render();toast('تم')};
+  $('#cVoid')?.addEventListener('click',()=>{$('#cVoidF').innerHTML=`<label class="l">سبب الإلغاء<input id="cvR" class="in" maxlength="200"></label><button class="btn bad sm" id="cvGo">تأكيد الإلغاء</button>`;$('#cvGo').addEventListener('click',()=>{const r=$('#cvR').value.trim();if(!r){$('#cvErr').textContent='اكتب السبب';return}upd({voided:true,void_reason:r})})});
+  $('#cUnvoid')?.addEventListener('click',()=>upd({voided:false}))}
+function cashCsv(){const list=cashFiltered();const m=S.cashM===undefined?bgDay().slice(0,7):S.cashM;
+  csvDownload('الصندوق-'+brName()+'-'+(m||'الكل')+'.csv',[['التاريخ','النوع','المبلغ','الفئة','الجهة','البيان','رقم الوصل','دولار','سعر الصرف','الحالة'],
+    ...list.map(c=>[c.day,c.kind==='in'?'وارد':'مصروف',c.amount,c.category,c.party||'',c.note||'',c.ref||'',c.usd||'',c.rate||'',c.voided?'ملغاة: '+(c.void_reason||''):''])])}
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,v=el.dataset.v;
+  if(a==='cashNew')cashForm(v);else if(a==='cashOpen')cashOpen(v);else if(a==='cashCsv')cashCsv();else if(a==='acM'){S.acM=v;render()}});
+document.addEventListener('change',e=>{const t=e.target;if(t.id==='cashM'){S.cashM=t.value;render()}else if(t.name==='cashK'){S.cashK=t.value;render()}else if(t.id==='cashQ'){S.cashQ=t.value;render()}});
 
 /* ---------- overlays ---------- */
 function overlay(kind,title,body){document.body.classList.add('ovopen');stopScan();const o=$('#ovroot');o.dataset.kind=kind;o.innerHTML=`<div class="ov" data-a="ovbg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sh-h"><h3>${title}</h3><button class="x" data-a="close" aria-label="إغلاق">×</button></div><div class="sh-b">${body}</div></div></div>`;document.body.style.overflow='hidden';const gb=document.querySelector('[data-a=goback]');if(gb)gb.disabled=false}
@@ -2592,8 +2690,8 @@ function fuelLogView(){const f=fuelItem();const rows=(f?.log||[]).slice().revers
 
 /* ===== expenses (الصرفيات), external invoices, bulk price import ===== */
 const MACH_TEAM=['mstore','keeper','machines','fueler','operator','mechanic','supply'];
-const EXP_ROLES=['store','receiver',...MACH_TEAM,'project','admin1','admin2'];
-const INVC_ROLES=['store','receiver','mstore','keeper','machines','project','admin1','admin2'];
+const EXP_ROLES=['store','receiver',...MACH_TEAM,'project','admin1','admin2','accountant'];
+const INVC_ROLES=['store','receiver','mstore','keeper','machines','project','admin1','admin2','accountant'];
 const INV_WRITE=['store','mstore','keeper','project','owner'];
 const scopeWh=role=>['store','receiver'].includes(role)?'main':MACH_TEAM.includes(role)?'mach':null;
 const sameDayT=t=>new Date(t).toDateString()===new Date().toDateString();

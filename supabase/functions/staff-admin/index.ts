@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const DOMAIN = "staff.mansourcity.app";
-const ROLES = ["owner","machines","elec","mech","store","mstore","project","admin1","admin2","purchase","purchase2","keeper","operator","mechanic","fueler","supply","receiver","elec_tech","mech_tech","buyer","clerk","timekeeper","guard","driver","foreman"];
+const ROLES = ["owner","machines","elec","mech","store","mstore","project","admin1","admin2","purchase","purchase2","keeper","operator","mechanic","fueler","supply","receiver","elec_tech","mech_tech","buyer","clerk","timekeeper","guard","driver","foreman","accountant"];
 // which crew roles each manager may add / manage
 const CREW: Record<string, string[]> = {
   machines: ["operator", "mechanic", "fueler", "supply", "guard", "driver"],
