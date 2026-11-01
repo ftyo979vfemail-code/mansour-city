@@ -12,7 +12,7 @@ self.addEventListener('fetch', (e) => {
   const r = e.request; if (r.method !== 'GET') return;
   const u = new URL(r.url);
   if (r.mode === 'navigate' && u.origin === location.origin) {   // network first: always the latest version when online
-    e.respondWith(fetch(r).then((res) => { const c = res.clone(); caches.open(CACHE).then((x) => x.put('index.html', c)); return res; })
+    e.respondWith(fetch(r.url, { cache: 'no-cache', credentials: 'same-origin' }).then((res) => { const c = res.clone(); caches.open(CACHE).then((x) => x.put('index.html', c)); return res; })
       .catch(() => caches.match('index.html').then((m) => m || caches.match('./'))));
     return;
   }
