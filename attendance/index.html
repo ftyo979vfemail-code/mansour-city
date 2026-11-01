@@ -2128,7 +2128,7 @@ function mapView(){
 const CASH_SEE=['accountant','owner','project','admin1','admin2'];
 const seesCash=()=>CASH_SEE.includes(S.me?.role);
 const writesCash=()=>['accountant','owner'].includes(S.me?.role);
-const CASH_CAT={out:['سلف وحسابات المقاولين','رواتب وأجور','مواد بناء وإنهاءات','كهرباء ومولدات','وقود ومحروقات','إيجار آليات ونقل','صيانة آليات وقطع غيار','صحيات وماء ومجاري','طعام وضيافة','قرطاسية واتصالات وإنترنت','إكراميات وهدايا','فحوص ومعاملات ورسوم','أثاث وأجهزة','مبالغ مسلّمة للإدارة','أخرى'],
+const CASH_CAT={out:['سلف وحسابات المقاولين','رواتب وأجور','مواد بناء وإنهاءات','كهرباء ومولدات','وقود ومحروقات','إيجار آليات ونقل','صيانة آليات وقطع غيار','صحيات وماء ومجاري','طعام وضيافة','قرطاسية واتصالات وإنترنت','إكراميات وهدايا','فحوص ومعاملات ورسوم','أثاث وأجهزة','مبالغ مسلّمة للإدارة','مواد ومستلزمات عامة','سلف ومستحقات أخرى','أخرى'],
   in:['مستلم من الإدارة','إيرادات مبيعات','إيجارات','سلفة مستردة','رصيد افتتاحي','أخرى']};
 const MONTHS_AR=['كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'];
 const monName=m=>{const [y,mm]=m.split('-');return MONTHS_AR[+mm-1]+' '+y};
@@ -2152,7 +2152,7 @@ function cashView(){
     <div class="stat"><b class="num" style="font-size:16px;color:var(--ok)">${iqd(pin)}</b><span>الوارد ${m?'— '+monName(m):''}</span></div>
     <div class="stat"><b class="num" style="font-size:16px;color:var(--bad)">${iqd(pout)}</b><span>المصروف ${m?'— '+monName(m):''}</span></div>
     <div class="stat"><b class="num" style="font-size:16px">${iqd(pin-pout)}</b><span>الصافي</span></div></div>
-   <div class="acts" style="margin:10px 0">${writesCash()?`<button class="btn ok" data-a="cashNew" data-v="in">＋ وارد</button><button class="btn pri" data-a="cashNew" data-v="out">－ صرف</button>`:''}<button class="btn" data-a="cashCsv">تصدير Excel</button></div>`;
+   <div class="acts" style="margin:10px 0">${writesCash()?`<button class="btn ok" data-a="cashNew" data-v="in">＋ وارد</button><button class="btn pri" data-a="cashNew" data-v="out">－ صرف</button>`:''}<button class="btn" data-a="cashCsv">تصدير Excel</button>${writesCash()?`<button class="btn ghost" data-a="cashImp">استيراد ملف</button>`:''}</div>`;
   if(S.cashErr)h+=`<div class="err">${esc(S.cashErr)}</div>`;
   if(!list.length)return h+`<div class="empty"><b>ماكو حركات ${m?'بـ'+monName(m):''}</b>${writesCash()?'سجّل أول حركة بزر «وارد» أو «صرف». ابدأ بـ«رصيد افتتاحي» إذا الصندوق بيه فلوس.':''}</div>`;
   return h+`<div class="tbl-wrap"><table style="min-width:0"><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th></tr></thead><tbody>${list.slice(0,1500).map(c=>`<tr data-a="cashOpen" data-v="${c.id}" style="cursor:pointer;${c.voided?'opacity:.5;text-decoration:line-through':''}"><td class="num small" style="white-space:nowrap">${c.day.slice(5)}<div class="muted">${c.day.slice(0,4)}</div></td><td>${esc(c.note||'')}${c.voided?' <span class="pill p-mute">ملغاة</span>':''}${c.attach?' <span title="بيها صورة">📎</span>':''}<div class="small muted">${esc(c.category)}${c.party?' · '+esc(c.party):''}</div></td><td class="num" style="white-space:nowrap;font-weight:700;color:var(--${c.kind==='in'?'ok':'bad'})">${c.kind==='in'?'+':'−'}${iqd(c.amount)}</td></tr>`).join('')}</tbody>
@@ -2208,11 +2208,39 @@ function cashOpen(id){const c=(S.cash||[]).find(x=>x.id===id);if(!c)return;
   const upd=async o=>{const r=await sb.from('cash').update(o).eq('id',c.id);if(r.error){$('#cvErr').textContent=r.error.message;return}await cashLoad();closeOv();render();toast('تم')};
   $('#cVoid')?.addEventListener('click',()=>{$('#cVoidF').innerHTML=`<label class="l">سبب الإلغاء<input id="cvR" class="in" maxlength="200"></label><button class="btn bad sm" id="cvGo">تأكيد الإلغاء</button>`;$('#cvGo').addEventListener('click',()=>{const r=$('#cvR').value.trim();if(!r){$('#cvErr').textContent='اكتب السبب';return}upd({voided:true,void_reason:r})})});
   $('#cUnvoid')?.addEventListener('click',()=>upd({voided:false}))}
+
+/* import: same columns as the export (CSV saved from Excel). rows already imported (same receipt ref) are skipped */
+function csvParse(t){t=t.replace(/^﻿/,'');const R=[];let row=[],f='',q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;else if(c===','){row.push(f);f=''}else if(c==='\n'){row.push(f.replace(/\r$/,''));R.push(row);row=[];f=''}else f+=c}
+  if(f||row.length){row.push(f);R.push(row)}return R.filter(r=>r.some(x=>x.trim()))}
+function cashImport(){const inp=document.createElement('input');inp.type='file';inp.accept='.csv,text/csv';inp.hidden=true;document.body.appendChild(inp);
+  inp.addEventListener('change',async()=>{const f=inp.files[0];inp.remove();if(!f)return;let rows;try{rows=csvParse(await f.text())}catch(e){toast('تعذر قراءة الملف');return}
+    const H=rows.shift()||[],ix=n=>H.findIndex(h=>h.trim()===n);const I={d:ix('التاريخ'),k:ix('النوع'),a:ix('المبلغ'),c:ix('الفئة'),p:ix('الجهة'),n:ix('البيان'),r:ix('رقم الوصل'),u:ix('دولار'),x:ix('سعر الصرف')};
+    if(I.d<0||I.k<0||I.a<0){toast('الملف لازم يكون بنفس أعمدة «تصدير Excel»: التاريخ، النوع، المبلغ…');return}
+    const have=new Set((S.cash||[]).map(c=>c.ref).filter(Boolean)),bad=[],ok=[];let dup=0;
+    rows.forEach((r,i)=>{const d=(r[I.d]||'').trim(),k=(r[I.k]||'').trim(),a=+normDigits(r[I.a]||'').replace(/[^\d.]/g,'');
+      const ref=I.r>=0?(r[I.r]||'').trim()||null:null;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||!['وارد','مصروف'].includes(k)||!(a>0)){bad.push(i+2);return}
+      if(ref&&have.has(ref)){dup++;return}if(ref)have.add(ref);
+      const num=x=>{const v=+normDigits(x||'').replace(/[^\d.]/g,'');return v>0?v:null};
+      ok.push({branch:curBranch(),by_uid:S.me.id,day:d,kind:k==='وارد'?'in':'out',amount:Math.round(a),category:(I.c>=0&&(r[I.c]||'').trim())||'أخرى',party:I.p>=0?(r[I.p]||'').trim()||null:null,note:I.n>=0?(r[I.n]||'').trim().slice(0,600):'',ref,usd:I.u>=0?num(r[I.u]):null,rate:I.x>=0?num(r[I.x]):null})});
+    const tin=ok.filter(o=>o.kind==='in').reduce((s,o)=>s+o.amount,0),tout=ok.filter(o=>o.kind==='out').reduce((s,o)=>s+o.amount,0);
+    const ds=ok.map(o=>o.day).sort();
+    overlay('cimp','استيراد حركات للصندوق',`<div class="sec"><p>الملف: <b>${esc(f.name)}</b> — الموقع: <b>${esc(brName())}</b></p>
+      <div class="small" style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px"><span class="muted">حركات جديدة</span><b class="num">${nf.format(ok.length)}</b><span class="muted">الوارد</span><b class="num" style="color:var(--ok)">${iqd(tin)}</b><span class="muted">المصروف</span><b class="num" style="color:var(--bad)">${iqd(tout)}</b><span class="muted">الفترة</span><b class="num">${ds[0]||'—'} ← ${ds[ds.length-1]||'—'}</b><span class="muted">موجودة مسبقاً (تنتجاوز)</span><b class="num">${nf.format(dup)}</b><span class="muted">أسطر غلط (تنتجاوز)</span><b class="num">${nf.format(bad.length)}${bad.length?' — أولها السطر '+bad.slice(0,5).join('، '):''}</b></div>
+      <div class="acts" style="margin-top:12px">${ok.length?`<button class="btn pri" id="ciGo">استيراد ${nf.format(ok.length)} حركة</button>`:''}<button class="btn ghost" data-a="close">إلغاء</button></div><div id="ciP" class="note" hidden></div><div class="err" id="ciE"></div></div>`);
+    $('#ciGo')?.addEventListener('click',async()=>{const b=$('#ciGo');b.disabled=true;const P=$('#ciP');P.hidden=false;let done=0;
+      try{for(let i=0;i<ok.length;i+=400){const r=await sb.from('cash').insert(ok.slice(i,i+400));if(r.error)throw new Error(r.error.message);done=Math.min(ok.length,i+400);P.textContent=`انضاف ${nf.format(done)} من ${nf.format(ok.length)}…`}
+        await invLog('استورد '+nf.format(ok.length)+' حركة للصندوق',f.name);await cashLoad();closeOv();render();toast('انضافت '+nf.format(ok.length)+' حركة')}
+      catch(e){$('#ciE').textContent='توقف بعد '+nf.format(done)+' حركة: '+e.message+' — تكدر تعيد نفس الملف، المضاف ما يتكرر.';b.disabled=false;await cashLoad();render()}})});
+  inp.click()}
 function cashCsv(){const list=cashFiltered();const m=S.cashM===undefined?bgDay().slice(0,7):S.cashM;
   csvDownload('الصندوق-'+brName()+'-'+(m||'الكل')+'.csv',[['التاريخ','النوع','المبلغ','الفئة','الجهة','البيان','رقم الوصل','دولار','سعر الصرف','الحالة'],
     ...list.map(c=>[c.day,c.kind==='in'?'وارد':'مصروف',c.amount,c.category,c.party||'',c.note||'',c.ref||'',c.usd||'',c.rate||'',c.voided?'ملغاة: '+(c.void_reason||''):''])])}
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,v=el.dataset.v;
-  if(a==='cashNew')cashForm(v);else if(a==='cashOpen')cashOpen(v);else if(a==='cashCsv')cashCsv();else if(a==='acM'){S.acM=v;render()}});
+  if(a==='cashNew')cashForm(v);else if(a==='cashOpen')cashOpen(v);else if(a==='cashCsv')cashCsv();else if(a==='cashImp')cashImport();else if(a==='acM'){S.acM=v;render()}});
 document.addEventListener('change',e=>{const t=e.target;if(t.id==='cashM'){S.cashM=t.value;render()}else if(t.name==='cashK'){S.cashK=t.value;render()}else if(t.id==='cashQ'){S.cashQ=t.value;render()}});
 
 /* ---------- overlays ---------- */
