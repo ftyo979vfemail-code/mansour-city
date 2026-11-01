@@ -320,3 +320,6 @@ begin
   perform set_config('app.push_branch', '', true);
   perform set_config('att.cron', '', true);
 end $function$;
+
+-- staff has column-level SELECT grants: expose the new site columns
+grant select (branch, branches, cur_branch) on public.staff to authenticated;
