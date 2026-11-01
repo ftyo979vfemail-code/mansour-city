@@ -30,8 +30,10 @@ Deno.serve(async (req) => {
     const token = (req.headers.get("Authorization") || "").replace("Bearer ", "");
     const { data: { user } } = await admin.auth.getUser(token);
     if (!user) return json({ error: "يجب تسجيل الدخول" }, 401);
-    const { data: me } = await admin.from("staff").select("role,active,hidden").eq("id", user.id).maybeSingle();
+    const { data: me } = await admin.from("staff").select("role,active,hidden,branch,branches,cur_branch").eq("id", user.id).maybeSingle();
     if (!me || !me.active) return json({ error: "غير مسموح" }, 403);
+    const myBranches: string[] = me.branches || ["mansour"];
+    const myBranch: string = me.cur_branch && myBranches.includes(me.cur_branch) ? me.cur_branch : (myBranches.includes(me.branch) ? me.branch : myBranches[0]);
     const isOwner = me.role === "owner";
     const allowed = isOwner ? ROLES : (CREW[me.role] || []);
     if (!allowed.length) return json({ error: "هذا الإجراء غير متاح لصفتك" }, 403);
@@ -39,8 +41,9 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action } = body;
     if (body.id) {
-      const { data: tgt } = await admin.from("staff").select("hidden,role").eq("id", body.id).maybeSingle();
+      const { data: tgt } = await admin.from("staff").select("hidden,role,branches").eq("id", body.id).maybeSingle();
       if (!tgt) return json({ error: "الحساب غير موجود" }, 404);
+      if (!isOwner && !(tgt.branches || []).includes(myBranch)) return json({ error: "هذا الحساب من موقع ثاني" }, 403);
       if (tgt.hidden && !me.hidden) return json({ error: "غير مسموح" }, 403);
       if (!isOwner && !allowed.includes(tgt.role)) return json({ error: "هذا الحساب ليس من كادرك" }, 403);
     }
@@ -61,7 +64,7 @@ Deno.serve(async (req) => {
         user_metadata: { username, full_name: body.full_name || "" },
       });
       if (error) return json({ error: error.message }, 400);
-      const row: Record<string, unknown> = { id: created.user.id, username, full_name: body.full_name || username, role: body.role, active: true, status: "active", manager_id: user.id };
+      const row: Record<string, unknown> = { id: created.user.id, username, full_name: body.full_name || username, role: body.role, active: true, status: "active", manager_id: user.id, branch: myBranch, branches: [myBranch] };
       if (phone) row.phone = phone;
       if (body.machine_id) row.machine_id = String(body.machine_id);
       const { error: e2 } = await admin.from("staff").insert(row);
@@ -79,6 +82,16 @@ Deno.serve(async (req) => {
       if (typeof body.full_name === "string" && body.full_name.trim()) patch.full_name = body.full_name.trim();
       if (typeof body.active === "boolean") { patch.active = body.active; if (body.active) patch.status = "active"; }
       if ("machine_id" in body) patch.machine_id = body.machine_id || null;
+      if (Array.isArray(body.branches)) {
+        if (!isOwner) return json({ error: "تحديد المواقع من صلاحية مالك النظام" }, 403);
+        const { data: all } = await admin.from("branches").select("id");
+        const ok = new Set((all || []).map((b: { id: string }) => b.id));
+        const list = [...new Set(body.branches.map(String))].filter((b) => ok.has(b));
+        if (!list.length) return json({ error: "اختر موقع واحد على الأقل" }, 400);
+        const { data: cur2 } = await admin.from("staff").select("branch").eq("id", body.id).maybeSingle();
+        patch.branches = list;
+        if (!list.includes(cur2?.branch)) patch.branch = list[0];
+      }
       if (Object.keys(patch).length) {
         const { error } = await admin.from("staff").update(patch).eq("id", body.id);
         if (error) return json({ error: error.message }, 400);

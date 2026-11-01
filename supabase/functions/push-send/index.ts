@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     if (req.headers.get("x-push-secret") !== cfg.secret) return json({ error: "forbidden" }, 403);
     const b = await req.json();
     const uids = (b.uids || []).filter((x: string | null) => !!x);
-    const { data: subs } = await admin.rpc("push_targets", { p_roles: b.roles || [], p_uids: uids, p_exclude: b.exclude || null });
+    const { data: subs } = await admin.rpc("push_targets", { p_roles: b.roles || [], p_uids: uids, p_exclude: b.exclude || null, p_branch: b.branch || null });
     webpush.setVapidDetails("mailto:ftyo979vfemail@gmail.com", cfg.public_key, cfg.private_key);
     const payload = JSON.stringify({ title: b.title || "نظام شركة المنصور", body: b.body || "", tag: b.tag || "" });
     let sent = 0, dropped = 0;
