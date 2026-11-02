@@ -735,7 +735,7 @@ function qrSvg(text,cell=6){if(!window.qrcode)return`<div class="note">${esc(tex
 let scanStop=null;
 function openScanner(title,hint,onCode){
   overlay('scan',title,`<p class="muted" style="margin:0">${hint}</p><div class="scanbox"><video id="scVid" playsinline muted></video><div class="scanframe"></div></div><span class="note" id="scMsg">جارِ تشغيل الكاميرا…</span>
-   <form class="gps" id="scForm"><input id="scManual" class="in num" dir="ltr" placeholder="أو اكتب الرمز يدوياً" autocomplete="off"><button class="btn" type="submit">تأكيد</button></form>`);
+   <form class="gps" id="scForm"><input id="scManual" class="in num" dir="ltr" placeholder="أو اكتب الرقم يدوياً" inputmode="text" autocomplete="off"><button class="btn" type="submit">تأكيد</button></form>`);
   let done=false,stream=null,raf=0;const vid=$('#scVid'),cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
   const finish=async txt=>{if(done)return;done=true;stop();await onCode(txt)};
   const stop=()=>{cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null};scanStop=stop;
@@ -967,7 +967,7 @@ async function showLoginQR(p,pass){
   if(msg){$('#ovroot .sh-b').innerHTML=`<div class="err">${esc(msg)}</div>`;return}
   const url=location.href.split('?')[0].split('#')[0]+'?ql='+encodeURIComponent(data.token);
   $('#ovroot .sh-b').innerHTML=`<div class="rcbox"><b style="font-family:var(--display);font-size:20px">${esc(p.full_name||'')}</b><span class="pill p-accent">${esc(ROLES[p.role]?.name||p.role)}</span>
-   <div class="qr">${qrSvg(url,6)}</div><p class="muted" style="margin:0">العامل يصوّر هذا الباركود بكاميرة موبايله فيدخل مباشرة لواجهته.<br>الباركود يُستخدم مرة واحدة وينتهي بعد ساعة.</p></div>
+   <div class="qr">${qrSvg(url,6)}</div>${data.code?`<div class="small muted" style="margin-top:4px">أو رقم الدخول</div><div class="rcdig num" dir="ltr">${esc(data.code.slice(0,4)+' '+data.code.slice(4))}</div>`:''}<p class="muted" style="margin:0">العامل يصوّر هذا الباركود بكاميرة موبايله فيدخل مباشرة لواجهته${data.code?'، أو يفتح الموقع ويضغط «دخول بالباركود» ويكتب الرقم':''}.<br>الباركود والرقم يُستخدمون مرة واحدة وينتهون بعد ساعة.</p></div>
    <div class="sec"><h4>بيانات الدخول الاحتياطية</h4><pre class="num" style="white-space:pre-wrap;margin:0" id="lqT">الاسم: ${esc(p.full_name||'')}\nالصفة: ${esc(ROLES[p.role]?.name||'')}\nرقم الدخول: ${esc(p.username||'')}${pass?`\nكلمة السر: ${esc(pass)}`:''}</pre><div class="acts" style="margin-top:8px"><button class="btn sm" id="lqCopy">نسخ</button><button class="btn sm" data-a="loginQR" data-v="${p.id}">باركود جديد</button><button class="btn sm ghost" data-a="close">إغلاق</button></div></div>`;
   $('#lqCopy').addEventListener('click',()=>{navigator.clipboard?.writeText($('#lqT').textContent).then(()=>toast('نُسخ'),()=>{})});
   invLog('أصدر باركود دخول لـ '+(p.full_name||''),'')}
@@ -976,8 +976,12 @@ async function qrLogin(token){
   try{history.replaceState(null,'',location.pathname)}catch(e){}
   if(error){toast('الباركود منتهي أو مستخدم. اطلب باركود جديد من مسؤولك.');S.mode='login';render();return false}
   await afterLogin();return true}
-function scanLogin(){openScanner('دخول بالباركود','صوّر باركود الدخول اللي أعطاك إياه مسؤولك.',async txt=>{
+function scanLogin(){openScanner('دخول بالباركود','صوّر باركود الدخول اللي أعطاك إياه مسؤولك، أو اكتب رقم الدخول (8 أرقام) المكتوب تحته.',async txt=>{
   let tok=null;try{tok=new URL(txt).searchParams.get('ql')}catch(e){}if(!tok&&/^[a-f0-9]{20,}$/i.test(txt.trim()))tok=txt.trim();
+  const dg=normDigits(txt).replace(/\D/g,'');
+  if(!tok&&dg.length===8){const {data,error}=await sb.rpc('login_code_exchange',{p_code:dg});
+    if(error){closeOv();toast(/E_BUSY/.test(error.message)?'محاولات كثيرة. انتظر 10 دقايق':'تعذر: '+error.message);return}
+    if(!data){closeOv();toast('رقم الدخول غلط أو منتهي أو مستخدم. اطلب رقم جديد من مسؤولك.');return}tok=data}
   closeOv();if(!tok){toast('هذا ليس باركود دخول');return}await qrLogin(tok)})}
 
 /* crew work screens */

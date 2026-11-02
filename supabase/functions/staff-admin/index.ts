@@ -117,7 +117,15 @@ Deno.serve(async (req) => {
       if (!email) return json({ error: "الحساب غير موجود" }, 404);
       const { data: link, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
       if (error) return json({ error: error.message }, 400);
-      return json({ ok: true, token: link.properties.hashed_token });
+      const tok = link.properties.hashed_token;
+      let code = "";
+      for (let i = 0; i < 6 && !code; i++) {
+        const n = new Uint32Array(1); crypto.getRandomValues(n);
+        const c = String(n[0] % 100000000).padStart(8, "0");
+        const { data: ok } = await admin.rpc("login_code_put", { p_code: c, p_token: tok, p_staff: body.id });
+        if (ok) code = c;
+      }
+      return json({ ok: true, token: tok, code });
     }
 
     if (action === "delete") {
