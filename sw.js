@@ -1,6 +1,6 @@
 // Mansour system — push notifications
 // + offline app shell so the timekeeper can open the app on site without signal
-const CACHE = 'mansour-shell-v1';
+const CACHE = 'mansour-shell-v2';
 const SHELL = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 const CDN = /^https:\/\/(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 self.addEventListener('install', (e) => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {})); });
@@ -11,6 +11,7 @@ self.addEventListener('activate', (e) => e.waitUntil((async () => {
 self.addEventListener('fetch', (e) => {
   const r = e.request; if (r.method !== 'GET') return;
   const u = new URL(r.url);
+  if (/\/taxi\//.test(u.pathname)) return;   // taxi tracking pages are a separate app: never intercept or cache them
   if (r.mode === 'navigate' && u.origin === location.origin) {   // network first: always the latest version when online
     e.respondWith(fetch(r.url, { cache: 'no-cache', credentials: 'same-origin' }).then((res) => { const c = res.clone(); caches.open(CACHE).then((x) => x.put('index.html', c)); return res; })
       .catch(() => caches.match('index.html').then((m) => m || caches.match('./'))));
