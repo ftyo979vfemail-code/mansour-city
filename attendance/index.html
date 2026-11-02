@@ -2161,7 +2161,7 @@ function cashView(){
     <div class="stat"><b class="num" style="font-size:16px;color:var(--ok)">${iqd(pin)}</b><span>الوارد ${m?'— '+monName(m):''}</span></div>
     <div class="stat"><b class="num" style="font-size:16px;color:var(--bad)">${iqd(pout)}</b><span>المصروف ${m?'— '+monName(m):''}</span></div>
     <div class="stat"><b class="num" style="font-size:16px">${iqd(pin-pout)}</b><span>الصافي</span></div></div>
-   <div class="acts" style="margin:10px 0">${writesCash()?`<button class="btn ok" data-a="cashNew" data-v="in">＋ وارد</button><button class="btn pri" data-a="cashNew" data-v="out">－ صرف</button>`:''}<button class="btn" data-a="cashCsv">تصدير Excel</button>${writesCash()?`<button class="btn ghost" data-a="cashImp">استيراد ملف</button>`:''}</div>`;
+   <div class="acts" style="margin:10px 0">${writesCash()?`<button class="btn ok" data-a="cashNew" data-v="in">＋ وارد</button><button class="btn pri" data-a="cashNew" data-v="out">－ صرف</button>`:''}<button class="btn" data-a="cashCsv">تصدير Excel</button>${writesCash()?`<button class="btn ghost" data-a="cashImp">رفع ملفات Excel</button>`:''}</div>`;
   if(S.cashErr)h+=`<div class="err">${esc(S.cashErr)}</div>`;
   if(!list.length)return h+`<div class="empty"><b>ماكو حركات ${m?'بـ'+monName(m):''}</b>${writesCash()?'سجّل أول حركة بزر «وارد» أو «صرف». ابدأ بـ«رصيد افتتاحي» إذا الصندوق بيه فلوس.':''}</div>`;
   return h+`<div class="tbl-wrap"><table style="min-width:0"><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th></tr></thead><tbody>${list.slice(0,1500).map(c=>`<tr data-a="cashOpen" data-v="${c.id}" style="cursor:pointer;${c.voided?'opacity:.5;text-decoration:line-through':''}"><td class="num small" style="white-space:nowrap">${c.day.slice(5)}<div class="muted">${c.day.slice(0,4)}</div></td><td>${esc(c.note||'')}${c.voided?' <span class="pill p-mute">ملغاة</span>':''}${c.attach?' <span title="بيها صورة">📎</span>':''}<div class="small muted">${esc(c.category)}${c.party?' · '+esc(c.party):''}</div></td><td class="num" style="white-space:nowrap;font-weight:700;color:var(--${c.kind==='in'?'ok':'bad'})">${c.kind==='in'?'+':'−'}${iqd(c.amount)}</td></tr>`).join('')}</tbody>
@@ -2218,32 +2218,84 @@ function cashOpen(id){const c=(S.cash||[]).find(x=>x.id===id);if(!c)return;
   $('#cVoid')?.addEventListener('click',()=>{$('#cVoidF').innerHTML=`<label class="l">سبب الإلغاء<input id="cvR" class="in" maxlength="200"></label><button class="btn bad sm" id="cvGo">تأكيد الإلغاء</button>`;$('#cvGo').addEventListener('click',()=>{const r=$('#cvR').value.trim();if(!r){$('#cvErr').textContent='اكتب السبب';return}upd({voided:true,void_reason:r})})});
   $('#cUnvoid')?.addEventListener('click',()=>upd({voided:false}))}
 
-/* import: same columns as the export (CSV saved from Excel). rows already imported (same receipt ref) are skipped */
-function csvParse(t){t=t.replace(/^﻿/,'');const R=[];let row=[],f='',q=false;
-  for(let i=0;i<t.length;i++){const c=t[i];
-    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
-    else if(c==='"')q=true;else if(c===','){row.push(f);f=''}else if(c==='\n'){row.push(f.replace(/\r$/,''));R.push(row);row=[];f=''}else f+=c}
-  if(f||row.length){row.push(f);R.push(row)}return R.filter(r=>r.some(x=>x.trim()))}
-function cashImport(){const inp=document.createElement('input');inp.type='file';inp.accept='.csv,text/csv';inp.hidden=true;document.body.appendChild(inp);
-  inp.addEventListener('change',async()=>{const f=inp.files[0];inp.remove();if(!f)return;let rows;try{rows=csvParse(await f.text())}catch(e){toast('تعذر قراءة الملف');return}
-    const H=rows.shift()||[],ix=n=>H.findIndex(h=>h.trim()===n);const I={d:ix('التاريخ'),k:ix('النوع'),a:ix('المبلغ'),c:ix('الفئة'),p:ix('الجهة'),n:ix('البيان'),r:ix('رقم الوصل'),u:ix('دولار'),x:ix('سعر الصرف')};
-    if(I.d<0||I.k<0||I.a<0){toast('الملف لازم يكون بنفس أعمدة «تصدير Excel»: التاريخ، النوع، المبلغ…');return}
-    const have=new Set((S.cash||[]).map(c=>c.ref).filter(Boolean)),bad=[],ok=[];let dup=0;
-    rows.forEach((r,i)=>{const d=(r[I.d]||'').trim(),k=(r[I.k]||'').trim(),a=+normDigits(r[I.a]||'').replace(/[^\d.]/g,'');
-      const ref=I.r>=0?(r[I.r]||'').trim()||null:null;
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||!['وارد','مصروف'].includes(k)||!(a>0)){bad.push(i+2);return}
-      if(ref&&have.has(ref)){dup++;return}if(ref)have.add(ref);
-      const num=x=>{const v=+normDigits(x||'').replace(/[^\d.]/g,'');return v>0?v:null};
-      ok.push({branch:curBranch(),by_uid:S.me.id,day:d,kind:k==='وارد'?'in':'out',amount:Math.round(a),category:(I.c>=0&&(r[I.c]||'').trim())||'أخرى',party:I.p>=0?(r[I.p]||'').trim()||null:null,note:I.n>=0?(r[I.n]||'').trim().slice(0,600):'',ref,usd:I.u>=0?num(r[I.u]):null,rate:I.x>=0?num(r[I.x]):null})});
+/* import: Excel ledgers (حركة الصندوق) or the app's own export. several files at once; rows already imported are skipped */
+const CASH_RULES=[
+ ['مبالغ مسلّمة للإدارة',/^\s*(سُ?لمت|سلم |الى )|سُلمت الى|بامر الاستا|بأمر الاستا|توجيهات الاستاذ|تعليمات الاستاذ|ابو ايهم/],
+ ['سلف وحسابات المقاولين',/سلف[ةه]? (لل|الى ال)مهندس|سلة للمقاول|سافة للمقاول|تصفية حساب المقاول|سلف[ةهى]?\s+(ال[ىي]\s+|ل)?(ال|ل)?(مقاول|خلف|حداد|مكتب|شيخ|كادر|عامل)|سلفتين|سفة ل|حساب ختامي|اكمال بناء|سلفة اعمال|سلفة تشغيلية|اجور اعمال|بنى تحتية|قشط|اعمال لبخ|اعمال بياض|حساب اعمال|اجور بناء|حساب بناء|مستحقات المقاول/],
+ ['رواتب وأجور',/رواتب|راتب|اجور عمال|اجور عامل|اجور كادر|اجر يومي|الاجر اليومي|بالاجر|اجور عمل|اجور سائق|اجرة عامل|اجور حرس|عمل اضافي|اجور تنظيف|اجرة فلاح|أجره فلاح|اجره عامل|اجور الكادر|كادر عمل/],
+ ['كهرباء ومولدات',/كيبل|قابلو|33\s*K|شبكة|محول|مولد|كهرب|بلاجكتور|بلوجكتر|قاطع|سويج|ترامل|ترمل|واير|بلك|لمبة|اضاءة|انارة|سلك/],
+ ['وقود ومحروقات',/كاز|بانزين|بنزين|وقود|ديزل|كازولين|زيت|دهن|كريز|هيدروليك/],
+ ['مواد بناء وإنهاءات',/سمنت|اسمنت|رمل|حصى|حصو|بلوك|طابوق|حديد تسليح|شيش|سيراميك|بورسلين|مرمر|كاشي|جص|بورك|شتايكر|فوم|صبغ|بوية|اصباغ|المنيوم|زجاج|مقرنص|ماستك|بايات|لاصق|طلس|ترايش|كونكريت|بيتون|سكلة|ابواب|شباك|رفيل|انهاءات|لبخ|بياض|تبليط|اكساء|مواد انشائ/],
+ ['صحيات وماء ومجاري',/صحي|بوري|انبوب|PPR|PVC|ماء ومجاري|مجاري|حنفي|خزان|مضخة|ماطور|قفيص|هوز|تفلون|صوندة|سخان|مغسلة/],
+ ['صيانة آليات وقطع غيار',/اطار|بنجر|تصليح|صيانة|صيانه|قطع غيار|بطارية|بطاري|فلتر|كتف|سلف اتيكو|اليات|آليات|الشفل|الحادلة|الخباطة|القلابية|قلابة سكانيا|التنكر|سيارة|السيارة|ستوتة|كريدر|جوب|دشبول|كلج|محرك|داينمو|قايش|بلي|جك/],
+ ['إيجار آليات ونقل',/اجار|ايجار|ايجتر|اجور نقل|اجرة نقل|نقل|تنكر ماء|تريل|كرين|بمب|شفل|قلاب|تحميل|تفريغ|كبان|ميزان/],
+ ['طعام وضيافة',/طعام|غداء|عشاء|فطور|شاي|سكر|قهوة|ماء شرب|دبات|خبز|تموين|خضر|لحم|دجاج|مطعم|وجب|جبن|ثلج|صمون|ضيوف|ضيافة|هيل|فواكه|بيبسي|مشروبات/],
+ ['قرطاسية واتصالات وإنترنت',/قرطاس|اقلام|قلم|سجلات|دفتر|طبع|مطبعة|ورق|فايل|انترنت|رصيد|هاتف|موبايل|حبر|طابعة|مكتبة|تصوير|استنساخ/],
+ ['إكراميات وهدايا',/تبرع|عزاء|اكرامية|اكراميه|هدية|هديه|مكافأة|مكافاة|عيدية/],
+ ['فحوص ومعاملات ورسوم',/سندات|سند |هيئة|لجنة|الاجازة|اعلان|اعلام|ختم|خرائط|طبابة|علاج|مستشفى|مختبر|فحص|رسوم|معاملة|معاملات|دائرة|بلدية|كتاب|تصديق|ضريبة|غرامة|تسجيل|ترخيص|محامي|كاتب عدل/],
+ ['أثاث وأجهزة',/اثاث|أثاث|منضدة|كرسي|مكيف|سبلت|مبرد|ثلاجة|مدفا|جهاز|كرفان|كامر|تلفزيون|شاشة|مكنسة|ستائر|بطانيات|فرش|منظومة/],
+ ['مواد ومستلزمات عامة',/تنظيف|مماسح|ممسحة|فلاش|زاهي|صابون|معقم|كفوف|اكياس نفايات|مكانس|منظف|كلور|تيزاب/],
+ ['سلف ومستحقات أخرى',/سلف|مستحقات|تسديد/],
+ ['مواد ومستلزمات عامة',/شراء|مخزن|برغي|براغي|دريل|شفرة|قرص|جوزة|كاغد|منشار|سبانة|سبانه|عدد|مواد/]];
+const cashGuessCat=d=>{for(const [n,re] of CASH_RULES)if(re.test(d||''))return n;return'أخرى'};
+const cashAmt=v=>{if(typeof v==='number')return v;const m=normDigits(String(v??'')).replace(/[٬,\s]/g,'').match(/\d+(\.\d+)?/);return m?+m[0]:null};
+function xlDate(v){if(v instanceof Date&&!isNaN(v))return new Date(v.getTime()-v.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*864e5));return d.toISOString().slice(0,10)}
+  const s=normDigits(String(v||'')).trim();let m=s.match(/^(\d{4})[-\/\\._](\d{1,2})[-\/\\._](\d{1,3})/);if(m)return[m[1],m[2],m[3]];
+  m=s.match(/^(\d{1,2})[-\/\\._](\d{1,2})[-\/\\._](\d{2,5})/);if(m)return[m[3],m[2],m[1]];return null}
+function cashRowsFromSheet(X,ws,fname){
+  const rows=X.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,blankrows:true});const r0=X.utils.decode_range(ws['!ref']||'A1').s.r;
+  const H=r=>r.map(c=>String(c||'').replace(/\s+/g,' ').trim());let hi=-1,C=null;
+  for(let i=0;i<Math.min(rows.length,15);i++){const h=H(rows[i]),f=re=>h.findIndex(x=>re.test(x));
+    const c={d:f(/^التاريخ/),n:f(/^(البيان|البيانات|التفاصيل|الوصف)$/),k:f(/^النوع$/),c:f(/^الفئة$/),p:f(/^(الجهة|المجهز)$/),r:f(/^(رقم الوصل|المستند)$/),
+      out:f(/^(السحب د\.?ع|السحب|المبلغ|المصروف|صادر|المدفوع)$/),inn:f(/^(الإيداع|الايداع|وارد|الوارد|القبض|المقبوض|الإيراد|الايراد)$/),usd:f(/^(دولار|السحب \$)$/),x:f(/^سعر الصرف$/)};
+    if(c.d>=0&&(c.out>=0||c.inn>=0)){hi=i;C=c;break}}
+  if(hi<0)return{err:'ما لكيت عمود «التاريخ» وعمود «السحب» أو «المبلغ» بأول 15 سطر'};
+  const own=C.k>=0&&rows.slice(hi+1,hi+40).some(r=>['وارد','مصروف'].includes(String(r[C.k]).trim()));
+  const tmp=[];let last=null,usdSkip=0,sub=0;
+  for(let i=hi+1;i<rows.length;i++){const r=rows[i],note=C.n>=0?String(r[C.n]??'').replace(/\s+/g,' ').trim():'';
+    const aOut=C.out>=0?cashAmt(r[C.out]):null,aIn=C.inn>=0?cashAmt(r[C.inn]):null;
+    let d=xlDate(r[C.d]);if(d)last=d;
+    if(!note||/^\s*(ال)?(مجموع|مجوع)/.test(note)){if(aOut||aIn)sub++;continue}
+    let kind,a;if(own){kind=String(r[C.k]).trim()==='وارد'?'in':'out';a=aOut}else if(aIn>0){kind='in';a=aIn}else{kind='out';a=aOut}
+    if(!(a>0)){if(C.usd>=0&&cashAmt(r[C.usd])>0)usdSkip++;continue}
+    if(!own&&/^\s*مستلم[ةه]? من/.test(note))kind='in';
+    tmp.push({d:d||last,kind,a:Math.round(a),note:note.slice(0,600),cat:C.c>=0&&String(r[C.c]).trim()?String(r[C.c]).trim():(kind==='in'?'أخرى':cashGuessCat(note)),
+      party:C.p>=0?String(r[C.p]??'').trim()||null:(kind==='in'&&/مستلم[ةه]? من (.+)/.test(note)?note.match(/مستلم[ةه]? من (.+)/)[1].trim():null),
+      ref:C.r>=0&&own?String(r[C.r]??'').trim()||null:null,row:r0+i+1,usd:C.usd>=0&&own?toNum(r[C.usd]):null,rate:C.x>=0?toNum(r[C.x]):null})}
+  // year typos (2005, 2039…): use the file's main year
+  const yc={};tmp.forEach(t=>{if(Array.isArray(t.d)||typeof t.d==='string'){const y=(Array.isArray(t.d)?t.d[0]:t.d.slice(0,4));yc[y]=(yc[y]||0)+1}});
+  const yr=Object.entries(yc).sort((a,b)=>b[1]-a[1])[0]?.[0]||String(new Date().getFullYear());const strong=own?false:(yc[yr]||0)>=tmp.length*0.8;let fixed=0,noDate=0,prev=null;
+  const out=tmp.map(t=>{let y,m,dd;if(Array.isArray(t.d))[y,m,dd]=t.d;else if(t.d)[y,m,dd]=t.d.split('-');
+    y=String(y||'');m=+m;dd=+dd;
+    if(!t.d||m<1||m>12||dd<1||dd>31){if(!prev){noDate++;return null}fixed++;return{...t,day:prev,ref:t.ref||('أرشيف '+yr+'-'+t.row)}}
+    if(y.length!==4||(strong&&y!==yr)||Math.abs(+y-+yr)>1){y=yr;fixed++}
+    if(dd>new Date(+y,m,0).getDate())dd=new Date(+y,m,0).getDate();
+    prev=`${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+    return{...t,day:prev,ref:t.ref||('أرشيف '+yr+'-'+t.row)}}).filter(Boolean);
+  return{rows:out,yr,own,fixed,noDate,usdSkip,sub,file:fname}}
+function cashImport(){const inp=document.createElement('input');inp.type='file';inp.multiple=true;inp.accept='.xlsx,.xls,.xlsm,.ods,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv';inp.hidden=true;document.body.appendChild(inp);
+  inp.addEventListener('change',async()=>{const files=[...inp.files];inp.remove();if(!files.length)return;
+    overlay('cimp','استيراد ملفات للصندوق','<p class="note">جارِ قراءة الملفات…</p>');
+    let X;try{X=await loadXLSX()}catch(e){$('#ovroot .sh-b').innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
+    const res=[];for(const f of files){try{let wb;if(/\.csv$/i.test(f.name)||f.type==='text/csv')wb=X.read(new TextDecoder('utf-8').decode(await f.arrayBuffer()).replace(/^﻿/,''),{type:'string',raw:true});
+        else wb=X.read(new Uint8Array(await f.arrayBuffer()),{type:'array',cellDates:true});
+        let best=null;for(const sn of wb.SheetNames){const r=cashRowsFromSheet(X,wb.Sheets[sn],f.name);if(r.rows&&(!best||r.rows.length>best.rows.length))best=r;else if(!best&&r.err)best=r}
+        res.push(best||{err:'الملف فارغ',file:f.name})}catch(e){res.push({err:'تعذرت قراءة الملف: '+e.message,file:f.name})}}
+    const have=new Set((S.cash||[]).map(c=>c.ref).filter(Boolean));let dup=0;const ok=[];
+    res.forEach(r=>{r.dup=0;r.add=0;(r.rows||[]).forEach(t=>{if(have.has(t.ref)){r.dup++;dup++;return}have.add(t.ref);r.add++;
+      ok.push({branch:curBranch(),by_uid:S.me.id,day:t.day,kind:t.kind,amount:t.a,category:t.cat,party:t.party,note:t.note,ref:t.ref,usd:t.usd||null,rate:t.rate||null})})});
     const tin=ok.filter(o=>o.kind==='in').reduce((s,o)=>s+o.amount,0),tout=ok.filter(o=>o.kind==='out').reduce((s,o)=>s+o.amount,0);
-    const ds=ok.map(o=>o.day).sort();
-    overlay('cimp','استيراد حركات للصندوق',`<div class="sec"><p>الملف: <b>${esc(f.name)}</b> — الموقع: <b>${esc(brName())}</b></p>
-      <div class="small" style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px"><span class="muted">حركات جديدة</span><b class="num">${nf.format(ok.length)}</b><span class="muted">الوارد</span><b class="num" style="color:var(--ok)">${iqd(tin)}</b><span class="muted">المصروف</span><b class="num" style="color:var(--bad)">${iqd(tout)}</b><span class="muted">الفترة</span><b class="num">${ds[0]||'—'} ← ${ds[ds.length-1]||'—'}</b><span class="muted">موجودة مسبقاً (تنتجاوز)</span><b class="num">${nf.format(dup)}</b><span class="muted">أسطر غلط (تنتجاوز)</span><b class="num">${nf.format(bad.length)}${bad.length?' — أولها السطر '+bad.slice(0,5).join('، '):''}</b></div>
-      <div class="acts" style="margin-top:12px">${ok.length?`<button class="btn pri" id="ciGo">استيراد ${nf.format(ok.length)} حركة</button>`:''}<button class="btn ghost" data-a="close">إلغاء</button></div><div id="ciP" class="note" hidden></div><div class="err" id="ciE"></div></div>`);
+    const cats={};ok.filter(o=>o.kind==='out').forEach(o=>cats[o.category]=(cats[o.category]||0)+o.amount);
+    $('#ovroot .sh-b').innerHTML=`<div class="sec"><p>الموقع: <b>${esc(brName())}</b></p>
+      <div class="tbl-wrap"><table style="min-width:0"><thead><tr><th>الملف</th><th>جديدة</th><th>موجودة</th></tr></thead><tbody>${res.map(r=>`<tr><td>${esc(r.file)}${r.err?`<div class="err small">${esc(r.err)}</div>`:`<div class="small muted">سنة ${esc(r.yr)}${r.fixed?' · صُحح تاريخ '+r.fixed+' حركة':''}${r.sub?' · تجاوز '+r.sub+' سطر مجموع':''}${r.usdSkip?' · '+r.usdSkip+' بالدولار ما انضافت':''}${r.noDate?' · '+r.noDate+' بدون تاريخ':''}</div>`}</td><td class="num">${nf.format(r.add||0)}</td><td class="num">${nf.format(r.dup||0)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="stats" style="margin-top:10px"><div class="stat"><b class="num" style="font-size:16px;color:var(--ok)">${iqd(tin)}</b><span>وارد</span></div><div class="stat"><b class="num" style="font-size:16px;color:var(--bad)">${iqd(tout)}</b><span>مصروف</span></div></div>
+      ${Object.keys(cats).length?`<details style="margin-top:8px"><summary class="small">المصروف حسب الفئة (تصنيف تلقائي من البيان)</summary>${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="small" style="display:flex;justify-content:space-between"><span>${esc(k)}</span><b class="num">${iqd(v)}</b></div>`).join('')}</details>`:''}
+      <div class="acts" style="margin-top:12px">${ok.length?`<button class="btn pri" id="ciGo">استيراد ${nf.format(ok.length)} حركة</button>`:''}<button class="btn ghost" data-a="close">إلغاء</button></div><div id="ciP" class="note" hidden></div><div class="err" id="ciE"></div></div>`;
     $('#ciGo')?.addEventListener('click',async()=>{const b=$('#ciGo');b.disabled=true;const P=$('#ciP');P.hidden=false;let done=0;
       try{for(let i=0;i<ok.length;i+=400){const r=await sb.from('cash').insert(ok.slice(i,i+400));if(r.error)throw new Error(r.error.message);done=Math.min(ok.length,i+400);P.textContent=`انضاف ${nf.format(done)} من ${nf.format(ok.length)}…`}
-        await invLog('استورد '+nf.format(ok.length)+' حركة للصندوق',f.name);await cashLoad();closeOv();render();toast('انضافت '+nf.format(ok.length)+' حركة')}
-      catch(e){$('#ciE').textContent='توقف بعد '+nf.format(done)+' حركة: '+e.message+' — تكدر تعيد نفس الملف، المضاف ما يتكرر.';b.disabled=false;await cashLoad();render()}})});
+        await invLog('استورد '+nf.format(ok.length)+' حركة للصندوق',files.map(f=>f.name).join('، '));await cashLoad();closeOv();render();toast('انضافت '+nf.format(ok.length)+' حركة')}
+      catch(e){$('#ciE').textContent='توقف بعد '+nf.format(done)+' حركة: '+e.message+' — تكدر تعيد نفس الملفات، المضاف ما يتكرر.';b.disabled=false;await cashLoad();render()}})});
   inp.click()}
 function cashCsv(){const list=cashFiltered();const m=S.cashM===undefined?bgDay().slice(0,7):S.cashM;
   csvDownload('الصندوق-'+brName()+'-'+(m||'الكل')+'.csv',[['التاريخ','النوع','المبلغ','الفئة','الجهة','البيان','رقم الوصل','دولار','سعر الصرف','الحالة'],
