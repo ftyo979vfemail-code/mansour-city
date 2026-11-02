@@ -488,6 +488,10 @@ button.orow:hover{background:var(--sunk)}
 @media (max-width:560px){.dftbl .dfc1{width:74px}.dftbl .dfc3{width:96px}.dftbl{font-size:12.5px}.dftbl th,.dftbl td{padding:5px 5px}.dftbl td:first-child{font-size:11px}}
 .ugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}.ucard{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:start;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;font:inherit;color:inherit;border-inline-start:5px solid var(--line)}
 .ucard.s-available{border-inline-start-color:var(--ok)}.ucard.s-reserved{border-inline-start-color:var(--warn)}.ucard.s-sold{border-inline-start-color:var(--accent)}.ucard.s-rented{border-inline-start-color:var(--info)}.ucard b{font-size:15px}.kc{cursor:pointer;font:inherit;color:inherit;background:var(--surface)}
+.tower{display:flex;flex-direction:column;gap:3px;margin-top:10px;max-height:70vh;overflow:auto;padding:2px}.tfl{display:flex;gap:3px;align-items:stretch}.tfn{flex:0 0 38px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)}
+.tapt{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px 2px;border-radius:7px;border:1px solid var(--line);cursor:pointer;font:inherit;line-height:1.15;color:#fff}.tapt span{font-size:10.5px;opacity:.9}
+.tapt.s-available{background:#2e7d4f}.tapt.s-reserved{background:#c98a12}.tapt.s-sold{background:#b4532a}.tapt.s-rented{background:#2f6fa6}.tapt.s-blocked{background:#888}
+.seg button{flex:1 1 auto;padding:8px 10px;font:inherit;font-size:13px;border:0;background:none;color:inherit;cursor:pointer;border-inline-start:1px solid var(--line)}.seg button.on{background:var(--accent-soft,#f6e0d4);color:var(--accent);font-weight:700}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -2382,13 +2386,45 @@ function kState(c){const sch=kSchedule(c),paid=kPaid(c),now=ym();let left=paid,d
   sch.forEach(r=>{const isDue=r.k==='hand'?['delivered','done'].includes(c.status):r.m<=now;if(isDue)due+=r.a;r.paid=Math.min(r.a,Math.max(0,left));left-=r.a;if(!next&&r.paid<r.a&&r.k!=='hand')next=r});
   const total=c.kind==='rent'?sch.reduce((a,r)=>a+r.a,0):+c.total||0;return{sch,paid,due,over:Math.max(0,due-paid),left:Math.max(0,total-paid),next,total}}
 const waLink=(ph,msg)=>{let p=normDigits(ph||'').replace(/\D/g,'');if(p.startsWith('0'))p='964'+p.slice(1);return p?`https://wa.me/${p}?text=${encodeURIComponent(msg)}`:''};
+/* ===== العمارات: اختيار العمارة ← الطابق ← الشقة ===== */
+const nsort=(a,b)=>String(a).localeCompare(String(b),'en',{numeric:true});
+const towers=()=>[...new Set((S.units||[]).filter(u=>u.building&&u.floor).map(u=>u.building))].sort(nsort);
+const floorsOf=b=>[...new Set((S.units||[]).filter(u=>u.building===b&&u.floor).map(u=>u.floor))].sort(nsort);
+const aptsOf=(b,f)=>(S.units||[]).filter(u=>u.building===b&&u.floor===f).sort((x,y)=>nsort(x.apt||x.code,y.apt||y.code));
+const SHARE={company:'حصة الشركة',investor:'حصة المستثمر'};
+function towerView(b){const fl=floorsOf(b).slice().reverse(),all=(S.units||[]).filter(u=>u.building===b),c=k=>all.filter(u=>u.status===k).length;
+  const inv=all.filter(u=>u.share==='investor').length;
+  return`<div class="sec" style="margin-top:10px"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><b style="font-size:17px">عمارة ${esc(b)}</b><span class="small muted">${fl.length} طابق · ${all.length} شقة${inv?` · <span class="pill p-info">${inv===all.length?'حصة المستثمر':inv+' حصة المستثمر'}</span>`:''}</span>
+   <span class="small" style="margin-inline-start:auto"><span style="color:var(--ok)">متاحة ${c('available')}</span> · <span style="color:var(--warn)">محجوزة ${c('reserved')}</span> · <span style="color:var(--accent)">مباعة ${c('sold')}</span> · <span style="color:var(--info)">مؤجرة ${c('rented')}</span></span></div>
+   <div class="tower">${fl.map(f=>`<div class="tfl"><span class="tfn num">ط${esc(f)}</span>${aptsOf(b,f).map(u=>`<button class="tapt s-${u.status}" data-a="uOpen" data-v="${u.id}" title="${esc(u.code)} — ${UST[u.status][0]} — ${nf.format(+u.area)} م²"><b class="num">${esc(u.apt||u.code)}</b><span class="num">${nf.format(+u.area)}</span></button>`).join('')}</div>`).join('')}</div>
+   <p class="small muted" style="margin:6px 0 0">كل مربع شقة: الرقم فوق والمساحة جوه. اضغط على الشقة حتى تحجزها أو تشوف عقدها.</p></div>`}
+function towerForm(){const p=plan0();overlay('tower','إضافة عمارة',`<form class="f" id="fTw"><div class="fr"><label class="l">اسم العمارة<input id="twN" class="in" required maxlength="20" placeholder="T1"></label><label class="l">الحصة<select id="twS" class="in"><option value="investor">حصة المستثمر</option><option value="company">حصة الشركة</option></select></label></div>
+   <div class="fr"><label class="l">عدد الطوابق<input id="twF" class="in num" inputmode="numeric" value="25"></label><label class="l">من طابق<input id="twF0" class="in num" inputmode="numeric" value="1"></label><label class="l">شقق بكل طابق<input id="twA" class="in num" inputmode="numeric" value="4"></label></div>
+   <div class="l">مساحة كل شقة (م²)<div class="fr" id="twAr"></div></div>
+   <label class="l">سعر المتر<input id="twP" class="in num" dir="ltr" inputmode="numeric" value="${nf.format(p.price_m)}"></label>
+   <p class="note" id="twT"></p><div class="err" id="twE"></div><div class="acts"><button class="btn pri" type="submit">إضافة العمارة</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
+  const drawA=()=>{const n=Math.min(12,Math.max(1,+normDigits($('#twA').value)||4)),old=[...document.querySelectorAll('.twAr')].map(i=>i.value);$('#twAr').innerHTML=Array.from({length:n},(_,i)=>`<label class="l">شقة ${i+1}<input class="in num twAr" inputmode="decimal" value="${old[i]||''}" required></label>`).join('');sum()};
+  const sum=()=>{const n=+normDigits($('#twF').value)||0,a=+normDigits($('#twA').value)||0;$('#twT').textContent=`راح تنضاف ${n*a} شقة: ${$('#twN').value||'T?'}-ط1-ش1 … ${$('#twN').value||'T?'}-ط${(+normDigits($('#twF0').value)||1)+n-1}-ش${a}`};
+  $('#twA').addEventListener('input',drawA);['twF','twF0','twN'].forEach(id=>$('#'+id).addEventListener('input',sum));drawA();
+  $('#fTw').addEventListener('submit',async e=>{e.preventDefault();const B=$('#twN').value.trim().toUpperCase(),n=+normDigits($('#twF').value),f0=+normDigits($('#twF0').value)||1,ar=[...document.querySelectorAll('.twAr')].map(i=>+normDigits(i.value)),pm=cashAmt($('#twP').value)||0;
+    if(!B||!(n>0)||n>100||ar.some(x=>!(x>0))){$('#twE').textContent='اكتب الاسم وعدد الطوابق ومساحة كل شقة';return}
+const rows=[];for(let f=f0;f<f0+n;f++)ar.forEach((a,i)=>rows.push({branch:curBranch(),code:`${B}-ط${f}-ش${i+1}`,kind:'شقة',building:B,floor:String(f),apt:String(i+1),area:a,price_m:pm,share:$('#twS').value}));
+    const r=await sb.from('units').upsert(rows,{onConflict:'branch,code',ignoreDuplicates:true});if(r.error){$('#twE').textContent=r.error.message;return}
+    await salesLoad();S.uB=B;closeOv();render();toast(`انضافت عمارة ${B}: ${rows.length} شقة`)})}
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;if(el.dataset.a==='uB'){S.uB=el.dataset.v;render()}else if(el.dataset.a==='twNew')towerForm()});
 function unitsView(){if(!S.units)return`<div class="empty"><b>جارِ التحميل…</b></div>`;const f=S.uF||'',q=(S.uQ||'').trim(),w=writesSales();
   const cnt=k=>S.units.filter(u=>u.status===k).length;const list=S.units.filter(u=>(!f||u.status===f)&&(!q||[u.code,u.kind,u.building,u.floor].join(' ').includes(q)));
   let h=`<div class="stats">${Object.entries(UST).filter(([k])=>k!=='blocked'||cnt(k)).map(([k,v])=>`<button type="button" class="stat ${f===k?'hot':''}" data-a="uF" data-v="${f===k?'':k}"><b>${cnt(k)}</b><span>${v[0]}</span></button>`).join('')}</div>
    <div class="filters"><input id="uQ" class="in" placeholder="بحث برقم الوحدة أو العمارة" value="${esc(S.uQ||'')}" style="flex:2 1 200px">${w?`<button class="btn pri" data-a="uNew">＋ وحدة</button><button class="btn" data-a="uBulk">＋ عدة وحدات</button>`:''}${isOwner()?`<button class="btn ghost" data-a="planSet">خطة الدفع الافتراضية</button>`:''}</div>`;
-  if(!S.units.length)return h+`<div class="empty"><b>ماكو وحدات بعد</b>${w?'ضيف الدور والشقق والمحلات بزر «＋ وحدة» أو «＋ عدة وحدات»، وبعدها تبدي الحجوزات.':''}</div>`;
-  return h+`<div class="ugrid">${list.map(u=>{const st=UST[u.status],k=(S.contracts||[]).find(c=>c.unit_id===u.id&&!['cancelled','done'].includes(c.status)&&!(c.kind==='rent'&&u.status!=='rented'));
-    return`<button class="ucard s-${u.status}" data-a="uOpen" data-v="${u.id}"><b>${esc(u.code)}</b><span class="small">${esc(u.kind)}${u.building?' · '+esc(u.building):''}${u.floor?' · ط'+esc(u.floor):''}</span><span class="num small">${nf.format(+u.area)} م² · ${iqd(u.area*u.price_m)}</span><span class="pill p-${st[1]}">${st[0]}</span>${k?`<span class="small muted">${esc(k.name)}</span>`:''}</button>`}).join('')}</div>`}
+  const T=towers();if(w)h=h.replace('<button class="btn" data-a="uBulk">','<button class="btn" data-a="twNew">＋ عمارة</button><button class="btn" data-a="uBulk">');
+  if(!S.units.length)return h+`<div class="empty"><b>ماكو وحدات بعد</b>${w?'ضيف العمارات بزر «＋ عمارة» (الطوابق والشقق تنضاف وحدها)، أو الدور بزر «＋ عدة وحدات».':''}</div>`;
+  const ub=S.uB===undefined?(T[0]||''):S.uB;
+  if(T.length)h+=`<div class="seg" style="margin-top:10px;flex-wrap:wrap">${T.map(b=>`<button type="button" class="${ub===b?'on':''}" data-a="uB" data-v="${b}">${esc(b)}</button>`).join('')}<button type="button" class="${ub===''?'on':''}" data-a="uB" data-v="">الدور والوحدات الأخرى</button></div>`;
+  if(ub&&T.includes(ub)&&!q&&!f)return h+towerView(ub);
+  const list2=list.filter(u=>q||f||!(u.building&&u.floor&&T.includes(u.building)));
+  if(!list2.length)return h+`<div class="empty"><b>ماكو وحدات هنا</b></div>`;
+  return h+`<div class="ugrid">${list2.map(u=>{const st=UST[u.status],k=(S.contracts||[]).find(c=>c.unit_id===u.id&&!['cancelled','done'].includes(c.status)&&!(c.kind==='rent'&&u.status!=='rented'));
+    return`<button class="ucard s-${u.status}" data-a="uOpen" data-v="${u.id}"><b>${esc(u.code)}</b>${u.share==='investor'?'<span class="pill p-info">حصة المستثمر</span>':''}<span class="small">${esc(u.kind)}${u.building?' · '+esc(u.building):''}${u.floor?' · ط'+esc(u.floor):''}</span><span class="num small">${nf.format(+u.area)} م² · ${iqd(u.area*u.price_m)}</span><span class="pill p-${st[1]}">${st[0]}</span>${k?`<span class="small muted">${esc(k.name)}</span>`:''}</button>`}).join('')}</div>`}
 function bookView(kind){const all=(S.contracts||[]).filter(c=>c.kind===kind);if(!S.contracts)return`<div class="empty"><b>جارِ التحميل…</b></div>`;
   const f=S['kF'+kind]??'open',q=(S.kQ||'').trim(),w=writesSales();
   const list=all.filter(c=>(f==='all'||(f==='open'?!['cancelled','done'].includes(c.status):f==='late'?kState(c).over>0&&c.status!=='cancelled':c.status===f))&&(!q||[c.name,c.phone,unitOf(c.unit_id)?.code].join(' ').includes(q)));
@@ -2403,7 +2439,8 @@ function bookView(kind){const all=(S.contracts||[]).filter(c=>c.kind===kind);if(
 function unitForm(u){const n=!u,p=plan0();u=u||{code:'',kind:'دار',building:'',floor:'',area:'',price_m:p.price_m,status:'available',notes:''};
   overlay('unit',n?'وحدة جديدة':'تعديل الوحدة '+esc(u.code),`<form class="f" id="fUnit"><div class="fr"><label class="l">رقم الوحدة<input id="unC" class="in" required maxlength="40" value="${esc(u.code)}" placeholder="مثال: دار 12 ش40 أو T3-0504"></label>
    <label class="l">النوع<select id="unK" class="in">${['دار','شقة','محل','أرض','مكتب'].map(k=>`<option ${u.kind===k?'selected':''}>${k}</option>`).join('')}</select></label></div>
-   <div class="fr"><label class="l">العمارة / القاطع<input id="unB" class="in" maxlength="40" value="${esc(u.building||'')}"></label><label class="l">الطابق<input id="unF" class="in" maxlength="10" value="${esc(u.floor||'')}"></label></div>
+   <div class="fr"><label class="l">العمارة / القاطع<input id="unB" class="in" maxlength="40" value="${esc(u.building||'')}"></label><label class="l">الطابق<input id="unF" class="in" maxlength="10" value="${esc(u.floor||'')}"></label><label class="l">رقم الشقة<input id="unAp" class="in" maxlength="10" value="${esc(u.apt||'')}"></label></div>
+   <label class="l">الحصة<select id="unSh" class="in">${Object.entries(SHARE).map(([k,v])=>`<option value="${k}" ${(u.share||'company')===k?'selected':''}>${v}</option>`).join('')}</select></label>
    <div class="fr"><label class="l">المساحة (م²)<input id="unA" class="in num" dir="ltr" inputmode="decimal" required value="${u.area||''}"></label><label class="l">سعر المتر (د.ع)<input id="unP" class="in num" dir="ltr" inputmode="numeric" required value="${u.price_m?nf.format(u.price_m):''}"></label></div>
    <p class="note" id="unT"></p>
    ${n?'':`<label class="l">الحالة<select id="unS" class="in">${Object.entries(UST).map(([k,v])=>`<option value="${k}" ${u.status===k?'selected':''}>${v[0]}</option>`).join('')}</select></label>`}
@@ -2411,7 +2448,7 @@ function unitForm(u){const n=!u,p=plan0();u=u||{code:'',kind:'دار',building:'
    <div class="err" id="unE"></div><div class="acts"><button class="btn pri" type="submit">${n?'إضافة':'حفظ'}</button>${!n&&isOwner()?`<button class="btn bad" type="button" id="unDel">حذف</button>`:''}<button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
   const tot=()=>{$('#unT').textContent='السعر الكلي: '+iqd((+normDigits($('#unA').value)||0)*(cashAmt($('#unP').value)||0))+' د.ع'};tot();$('#unA').addEventListener('input',tot);$('#unP').addEventListener('input',e=>{const d=normDigits(e.target.value).replace(/\D/g,'');e.target.value=d?nf.format(+d):'';tot()});
   $('#unDel')?.addEventListener('click',async()=>{const r=await sb.from('units').delete().eq('id',u.id);if(r.error){$('#unE').textContent=/foreign|violates/.test(r.error.message)?'الوحدة عليها عقد، ما تنحذف. خليها «موقوفة».':r.error.message;return}await salesLoad();closeOv();render();toast('انحذفت')});
-  $('#fUnit').addEventListener('submit',async e=>{e.preventDefault();const o={code:$('#unC').value.trim(),kind:$('#unK').value,building:$('#unB').value.trim()||null,floor:$('#unF').value.trim()||null,area:+normDigits($('#unA').value),price_m:cashAmt($('#unP').value)||0,notes:$('#unN').value.trim()||null};if(!n)o.status=$('#unS').value;
+  $('#fUnit').addEventListener('submit',async e=>{e.preventDefault();const o={code:$('#unC').value.trim(),kind:$('#unK').value,building:$('#unB').value.trim()||null,floor:$('#unF').value.trim()||null,apt:$('#unAp').value.trim()||null,share:$('#unSh').value,area:+normDigits($('#unA').value),price_m:cashAmt($('#unP').value)||0,notes:$('#unN').value.trim()||null};if(!n)o.status=$('#unS').value;
     if(!(o.area>0)){$('#unE').textContent='اكتب المساحة';return}const r=n?await sb.from('units').insert({...o,branch:curBranch()}):await sb.from('units').update({...o,updated_at:new Date().toISOString()}).eq('id',u.id);
     if(r.error){$('#unE').textContent=/duplicate|unique/.test(r.error.message)?'رقم الوحدة موجود':r.error.message;return}await salesLoad();closeOv();render();toast('انحفظت')})}
 function unitBulk(){const p=plan0();overlay('ubulk','إضافة عدة وحدات',`<form class="f" id="fUB"><p class="muted" style="margin:0">مثال: البادئة «دار » من 1 إلى 40 تطلع: دار 1، دار 2 … دار 40.</p>
@@ -2430,7 +2467,8 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const av=(S.units||[]).fi
   if(!av.length){toast('ماكو وحدات متاحة. ضيف وحدة أول.');return}
   const u0=unitOf(unitId||c0?.unit_id)||av[0];const M=(id,l,v,h)=>`<label class="l">${l}${h?` <em>${h}</em>`:''}<input id="${id}" class="in num" dir="ltr" inputmode="numeric" value="${v?nf.format(v):''}"></label>`;
   overlay('book',edit?'تعديل الحجز':'حجز جديد',`<form class="f" id="fBk">
-   <label class="l">الوحدة<select id="bkU" class="in">${av.map(u=>`<option value="${u.id}" ${u.id===u0.id?'selected':''}>${esc(u.code)} — ${nf.format(+u.area)} م²</option>`).join('')}</select></label>
+   <div class="fr"><label class="l">العمارة<select id="bkB" class="in"></select></label><label class="l" id="bkFL">الطابق<select id="bkF" class="in"></select></label></div>
+   <label class="l"><span id="bkUL">الشقة</span><select id="bkU" class="in"></select></label>
    <div class="fr"><label class="l">اسم المشتري<input id="bkN" class="in" required maxlength="80" value="${esc(c0?.name||'')}"></label><label class="l">الهاتف<input id="bkPh" class="in num" dir="ltr" inputmode="tel" placeholder="07xxxxxxxxx" value="${esc(c0?.phone||'')}"></label></div>
    <div class="fr">${M('bkA','المساحة م²',+u0.area)}${M('bkPm','سعر المتر',+u0.price_m||p.price_m)}</div>
    ${M('bkT','السعر الكلي',c0?.total||Math.round(u0.area*(u0.price_m||p.price_m)),'(تكدر تعدله للخصم)')}
@@ -2448,7 +2486,16 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const av=(S.units||[]).fi
   const fmt=e=>{const d=normDigits(e.target.value).replace(/\D/g,'');e.target.value=d?nf.format(+d):''};
   ['bkPm','bkT','bkD','bkH','bkM','bkPay'].forEach(id=>$('#'+id)?.addEventListener('input',e=>{if(id!=='bkA')fmt(e);if(id==='bkPm')$('#bkT').value=nf.format(Math.round((+normDigits($('#bkA').value)||0)*v('bkPm')));calc()}));
   $('#bkA').addEventListener('input',()=>{$('#bkT').value=nf.format(Math.round((+normDigits($('#bkA').value)||0)*v('bkPm')));calc()});
-  $('#bkU').addEventListener('change',()=>{const u=unitOf($('#bkU').value);$('#bkA').value=nf.format(+u.area);$('#bkPm').value=nf.format(+u.price_m||p.price_m);$('#bkT').value=nf.format(Math.round(u.area*(u.price_m||p.price_m)));calc()});
+  const bOf=u=>u.building&&u.floor?u.building:'';const Bs=[...new Set(av.map(bOf))].sort(nsort);
+  const fill=(sel,opts,val)=>{sel.innerHTML=opts.map(([v,t])=>`<option value="${esc(v)}" ${v===val?'selected':''}>${esc(t)}</option>`).join('')};
+  const drawB=(bv,fv,uv)=>{fill($('#bkB'),Bs.map(b=>[b,b?'عمارة '+b:'الدور والوحدات الأخرى']),bv);const b=$('#bkB').value,tw=!!b;$('#bkFL').hidden=!tw;$('#bkUL').textContent=tw?'الشقة':'الوحدة';
+    const Fs=tw?[...new Set(av.filter(u=>bOf(u)===b).map(u=>u.floor))].sort(nsort):[];if(tw)fill($('#bkF'),Fs.map(f=>[f,'طابق '+f+' ('+av.filter(u=>bOf(u)===b&&u.floor===f).length+' متاحة)']),fv);
+    const f=$('#bkF').value,us=av.filter(u=>bOf(u)===b&&(!tw||u.floor===f)).sort((x,y)=>nsort(x.apt||x.code,y.apt||y.code));
+    fill($('#bkU'),us.map(u=>[u.id,(tw?'شقة '+(u.apt||u.code):u.code)+' — '+nf.format(+u.area)+' م²'+(u.share==='investor'?' · حصة المستثمر':'')]),uv)};
+  drawB(bOf(u0),u0.floor,u0.id);
+  $('#bkB').addEventListener('change',()=>{drawB($('#bkB').value);$('#bkU').dispatchEvent(new Event('change'))});
+  $('#bkF').addEventListener('change',()=>{drawB($('#bkB').value,$('#bkF').value);$('#bkU').dispatchEvent(new Event('change'))});
+  $('#bkU').addEventListener('change',()=>{const u=unitOf($('#bkU').value);if(!u)return;$('#bkA').value=nf.format(+u.area);$('#bkPm').value=nf.format(+u.price_m||p.price_m);$('#bkT').value=nf.format(Math.round(u.area*(u.price_m||p.price_m)));calc()});
   $('#bkS').addEventListener('change',calc);calc();
   $('#fBk').addEventListener('submit',async e=>{e.preventDefault();const c=calc();if(v('bkD')+v('bkH')>v('bkT')||!(v('bkT')>0))return;
     const o={unit_id:$('#bkU').value,name:$('#bkN').value.trim(),phone:normDigits($('#bkPh').value).replace(/\D/g,'')||null,notes:$('#bkNo').value.trim()||null,total:v('bkT'),down:v('bkD'),handover:v('bkH'),monthly:c.monthly,months:c.months,start_month:($('#bkS').value||addM(ym(),1))+'-01',status:$('#bkSt').value};
@@ -2475,7 +2522,7 @@ function kOpen(id){const c=(S.contracts||[]).find(x=>x.id===id);if(!c)return;con
   const pays=(S.cash||[]).filter(x=>x.contract_id===c.id).sort((a,b)=>a.day<b.day?1:-1);const nm=x=>esc(S.staff.find(p=>p.id===x)?.full_name||'—');
   const msg=sale?`السلام عليكم ${c.name}، نذكّركم بقسط ${s.next?s.next.label+' لشهر '+(s.next.m?monName(s.next.m):''):''} عن الوحدة ${u?.code||''} بمبلغ ${iqd((s.next?.a||0)-(s.next?.paid||0))} دينار${s.over?'، والمتأخر الكلي '+iqd(s.over)+' دينار':''}. ${brName()}`:`السلام عليكم ${c.name}، نذكّركم بإيجار الوحدة ${u?.code||''}${s.over?' والمتأخر '+iqd(s.over)+' دينار':''}. ${brName()}`;
   overlay('kv',(sale?'حجز ':'إيجار ')+esc(c.name),`<div class="sec"><div class="small" style="display:grid;grid-template-columns:auto 1fr;gap:5px 14px">
-    <span class="muted">الوحدة</span><b>${esc(u?.code||'—')} ${u?`<span class="muted">(${nf.format(+u.area)} م²)</span>`:''}</b><span class="muted">الهاتف</span><b class="num">${esc(c.phone||'—')}</b><span class="muted">الحالة</span><b>${KST[c.status][0]}</b>
+    <span class="muted">الوحدة</span><b>${u&&u.building&&u.floor?`عمارة ${esc(u.building)} · طابق ${esc(u.floor)} · شقة ${esc(u.apt||'')}`:esc(u?.code||'—')} ${u?`<span class="muted">(${nf.format(+u.area)} م²)</span>`:''}${u?.share==='investor'?' <span class="pill p-info">حصة المستثمر</span>':''}</b><span class="muted">الهاتف</span><b class="num">${esc(c.phone||'—')}</b><span class="muted">الحالة</span><b>${KST[c.status][0]}</b>
     ${sale?`<span class="muted">السعر الكلي</span><b class="num">${iqd(c.total)}</b><span class="muted">الخطة</span><b class="num">مقدمة ${iqd(c.down)} · استلام ${iqd(c.handover)} · ${c.months} قسط × ${iqd(c.monthly)}</b>`:`<span class="muted">الإيجار</span><b class="num">${iqd(c.rent)} شهرياً${c.deposit?' · تأمينات '+iqd(c.deposit):''}</b><span class="muted">المدة</span><b class="num">${c.rent_start} ← ${c.rent_end||'مفتوح'}</b>`}
     <span class="muted">المستلم</span><b class="num" style="color:var(--ok)">${iqd(s.paid)}</b>${sale?`<span class="muted">المتبقي</span><b class="num">${iqd(s.left)}</b>`:''}<span class="muted">المتأخر</span><b class="num" style="color:var(--bad)">${iqd(s.over)}</b>${c.notes?`<span class="muted">ملاحظات</span><b>${esc(c.notes)}</b>`:''}</div>
    <div class="acts" style="margin-top:10px">${w&&c.status!=='cancelled'?`<button class="btn ok" id="kPay">＋ تسجيل دفعة</button>`:''}${c.phone?`<a class="btn" target="_blank" rel="noopener" href="${waLink(c.phone,msg)}">تذكير واتساب</a>`:''}${w&&c.status!=='cancelled'?`<button class="btn" id="kEd">تعديل</button>`:''}${w&&c.status!=='cancelled'&&sale?`<button class="btn bad" id="kCan">إلغاء الحجز</button>`:''}</div><div id="kCanF"></div><div class="err" id="kE"></div></div>
