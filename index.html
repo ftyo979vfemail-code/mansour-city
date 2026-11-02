@@ -525,6 +525,7 @@ const ROLES={
   admin1:{name:'الإداري الأول',kind:'admin',mono:'إ١'},
   admin2:{name:'الإداري الثاني',kind:'admin',mono:'إ٢'},
   accountant:{name:'مسؤول الحسابات',kind:'acct',mono:'حس'},
+  sales:{name:'مسؤول المبيعات',kind:'sales',mono:'مب'},
   purchase:{name:'مندوب مشتريات (سابق)',kind:'purchase',mono:'ش١',legacy:true},
   purchase2:{name:'مندوب مشتريات (سابق)',kind:'purchase',mono:'ش٢',legacy:true},
 };
@@ -1962,17 +1963,18 @@ function rolePicker(){
   <div class="group-label">رؤساء الأقسام</div><div class="roles">${['machines','elec','mech'].map(card).join('')}</div>
   <div class="group-label">المخزن والمشروع</div><div class="roles">${['store','mstore','project'].map(card).join('')}</div>
   <div class="group-label">الإدارة (مراقبة)</div><div class="roles">${['admin1','admin2'].map(card).join('')}</div>
-  <div class="group-label">الحسابات</div><div class="roles">${['accountant'].map(card).join('')}</div>
+  <div class="group-label">الحسابات</div><div class="roles">${['accountant','sales'].map(card).join('')}</div>
   <div class="group-label">المشتريات</div><div class="roles">${['buyer'].map(card).join('')}</div>
   <div class="group-label">كادر الآليات</div><div class="roles">${['keeper','operator','driver','mechanic','fueler','supply','guard'].map(card).join('')}</div>
   <div class="group-label">عمال الأقسام</div><div class="roles">${['receiver','elec_tech','mech_tech','clerk'].map(card).join('')}</div>
   <div class="group-label">حضور العمال</div><div class="roles">${['timekeeper'].map(card).join('')}</div></section>`;
 }
-function roleDesc(k){const CD={accountant:'الصندوق: الواردات والمصروفات، الرصيد، الملخص الشهري، والصرفيات والفواتير',foreman:'رفع صور الجداول وصور العمل اليومي ويّا أسماء الكادر، وطلب المواد',driver:'آليتي ومراحل شغلي: دخول، تحميل، خروج، وصول',guard:'مسح باركود الآليات عند خروجها من البوابة لبدء الرحلة',timekeeper:'جولة الحضور اليومية للعمال، الغيابات، باجات QR، والتقارير',elec_tech:'طلب مواد قسم الكهرباء ومتابعتها',mech_tech:'طلب مواد قسم الميكانيك ومتابعتها',buyer:'عروض الأسعار والشراء والفواتير والتسليم بالباركود',clerk:'متابعة الإشعارات وسجل الحركات والطلبات',receiver:'استلام المواد المشتراة بالباركود نيابة عن مدير المخزن',supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
+function roleDesc(k){const CD={sales:'تسجيل المبيعات والمبالغ المستلمة من المشترين، وتدخل للصندوق كوارد',accountant:'الصندوق: الواردات والمصروفات، الرصيد، الملخص الشهري، والصرفيات والفواتير',foreman:'رفع صور الجداول وصور العمل اليومي ويّا أسماء الكادر، وطلب المواد',driver:'آليتي ومراحل شغلي: دخول، تحميل، خروج، وصول',guard:'مسح باركود الآليات عند خروجها من البوابة لبدء الرحلة',timekeeper:'جولة الحضور اليومية للعمال، الغيابات، باجات QR، والتقارير',elec_tech:'طلب مواد قسم الكهرباء ومتابعتها',mech_tech:'طلب مواد قسم الميكانيك ومتابعتها',buyer:'عروض الأسعار والشراء والفواتير والتسليم بالباركود',clerk:'متابعة الإشعارات وسجل الحركات والطلبات',receiver:'استلام المواد المشتراة بالباركود نيابة عن مدير المخزن',supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
 
 function tabsFor(role){if(role==='timekeeper')return attTabsTK();const T=tabsFor0(role);if(seesAtt()&&['project','admin1','admin2','clerk'].includes(role)){const i=T.findIndex(t=>t[0]==='approve');T.splice(i<0?0:i+1,0,['att','حضور العمال',attAlertN()])}const add=[];if(['project','admin1','admin2'].includes(role)&&seesCash())add.push(['daftar','الدفتر',0],['cash','الصندوق',0]);if(EXP_ROLES.includes(role))add.push(['exp','الصرفيات',0]);if(auditScopes().length)add.push(['jrd','الجرد',0]);if(['owner','project','admin1','admin2'].includes(S.me?.role)&&['owner','project','admin1','admin2'].includes(role))add.push(['fph','صور الفورمن',0]);if(['machines','mstore','keeper','supply','project','admin1','admin2'].includes(role))add.unshift(['gate','عمل الآليات',S.machines.filter(m=>m.cycle).length]);if(['keeper','mstore','machines'].includes(role))add.unshift(['sends','المرسلات',sendsList().filter(l=>sameDayT(l.at||l.t)).length]);if(['store','mstore','keeper'].includes(role))add.unshift(['ins','المدخلات',(S.invoices||[]).filter(v=>v.kind==='in'&&v.wh===myWh(role)&&sameDayT(v.createdAt||v.at)).length],['outs','المخرجات',S.invlog.filter(e=>e.kind==='out'&&e.wh===myWh(role)&&sameDayT(e.at||e.t)).length]);if(!T.some(t=>t[0]==='feed'))add.push(['feed','السجل',0]);if(INVC_ROLES.includes(role))add.push(['invc','الفواتير',(S.invoices||[]).filter(v=>(!scopeWh(role)||v.wh===scopeWh(role))&&sameDayT(v.createdAt||v.at)).length]);const i=T.findIndex(t=>t[0]==='all');if(i<0)T.push(...add);else T.splice(i,0,...add);return T}
 function tabsFor0(role){
   const k=ROLES[role].kind,q=queueFor(role);
+  if(k==='sales')return[['sales','المبيعات',0]];
   if(k==='acct')return[['daftar','الدفتر',0],['cash','الصندوق',0],['acsum','الملخص الشهري',0]];
   if(role==='operator')return[['work','آليتي',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='mechanic')return[['work','أعمال الصيانة',S.machines.filter(m=>m.status==='down').length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
@@ -1997,13 +1999,13 @@ function roleHome(){
   const crit=open.filter(r=>r.priority==='critical').length;
   const mq=queueFor(role).length;
   const canNew=(['dept','project','store','crew'].includes(R.kind)||role==='admin1'||role==='admin2')&&role!=='fueler'&&role!=='supply'&&role!=='receiver'&&role!=='guard'&&role!=='driver'&&S.tab!=='att';
-  let h=pushBanner()+gpsBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div></div>`+(canNew?`<div class="fab" id="fab"><div class="fab-menu" role="menu"><button class="fab-item" role="menuitem" data-a="new"><span class="fi">＋</span>طلب مواد جديد</button><button class="fab-item" role="menuitem" data-a="paper"><span class="fi">📄</span>رفع ورقة طلبات</button>${role==='foreman'?'':`<button class="fab-item" role="menuitem" data-a="tripScan"><span class="fi">▦</span>مسح باركود آلية</button>`}</div><button class="fab-btn" data-a="fab" aria-label="طلب جديد" aria-expanded="false"><span class="fp">+</span><span class="fl">طلب جديد</span></button></div>${MACH_SCAN.includes(role)?`<div class="fab fab-l"><button class="fab-btn" data-a="tripScan" aria-label="مسح باركود آلية"><span class="fp" style="font-size:20px">▦</span><span class="fl">باركود</span></button></div>`:''}<div style="height:72px"></div>`:((R.kind==='admin'||R.kind==='acct'||R.kind==='att'||S.tab==='att'||ATT_ONLY||role==='driver'||role==='foreman')?'':`<div class="fab" id="fab"><button class="fab-btn" data-a="tripScan" aria-label="مسح باركود آلية"><span class="fp" style="font-size:20px">▦</span><span class="fl">باركود</span></button></div><div style="height:72px"></div>`));
+  let h=pushBanner()+gpsBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div></div>`+(canNew?`<div class="fab" id="fab"><div class="fab-menu" role="menu"><button class="fab-item" role="menuitem" data-a="new"><span class="fi">＋</span>طلب مواد جديد</button><button class="fab-item" role="menuitem" data-a="paper"><span class="fi">📄</span>رفع ورقة طلبات</button>${role==='foreman'?'':`<button class="fab-item" role="menuitem" data-a="tripScan"><span class="fi">▦</span>مسح باركود آلية</button>`}</div><button class="fab-btn" data-a="fab" aria-label="طلب جديد" aria-expanded="false"><span class="fp">+</span><span class="fl">طلب جديد</span></button></div>${MACH_SCAN.includes(role)?`<div class="fab fab-l"><button class="fab-btn" data-a="tripScan" aria-label="مسح باركود آلية"><span class="fp" style="font-size:20px">▦</span><span class="fl">باركود</span></button></div>`:''}<div style="height:72px"></div>`:((R.kind==='admin'||R.kind==='acct'||R.kind==='sales'||R.kind==='att'||S.tab==='att'||ATT_ONLY||role==='driver'||role==='foreman')?'':`<div class="fab" id="fab"><button class="fab-btn" data-a="tripScan" aria-label="مسح باركود آلية"><span class="fp" style="font-size:20px">▦</span><span class="fl">باركود</span></button></div><div style="height:72px"></div>`));
   const spent=S.requests.reduce((s,r)=>s+(r.purchase?.total||0),0);
-  if(R.kind!=='crew'&&R.kind!=='acct')h+=`<div class="stats">${(role==='admin1'||role==='admin2')?`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار موافقتك</span></button>`:''}${R.kind==='admin'?`<button type="button" class="stat " data-a="stat" data-v="recent"><b>${recent24()}</b><span>حركات آخر 24 ساعة</span></button>`:`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار إجرائك</span></button>`}<button type="button" class="stat " data-a="stat" data-v="open"><b>${open.length}</b><span>طلبات مفتوحة</span></button><button type="button" class="stat ${crit?'hot':''}" data-a="stat" data-v="crit"><b>${crit}</b><span>طارئة - توقف إنتاج</span></button>${R.kind==='admin'||R.kind==='purchase'?`<button type="button" class="stat " data-a="stat" data-v="spent"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></button>`:`<button type="button" class="stat " data-a="stat" data-v="low"><b>${invOf(role).filter(i=>+i.qty<=+i.min).length}</b><span>مواد تحت الحد الأدنى</span></button>`}</div>`;
+  if(R.kind!=='crew'&&R.kind!=='acct'&&R.kind!=='sales')h+=`<div class="stats">${(role==='admin1'||role==='admin2')?`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار موافقتك</span></button>`:''}${R.kind==='admin'?`<button type="button" class="stat " data-a="stat" data-v="recent"><b>${recent24()}</b><span>حركات آخر 24 ساعة</span></button>`:`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار إجرائك</span></button>`}<button type="button" class="stat " data-a="stat" data-v="open"><b>${open.length}</b><span>طلبات مفتوحة</span></button><button type="button" class="stat ${crit?'hot':''}" data-a="stat" data-v="crit"><b>${crit}</b><span>طارئة - توقف إنتاج</span></button>${R.kind==='admin'||R.kind==='purchase'?`<button type="button" class="stat " data-a="stat" data-v="spent"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></button>`:`<button type="button" class="stat " data-a="stat" data-v="low"><b>${invOf(role).filter(i=>+i.qty<=+i.min).length}</b><span>مواد تحت الحد الأدنى</span></button>`}</div>`;
   h+=`<div class="tabs" role="tablist">${tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-a="tab" data-v="${k}">${t}${c?`<span class="c num">${c}</span>`:''}</button>`).join('')}</div>`;
   h+=tabBody(role);
   if(S.tab==='att'){}
-  else if(R.kind==='acct'||S.tab==='cash'||S.tab==='acsum'||S.tab==='daftar'){}
+  else if(R.kind==='acct'||R.kind==='sales'||S.tab==='cash'||S.tab==='acsum'||S.tab==='daftar'){}
   else if(!S.requests.length&&!S.inventory.length)h+=`<div class="empty"><b>لا توجد بيانات بعد</b>ابدأ برفع أول طلب.</div>`;
   else if(isOwner()&&(S.requests.some(r=>r.demo)||S.inventory.some(i=>i.demo)))h+=`<div class="banner" style="background:var(--sunk);color:var(--muted)">تحتوي القائمة على بيانات تجريبية معلّمة.<button class="btn sm" data-a="cleardemo">حذف البيانات التجريبية</button></div>`;
   return h;
@@ -2025,6 +2027,7 @@ function card(r){
 }
 function tabBody(role){
   const t=S.tab,R=ROLES[role];
+  if(t==='sales')return salesView();
   if(t==='daftar')return seesCash()?daftarView():'';
   if(t==='cash')return seesCash()?cashView():'';
   if(t==='acsum')return seesCash()?acsumView():'';
@@ -2141,7 +2144,8 @@ function mapView(){
 
 /* ===== الصندوق: الواردات والمصروفات — مسؤول الحسابات ===== */
 const CASH_SEE=['accountant','owner','project','admin1','admin2'];
-const seesCash=()=>CASH_SEE.includes(S.me?.role);
+const seesCash=()=>CASH_SEE.includes(S.me?.role)||S.me?.role==='sales';
+const SALES_CAT='إيرادات مبيعات';const isSales=()=>S.me?.role==='sales';
 const writesCash=()=>['accountant','owner'].includes(S.me?.role);
 const CASH_CAT={out:['سلف وحسابات المقاولين','رواتب وأجور','مواد بناء وإنهاءات','كهرباء ومولدات','وقود ومحروقات','إيجار آليات ونقل','صيانة آليات وقطع غيار','صحيات وماء ومجاري','طعام وضيافة','قرطاسية واتصالات وإنترنت','إكراميات وهدايا','فحوص ومعاملات ورسوم','أثاث وأجهزة','مبالغ مسلّمة للإدارة','مواد ومستلزمات عامة','سلف ومستحقات أخرى','أخرى'],
   in:['مستلم من الإدارة','إيرادات مبيعات','إيجارات','سلفة مستردة','رصيد افتتاحي','أخرى']};
@@ -2185,15 +2189,15 @@ function acsumView(){
    <div class="sec" style="margin-top:12px"><h4>تفاصيل ${monName(sel)}</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px">
     <div><b style="color:var(--bad)">المصروف حسب الفئة</b>${bars(byCat('out'),'var(--bad)')}</div><div><b style="color:var(--ok)">الوارد حسب المصدر</b>${bars(byCat('in'),'var(--ok)')}</div></div>
     <p class="note" style="margin-top:12px">للمقارنة: مشتريات وفواتير مسجلة بالنظام (المخازن والمندوبين) لهذا الشهر: <b class="num">${iqd(sysOut)}</b> د.ع</p></div>`}
-function cashForm(kind,c){const n=!c;c=c||{kind:kind||'out',day:bgDay(),category:'',amount:'',party:'',note:'',ref:''};let k=c.kind;
+function cashForm(kind,c){const n=!c;const sl=isSales();c=c||{kind:sl?'in':(kind||'out'),day:bgDay(),category:sl?SALES_CAT:'',amount:'',party:'',note:'',ref:''};let k=c.kind;
   const cats=kk=>'<option value="">— اختر الفئة —</option>'+CASH_CAT[kk].map(x=>`<option ${c.category===x?'selected':''}>${x}</option>`).join('');
-  overlay('cash',n?(k==='in'?'تسجيل وارد':'تسجيل صرف'):'تعديل حركة',`<form class="f" id="fCash">
-   <div class="seg" style="width:100%"><label><input type="radio" name="cK" value="in" ${k==='in'?'checked':''}>وارد (دخل للصندوق)</label><label><input type="radio" name="cK" value="out" ${k==='out'?'checked':''}>صرف (طلع من الصندوق)</label></div>
+  overlay('cash',n?(sl?'تسجيل بيع / مبلغ مستلم':k==='in'?'تسجيل وارد':'تسجيل صرف'):'تعديل حركة',`<form class="f" id="fCash">
+   <div class="seg" style="width:100%" ${sl?'hidden':''}><label><input type="radio" name="cK" value="in" ${k==='in'?'checked':''}>وارد (دخل للصندوق)</label><label><input type="radio" name="cK" value="out" ${k==='out'?'checked':''}>صرف (طلع من الصندوق)</label></div>
    <div class="fr"><label class="l">المبلغ (دينار)<input id="cAmt" class="in num" dir="ltr" inputmode="numeric" required value="${c.amount?iqd(c.amount):''}" placeholder="250,000"></label>
    <label class="l">التاريخ<input id="cDay" class="in num" type="date" required value="${c.day}" max="${bgDay()}"></label></div>
-   <div class="fr"><label class="l">الفئة<select id="cCat" class="in" required>${cats(k)}</select></label>
-   <label class="l">${k==='in'?'المصدر / من سلّم':'الجهة / المستلم'}<input id="cParty" class="in" maxlength="120" value="${esc(c.party||'')}"></label></div>
-   <label class="l">البيان<textarea id="cNote" class="in" rows="2" maxlength="600" required placeholder="مثال: غداء العاملين ليوم الاثنين">${esc(c.note||'')}</textarea></label>
+   <div class="fr"><label class="l" ${sl?'hidden':''}>الفئة<select id="cCat" class="in" required>${sl?`<option selected>${SALES_CAT}</option>`:cats(k)}</select></label>
+   <label class="l">${sl?'اسم المشتري':k==='in'?'المصدر / من سلّم':'الجهة / المستلم'}<input id="cParty" class="in" maxlength="120" value="${esc(c.party||'')}"></label></div>
+   <label class="l">البيان<textarea id="cNote" class="in" rows="2" maxlength="600" required placeholder="${sl?'مثال: دفعة أولى عن الدار 12 شارع 40':'مثال: غداء العاملين ليوم الاثنين'}">${esc(c.note||'')}</textarea></label>
    <div class="fr"><label class="l">رقم الوصل / القائمة <em>(اختياري)</em><input id="cRef" class="in num" dir="ltr" maxlength="60" value="${esc(c.ref||'')}"></label>
    <label class="l">ما يعادل بالدولار <em>(اختياري)</em><div class="gps"><input id="cUsd" class="in num" dir="ltr" inputmode="decimal" placeholder="$" value="${c.usd??''}"><input id="cRate" class="in num" dir="ltr" inputmode="decimal" placeholder="سعر الصرف" value="${c.rate??''}"></div></label></div>
    <label class="l">صورة الوصل <em>(اختياري)</em><input id="cImg" class="in" type="file" accept="image/*" capture="environment"></label>
@@ -2211,13 +2215,13 @@ function cashForm(kind,c){const n=!c;c=c||{kind:kind||'out',day:bgDay(),category
     catch(x){$('#cErr').textContent=x.message;b.disabled=false}})}
 function cashOpen(id){const c=(S.cash||[]).find(x=>x.id===id);if(!c)return;
   const nm=u=>esc(S.names?.[u]?.name||S.staff.find(p=>p.id===u)?.full_name||'—');
-  const canEdit=writesCash()&&!c.voided&&(S.me.role==='owner'||(c.by_uid===S.me.id&&Date.now()-new Date(c.created_at).getTime()<48*3600e3));
+  const canEdit=(writesCash()||isSales())&&!c.voided&&(S.me.role==='owner'||(c.by_uid===S.me.id&&Date.now()-new Date(c.created_at).getTime()<48*3600e3));
   overlay('cashv',(c.kind==='in'?'وارد':'صرف')+' — '+iqd(c.amount)+' د.ع',`<div class="sec">
    ${c.voided?`<div class="banner" style="background:var(--bad-soft);color:var(--bad)">ملغاة: ${esc(c.void_reason||'')}</div>`:''}
    <div class="small" style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px"><span class="muted">التاريخ</span><b class="num">${c.day}</b><span class="muted">الفئة</span><b>${esc(c.category)}</b><span class="muted">${c.kind==='in'?'المصدر':'الجهة'}</span><b>${esc(c.party||'—')}</b><span class="muted">البيان</span><b>${esc(c.note||'—')}</b><span class="muted">رقم الوصل</span><b class="num">${esc(c.ref||'—')}</b>${c.usd?`<span class="muted">بالدولار</span><b class="num">${c.usd}$ × ${c.rate||'—'}</b>`:''}<span class="muted">سجّلها</span><b>${nm(c.by_uid)}</b></div>
    ${c.attach?`<div style="margin-top:10px"><img id="cashImg" alt="صورة الوصل" style="max-width:100%;border-radius:10px"></div>`:''}
    <h4 style="margin-top:14px">السجل</h4>${(c.log||[]).map(l=>`<div class="small"><span class="num muted">${new Date(l.t).toLocaleString('ar-IQ-u-nu-latn',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</span> · ${nm(l.uid)}: ${esc(l.a)}${l.note?' — '+esc(l.note):''}</div>`).join('')}
-   <div class="acts" style="margin-top:12px">${canEdit?`<button class="btn" id="cEd">تعديل</button>`:''}${writesCash()&&!c.voided?`<button class="btn bad" id="cVoid">إلغاء الحركة</button>`:''}${S.me.role==='owner'&&c.voided?`<button class="btn" id="cUnvoid">إرجاع الحركة</button>`:''}</div><div id="cVoidF"></div><div class="err" id="cvErr"></div></div>`);
+   <div class="acts" style="margin-top:12px">${canEdit?`<button class="btn" id="cEd">تعديل</button>`:''}${(writesCash()||(isSales()&&c.by_uid===S.me.id))&&!c.voided?`<button class="btn bad" id="cVoid">إلغاء الحركة</button>`:''}${S.me.role==='owner'&&c.voided?`<button class="btn" id="cUnvoid">إرجاع الحركة</button>`:''}</div><div id="cVoidF"></div><div class="err" id="cvErr"></div></div>`);
   if(c.attach){const p=c.attach.replace(/^s:/,'');sb.storage.from('files').createSignedUrl(p,3600).then(({data})=>{const i=$('#cashImg');if(i&&data)i.src=data.signedUrl})}
   $('#cEd')?.addEventListener('click',()=>cashForm(c.kind,c));
   const upd=async o=>{const r=await sb.from('cash').update(o).eq('id',c.id);if(r.error){$('#cvErr').textContent=r.error.message;return}await cashLoad();closeOv();render();toast('تم')};
@@ -2342,6 +2346,18 @@ document.addEventListener('change',e=>{if(e.target.id==='dfP'){S.dfP=e.target.va
 document.addEventListener('input',e=>{if(e.target.id==='dfA'){const t=e.target,d=normDigits(t.value).replace(/\D/g,'');t.value=d?nf.format(+d):''}});
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;if(el.dataset.a==='dfXlsx')dfXlsx();else if(el.dataset.a==='dfPrint')dfPrint()});
 
+
+/* ===== مسؤول المبيعات: المبالغ المستلمة من المشترين (تدخل للصندوق كوارد) ===== */
+function salesView(){
+  if(!S.cash)return`<div class="empty"><b>جارِ التحميل…</b></div>`;
+  const m=S.slM===undefined?bgDay().slice(0,7):S.slM,all=(S.cash||[]).filter(c=>c.kind==='in'&&c.category===SALES_CAT),list=all.filter(c=>!m||c.day.startsWith(m));
+  const sum=l=>l.filter(c=>!c.voided).reduce((a,c)=>a+(+c.amount||0),0);const months=[...new Set(all.map(c=>c.day.slice(0,7)).concat(bgDay().slice(0,7)))].sort().reverse();
+  let h=`<div class="filters"><select id="slM" class="in" style="flex:1 1 160px"><option value="" ${m===''?'selected':''}>كل الفترات</option>${months.map(x=>`<option value="${x}" ${m===x?'selected':''}>${monName(x)}</option>`).join('')}</select></div>
+   <div class="stats"><div class="stat"><b class="num" style="font-size:18px;color:var(--ok)">${iqd(sum(list))}</b><span>المستلم ${m?'— '+monName(m):''} (د.ع)</span></div><div class="stat"><b class="num" style="font-size:16px">${nf.format(list.filter(c=>!c.voided).length)}</b><span>عدد الاستلامات</span></div><div class="stat"><b class="num" style="font-size:16px">${iqd(sum(all))}</b><span>المجموع الكلي</span></div></div>
+   <div class="acts" style="margin:10px 0"><button class="btn ok" data-a="cashNew" data-v="in">＋ تسجيل بيع / مبلغ مستلم</button></div>`;
+  if(!list.length)return h+`<div class="empty"><b>ماكو مبيعات مسجلة ${m?'بـ'+monName(m):''}</b>كل مبلغ تستلمه من مشتري سجّله هنا ويّا اسمه ورقم الوصل، فيدخل لصندوق الحسابات مباشرة.</div>`;
+  return h+`<div class="tbl-wrap"><table style="min-width:0"><thead><tr><th>التاريخ</th><th>المشتري والبيان</th><th>المبلغ</th></tr></thead><tbody>${list.map(c=>`<tr data-a="cashOpen" data-v="${c.id}" style="cursor:pointer;${c.voided?'opacity:.5;text-decoration:line-through':''}"><td class="num small" style="white-space:nowrap">${c.day}</td><td><b>${esc(c.party||'—')}</b><div class="small muted">${esc(c.note||'')}${c.ref?' · وصل '+esc(c.ref):''}</div></td><td class="num" style="white-space:nowrap;color:var(--ok);font-weight:700">${iqd(c.amount)}</td></tr>`).join('')}</tbody></table></div>`}
+document.addEventListener('change',e=>{if(e.target.id==='slM'){S.slM=e.target.value;render()}});
 function cashCsv(){const list=cashFiltered();const m=S.cashM===undefined?bgDay().slice(0,7):S.cashM;
   csvDownload('الصندوق-'+brName()+'-'+(m||'الكل')+'.csv',[['التاريخ','النوع','المبلغ','الفئة','الجهة','البيان','رقم الوصل','دولار','سعر الصرف','الحالة'],
     ...list.map(c=>[c.day,c.kind==='in'?'وارد':'مصروف',c.amount,c.category,c.party||'',c.note||'',c.ref||'',c.usd||'',c.rate||'',c.voided?'ملغاة: '+(c.void_reason||''):''])])}
