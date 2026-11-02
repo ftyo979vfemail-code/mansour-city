@@ -2037,9 +2037,7 @@ function card(r){
 function tabBody(role){
   const t=S.tab,R=ROLES[role];
   if(t==='sales')return salesView();
-  if(t==='units')return seesSales()?unitsView():'';
-  if(t==='book')return seesSales()?bookView('sale'):'';
-  if(t==='rent')return seesSales()?bookView('rent'):'';
+  if(['units','book','rent'].includes(t)&&seesSales()){const body=t==='units'?unitsView():bookView(t==='book'?'sale':'rent');return salesSearchBar()+`<div id="sTabBody" ${salesSearch(S.sQ||'')?'hidden':''}>${body}</div>`}
   if(t==='daftar')return seesCash()?daftarView():'';
   if(t==='cash')return seesCash()?cashView():'';
   if(t==='acsum')return seesCash()?acsumView():'';
@@ -2413,6 +2411,21 @@ const rows=[];for(let f=f0;f<f0+n;f++)ar.forEach((a,i)=>rows.push({branch:curBra
     const r=await sb.from('units').upsert(rows,{onConflict:'branch,code',ignoreDuplicates:true});if(r.error){$('#twE').textContent=r.error.message;return}
     await salesLoad();S.uB=B;closeOv();render();toast(`انضافت عمارة ${B}: ${rows.length} شقة`)})}
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;if(el.dataset.a==='uB'){S.uB=el.dataset.v;render()}else if(el.dataset.a==='twNew')towerForm()});
+/* ===== بحث المبيعات: بالاسم أو الهاتف أو العمارة والطابق والشقة ===== */
+const arn=t=>normDigits(String(t||'')).toLowerCase().replace(/[أإآٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/[ً-ْـ]/g,'').replace(/[-_/\\]/g,' ');
+function unitHay(u){return u?[u.code,u.kind,u.building&&'عماره '+u.building,u.building,u.floor&&'طابق '+u.floor,u.floor&&'ط'+u.floor,u.apt&&'شقه '+u.apt,u.apt&&'ش'+u.apt,SHARE[u.share||'company'],UST[u.status]?.[0]].filter(Boolean).join(' '):''}
+const unitLabel=u=>u?(u.building&&u.floor?`عمارة ${u.building} · طابق ${u.floor} · شقة ${u.apt||''}`:u.code):'—';
+function salesSearch(q){const toks=arn(q).split(/\s+/).filter(Boolean);if(!toks.length)return null;const hit=h=>{h=' '+arn(h).replace(/\s+/g,' ')+' ';return toks.every(t=>/^[طش]\d+$/.test(t)?h.includes(' '+t+' '):h.includes(t))};const R=[];
+  (S.contracts||[]).forEach(c=>{const u=unitOf(c.unit_id);if(hit([c.name,c.phone,c.notes,c.kind==='rent'?'مستاجر ايجار':'مشتري حجز عقد',KST[c.status]?.[0],unitHay(u)].join(' ')))R.push({t:'k',c,u})});
+  const taken=new Set(R.map(r=>r.u?.id));
+  (S.units||[]).forEach(u=>{if(!taken.has(u.id)&&hit(unitHay(u)))R.push({t:'u',u})});
+  return R.sort((a,b)=>(a.t===b.t?0:a.t==='k'?-1:1)).slice(0,60)}
+function salesSearchRes(){const R=salesSearch(S.sQ||'');if(!R)return'';if(!R.length)return`<div class="empty"><b>ماكو نتائج</b>جرّب جزء من الاسم، أو رقم الهاتف، أو مثلاً «T2 ط12 ش3».</div>`;
+  return`<p class="small muted" style="margin:8px 0 4px">${R.length>=60?'أول 60 نتيجة':R.length+' نتيجة'}</p><div class="list">${R.map(r=>{if(r.t==='k'){const c=r.c,s=kState(c),ks=KST[c.status];
+    return`<button class="nc kc" data-a="kOpen" data-v="${c.id}" style="text-align:start;width:100%"><div class="nh"><b>${esc(c.name)}</b><span class="pill p-${c.kind==='rent'?'info':'accent'}">${c.kind==='rent'?'مستأجر':'مشتري'}</span><span class="pill p-${ks[1]}">${ks[0]}</span>${s.over?`<span class="pill p-bad">متأخر ${iqd(s.over)}</span>`:''}</div><div class="meta"><span>${esc(unitLabel(r.u))}</span>${c.phone?`<span class="num">${esc(c.phone)}</span>`:''}<span class="num">مدفوع ${iqd(s.paid)}</span>${c.kind==='sale'?`<span class="num">باقي ${iqd(s.left)}</span>`:''}</div></button>`}
+    const u=r.u,st=UST[u.status];return`<button class="nc kc" data-a="uOpen" data-v="${u.id}" style="text-align:start;width:100%"><div class="nh"><b>${esc(unitLabel(u))}</b><span class="pill p-${st[1]}">${st[0]}</span>${u.share==='investor'?'<span class="pill p-info">حصة المستثمر</span>':''}</div><div class="meta"><span class="num">${nf.format(+u.area)} م²</span><span class="num">${iqd(u.area*u.price_m)}</span></div></button>`}).join('')}</div>`}
+function salesSearchBar(){return`<div class="filters" style="margin-top:10px"><input id="sQ" class="in" type="search" autocomplete="off" placeholder="🔍 بحث: اسم المشتري أو المستأجر، الهاتف، أو العمارة والطابق والشقة (مثال: T2 ط12 ش3)" value="${esc(S.sQ||'')}" style="flex:1 1 100%"></div><div id="sRes">${salesSearchRes()}</div>`}
+document.addEventListener('input',e=>{if(e.target.id!=='sQ')return;S.sQ=e.target.value;clearTimeout(S._sqT);S._sqT=setTimeout(()=>{const r=$('#sRes'),b=$('#sTabBody');if(r)r.innerHTML=salesSearchRes();if(b)b.hidden=!!salesSearch(S.sQ||'')},150)});
 function unitsView(){if(!S.units)return`<div class="empty"><b>جارِ التحميل…</b></div>`;const f=S.uF||'',q=(S.uQ||'').trim(),w=writesSales();
   const cnt=k=>S.units.filter(u=>u.status===k).length;const list=S.units.filter(u=>(!f||u.status===f)&&(!q||[u.code,u.kind,u.building,u.floor].join(' ').includes(q)));
   let h=`<div class="stats">${Object.entries(UST).filter(([k])=>k!=='blocked'||cnt(k)).map(([k,v])=>`<button type="button" class="stat ${f===k?'hot':''}" data-a="uF" data-v="${f===k?'':k}"><b>${cnt(k)}</b><span>${v[0]}</span></button>`).join('')}</div>
