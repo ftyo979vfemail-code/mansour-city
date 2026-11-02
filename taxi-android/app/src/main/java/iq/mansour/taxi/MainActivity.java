@@ -37,6 +37,7 @@ public class MainActivity extends Activity {
     private LinearLayout root;
     private TextView status, sub, sent, acc, spd, count;
     private LinearLayout setup;
+    private LinearLayout ringView;
 
     private final Runnable tick = new Runnable() {
         @Override public void run() { refresh(); h.postDelayed(this, 2000); }
@@ -124,19 +125,32 @@ public class MainActivity extends Activity {
         root.addView(plate(car.optString("plate", "—")));
         root.addView(space(18));
 
+        // The big round button: tap to start the shift (tracking on), tap again to end it.
         LinearLayout ring = new LinearLayout(this);
+        ringView = ring;
         ring.setOrientation(LinearLayout.VERTICAL);
         ring.setGravity(Gravity.CENTER);
-        ring.setPadding(dp(16), dp(22), dp(16), dp(22));
-        ring.setBackground(box(CARD, LINE, 18));
-        status = text("…", 24, FG, true);
+        ring.setPadding(dp(18), dp(18), dp(18), dp(18));
+        ring.setClickable(true);
+        ring.setFocusable(true);
+        status = text("…", 22, FG, true);
         status.setGravity(Gravity.CENTER);
         sub = text("", 14, MUTED, false);
         sub.setGravity(Gravity.CENTER);
         ring.addView(status);
         ring.addView(sub);
-        root.addView(ring, full());
-        root.addView(space(12));
+        ring.setOnClickListener(v -> toggle());
+        ring.setOnTouchListener((v, e) -> {
+            if (e.getAction() == android.view.MotionEvent.ACTION_DOWN) v.animate().scaleX(.95f).scaleY(.95f).setDuration(80).start();
+            else if (e.getAction() == android.view.MotionEvent.ACTION_UP || e.getAction() == android.view.MotionEvent.ACTION_CANCEL)
+                v.animate().scaleX(1f).scaleY(1f).setDuration(80).start();
+            return false;
+        });
+        LinearLayout ringWrap = new LinearLayout(this);
+        ringWrap.setGravity(Gravity.CENTER);
+        ringWrap.addView(ring, new LinearLayout.LayoutParams(dp(230), dp(230)));
+        root.addView(ringWrap, full());
+        root.addView(space(16));
 
         LinearLayout r1 = row(), r2 = row();
         sent = stat(r1, "آخر إرسال");
@@ -152,7 +166,7 @@ public class MainActivity extends Activity {
         setup.setOrientation(LinearLayout.VERTICAL);
         root.addView(setup, full());
         root.addView(space(12));
-        root.addView(note("التتبع يشتغل بالخلفية حتى لو قفلت الشاشة أو فتحت تطبيق ثاني، ويرجع يشتغل وحده بعد إعادة تشغيل التلفون. إطفاء الـ GPS يرن عليك ويوصل للإدارة فورًا."));
+        root.addView(note("اضغط الدائرة لبدء الدوام، واضغطها مرة ثانية لإنهائه. أثناء الدوام التتبع يشتغل بالخلفية حتى لو قفلت الشاشة أو فتحت تطبيق ثاني، وإطفاء الـ GPS يرن عليك ويوصل للإدارة فورًا."));
         refresh();
         h.removeCallbacks(tick);
         h.postDelayed(tick, 2000);
@@ -185,16 +199,18 @@ public class MainActivity extends Activity {
         });
         if (!gps) step("!", "الـ GPS مطفأ. شغّله حالًا", "تشغيل", v -> startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)));
 
-        if (fine && !TrackService.alive) TrackService.start(this);
+        boolean on = Prefs.of(this).getBoolean("on", false);
+        if (on && fine && !TrackService.alive) TrackService.start(this);
 
         long at = Prefs.of(this).getLong("sentAt", 0);
         String err = Prefs.of(this).getString("err", "");
-        if (!fine) { setStatus("التتبع متوقف", "اكمل الخطوات تحت", BAD); }
+        if (!on) { setStatus("اضغط لبدء الدوام", fine ? "يبدأ إرسال موقعك للإدارة" : "اكمل الخطوات تحت أولًا", 0xFF8A8A8A); }
+        else if (!fine) { setStatus("التتبع متوقف", "اكمل الخطوات تحت", BAD); }
         else if (!gps) { setStatus("الـ GPS مطفأ", "الإدارة تم إبلاغها", BAD); }
         else if (!bg) { setStatus("يشتغل بس والتطبيق مفتوح", "اكمل الخطوة تحت حتى يشتغل بالخلفية", 0xFFD97706); }
         else if (at == 0) { setStatus("جارٍ تحديد الموقع…", err.isEmpty() ? "انتظر لحظة" : err, 0xFFD97706); }
         else if (!err.isEmpty() && System.currentTimeMillis() - at > 60000) { setStatus("الإرسال متأخر", err, 0xFFD97706); }
-        else { setStatus("التتبع شغّال", "موقعك يوصل للإدارة", OK); }
+        else { setStatus("التتبع شغّال", "اضغط لإنهاء الدوام", OK); }
 
         sent.setText(at == 0 ? "—" : ago(at));
         float a = Prefs.of(this).getFloat("acc", -1);
@@ -203,7 +219,36 @@ public class MainActivity extends Activity {
         count.setText(String.valueOf(Prefs.of(this).getInt("count", 0)));
     }
 
+    private void toggle() {
+        boolean on = Prefs.of(this).getBoolean("on", false);
+        if (!on) {
+            if (!granted(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, RQ_FINE);
+                return;
+            }
+            Prefs.of(this).edit().putBoolean("on", true).putLong("sentAt", 0).putString("err", "").apply();
+            TrackService.start(this);
+            refresh();
+            return;
+        }
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("إنهاء الدوام؟")
+                .setMessage("راح يتوقف إرسال موقعك، والإدارة تشوف إنك أنهيت الدوام.")
+                .setNegativeButton("لا، استمر", null)
+                .setPositiveButton("إنهاء الدوام", (d, w) -> {
+                    Prefs.of(this).edit().putBoolean("on", false).apply();
+                    stopService(new Intent(this, TrackService.class));
+                    refresh();
+                })
+                .show();
+    }
+
     private void setStatus(String t, String s, int color) {
+        GradientDrawable g = new GradientDrawable();
+        g.setShape(GradientDrawable.OVAL);
+        g.setColor(CARD);
+        g.setStroke(dp(10), color);
+        ringView.setBackground(g);
         status.setText(t);
         status.setTextColor(color);
         sub.setText(s);
@@ -233,7 +278,10 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int rq, String[] perms, int[] res) {
         super.onRequestPermissionsResult(rq, perms, res);
-        if (rq == RQ_FINE && granted(Manifest.permission.ACCESS_FINE_LOCATION)) TrackService.start(this);
+        if (rq == RQ_FINE && granted(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            Prefs.of(this).edit().putBoolean("on", true).apply();
+            TrackService.start(this);
+        }
         refresh();
     }
 

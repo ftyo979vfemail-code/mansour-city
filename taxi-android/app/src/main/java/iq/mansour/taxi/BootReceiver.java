@@ -8,7 +8,7 @@ import android.content.Intent;
 public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context ctx, Intent intent) {
-        if (Prefs.code(ctx) != null && TrackService.hasLocation(ctx)) {
+        if (Prefs.code(ctx) != null && TrackService.hasLocation(ctx) && Prefs.of(ctx).getBoolean("on", false)) {
             TrackService.start(ctx);
         }
     }

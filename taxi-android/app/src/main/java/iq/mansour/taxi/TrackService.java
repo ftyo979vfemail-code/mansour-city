@@ -94,7 +94,7 @@ public class TrackService extends Service implements LocationListener {
         if (Build.VERSION.SDK_INT >= 29) startForeground(N_RUN, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
         else startForeground(N_RUN, n);
 
-        if (Prefs.code(this) == null || !hasLocation(this)) { stopSelf(); return START_NOT_STICKY; }
+        if (Prefs.code(this) == null || !hasLocation(this) || !Prefs.of(this).getBoolean("on", false)) { stopSelf(); return START_NOT_STICKY; }
         if (!wake.isHeld()) wake.acquire();
         Prefs.of(this).edit().putBoolean("running", true).apply();
         requestUpdates();
@@ -250,7 +250,7 @@ public class TrackService extends Service implements LocationListener {
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         // Swiping the app away from recents must not stop tracking.
-        start(getApplicationContext());
+        if (Prefs.of(this).getBoolean("on", false)) start(getApplicationContext());
         super.onTaskRemoved(rootIntent);
     }
 
@@ -262,8 +262,10 @@ public class TrackService extends Service implements LocationListener {
         try { unregisterReceiver(providers); } catch (Exception ignored) {}
         if (wake != null && wake.isHeld()) wake.release();
         Prefs.of(this).edit().putBoolean("running", false).apply();
+        try { getSystemService(NotificationManager.class).cancel(N_ALERT); } catch (Exception ignored) {}
         final String code = Prefs.code(this);
-        if (code != null) new Thread(() -> Api.state(code, "closed")).start();
+        final String why = Prefs.of(this).getBoolean("on", false) ? "closed" : "stopped";
+        if (code != null) new Thread(() -> Api.state(code, why)).start();
         super.onDestroy();
     }
 
