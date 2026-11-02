@@ -19,3 +19,7 @@ alter policy inv_i on public.invoices with check ((branch = (select public.cur_b
 --         public.cash.contract_id links every payment to its contract
 -- read: sales, owner, project, accountant, admin1, admin2 · write: sales, owner · delete unit: owner
 -- sales may record cash income in categories «إيرادات مبيعات» and «إيجارات» only
+
+-- تقسيم المقدمة/الاستلام على أكثر من دفعة
+alter table public.contracts add column if not exists parts jsonb;
+-- (private.contract_log يسجل تغيير parts ضمن «خطة الدفع»)
