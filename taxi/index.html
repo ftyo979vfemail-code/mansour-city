@@ -113,9 +113,11 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 /* Driver */
 .drv{min-height:100%;display:flex;flex-direction:column;gap:18px;padding:22px max(16px,env(safe-area-inset-right)) 22px max(16px,env(safe-area-inset-left));max-width:520px;margin:0 auto}
 .ring{align-self:center;width:210px;height:210px;border-radius:50%;display:grid;place-items:center;text-align:center;border:10px solid var(--ok);position:relative}
-.ring{background:var(--panel);color:var(--fg);cursor:pointer;font:inherit;-webkit-tap-highlight-color:transparent;transition:transform .12s}
+.ring{background:var(--ok);color:#fff;cursor:pointer;box-shadow:0 8px 24px rgb(0 0 0/.18);font:inherit;-webkit-tap-highlight-color:transparent;transition:transform .12s}
 .ring:active{transform:scale(.96)}
-.ring.bad{border-color:var(--bad)} .ring.wait{border-color:var(--warn)} .ring.off{border-color:var(--idle)}
+.ring{border-color:color-mix(in srgb,var(--ok) 70%,#000)}
+.ring.off{background:var(--bad);border-color:color-mix(in srgb,var(--bad) 70%,#000)}
+.ring strong{font-size:26px} .ring small{color:rgb(255 255 255/.9)!important}
 .ring::after{content:"";position:absolute;inset:-22px;border-radius:50%;border:2px solid currentColor;color:var(--ok);opacity:.4;animation:ripple 2s infinite}
 .ring.bad::after,.ring.wait::after,.ring.off::after{display:none}
 @keyframes ripple{from{transform:scale(.85);opacity:.5}to{transform:scale(1.1);opacity:0}}
@@ -377,14 +379,14 @@ async function driverStart(){
   $("#app").innerHTML=`<div class="drv">
     <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>${esc(car.driver_name)}</h1><small>${esc([car.model,car.year,car.color].filter(Boolean).join(" · "))}</small></div></div>
     <div style="align-self:center">${plateHTML(car.plate,true)}</div>
-    <button class="ring off" id="ring" type="button"><div><strong id="rs">اضغط لبدء الدوام</strong><br><small id="rsub">يبدأ إرسال موقعك للإدارة</small></div></button>
+    <button class="ring off" id="ring" type="button"><div><strong id="rs">تشغيل التتبع</strong><br><small id="rsub">التتبع مطفأ</small></div></button>
     <div class="stats">
       <div class="stat"><small>آخر إرسال</small><b id="st-sent">—</b></div>
       <div class="stat"><small>دقة الموقع</small><b id="st-acc">—</b></div>
       <div class="stat"><small>السرعة</small><b id="st-spd">—</b></div>
       <div class="stat"><small>عدد الإرسالات</small><b id="st-n">0</b></div>
     </div>
-    <p class="note" id="tips">اضغط الدائرة لبدء الدوام، واضغطها مرة ثانية لإنهائه. أثناء الدوام أبقِ الصفحة مفتوحة، وإطفاء الـ GPS أو إغلاق الصفحة يُسجَّل عند الإدارة فورًا.</p>
+    <p class="note" id="tips">الزر الأحمر يشغّل التتبع، ولما يشتغل يصير أخضر، واضغطه مرة ثانية حتى تطفيه. أثناء الدوام أبقِ الصفحة مفتوحة، وإطفاء الـ GPS أو إغلاق الصفحة يُسجَّل عند الإدارة فورًا.</p>
   </div>
   <div class="block" id="block" hidden><h2 id="bt">الـ GPS مطفأ</h2><p id="bp">شغّل الموقع (GPS) من إعدادات الهاتف حالًا. الإدارة تم إبلاغها.</p><button class="btn" id="retry">شغّلته، أعد المحاولة</button></div>`;
   $("#retry").onclick=()=>{unlockAudio();startWatch()};
@@ -403,7 +405,7 @@ async function driverStart(){
 }
 function goOn(){
   ON=true;store.set("taxi_on","1");
-  const r=$("#ring");r.className="ring wait";$("#rs").textContent="جارٍ تحديد الموقع…";$("#rsub").textContent="انتظر لحظة";
+  const r=$("#ring");r.className="ring wait";$("#rs").textContent="إطفاء التتبع";$("#rsub").textContent="جارٍ تحديد الموقع…";
   keepAwake();startWatch();clearInterval(hb);hb=setInterval(heartbeat,15000);
 }
 function goOff(){
@@ -412,10 +414,10 @@ function goOff(){
   clearInterval(hb);siren(false);gpsBad=false;$("#block").hidden=true;
   try{wake&&wake.release()}catch{}wake=null;
   report("stopped");
-  const r=$("#ring");r.className="ring off";$("#rs").textContent="اضغط لبدء الدوام";$("#rsub").textContent="التتبع متوقف";
+  const r=$("#ring");r.className="ring off";$("#rs").textContent="تشغيل التتبع";$("#rsub").textContent="التتبع مطفأ";
 }
 function confirmStop(){
-  const m=modal(`<h3>إنهاء الدوام؟</h3><p style="margin:0">راح يتوقف إرسال موقعك، والإدارة تشوف إنك أنهيت الدوام.</p><div class="row"><button class="btn" id="cn">لا، استمر</button><button class="btn primary" id="cy">إنهاء الدوام</button></div>`);
+  const m=modal(`<h3>إطفاء التتبع؟</h3><p style="margin:0">راح يتوقف إرسال موقعك للإدارة.</p><div class="row"><button class="btn" id="cn">لا، استمر</button><button class="btn primary" id="cy">إطفاء التتبع</button></div>`);
   $("#cn",m).onclick=()=>m.remove();$("#cy",m).onclick=()=>{m.remove();goOff()};
 }
 function unlockAudio(){try{actx=actx||new AudioContext();actx.resume()}catch{}}
@@ -435,7 +437,7 @@ function onFix(pos){
   lastFix=pos;
   if(gpsBad){gpsBad=false;$("#block").hidden=true;siren(false)}
   const c=pos.coords, r=$("#ring");
-  r.className="ring"; $("#rs").textContent="التتبع شغّال"; $("#rsub").textContent="اضغط لإنهاء الدوام";
+  r.className="ring"; $("#rs").textContent="إطفاء التتبع"; $("#rsub").textContent="التتبع شغّال";
   $("#st-acc").textContent=Math.round(c.accuracy)+" م";
   $("#st-spd").textContent=c.speed!=null?Math.round(c.speed*3.6)+" كم/س":"0 كم/س";
   if(Date.now()-lastSent>4000) send(c);
@@ -456,7 +458,7 @@ function gpsError(err){
   if(err.code===3||!ON) return; // timeout only: keep waiting
   gpsBad=true;
   const denied=err.code===1;
-  $("#ring").className="ring bad"; $("#rs").textContent=denied?"إذن الموقع مرفوض":"الـ GPS مطفأ";
+  $("#ring").className="ring bad"; $("#rs").textContent="إطفاء التتبع"; $("#rsub").textContent=denied?"⚠ إذن الموقع مرفوض":"⚠ الـ GPS مطفأ";
   $("#bt").textContent=denied?"إذن الموقع مرفوض":"الـ GPS مطفأ";
   $("#bp").textContent=denied?"افتح إعدادات المتصفح ← أذونات الموقع ← اسمح لهذا الموقع. الإدارة تم إبلاغها.":"شغّل الموقع (GPS) من إعدادات الهاتف حالًا. الإدارة تم إبلاغها.";
   $("#block").hidden=false; siren(true);

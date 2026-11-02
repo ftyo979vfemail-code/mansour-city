@@ -166,7 +166,7 @@ public class MainActivity extends Activity {
         setup.setOrientation(LinearLayout.VERTICAL);
         root.addView(setup, full());
         root.addView(space(12));
-        root.addView(note("اضغط الدائرة لبدء الدوام، واضغطها مرة ثانية لإنهائه. أثناء الدوام التتبع يشتغل بالخلفية حتى لو قفلت الشاشة أو فتحت تطبيق ثاني، وإطفاء الـ GPS يرن عليك ويوصل للإدارة فورًا."));
+        root.addView(note("الزر الأحمر يشغّل التتبع، ولما يشتغل يصير أخضر، واضغطه مرة ثانية حتى تطفيه. أثناء الدوام التتبع يشتغل بالخلفية حتى لو قفلت الشاشة أو فتحت تطبيق ثاني، وإطفاء الـ GPS يرن عليك ويوصل للإدارة فورًا."));
         refresh();
         h.removeCallbacks(tick);
         h.postDelayed(tick, 2000);
@@ -204,13 +204,14 @@ public class MainActivity extends Activity {
 
         long at = Prefs.of(this).getLong("sentAt", 0);
         String err = Prefs.of(this).getString("err", "");
-        if (!on) { setStatus("اضغط لبدء الدوام", fine ? "يبدأ إرسال موقعك للإدارة" : "اكمل الخطوات تحت أولًا", 0xFF8A8A8A); }
-        else if (!fine) { setStatus("التتبع متوقف", "اكمل الخطوات تحت", BAD); }
-        else if (!gps) { setStatus("الـ GPS مطفأ", "الإدارة تم إبلاغها", BAD); }
-        else if (!bg) { setStatus("يشتغل بس والتطبيق مفتوح", "اكمل الخطوة تحت حتى يشتغل بالخلفية", 0xFFD97706); }
-        else if (at == 0) { setStatus("جارٍ تحديد الموقع…", err.isEmpty() ? "انتظر لحظة" : err, 0xFFD97706); }
-        else if (!err.isEmpty() && System.currentTimeMillis() - at > 60000) { setStatus("الإرسال متأخر", err, 0xFFD97706); }
-        else { setStatus("التتبع شغّال", "اضغط لإنهاء الدوام", OK); }
+        // Red button = tracking off (tap to turn on). Green button = tracking on (tap to turn off).
+        if (!on) setButton(false, fine ? "التتبع مطفأ" : "اكمل الخطوات تحت أولًا");
+        else if (!fine) setButton(true, "اسمح بالموقع من الخطوات تحت");
+        else if (!gps) setButton(true, "⚠ الـ GPS مطفأ، شغّله");
+        else if (!bg) setButton(true, "يشتغل بس والتطبيق مفتوح");
+        else if (at == 0) setButton(true, err.isEmpty() ? "جارٍ تحديد الموقع…" : err);
+        else if (!err.isEmpty() && System.currentTimeMillis() - at > 60000) setButton(true, "الإرسال متأخر");
+        else setButton(true, "التتبع شغّال");
 
         sent.setText(at == 0 ? "—" : ago(at));
         float a = Prefs.of(this).getFloat("acc", -1);
@@ -232,8 +233,8 @@ public class MainActivity extends Activity {
             return;
         }
         new android.app.AlertDialog.Builder(this)
-                .setTitle("إنهاء الدوام؟")
-                .setMessage("راح يتوقف إرسال موقعك، والإدارة تشوف إنك أنهيت الدوام.")
+                .setTitle("إطفاء التتبع؟")
+                .setMessage("راح يتوقف إرسال موقعك للإدارة.")
                 .setNegativeButton("لا، استمر", null)
                 .setPositiveButton("إنهاء الدوام", (d, w) -> {
                     Prefs.of(this).edit().putBoolean("on", false).apply();
@@ -243,12 +244,22 @@ public class MainActivity extends Activity {
                 .show();
     }
 
-    private void setStatus(String t, String s, int color) {
+    private void setButton(boolean on, String state) {
+        int fill = on ? OK : BAD;
         GradientDrawable g = new GradientDrawable();
         g.setShape(GradientDrawable.OVAL);
-        g.setColor(CARD);
-        g.setStroke(dp(10), color);
+        g.setColor(fill);
+        g.setStroke(dp(8), on ? 0xFF0F6E43 : 0xFFA3241E);
         ringView.setBackground(g);
+        ringView.setElevation(dp(6));
+        status.setText(on ? "إطفاء التتبع" : "تشغيل التتبع");
+        status.setTextColor(Color.WHITE);
+        status.setTextSize(26);
+        sub.setText(state);
+        sub.setTextColor(0xE6FFFFFF);
+    }
+
+    private void setStatus(String t, String s, int color) {
         status.setText(t);
         status.setTextColor(color);
         sub.setText(s);
