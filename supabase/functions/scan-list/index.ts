@@ -35,6 +35,11 @@ const VERIFY_PROMPT = (kind: string) => `أنت مدقق فواتير. أمام�
 أجب بـ JSON فقط:
 {"is_invoice":true,"complete":true,"readable":true,"problem":"too_close|cropped|blurry|dark|too_far|not_document|none","doc_type":"نوع المستند","number":"رقم الفاتورة أو الوصل أو فارغ","date":"التاريخ المكتوب أو فارغ","supplier":"اسم المورد أو الجهة أو فارغ","total":رقم أو null,"items":[{"name":"","qty":null,"price":null}]}`;
 
+const TABLE_PROMPT = `أمامك ملف أو صورة فيها جدول بيانات (قوائم مشترين أو مستأجرين أو حجوزات أو عقود أو وحدات سكنية) من نظام قديم. قد يكون بالعربي أو الإنكليزي، مطبوع أو بخط اليد.
+انقل الجدول كما هو حرفياً: سطر العناوين ثم كل سطر بيانات. لا تترجم ولا تغيّر الأسماء أو الأرقام، ولا تحذف أي سطر بيانات، ولا تضف أسطر المجاميع.
+إذا الجدول ممتد على عدة صفحات اجمعها كلها بنفس الأعمدة. إذا خلية فارغة اكتب "".
+أجب بـ JSON فقط: {"header":["العنوان1","العنوان2"],"rows":[["قيمة","قيمة"]]}`;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -68,6 +73,24 @@ Deno.serve(async (req) => {
       return json({ is_invoice: !!v.is_invoice, complete: !!v.complete, readable: !!v.readable, problem: String(v.problem || ""), doc_type: String(v.doc_type || "").slice(0, 60),
         number: String(v.number || "").slice(0, 40), date: String(v.date || "").slice(0, 40), supplier: String(v.supplier || "").slice(0, 120), total: num(v.total),
         items: (Array.isArray(v.items) ? v.items : []).slice(0, 60).map((x: Record<string, unknown>) => ({ name: String(x.name || "").slice(0, 120), qty: num(x.qty), price: num(x.price) })).filter((x: { name: string }) => x.name) });
+    }
+    if (mode === "table") {
+      const block = isPdf ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } } : { type: "image", source: { type: "base64", media_type: media, data: image } };
+      const rt = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 16000, messages: [{ role: "user", content: [block, { type: "text", text: TABLE_PROMPT }] }] }),
+      });
+      if (rt.status === 429) return json({ code: "rate_limited" }, 429);
+      if (!rt.ok) return json({ code: "upstream", detail: (await rt.text()).slice(0, 300) }, 502);
+      const o = await rt.json();
+      const tx: string = (o.content || []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("");
+      const mm = tx.match(/\{[\s\S]*\}/);
+      if (!mm) return json({ code: "bad_output" }, 502);
+      const tj = JSON.parse(mm[0]);
+      const header = (Array.isArray(tj.header) ? tj.header : []).slice(0, 40).map((x: unknown) => String(x ?? "").slice(0, 80));
+      const rows = (Array.isArray(tj.rows) ? tj.rows : []).slice(0, 5000).map((r: unknown[]) => (Array.isArray(r) ? r : []).slice(0, 40).map((x) => String(x ?? "").slice(0, 300)));
+      return json({ header, rows });
     }
     if (mode === "prices") {
       const block = isPdf ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } } : { type: "image", source: { type: "base64", media_type: media, data: image } };

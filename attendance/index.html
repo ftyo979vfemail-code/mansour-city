@@ -2429,7 +2429,7 @@ document.addEventListener('input',e=>{if(e.target.id!=='sQ')return;S.sQ=e.target
 function unitsView(){if(!S.units)return`<div class="empty"><b>جارِ التحميل…</b></div>`;const f=S.uF||'',q=(S.uQ||'').trim(),w=writesSales();
   const cnt=k=>S.units.filter(u=>u.status===k).length;const list=S.units.filter(u=>(!f||u.status===f)&&(!q||[u.code,u.kind,u.building,u.floor].join(' ').includes(q)));
   let h=`<div class="stats">${Object.entries(UST).filter(([k])=>k!=='blocked'||cnt(k)).map(([k,v])=>`<button type="button" class="stat ${f===k?'hot':''}" data-a="uF" data-v="${f===k?'':k}"><b>${cnt(k)}</b><span>${v[0]}</span></button>`).join('')}</div>
-   <div class="filters"><input id="uQ" class="in" placeholder="بحث برقم الوحدة أو العمارة" value="${esc(S.uQ||'')}" style="flex:2 1 200px">${w?`<button class="btn pri" data-a="uNew">＋ وحدة</button><button class="btn" data-a="uBulk">＋ عدة وحدات</button>`:''}${isOwner()?`<button class="btn ghost" data-a="planSet">خطة الدفع الافتراضية</button>`:''}</div>`;
+   <div class="filters"><input id="uQ" class="in" placeholder="بحث برقم الوحدة أو العمارة" value="${esc(S.uQ||'')}" style="flex:2 1 200px">${w?`<button class="btn pri" data-a="uNew">＋ وحدة</button><button class="btn" data-a="uBulk">＋ عدة وحدات</button><button class="btn" data-a="siImp">⬆ رفع ملف النظام القديم</button>`:''}${isOwner()?`<button class="btn ghost" data-a="planSet">خطة الدفع الافتراضية</button>`:''}</div>`;
   const T=towers();if(w)h=h.replace('<button class="btn" data-a="uBulk">','<button class="btn" data-a="twNew">＋ عمارة</button><button class="btn" data-a="uBulk">');
   if(!S.units.length)return h+`<div class="empty"><b>ماكو وحدات بعد</b>${w?'ضيف العمارات بزر «＋ عمارة» (الطوابق والشقق تنضاف وحدها)، أو الدور بزر «＋ عدة وحدات».':''}</div>`;
   const ub=S.uB===undefined?(T[0]||''):S.uB;
@@ -2444,7 +2444,7 @@ function bookView(kind){const all=(S.contracts||[]).filter(c=>c.kind===kind);if(
   const list=all.filter(c=>(f==='all'||(f==='open'?!['cancelled','done'].includes(c.status):f==='late'?kState(c).over>0&&c.status!=='cancelled':c.status===f))&&(!q||[c.name,c.phone,unitOf(c.unit_id)?.code].join(' ').includes(q)));
   const st=all.filter(c=>c.status!=='cancelled').map(kState);const sum=k=>st.reduce((a,x)=>a+x[k],0);
   let h=`<div class="stats"><div class="stat"><b class="num" style="font-size:16px">${nf.format(st.length)}</b><span>${kind==='rent'?'عقود إيجار':'حجوزات وعقود'}</span></div><div class="stat"><b class="num" style="font-size:16px;color:var(--ok)">${iqd(sum('paid'))}</b><span>المستلم</span></div>${kind==='sale'?`<div class="stat"><b class="num" style="font-size:16px">${iqd(sum('left'))}</b><span>المتبقي على المشترين</span></div>`:''}<div class="stat ${sum('over')?'hot':''}"><b class="num" style="font-size:16px;color:var(--bad)">${iqd(sum('over'))}</b><span>متأخرات مستحقة</span></div></div>
-   <div class="filters"><select id="kF" data-k="${kind}" class="in" style="flex:1 1 150px">${[['open','الساري'],['late','المتأخرين'],...(kind==='sale'?[['reserved','حجز فقط'],['active','عقد ساري'],['delivered','مُستلمة']]:[]),['done','المكتمل'],['cancelled','الملغي'],['all','الكل']].map(([k,t])=>`<option value="${k}" ${f===k?'selected':''}>${t}</option>`).join('')}</select><input id="kQ" class="in" placeholder="بحث بالاسم أو الهاتف أو الوحدة" value="${esc(S.kQ||'')}" style="flex:2 1 200px">${w?`<button class="btn pri" data-a="${kind==='rent'?'rentNew':'bookNew'}">${kind==='rent'?'＋ مستأجر جديد':'＋ حجز جديد'}</button>`:''}</div>`;
+   <div class="filters"><select id="kF" data-k="${kind}" class="in" style="flex:1 1 150px">${[['open','الساري'],['late','المتأخرين'],...(kind==='sale'?[['reserved','حجز فقط'],['active','عقد ساري'],['delivered','مُستلمة']]:[]),['done','المكتمل'],['cancelled','الملغي'],['all','الكل']].map(([k,t])=>`<option value="${k}" ${f===k?'selected':''}>${t}</option>`).join('')}</select><input id="kQ" class="in" placeholder="بحث بالاسم أو الهاتف أو الوحدة" value="${esc(S.kQ||'')}" style="flex:2 1 200px">${w?`<button class="btn pri" data-a="${kind==='rent'?'rentNew':'bookNew'}">${kind==='rent'?'＋ مستأجر جديد':'＋ حجز جديد'}</button><button class="btn" data-a="siImp">⬆ رفع ملف النظام القديم</button>`:''}</div>`;
   if(!list.length)return h+`<div class="empty"><b>ماكو ${kind==='rent'?'مستأجرين':'حجوزات'} هنا</b></div>`;
   return h+`<div class="list">${list.map(c=>{const s=kState(c),u=unitOf(c.unit_id),ks=KST[c.status];const pct=s.total?Math.min(100,s.paid/s.total*100):0;
     return`<button class="nc kc" data-a="kOpen" data-v="${c.id}" style="text-align:start;width:100%"><div class="nh"><b>${esc(c.name)}</b><span class="pill p-${ks[1]}">${kind==='rent'&&c.status==='active'?'ساري':ks[0]}</span>${s.over?`<span class="pill p-bad">متأخر ${iqd(s.over)}</span>`:''}</div>
@@ -2560,9 +2560,99 @@ function payForm(c){const s=kState(c),sale=c.kind==='sale',u=unitOf(c.unit_id);c
     const f=$('#kpI').files[0];if(f)row.attach=(await saveFile(f)).ref;const r=await sb.from('cash').insert(row);if(r.error)throw new Error(r.error.message);
     await cashLoad();closeOv();render();toast('انسجلت الدفعة');kOpen(c.id)}catch(x){$('#kpE').textContent=x.message;b.disabled=false}})}
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,v=el.dataset.v;
-  if(a==='uNew')unitForm();else if(a==='uBulk')unitBulk();else if(a==='planSet')planSet();else if(a==='bookNew')bookForm();else if(a==='rentNew')rentForm();else if(a==='kOpen')kOpen(v);else if(a==='uF'){S.uF=v;render()}
+  if(a==='uNew')unitForm();else if(a==='siImp')siImport();else if(a==='uBulk')unitBulk();else if(a==='planSet')planSet();else if(a==='bookNew')bookForm();else if(a==='rentNew')rentForm();else if(a==='kOpen')kOpen(v);else if(a==='uF'){S.uF=v;render()}
   else if(a==='uOpen'){const u=unitOf(v);if(!u)return;const k=(S.contracts||[]).find(c=>c.unit_id===u.id&&!['cancelled','done'].includes(c.status));if(k)kOpen(k.id);else if(writesSales()&&u.status==='available'){overlay('uact',esc(u.code),`<div class="acts" style="flex-direction:column;align-items:stretch"><button class="btn pri" id="uaB">حجز هذه الوحدة</button><button class="btn" id="uaR">تأجيرها</button><button class="btn ghost" id="uaE">تعديل الوحدة</button></div>`);$('#uaB').onclick=()=>bookForm(u.id);$('#uaE').onclick=()=>unitForm(u);$('#uaR').onclick=()=>{rentForm();setTimeout(()=>{const s=$('#rtU');if(s)s.value=u.id},30)}}else if(writesSales())unitForm(u)}});
 document.addEventListener('change',e=>{const t=e.target;if(t.id==='kF'){S['kF'+t.dataset.k]=t.value;render()}else if(t.id==='kQ'){S.kQ=t.value;render()}else if(t.id==='uQ'){S.uQ=t.value;render()}});
+
+/* ===== مسؤول المبيعات: رفع ملف النظام القديم (Excel / CSV / PDF / صورة) ===== */
+const SI_F=[['','— تجاهل —'],['name','الاسم',/اسم|المشتري|الزبون|المستاجر|العميل|صاحب/],['phone','الهاتف',/هاتف|موبايل|جوال|تلفون|رقم الهاتف|الرقم|phone|mobile/],['unit','الوحدة كاملة (مثل T2-12-3)',/^(الوحده|العقار|الشقه والعماره|الموقع|العنوان)$/],['building','العمارة',/عماره|برج|بنايه|بلوك|tower|block/],['floor','الطابق',/طابق|floor/],['apt','الشقة',/شقه|apt|flat/],['code','رقم الوحدة / الدار',/رقم الوحده|رقم الدار|الدار|رقم العقار|كود/],['area','المساحة',/مساحه|م2|area/],['price_m','سعر المتر',/سعر المتر/],['total','السعر الكلي',/سعر|القيمه|المبلغ الكلي|الكلي|اجمالي|total/],['down','المقدمة',/مقدم|عربون/],['handover','دفعة الاستلام',/استلام/],['monthly','القسط الشهري',/قسط شهري|القسط|الشهري|monthly/],['months','عدد الأقساط',/عدد الاقساط|عدد الاشهر|المده|الاشهر/],['paid','المدفوع لحد الآن',/مدفوع|مسدد|واصل|المستلم|paid/],['remain','المتبقي (للمعلومة)',/متبقي|باقي|الباقي|remain/],['date','تاريخ الحجز / العقد',/^(?!.*(اول|بدايه|بدء)).*تاريخ/],['start','أول قسط / بداية الإيجار',/اول قسط|بدايه|بدء/],['type','النوع (بيع/إيجار)',/نوع|بيع|type/],['status','الحالة',/حاله|status/],['rent','الإيجار الشهري',/ايجار|rent/],['deposit','التأمينات',/تامين|deposit/],['notes','ملاحظات',/ملاحظ|تفاصيل|notes/]];
+function siImport(){const inp=document.createElement('input');inp.type='file';inp.accept='.xlsx,.xls,.xlsm,.ods,.csv,.pdf,image/*,application/pdf';inp.hidden=true;document.body.appendChild(inp);
+  inp.addEventListener('change',async()=>{const f=inp.files[0];inp.remove();if(!f)return;
+    overlay('simp','رفع ملف النظام القديم',`<div class="rcbox"><div class="spin"></div><b>جارِ قراءة الملف…</b><span class="note">${/\.(xlsx|xls|xlsm|ods|csv)$/i.test(f.name)?'':'الـPDF والصور تنقرا بالذكاء الاصطناعي، ممكن تاخذ دقيقة'}</span></div>`);
+    try{const t=await siRead(f);if(!t.rows.length)throw new Error('ما لكيت بيانات بالملف.');S.si={...t,file:f.name,map:t.header.map(()=>'' ),pay:true,area:176};siGuess();siDraw()}
+    catch(e){$('#ovroot .sh-b').innerHTML=`<div class="err">${esc(e.message)}</div>`}});inp.click()}
+async function siRead(f){const sheet=/\.(xlsx|xls|xlsm|ods|csv)$/i.test(f.name)||/sheet|excel|csv/.test(f.type);
+  const cl=r=>(r||[]).map(c=>c instanceof Date?c:typeof c==='number'?c:String(c??'').replace(/\s+/g,' ').trim());
+  const pick=rows=>{rows=rows.map(cl).filter(r=>r.some(c=>c!==''));let hi=0;for(let i=0;i<Math.min(rows.length,15);i++){if(rows[i].filter(c=>typeof c==='string'&&c&&!/^[\d.,\-\/ ]+$/.test(normDigits(c))).length>=3){hi=i;break}}
+    const header=rows[hi]||[],n=Math.max(header.length,...rows.slice(hi+1).map(r=>r.length));return{header:Array.from({length:n},(_,i)=>String(header[i]??'')||'عمود '+(i+1)),rows:rows.slice(hi+1).map(r=>Array.from({length:n},(_,i)=>r[i]??''))}};
+  if(sheet){const X=await loadXLSX();const wb=/\.csv$/i.test(f.name)||f.type==='text/csv'?X.read(new TextDecoder('utf-8').decode(await f.arrayBuffer()).replace(/^﻿/,''),{type:'string',raw:true}):X.read(new Uint8Array(await f.arrayBuffer()),{type:'array',cellDates:true});
+    let best=null;for(const n of wb.SheetNames){const rows=X.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true});const r=pick(rows);if(!best||r.rows.length>best.rows.length)best=r}return best||{header:[],rows:[]}}
+  const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);if(isPdf&&f.size>20*1024*1024)throw new Error('ملف الـPDF كبير (أكثر من 20 ميغا). قسّمه أو صوّر الصفحات.');
+  const blob=isPdf?f:await compress(f,2400,.88);const b64=(await blobToData(blob)).split(',')[1];
+  const {data,error}=await sb.functions.invoke('scan-list',{body:{mode:'table',image:b64,mime:isPdf?'application/pdf':'image/jpeg'}});
+  let code=data?.code;if(error){try{code=(await error.context.json()).code}catch(x){code='upstream'}}
+  if(code)throw new Error({no_key:'القراءة تحتاج تفعيل مفتاح الذكاء الاصطناعي. راجع مطوّر النظام.',rate_limited:'طلبات كثيرة، حاول بعد دقيقة.',bad_image:'الملف كبير أو تالف.',forbidden:'غير متاح لصفتك.'}[code]||'تعذرت قراءة الملف. جرّب صورة أوضح أو ملف Excel.');
+  return pick([data.header||[],...(data.rows||[])])}
+function siGuess(){const t=S.si,used=new Set();t.header.forEach((h,i)=>{const a=arn(h).trim();if(!a)return;
+  const hit=SI_F.find(x=>x[2]&&!used.has(x[0])&&(x[0]!=='total'||!/متر|مقدم|قسط|استلام|مدفوع|متبقي|ايجار/.test(a))&&(x[0]!=='phone'||!/وحده|دار|عقار|شقه|طابق|عماره|قسط|عقد|وصل/.test(a))&&(x[0]!=='paid'||!/متبقي|باقي/.test(a))&&x[2].test(a));if(hit){t.map[i]=hit[0];used.add(hit[0])}})}
+const siNum=v=>{if(typeof v==='number')return v;const s=normDigits(String(v??''));if(!s.trim())return null;const m=s.replace(/[٬,\s]/g,'').match(/\d+(\.\d+)?/);if(!m)return null;let n=+m[0];if(/مليار/.test(s))n*=1e9;else if(/مليون/.test(s))n*=1e6;else if(/(الف|ألف)/.test(s)&&n<1e6)n*=1e3;return n};
+function siDate(v){if(v==null||v==='')return null;let d=xlDate(v);if(Array.isArray(d)){let [y,m,dd]=d.map(Number);if(y<100)y+=2000;if(!(m>=1&&m<=12&&dd>=1&&dd<=31&&y>1990&&y<2100))return null;d=y+'-'+String(m).padStart(2,'0')+'-'+String(dd).padStart(2,'0')}
+  if(!d){const s=normDigits(String(v)).trim(),m=s.match(/^(\d{4})[-\/.](\d{1,2})$/)||s.match(/^(\d{1,2})[-\/.](\d{4})$/);if(m){const [y,mm]=m[1].length===4?[m[1],m[2]]:[m[2],m[1]];if(+mm>=1&&+mm<=12)d=y+'-'+mm.padStart(2,'0')+'-01'}}
+  return d&&/^\d{4}-\d{2}-\d{2}$/.test(d)?d:null}
+function siUnitText(s){s=normDigits(String(s||'')).replace(/\s+/g,' ').trim();const o={};let m=s.match(/\b(T)\s*-?\s*(\d+)/i)||s.match(/(?:عمارة|عماره|برج|بناية|بنايه)\s*([A-Za-z]?)\s*(\d+)/);
+  if(m){o.b=(m[1]||'').toUpperCase()+m[2];s=s.replace(m[0],' ')}m=s.match(/(?:طابق|ط)\s*(\d+)/);if(m){o.f=m[1];s=s.replace(m[0],' ')}m=s.match(/(?:شقة|شقه|ش)\s*(\d+)/);if(m){o.a=m[1];s=s.replace(m[0],' ')}
+  const n=s.match(/\d+/g)||[];if(o.b&&!o.f&&!o.a&&n.length>=2){o.f=n[0];o.a=n[1]}else if(!o.b&&n.length>=3&&!o.f){o.b=n[0];o.f=n[1];o.a=n[2]}return o}
+function siBuilding(v){let s=normDigits(String(v??'')).replace(/عمارة|عماره|برج|بناية|بنايه|رقم/g,'').replace(/\s+/g,'').toUpperCase();if(!s)return'';
+  if(/^\d+$/.test(s)&&towers().some(b=>/^T\d+$/i.test(b)))s='T'+(+s);return s.replace(/^T0+(\d)/,'T$1')}
+const siDig=v=>{const m=normDigits(String(v??'')).match(/\d+/);return m?String(+m[0]):''};
+function siPlan(){const t=S.si,p=plan0(),col=k=>t.map.indexOf(k),g=(r,k)=>{const i=col(k);return i<0?'':r[i]};
+  const units=(S.units||[]).slice(),open=(S.contracts||[]).filter(c=>c.status!=='cancelled');const R={k:[],newU:[],skip:[],paid:0};const key=(b,f,a)=>[b,f,a].join('|');
+  const byBFA=new Map(units.filter(u=>u.building&&u.floor).map(u=>[key(u.building,u.floor,String(u.apt||'')),u])),byCode=new Map(units.map(u=>[arn(u.code).replace(/\s+/g,''),u]));
+  const taken=new Map(open.map(c=>[c.unit_id,c]));
+  t.rows.forEach((r,ri)=>{const line=ri+1,name=String(g(r,'name')).replace(/\s+/g,' ').trim();if(name.length<2){if(r.some(c=>String(c).trim()))R.skip.push([line,'بدون اسم']);return}
+    let ut=col('unit')>=0?siUnitText(g(r,'unit')):{};const b=col('building')>=0?siBuilding(g(r,'building'))||ut.b&&siBuilding(ut.b)||'':ut.b?siBuilding(ut.b):'';
+    const f=col('floor')>=0?siDig(g(r,'floor'))||ut.f||'':ut.f||'',a=col('apt')>=0?siDig(g(r,'apt'))||ut.a||'':ut.a||'';let code=String(g(r,'code')||'').trim();
+    if(!code&&!(b&&f)&&col('unit')>=0)code=String(g(r,'unit')).trim();
+    let u=b&&f?byBFA.get(key(b,f,a)):null;if(!u&&code)u=byCode.get(arn(code).replace(/\s+/g,''));
+    const area=siNum(g(r,'area'))||+u?.area||+t.area||0,pm=siNum(g(r,'price_m'))||+u?.price_m||p.price_m;
+    if(!u){const c2=b&&f?`${b}-ط${f}${a?'-ش'+a:''}`:code;if(!c2){R.skip.push([line,name+' — ما بي عمارة/طابق أو رقم وحدة']);return}
+      if(!(area>0)){R.skip.push([line,name+' — المساحة مو معروفة']);return}
+      u={id:'new:'+c2,code:c2,kind:b&&f?'شقة':'دار',building:b&&f?b:null,floor:b&&f?f:null,apt:b&&f?(a||null):null,area,price_m:pm,share:/^T\d+$/i.test(b)?'investor':'company',status:'available',_new:true};
+      R.newU.push(u);byCode.set(arn(c2).replace(/\s+/g,''),u);if(b&&f)byBFA.set(key(b,f,a),u)}
+    const ex=taken.get(u.id);if(ex){R.skip.push([line,arn(ex.name)===arn(name)?name+' — موجود من قبل ('+u.code+')':name+' — الوحدة '+u.code+' محجوزة باسم '+ex.name]);return}
+    const typ=arn(g(r,'type')),rentV=siNum(g(r,'rent')),tot=siNum(g(r,'total'));
+    const rent=/ايجار|مستاجر|rent/.test(typ)||(rentV>0&&!(tot>0)&&!/بيع|شراء|حجز/.test(typ));
+    const st=arn(g(r,'status')),date=siDate(g(r,'date')),start=siDate(g(r,'start'));let ph=normDigits(String(g(r,'phone')||'')).replace(/\D/g,'');if(/^7\d{9}$/.test(ph))ph='0'+ph;if(/^9647\d{9}$/.test(ph))ph='0'+ph.slice(3);
+    const notes=[String(g(r,'notes')||'').trim(),col('remain')>=0&&String(g(r,'remain')).trim()?'المتبقي بالنظام القديم: '+g(r,'remain'):'','مستورد من النظام القديم'].filter(Boolean).join(' · ');
+    const status=/ملغ|الغاء/.test(st)?'cancelled':/مكتمل|منتهي|تم التسديد|مسدد بالكامل/.test(st)?'done':/مستلم|سلمت|تسليم/.test(st)?'delivered':/حجز|محجوز/.test(st)?'reserved':'active';
+    let k;if(rent){if(!(rentV>0)){R.skip.push([line,name+' — مستأجر بدون مبلغ إيجار']);return}
+      k={kind:'rent',name,phone:ph||null,notes,rent:rentV,deposit:siNum(g(r,'deposit'))||null,rent_start:start||date||bgDay(),status:status==='cancelled'||status==='done'?status:'active'}}
+    else{const total=tot>0?tot:Math.round(area*pm);if(!(total>0)){R.skip.push([line,name+' — السعر مو معروف']);return}
+      const down=siNum(g(r,'down'))??Math.min(p.down,total),hand=siNum(g(r,'handover'))??Math.min(p.handover,Math.max(0,total-down));
+      let monthly=siNum(g(r,'monthly')),months=siNum(g(r,'months'));const rest=Math.max(0,total-down-hand);
+      if(monthly>0&&!(months>0))months=Math.ceil(rest/monthly);else if(months>0&&!(monthly>0))monthly=Math.ceil(rest/months/1000)*1000;else if(!(monthly>0)){const c=planCalc(total,down,hand,p.monthly,p.max);monthly=c.monthly;months=c.months}
+      const sm=start?start.slice(0,7):addM(ym(date||bgDay()),1);k={kind:'sale',name,phone:ph||null,notes,total,down,handover:hand,monthly:Math.round(monthly)||0,months:Math.round(months)||0,start_month:sm+'-01',status}}
+    if(date)k.created_at=date+'T09:00:00Z';k._u=u;k._line=line;k._paid=Math.max(0,siNum(g(r,'paid'))||0);k._day=date||bgDay();if(t.pay)R.paid+=k._paid;
+    R.k.push(k);if(k.status!=='cancelled')taken.set(u.id,k)});
+  return R}
+function siDraw(){const t=S.si,R=siPlan(),opts=v=>SI_F.map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join(''),cell=c=>c instanceof Date?xlDate(c):esc(String(c));
+  const need=!t.map.includes('name')?'اختار عمود «الاسم».':!(t.map.some(x=>['building','unit','code'].includes(x)))?'اختار عمود العمارة أو الوحدة.':'';
+  const nS=R.k.filter(k=>k.kind==='sale').length,nR=R.k.length-nS;
+  $('#ovroot .sh-b').innerHTML=`<div class="sec"><p class="muted" style="margin:0">الملف: <b>${esc(t.file)}</b> · ${nf.format(t.rows.length)} سطر. تحت كل عمود اختار شنو يمثّل (النظام خمّن لك، صحّح إذا غلط).</p>
+   <div style="overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:var(--r)"><table class="attbl atsmall"><thead><tr>${t.header.map((h,i)=>`<th style="min-width:130px"><div class="small">${esc(h)}</div><select class="in sim" data-i="${i}" style="margin-top:4px;font-size:13px">${opts(t.map[i])}</select></th>`).join('')}</tr></thead>
+   <tbody>${t.rows.slice(0,6).map(r=>`<tr>${r.map(c=>`<td class="small">${cell(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+   <div class="fr" style="margin-top:10px"><label class="l">مساحة الوحدة إذا مو موجودة بالملف (م²)<input id="siA" class="in num" inputmode="numeric" value="${t.area||''}"></label>
+   <label class="l" style="display:flex;gap:8px;align-items:center;flex-direction:row"><input type="checkbox" id="siP" ${t.pay?'checked':''}> سجّل «المدفوع لحد الآن» كوصل وارد بالصندوق</label></div>
+   ${t.map.includes('paid')&&t.pay?`<p class="note" style="margin:4px 0 0">⚠️ إذا هاي المبالغ مسجّلة بالصندوق من قبل (من ملفات الحسابات)، شيل الصح حتى لا تنحسب مرتين.</p>`:''}
+   <div class="stats" style="margin-top:10px"><div class="stat"><b>${nf.format(nS)}</b><span>حجز/عقد بيع</span></div><div class="stat"><b>${nf.format(nR)}</b><span>مستأجر</span></div><div class="stat"><b>${nf.format(R.newU.length)}</b><span>وحدة جديدة تنضاف</span></div><div class="stat"><b class="num" style="font-size:15px">${iqd(R.paid)}</b><span>مدفوع سابق</span></div><div class="stat"><b>${nf.format(R.skip.length)}</b><span>سطر يتخطى</span></div></div>
+   ${R.skip.length?`<details style="margin-top:8px"><summary class="small">الأسطر اللي راح تتخطى (${R.skip.length})</summary><div class="small muted">${R.skip.slice(0,80).map(([l,x])=>`سطر ${l}: ${esc(x)}`).join('<br>')}${R.skip.length>80?'<br>…':''}</div></details>`:''}
+   <div class="err" id="siE">${need}</div><div class="acts"><button class="btn pri" id="siGo" ${need||!R.k.length?'disabled':''}>استيراد ${nf.format(R.k.length)} سجل</button><button class="btn ghost" data-a="close">إلغاء</button></div></div>`;
+  document.querySelectorAll('#ovroot .sim').forEach(s=>s.onchange=()=>{const k=s.value;if(k)t.map=t.map.map((x,j)=>x===k&&j!==+s.dataset.i?'':x);t.map[+s.dataset.i]=k;siDraw()});
+  $('#siA').onchange=()=>{t.area=siNum($('#siA').value)||0;siDraw()};$('#siP').onchange=()=>{t.pay=$('#siP').checked;siDraw()};$('#siGo').onclick=()=>siRun()}
+async function siRun(){const R=siPlan(),b=$('#siGo'),E=$('#siE');b.disabled=true;const br=curBranch(),prog=x=>{b.textContent=x};let nK=0,nU=0,nP=0;
+  try{const ch=(a,n)=>Array.from({length:Math.ceil(a.length/n)},(_,i)=>a.slice(i*n,i*n+n));
+    for(const part of ch(R.newU,200)){prog('جارِ إضافة الوحدات… '+nU);const r=await sb.from('units').insert(part.map(u=>({code:u.code,kind:u.kind,building:u.building,floor:u.floor,apt:u.apt,area:u.area,price_m:u.price_m,share:u.share,branch:br,notes:'مستوردة من النظام القديم'}))).select('id,code');
+      if(r.error)throw new Error('الوحدات: '+r.error.message);const m=new Map(r.data.map(x=>[x.code,x.id]));part.forEach(u=>u.id=m.get(u.code));nU+=part.length}
+    const cash=[],ust={};
+    for(const part of ch(R.k,150)){prog('جارِ حفظ العقود… '+nK+' من '+R.k.length);const rows=part.map(k=>{const o={...k,unit_id:k._u.id,branch:br};delete o._u;delete o._line;delete o._paid;delete o._day;return o});
+      let r=await sb.from('contracts').insert(rows).select('id');if(r.error&&/created_at/.test(r.error.message)){rows.forEach(o=>delete o.created_at);r=await sb.from('contracts').insert(rows).select('id')}
+      if(r.error)throw new Error('العقود: '+r.error.message);
+      part.forEach((k,i)=>{const id=r.data[i]?.id;if(k.status!=='cancelled'){const s=k.kind==='rent'?(k.status==='done'?'available':'rented'):['delivered','done','active'].includes(k.status)?'sold':'reserved';(ust[s]=ust[s]||[]).push(k._u.id)}
+        if(S.si.pay&&k._paid>0&&id)cash.push({branch:br,by_uid:S.me.id,kind:'in',amount:k._paid,category:k.kind==='rent'?RENT_CAT:SALES_CAT,party:k.name,note:'مدفوع سابق — النظام القديم — '+k._u.code,contract_id:id,day:k._day})});nK+=part.length}
+    for(const [s,ids] of Object.entries(ust))for(const part of ch(ids,150)){const r=await sb.from('units').update({status:s,updated_at:new Date().toISOString()}).in('id',part);if(r.error)throw new Error('حالة الوحدات: '+r.error.message)}
+    for(const part of ch(cash,200)){prog('جارِ تسجيل المدفوعات… '+nP);const r=await sb.from('cash').insert(part);if(r.error)throw new Error('المدفوعات: '+r.error.message);nP+=part.length}
+    await cashLoad();await salesLoad();closeOv();render();toast(`تم: ${nK} سجل${nU?' · '+nU+' وحدة جديدة':''}${nP?' · '+nP+' وصل مدفوع':''}`)}
+  catch(e){E.textContent=e.message+(nK||nU?` (انحفظ لحد الآن ${nK} سجل و ${nU} وحدة — إذا تعيد الرفع، المكرر يتخطى تلقائياً)`:'');b.disabled=false;b.textContent='أعد المحاولة';await salesLoad().catch(()=>{})}}
 
 /* ===== مسؤول المبيعات: المبالغ المستلمة من المشترين (تدخل للصندوق كوارد) ===== */
 function salesView(){
