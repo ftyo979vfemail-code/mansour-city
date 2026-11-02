@@ -148,6 +148,7 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 const SB_URL="https://azvpzlsgzaglerapuayc.supabase.co";
 const SB_KEY="sb_publishable_LSh2trzuxWteNF4ltsBDZA_otyI__gu";
 const STALE_SEC=60;
+const APK_URL="https://github.com/ftyo979vfemail-code/mansour-city/releases/download/taxi-driver/taxi-driver.apk";
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
@@ -288,8 +289,10 @@ function renderCars(){
   ${cars.map(c=>{const s=status(c);return `<tr><td>${plateHTML(c.plate)}</td><td>${esc([c.model,c.year].filter(Boolean).join(" ")||"—")}${c.color?`<br><small style="color:var(--muted)">${esc(c.color)}</small>`:""}</td><td><b>${esc(c.driver_name)}</b></td><td dir="ltr" style="text-align:right">${esc(c.driver_phone||"—")}</td><td><span class="code">${esc(c.driver_code)}</span></td><td><span class="pill s-${s.k}">${s.t}</span></td>
    <td><div class="acts"><button class="btn sm" data-a="edit" data-id="${c.id}">تعديل</button><button class="btn sm" data-a="code" data-id="${c.id}">رمز جديد</button><button class="btn sm" data-a="tog" data-id="${c.id}">${c.active?"إيقاف":"تفعيل"}</button><button class="btn sm danger" data-a="del" data-id="${c.id}">حذف</button></div></td></tr>`}).join("")}
   </tbody></table></div>`:`<div class="empty" style="background:var(--panel);border:1px solid var(--line);border-radius:14px">لا توجد سيارات. أضف أول سيارة مع رقمها وموديلها واسم سائقها، وسيظهر لك رمز الدخول الخاص بالسائق.</div>`}
-  <div class="share"><span>رابط صفحة السائق:</span><code id="dl">${esc(driverLink())}</code><button class="btn sm" id="cp">نسخ الرابط</button></div>`;
+  <div class="share"><span>رابط صفحة السائق:</span><code id="dl">${esc(driverLink())}</code><button class="btn sm" id="cp">نسخ الرابط</button></div>
+  <div class="share"><span><b>تطبيق السائق للأندرويد</b> (يتتبع بالخلفية والشاشة مقفولة):</span><code>${esc(APK_URL)}</code><button class="btn sm" id="cpa">نسخ رابط التطبيق</button></div>`;
   $("#cp").onclick=()=>copy(driverLink());
+  $("#cpa").onclick=()=>copy(APK_URL);
   w.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>carAction(b.dataset.a,b.dataset.id));
 }
 async function copy(t){try{await navigator.clipboard.writeText(t);toast("تم النسخ")}catch{toast("انسخ الرابط يدويًا")}}
@@ -360,6 +363,7 @@ function driverGate(msg){
    <div class="field"><label for="dc">رمز السائق (6 أرقام من الإدارة)</label><input id="dc" class="code-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></div>
    <div class="err" id="de">${esc(msg||"")}</div>
    <button class="btn primary" style="font-size:17px;padding:13px">دخول وتشغيل التتبع</button>
+   <a class="btn" style="text-align:center;text-decoration:none" href="${APK_URL}">تحميل تطبيق السائق للأندرويد (يشتغل بالخلفية)</a>
    <p class="note" style="margin:0">عند الدخول سيطلب الهاتف إذن الموقع. اختر «السماح دائمًا» أو «أثناء الاستخدام».</p></form></div>`;
   $("#dg").onsubmit=async e=>{e.preventDefault();const k=$("#dc").value.trim();
     try{await rpc("taxi_driver_login",{p_code:k});CODE=k;store.set("taxi_driver_code",k);driverStart()}catch(err){$("#de").textContent=err.message}};
