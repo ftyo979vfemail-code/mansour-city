@@ -2470,7 +2470,8 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const av=(S.units||[]).fi
    <label class="l"><span id="bkUL">الشقة</span><select id="bkU" class="in"></select></label>
    <div class="fr"><label class="l">اسم المشتري<input id="bkN" class="in" required maxlength="80" value="${esc(c0?.name||'')}"></label><label class="l">الهاتف<input id="bkPh" class="in num" dir="ltr" inputmode="tel" placeholder="07xxxxxxxxx" value="${esc(c0?.phone||'')}"></label></div>
    <div class="fr">${M('bkA','المساحة م²',+u0.area)}${M('bkPm','سعر المتر',+u0.price_m||p.price_m)}</div>
-   ${M('bkT','السعر الكلي',c0?.total||Math.round(u0.area*(u0.price_m||p.price_m)),'(تكدر تعدله للخصم)')}
+   <div class="fr">${M('bkDs','الخصم',0,'(اختياري)')}<label class="l">سبب الخصم<input id="bkDr" class="in" maxlength="120" placeholder="مثال: دفع نقدي، عرض"></label></div>
+   ${M('bkT','السعر بعد الخصم',c0?.total||Math.round(u0.area*(u0.price_m||p.price_m)))}<p class="small muted" id="bkBase" style="margin:-6px 0 0"></p>
    <div class="fr">${M('bkD','المقدمة',c0?.down??p.down)}${M('bkH','دفعة الاستلام',c0?.handover??p.handover)}</div>
    <div class="fr">${M('bkM','القسط الشهري',c0?.monthly??p.monthly)}<label class="l">أول قسط بشهر<input id="bkS" class="in num" type="month" value="${c0?.start_month?.slice(0,7)||addM(ym(),1)}"></label></div>
    <div class="sec" id="bkCalc" style="margin:4px 0"></div>
@@ -2479,12 +2480,13 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const av=(S.units||[]).fi
    <label class="l">ملاحظات<input id="bkNo" class="in" maxlength="400" value="${esc(c0?.notes||'')}" placeholder="مثال: كفيل، اتفاق خاص…"></label>
    <div class="err" id="bkE"></div><div class="acts"><button class="btn pri" type="submit">${edit?'حفظ':'تسجيل الحجز'}</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
   const v=id=>cashAmt($('#'+id)?.value)||0;
+  const base=()=>Math.round((+normDigits($('#bkA').value)||0)*v('bkPm'));const setT=()=>{$('#bkT').value=nf.format(Math.max(0,base()-v('bkDs')));const d=base()-v('bkT');$('#bkBase').textContent='السعر الأساسي '+iqd(base())+(d>0?' · خصم '+iqd(d)+' ('+(d/base()*100).toFixed(1)+'%)':'')};
   const calc=()=>{const c=planCalc(v('bkT'),v('bkD'),v('bkH'),v('bkM')||p.monthly,p.max);const el=$('#bkCalc');
     if(v('bkD')+v('bkH')>v('bkT')){el.innerHTML='<div class="err">المقدمة ودفعة الاستلام أكثر من السعر</div>';return c}
     el.innerHTML=`<div class="small" style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px"><span class="muted">المتبقي للأقساط</span><b class="num">${iqd(c.rest)}</b><span class="muted">عدد الأقساط</span><b class="num">${c.months} شهر${c.months>p.base?` <span class="pill p-warn">تمديد ${c.months-p.base} شهر</span>`:''}</b><span class="muted">القسط الشهري</span><b class="num">${iqd(c.monthly)}${c.ext?' <span class="pill p-bad">ارتفع لأن الأشهر وصلت '+p.max+'</span>':''}</b>${c.months>1&&c.last!==c.monthly?`<span class="muted">آخر قسط</span><b class="num">${iqd(c.last)}</b>`:''}<span class="muted">المدة الكلية</span><b class="num">${(c.months/12).toFixed(1)} سنة · ينتهي ${c.months?monName(addM($('#bkS').value||addM(ym(),1),c.months-1)):'—'}</b></div>`;return c};
   const fmt=e=>{const d=normDigits(e.target.value).replace(/\D/g,'');e.target.value=d?nf.format(+d):''};
-  ['bkPm','bkT','bkD','bkH','bkM','bkPay'].forEach(id=>$('#'+id)?.addEventListener('input',e=>{if(id!=='bkA')fmt(e);if(id==='bkPm')$('#bkT').value=nf.format(Math.round((+normDigits($('#bkA').value)||0)*v('bkPm')));calc()}));
-  $('#bkA').addEventListener('input',()=>{$('#bkT').value=nf.format(Math.round((+normDigits($('#bkA').value)||0)*v('bkPm')));calc()});
+  ['bkPm','bkT','bkD','bkH','bkM','bkPay','bkDs'].forEach(id=>$('#'+id)?.addEventListener('input',e=>{if(id!=='bkA')fmt(e);if(id==='bkPm'||id==='bkDs')setT();else if(id==='bkT'){const d=base()-v('bkT');$('#bkBase').textContent='السعر الأساسي '+iqd(base())+(d>0?' · خصم '+iqd(d)+' ('+(d/base()*100).toFixed(1)+'%)':'')}calc()}));
+  $('#bkA').addEventListener('input',()=>{setT();calc()});
   const bOf=u=>u.building&&u.floor?u.building:'';const Bs=[...new Set(av.map(bOf))].sort(nsort);
   const fill=(sel,opts,val)=>{sel.innerHTML=opts.map(([v,t])=>`<option value="${esc(v)}" ${v===val?'selected':''}>${esc(t)}</option>`).join('')};
   const drawB=(bv,fv,uv)=>{fill($('#bkB'),Bs.map(b=>[b,b?'عمارة '+b:'الدور والوحدات الأخرى']),bv);const b=$('#bkB').value,tw=!!b;$('#bkFL').hidden=!tw;$('#bkUL').textContent=tw?'الشقة':'الوحدة';
@@ -2494,10 +2496,10 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const av=(S.units||[]).fi
   drawB(bOf(u0),u0.floor,u0.id);
   $('#bkB').addEventListener('change',()=>{drawB($('#bkB').value);$('#bkU').dispatchEvent(new Event('change'))});
   $('#bkF').addEventListener('change',()=>{drawB($('#bkB').value,$('#bkF').value);$('#bkU').dispatchEvent(new Event('change'))});
-  $('#bkU').addEventListener('change',()=>{const u=unitOf($('#bkU').value);if(!u)return;$('#bkA').value=nf.format(+u.area);$('#bkPm').value=nf.format(+u.price_m||p.price_m);$('#bkT').value=nf.format(Math.round(u.area*(u.price_m||p.price_m)));calc()});
-  $('#bkS').addEventListener('change',calc);calc();
+  $('#bkU').addEventListener('change',()=>{const u=unitOf($('#bkU').value);if(!u)return;$('#bkA').value=nf.format(+u.area);$('#bkPm').value=nf.format(+u.price_m||p.price_m);setT();calc()});
+  $('#bkS').addEventListener('change',calc);if(!edit)setT();else $('#bkBase').textContent='السعر الأساسي '+iqd(base());calc();
   $('#fBk').addEventListener('submit',async e=>{e.preventDefault();const c=calc();if(v('bkD')+v('bkH')>v('bkT')||!(v('bkT')>0))return;
-    const o={unit_id:$('#bkU').value,name:$('#bkN').value.trim(),phone:normDigits($('#bkPh').value).replace(/\D/g,'')||null,notes:$('#bkNo').value.trim()||null,total:v('bkT'),down:v('bkD'),handover:v('bkH'),monthly:c.monthly,months:c.months,start_month:($('#bkS').value||addM(ym(),1))+'-01',status:$('#bkSt').value};
+    const o={unit_id:$('#bkU').value,name:$('#bkN').value.trim(),phone:normDigits($('#bkPh').value).replace(/\D/g,'')||null,notes:[$('#bkNo').value.trim(),!edit&&base()-v('bkT')>0?`خصم ${iqd(base()-v('bkT'))} من ${iqd(base())}${$('#bkDr').value.trim()?' — '+$('#bkDr').value.trim():''}`:''].filter(Boolean).join(' · ')||null,total:v('bkT'),down:v('bkD'),handover:v('bkH'),monthly:c.monthly,months:c.months,start_month:($('#bkS').value||addM(ym(),1))+'-01',status:$('#bkSt').value};
     let r;if(edit)r=await sb.from('contracts').update(o).eq('id',c0.id).select().single();else r=await sb.from('contracts').insert({...o,kind:'sale',branch:curBranch()}).select().single();
     if(r.error){$('#bkE').textContent=r.error.message;return}const k=r.data;
     const us=['delivered','done','active'].includes(o.status)?'sold':'reserved';await sb.from('units').update({status:us,updated_at:new Date().toISOString()}).eq('id',o.unit_id);
