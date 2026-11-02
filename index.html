@@ -480,6 +480,12 @@ button.orow:hover{background:var(--sunk)}
   .atstats .stat b{font-size:17px}
 }
 .brsel{width:auto;min-width:0;max-width:170px;padding:4px 8px;font-size:12.5px;height:auto;border-radius:10px}
+.dfbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:12px 0 10px}.dfbar b{background:#ff0;color:#000;padding:3px 10px;border-radius:4px;font-size:16px}.dfbar span{color:var(--muted)}.dfbar select{width:auto;flex:0 1 200px;margin-inline-start:auto}
+.dfadd{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.dfadd #dfDt{flex:0 1 150px}.dfadd #dfN{flex:3 1 260px}.dfadd #dfA{flex:1 1 120px}.dfadd #dfK{flex:0 1 90px}
+.dftbl{min-width:0!important;width:100%;table-layout:fixed;font-weight:700}.dftbl td:nth-child(2){overflow-wrap:anywhere}.dftbl th,.dftbl td{border:1px solid var(--line);padding:6px 8px;vertical-align:top}.dftbl td:first-child,.dftbl td:last-child{white-space:nowrap}.dftbl td:last-child,.dftbl th:last-child{text-align:left}.dftbl tbody tr[data-a]{cursor:pointer}.dftbl tbody tr[data-a]:hover{background:var(--sunk)}
+.dfsub td{background:#92d050!important;color:#d00000}.dfvoid td{text-decoration:line-through;opacity:.5}.dfin{color:var(--ok)}.dfsub .dfin{color:#05510f}
+.dftbl .dfc1{width:100px}.dftbl .dfc3{width:130px}
+@media (max-width:560px){.dftbl .dfc1{width:74px}.dftbl .dfc3{width:96px}.dftbl{font-size:12.5px}.dftbl th,.dftbl td{padding:5px 5px}.dftbl td:first-child{font-size:11px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -1964,10 +1970,10 @@ function rolePicker(){
 }
 function roleDesc(k){const CD={accountant:'الصندوق: الواردات والمصروفات، الرصيد، الملخص الشهري، والصرفيات والفواتير',foreman:'رفع صور الجداول وصور العمل اليومي ويّا أسماء الكادر، وطلب المواد',driver:'آليتي ومراحل شغلي: دخول، تحميل، خروج، وصول',guard:'مسح باركود الآليات عند خروجها من البوابة لبدء الرحلة',timekeeper:'جولة الحضور اليومية للعمال، الغيابات، باجات QR، والتقارير',elec_tech:'طلب مواد قسم الكهرباء ومتابعتها',mech_tech:'طلب مواد قسم الميكانيك ومتابعتها',buyer:'عروض الأسعار والشراء والفواتير والتسليم بالباركود',clerk:'متابعة الإشعارات وسجل الحركات والطلبات',receiver:'استلام المواد المشتراة بالباركود نيابة عن مدير المخزن',supply:'استقبال شاحنات المواد ومتابعة تنزيلها بالمعمل',keeper:'صرف قطع الغيار والزيوت للآليات، الاستلام، والرصيد',operator:'الوردية، العدّاد، الوقود، والإبلاغ عن الأعطال',mechanic:'إصلاح الأعطال والصيانة الدورية وطلب القطع',fueler:'تسجيل تعبئة الوقود لكل آلية'};if(CD[k])return CD[k];if(k==='mstore')return'قطع غيار وزيوت الآليات: الفحص، الصرف، الاستلام بالباركود، الرصيد';return{dept:'رفع طلبات المواد ومتابعتها',store:'فحص الطلبات، الصرف، الاستلام، الرصيد',project:'أولوية كاملة: كل الموافقات والمراحل، الطلبات، وتسجيل الموظفين',admin:'مراقبة كل الطلبات والحركات والمصروف',purchase:'الموافقة على الشراء، التنفيذ، الفواتير، GPS'}[ROLES[k].kind]}
 
-function tabsFor(role){if(role==='timekeeper')return attTabsTK();const T=tabsFor0(role);if(seesAtt()&&['project','admin1','admin2','clerk'].includes(role)){const i=T.findIndex(t=>t[0]==='approve');T.splice(i<0?0:i+1,0,['att','حضور العمال',attAlertN()])}const add=[];if(['project','admin1','admin2'].includes(role)&&seesCash())add.push(['cash','الصندوق',0]);if(EXP_ROLES.includes(role))add.push(['exp','الصرفيات',0]);if(auditScopes().length)add.push(['jrd','الجرد',0]);if(['owner','project','admin1','admin2'].includes(S.me?.role)&&['owner','project','admin1','admin2'].includes(role))add.push(['fph','صور الفورمن',0]);if(['machines','mstore','keeper','supply','project','admin1','admin2'].includes(role))add.unshift(['gate','عمل الآليات',S.machines.filter(m=>m.cycle).length]);if(['keeper','mstore','machines'].includes(role))add.unshift(['sends','المرسلات',sendsList().filter(l=>sameDayT(l.at||l.t)).length]);if(['store','mstore','keeper'].includes(role))add.unshift(['ins','المدخلات',(S.invoices||[]).filter(v=>v.kind==='in'&&v.wh===myWh(role)&&sameDayT(v.createdAt||v.at)).length],['outs','المخرجات',S.invlog.filter(e=>e.kind==='out'&&e.wh===myWh(role)&&sameDayT(e.at||e.t)).length]);if(!T.some(t=>t[0]==='feed'))add.push(['feed','السجل',0]);if(INVC_ROLES.includes(role))add.push(['invc','الفواتير',(S.invoices||[]).filter(v=>(!scopeWh(role)||v.wh===scopeWh(role))&&sameDayT(v.createdAt||v.at)).length]);const i=T.findIndex(t=>t[0]==='all');if(i<0)T.push(...add);else T.splice(i,0,...add);return T}
+function tabsFor(role){if(role==='timekeeper')return attTabsTK();const T=tabsFor0(role);if(seesAtt()&&['project','admin1','admin2','clerk'].includes(role)){const i=T.findIndex(t=>t[0]==='approve');T.splice(i<0?0:i+1,0,['att','حضور العمال',attAlertN()])}const add=[];if(['project','admin1','admin2'].includes(role)&&seesCash())add.push(['daftar','الدفتر',0],['cash','الصندوق',0]);if(EXP_ROLES.includes(role))add.push(['exp','الصرفيات',0]);if(auditScopes().length)add.push(['jrd','الجرد',0]);if(['owner','project','admin1','admin2'].includes(S.me?.role)&&['owner','project','admin1','admin2'].includes(role))add.push(['fph','صور الفورمن',0]);if(['machines','mstore','keeper','supply','project','admin1','admin2'].includes(role))add.unshift(['gate','عمل الآليات',S.machines.filter(m=>m.cycle).length]);if(['keeper','mstore','machines'].includes(role))add.unshift(['sends','المرسلات',sendsList().filter(l=>sameDayT(l.at||l.t)).length]);if(['store','mstore','keeper'].includes(role))add.unshift(['ins','المدخلات',(S.invoices||[]).filter(v=>v.kind==='in'&&v.wh===myWh(role)&&sameDayT(v.createdAt||v.at)).length],['outs','المخرجات',S.invlog.filter(e=>e.kind==='out'&&e.wh===myWh(role)&&sameDayT(e.at||e.t)).length]);if(!T.some(t=>t[0]==='feed'))add.push(['feed','السجل',0]);if(INVC_ROLES.includes(role))add.push(['invc','الفواتير',(S.invoices||[]).filter(v=>(!scopeWh(role)||v.wh===scopeWh(role))&&sameDayT(v.createdAt||v.at)).length]);const i=T.findIndex(t=>t[0]==='all');if(i<0)T.push(...add);else T.splice(i,0,...add);return T}
 function tabsFor0(role){
   const k=ROLES[role].kind,q=queueFor(role);
-  if(k==='acct')return[['cash','الصندوق',0],['acsum','الملخص الشهري',0]];
+  if(k==='acct')return[['daftar','الدفتر',0],['cash','الصندوق',0],['acsum','الملخص الشهري',0]];
   if(role==='operator')return[['work','آليتي',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='mechanic')return[['work','أعمال الصيانة',S.machines.filter(m=>m.status==='down').length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='guard')return[['gate','البوابة',S.machines.filter(m=>m.cycle).length]];
@@ -1997,7 +2003,7 @@ function roleHome(){
   h+=`<div class="tabs" role="tablist">${tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-a="tab" data-v="${k}">${t}${c?`<span class="c num">${c}</span>`:''}</button>`).join('')}</div>`;
   h+=tabBody(role);
   if(S.tab==='att'){}
-  else if(R.kind==='acct'||S.tab==='cash'||S.tab==='acsum'){}
+  else if(R.kind==='acct'||S.tab==='cash'||S.tab==='acsum'||S.tab==='daftar'){}
   else if(!S.requests.length&&!S.inventory.length)h+=`<div class="empty"><b>لا توجد بيانات بعد</b>ابدأ برفع أول طلب.</div>`;
   else if(isOwner()&&(S.requests.some(r=>r.demo)||S.inventory.some(i=>i.demo)))h+=`<div class="banner" style="background:var(--sunk);color:var(--muted)">تحتوي القائمة على بيانات تجريبية معلّمة.<button class="btn sm" data-a="cleardemo">حذف البيانات التجريبية</button></div>`;
   return h;
@@ -2019,6 +2025,7 @@ function card(r){
 }
 function tabBody(role){
   const t=S.tab,R=ROLES[role];
+  if(t==='daftar')return seesCash()?daftarView():'';
   if(t==='cash')return seesCash()?cashView():'';
   if(t==='acsum')return seesCash()?acsumView():'';
   if(t==='att')return seesAtt()?attHub():'';
@@ -2296,6 +2303,45 @@ function cashImport(){const inp=document.createElement('input');inp.type='file';
         await invLog('استورد '+nf.format(ok.length)+' حركة للصندوق',files.map(f=>f.name).join('، '));await cashLoad();closeOv();render();toast('انضافت '+nf.format(ok.length)+' حركة')}
       catch(e){$('#ciE').textContent='توقف بعد '+nf.format(done)+' حركة: '+e.message+' — تكدر تعيد نفس الملفات، المضاف ما يتكرر.';b.disabled=false;await cashLoad();render()}})});
   inp.click()}
+/* ===== الدفتر: نفس شكل ملف «حركة الحسابات» (التاريخ · البيانات · المبلغ + مجموع المصروفات لكل يوم) ===== */
+function dfPeriod(){const cur=bgDay().slice(0,7);return S.dfP||cur}
+function dfRows(){const p=dfPeriod();return(S.cash||[]).filter(c=>c.day.startsWith(p)).sort((a,b)=>a.day<b.day?-1:a.day>b.day?1:(a.created_at<b.created_at?-1:1))}
+function dfOpts(){const ms=cashMonths(),ys=[...new Set(ms.map(m=>m.slice(0,4)))];const p=dfPeriod();
+  return ys.map(y=>`<optgroup label="${y}"><option value="${y}" ${p===y?'selected':''}>كل سنة ${y}</option>${ms.filter(m=>m.startsWith(y)).map(m=>`<option value="${m}" ${p===m?'selected':''}>${monName(m)}</option>`).join('')}</optgroup>`).join('')}
+const dfD=d=>{const [y,m,dd]=d.split('-');return`${dd}/${m}/${y}`};
+function daftarView(){
+  if(!S.cash)return`<div class="empty"><b>جارِ تحميل الدفتر…</b></div>`;
+  const p=dfPeriod(),rows=dfRows(),y=p.slice(0,4);let body='',dayOut=0,dayIn=0,tOut=0,tIn=0;
+  const subRow=d=>`<tr class="dfsub"><td class="num">${dfD(d)}</td><td>مجموع المصروفات${dayIn?` <span class="dfin">· الوارد ${iqd(dayIn)}</span>`:''}</td><td class="num">${iqd(dayOut)}</td></tr>`;
+  rows.forEach((c,i)=>{const v=c.voided;if(!v){if(c.kind==='out'){dayOut+=+c.amount;tOut+=+c.amount}else{dayIn+=+c.amount;tIn+=+c.amount}}
+    body+=`<tr data-a="cashOpen" data-v="${c.id}" class="${v?'dfvoid':''}"><td class="num">${dfD(c.day)}</td><td>${c.kind==='in'?'<span class="dfin">وارد: </span>':''}${esc(c.note||'')}${c.party&&!(c.note||'').includes(c.party)?' — '+esc(c.party):''}${v?' <span class="pill p-mute">ملغاة</span>':''}</td><td class="num ${c.kind==='in'?'dfin':''}">${iqd(c.amount)}</td></tr>`;
+    if(!rows[i+1]||rows[i+1].day!==c.day){body+=subRow(c.day);dayOut=0;dayIn=0}});
+  const w=writesCash();
+  return`<div class="dfbar"><b>حركة الحسابات لسنة ${y}</b><span>${esc(brName())}</span><select id="dfP" class="in">${dfOpts()}</select></div>
+   ${w?`<form class="dfadd" id="dfF" autocomplete="off"><input id="dfDt" class="in num" type="date" value="${S.dfLastDay||bgDay()}" max="${bgDay()}" required><input id="dfN" class="in" placeholder="البيانات — مثال: شراء خبز-ماء شرب-المطعم-عباس سرور" maxlength="600" required><input id="dfA" class="in num" dir="ltr" inputmode="numeric" placeholder="المبلغ" required><select id="dfK" class="in"><option value="out">صرف</option><option value="in">وارد</option></select><button class="btn pri" type="submit" id="dfS">إضافة</button></form><div class="small muted" style="margin:-4px 0 8px">اكتب البيان والمبلغ واضغط Enter. الفئة تنحدد تلقائياً من البيان وتكدر تغيّرها بالضغط على السطر.</div>`:''}
+   <div class="tbl-wrap dfwrap"><table class="dftbl"><thead><tr><th class="dfc1">التاريخ</th><th>البيانات</th><th class="dfc3">المبلغ</th></tr></thead><tbody>${body||`<tr><td colspan="3" class="muted" style="text-align:center;padding:22px">ماكو حركات بـ${p.length===4?'سنة '+p:monName(p)}</td></tr>`}</tbody>
+   <tfoot><tr><th colspan="2">مجموع المصروفات — ${p.length===4?'سنة '+p:monName(p)}</th><th class="num">${iqd(tOut)}</th></tr>${tIn?`<tr><th colspan="2">مجموع الوارد</th><th class="num dfin">${iqd(tIn)}</th></tr>`:''}</tfoot></table></div>
+   <div class="acts" style="margin-top:10px"><button class="btn" data-a="dfXlsx">تنزيل Excel بنفس الشكل</button><button class="btn" data-a="dfPrint">طباعة</button>${w?`<button class="btn ghost" data-a="cashImp">رفع ملفات Excel</button>`:''}</div>`}
+async function dfAdd(e){e.preventDefault();const b=$('#dfS');const a=cashAmt($('#dfA').value),n=$('#dfN').value.replace(/\s+/g,' ').trim(),d=$('#dfDt').value,k=$('#dfK').value;
+  if(!n||!(a>0)||!d){toast('اكتب البيان والمبلغ');return}b.disabled=true;
+  const r=await sb.from('cash').insert({branch:curBranch(),by_uid:S.me.id,day:d,kind:k,amount:Math.round(a),category:k==='in'?'أخرى':cashGuessCat(n),note:n});
+  if(r.error){toast('تعذر: '+r.error.message);b.disabled=false;return}
+  S.dfLastDay=d;if(!d.startsWith(dfPeriod()))S.dfP=d.slice(0,7);await cashLoad();render();setTimeout(()=>$('#dfN')?.focus(),30)}
+async function dfXlsx(){let X;try{X=await loadXLSX()}catch(e){toast(e.message);return}
+  const p=dfPeriod(),rows=dfRows().filter(c=>!c.voided),aoa=[[`حركة الحسابات لسنة${p.slice(0,4)}`+(curBranch()!=='mansour'?' — '+brName():'')],[],['التاريخ','البيانات','المبلغ']];let sum=0;
+  rows.forEach((c,i)=>{const dt=new Date(c.day+'T00:00:00Z');aoa.push([dt,(c.kind==='in'?'وارد: ':'')+(c.note||''),c.kind==='in'?-(+c.amount):+c.amount]);if(c.kind==='out')sum+=+c.amount;
+    if(!rows[i+1]||rows[i+1].day!==c.day){aoa.push([dt,'مجموع المصروفات',sum]);sum=0}});
+  const ws=X.utils.aoa_to_sheet(aoa,{cellDates:true});ws['!cols']=[{wch:12},{wch:70},{wch:18}];ws['!views']=[{RTL:true}];
+  Object.keys(ws).forEach(k=>{if(k[0]==='!')return;const c=ws[k];if(c.t==='d')c.z='dd/mm/yyyy';if(c.t==='n')c.z='#,##0'});
+  const wb=X.utils.book_new();wb.Workbook={Views:[{RTL:true}]};X.utils.book_append_sheet(wb,ws,'ورقة1');X.writeFile(wb,`حركة الحسابات ${p} ${brName()}.xlsx`)}
+function dfPrint(){const p=dfPeriod(),t=$('.dftbl');if(!t)return;const f=document.createElement('iframe');f.style.cssText='position:fixed;left:0;bottom:0;width:1px;height:1px;border:0;opacity:0';document.body.appendChild(f);
+  const d=f.contentDocument;d.open();d.write(`<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>حركة الحسابات</title><style>body{font-family:Arial,sans-serif;margin:10mm;font-size:11pt}h1{font-size:15pt;background:#ff0;display:inline-block;padding:2px 10px;margin:0 0 8px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:3px 6px;font-weight:700;vertical-align:top}th{background:#eee}td:first-child,td:last-child{white-space:nowrap}td:last-child,th:last-child{text-align:left}.dfsub td{background:#92d050;color:#f00}.dfvoid{text-decoration:line-through;color:#888}.dfin{color:#0a7a2f}.pill{display:none}</style></head><body><h1>حركة الحسابات لسنة${p.slice(0,4)}</h1> <span>${esc(brName())} — ${p.length===4?'سنة '+p:monName(p)}</span>${t.outerHTML}</body></html>`);d.close();
+  setTimeout(()=>{try{f.contentWindow.focus();f.contentWindow.print()}catch(e){toast('تعذر فتح الطباعة')}setTimeout(()=>f.remove(),60000)},400)}
+document.addEventListener('submit',e=>{if(e.target.id==='dfF')dfAdd(e)});
+document.addEventListener('change',e=>{if(e.target.id==='dfP'){S.dfP=e.target.value;render()}});
+document.addEventListener('input',e=>{if(e.target.id==='dfA'){const t=e.target,d=normDigits(t.value).replace(/\D/g,'');t.value=d?nf.format(+d):''}});
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;if(el.dataset.a==='dfXlsx')dfXlsx();else if(el.dataset.a==='dfPrint')dfPrint()});
+
 function cashCsv(){const list=cashFiltered();const m=S.cashM===undefined?bgDay().slice(0,7):S.cashM;
   csvDownload('الصندوق-'+brName()+'-'+(m||'الكل')+'.csv',[['التاريخ','النوع','المبلغ','الفئة','الجهة','البيان','رقم الوصل','دولار','سعر الصرف','الحالة'],
     ...list.map(c=>[c.day,c.kind==='in'?'وارد':'مصروف',c.amount,c.category,c.party||'',c.note||'',c.ref||'',c.usd||'',c.rate||'',c.voided?'ملغاة: '+(c.void_reason||''):''])])}
