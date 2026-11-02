@@ -791,17 +791,22 @@ const canApprove=()=>['owner','admin1','admin2','project'].includes(S.me?.role);
 const pendingStaff=()=>S.staff.filter(p=>p.status==='pending');
 function approvalsView(){
   const ps=pendingStaff();
-  let h=`<div class="filters"><button class="btn pri" data-a="apScan">مسح باركود موظف جديد</button></div>`;
+  let h=`<div class="filters"><button class="btn pri" data-a="apScan">مسح باركود موظف جديد</button><button class="btn" data-a="apCode">إدخال كود التسجيل</button></div>`;
   if(!ps.length)return h+`<div class="empty"><b>لا توجد طلبات انضمام</b>عندما يسجّل موظف جديد يظهر هنا، ويتفعّل حسابه بموافقة مدير المشروع: بمسح الباركود الظاهر على شاشته أو بزر التفعيل. موافقة الإداري تُسجَّل كتوصية.</div>`;
   return h+`<div class="list">${ps.map(p=>`<div class="nc"><div class="nh"><b>${esc(p.full_name||'')}</b><span class="pill p-warn">بانتظار الموافقة</span></div><div class="meta"><span>${esc(ROLES[p.role]?.name||p.role)}</span><span class="num">${esc(p.phone||p.username)}</span></div>
    <div class="appr"><span class="${p.admin_ok?'yes':''}">${p.admin_ok?'✓':'○'} الإداري${p.admin_ok&&S.names[p.admin_ok]?' ('+esc(S.names[p.admin_ok].name)+')':''}</span><span class="${p.project_ok?'yes':''}">${p.project_ok?'✓':'○'} مدير المشروع${p.project_ok&&S.names[p.project_ok]?' ('+esc(S.names[p.project_ok].name)+')':''}</span></div>
    ${['project','owner'].includes(S.me?.role)?`<div class="acts" style="margin-top:8px"><button class="btn sm ok" data-a="pendOk" data-v="${p.id}">تفعيل الحساب</button><button class="btn sm bad" data-a="pendNo" data-v="${p.id}">رفض</button>${isOwner()?`<button class="btn sm" data-a="accEdit" data-v="${p.id}">تعديل</button>`:''}</div>`:''}</div>`).join('')}</div>`}
-function apScan(){openScanner('مسح باركود موظف','امسح الباركود الظاهر على شاشة الموظف الجديد بعد التأكد من هويته.',async txt=>{
+async function apApprove(txt){
   const code=normDigits(txt).replace(/^MCS:/,'').trim().toUpperCase();
   const {data,error}=await sb.rpc('approve_staff',{p_code:code});
   if(error){toast('تعذر: '+error.message);closeOv();return}
-  if(!data.ok){toast({not_found:'الباركود غير معروف',already:'هذا الحساب مفعّل مسبقاً'}[data.reason]||'لم يتم');closeOv();return}
-  await loadAll('staff');closeOv();render();toast(data.activated?`تفعّل حساب ${data.name}`:`سُجّلت توصيتك على ${data.name}. التفعيل بيد مدير المشروع`)})}
+  if(!data.ok){toast({not_found:'الكود غير معروف',already:'هذا الحساب مفعّل مسبقاً'}[data.reason]||'لم يتم');closeOv();return}
+  await loadAll('staff');closeOv();render();toast(data.activated?`تفعّل حساب ${data.name}`:`سُجّلت توصيتك على ${data.name}. التفعيل بيد مدير المشروع`)}
+function apScan(){openScanner('مسح باركود موظف','امسح الباركود الظاهر على شاشة الموظف الجديد بعد التأكد من هويته.',apApprove)}
+function apCode(){overlay('apcode','إدخال كود التسجيل',`<form class="f" id="fApC"><p class="muted" style="margin:0">اكتب الكود (8 أحرف وأرقام) الظاهر على شاشة الموظف الجديد تحت الباركود، أو اللي دزه إلك.</p>
+   <input id="apC" class="in num" dir="ltr" maxlength="12" autocomplete="off" autocapitalize="characters" placeholder="مثال: K7M2Q9XA" style="font-size:22px;letter-spacing:3px;text-align:center" required>
+   <div class="acts"><button class="btn pri" type="submit" id="apCS">تفعيل</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
+  $('#apC').focus();$('#fApC').addEventListener('submit',async e=>{e.preventDefault();$('#apCS').disabled=true;await apApprove($('#apC').value.replace(/\s+/g,''))})}
 /* registration */
 function registerView(){
   const roleOpts=Object.entries(ROLES).filter(([k,r])=>(!r.crew||k==='buyer'||k==='driver'||k==='foreman')&&!r.legacy&&!r.ext).map(([k,r])=>`<label class="rpick"><input type="radio" name="rRole" value="${k}"><span class="mono">${r.mono}</span><span>${r.name}</span></label>`).join('');
@@ -823,8 +828,8 @@ function bindRegister(){const f=$('#fReg');if(!f)return;f.addEventListener('subm
   if(le){err.textContent='تم التسجيل. سجّل الدخول برقمك.';S.authTab='login';render();return}
   await afterLogin()})}
 function pendingView(){const me=S.me;
-  return`<section class="gate"><div class="gcard"><h2>بانتظار الموافقة</h2><p>أهلاً ${esc(me.full_name||'')}. سجّلت بصفة <b>${esc(ROLES[me.role]?.name||me.role)}</b>. اعرض هذا الباركود على مدير المشروع ليمسحه ويفعّل حسابك.</p>
-   <div class="qr" style="max-width:240px;width:100%">${S.myCode?qrSvg('MCS:'+S.myCode,6):'<div class="note">جارِ التحميل…</div>'}</div>${S.myCode?`<div class="rcdig num">${esc(S.myCode)}</div>`:''}
+  return`<section class="gate"><div class="gcard"><h2>بانتظار الموافقة</h2><p>أهلاً ${esc(me.full_name||'')}. سجّلت بصفة <b>${esc(ROLES[me.role]?.name||me.role)}</b>. اعرض هذا الباركود على مدير المشروع ليمسحه، أو دزله <b>كود التسجيل</b> المكتوب تحته حتى يدخله ويفعّل حسابك.</p>
+   <div class="qr" style="max-width:240px;width:100%">${S.myCode?qrSvg('MCS:'+S.myCode,6):'<div class="note">جارِ التحميل…</div>'}</div>${S.myCode?`<div class="small muted" style="margin-top:6px">كود التسجيل</div><div class="rcdig num">${esc(S.myCode)}</div>`:''}
    <div class="appr"><span class="${me.project_ok?'yes':''}">${me.project_ok?'✓':'○'} موافقة مدير المشروع</span>${me.admin_ok?'<span class="yes">✓ توصية الإداري</span>':''}</div>
    <div class="acts" style="justify-content:center"><button class="btn" data-a="recheck">تحديث</button><button class="btn ghost" data-a="logout">خروج</button></div></div></section>`}
 
@@ -2548,6 +2553,7 @@ document.addEventListener('click',async e=>{
     case'rcIssue':if(cur)await rcIssue(cur);break;
     case'rcScan':if(cur)rcScan(cur);break;
     case'apScan':apScan();break;
+    case'apCode':apCode();break;
     case'bell':pushHist();S.tab='notif';closeOv();render();scrollTo(0,0);break;
     case'markSeen':setSeen();render();break;
     case'sysNotif':try{const p=await Notification.requestPermission();toast(p==='granted'?'تم تفعيل التنبيهات':'لم يُسمح بالتنبيهات')}catch(x){}render();break;
