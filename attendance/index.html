@@ -2447,7 +2447,7 @@ function unitsView(){if(!S.units)return`<div class="empty"><b>جارِ التح�
   const list2=list.filter(u=>q||f||!(u.building&&u.floor&&T.includes(u.building)));
   if(!list2.length)return h+`<div class="empty"><b>ماكو وحدات هنا</b></div>`;
   return h+`<div class="ugrid">${list2.map(u=>{const st=UST[u.status],k=(S.contracts||[]).find(c=>c.unit_id===u.id&&!['cancelled','done'].includes(c.status)&&!(c.kind==='rent'&&u.status!=='rented'));
-    return`<button class="ucard s-${u.status}" data-a="uOpen" data-v="${u.id}"><b>${esc(u.code)}</b>${u.share==='investor'?'<span class="pill p-info">حصة المستثمر</span>':''}<span class="small">${esc(u.kind)}${u.building?' · '+esc(u.building):''}${u.floor?' · ط'+esc(u.floor):''}</span><span class="num small">${nf.format(+u.area)} م² · ${iqd(u.area*u.price_m)}</span><span class="pill p-${st[1]}">${st[0]}</span>${k?`<span class="small muted">${esc(k.name)}</span>`:''}</button>`}).join('')}</div>`}
+    return`<button class="ucard s-${u.status}" data-a="uOpen" data-v="${u.id}"><b>${esc(u.code)}</b>${u.share==='investor'?'<span class="pill p-info">حصة المستثمر</span>':''}<span class="small">${esc(u.kind)}${u.building?' · '+esc(u.building):''}${u.floor?' · ط'+esc(u.floor):''}</span><span class="num small">${nf.format(+u.area)} م² · ${k&&k.kind==='sale'&&+k.total?iqd(k.total)+(+k.total<u.area*u.price_m?' <s class="muted">'+iqd(u.area*u.price_m)+'</s>':''):iqd(u.area*u.price_m)}</span><span class="pill p-${st[1]}">${st[0]}</span>${k?`<span class="small muted">${esc(k.name)}</span>`:''}</button>`}).join('')}</div>`}
 function bookView(kind){const all=(S.contracts||[]).filter(c=>c.kind===kind);if(!S.contracts)return`<div class="empty"><b>جارِ التحميل…</b></div>`;
   const f=S['kF'+kind]??'open',q=(S.kQ||'').trim(),w=writesSales();
   const list=all.filter(c=>(f==='all'||(f==='open'?!['cancelled','done'].includes(c.status):f==='late'?kState(c).over>0&&c.status!=='cancelled':c.status===f))&&(!q||[c.name,c.phone,unitOf(c.unit_id)?.code].join(' ').includes(q)));
@@ -2486,7 +2486,7 @@ function planSet(){const p=plan0();const F=(id,l,v)=>`<label class="l">${l}<inpu
   overlay('plan','خطة الدفع الافتراضية',`<form class="f" id="fPl"><div class="fr">${F('plPm','سعر المتر',p.price_m)}${F('plD','المقدمة',p.down)}</div><div class="fr">${F('plH','دفعة الاستلام',p.handover)}${F('plM','القسط الشهري',p.monthly)}</div><div class="fr">${F('plB','عدد الأشهر الأساسي',p.base)}${F('plX','أقصى عدد أشهر',p.max)}</div>
    <p class="note">إذا المقدمة أقل، الأشهر تزيد لحد «أقصى عدد أشهر»، وبعدها القسط الشهري يرتفع.</p><div class="acts"><button class="btn pri" type="submit">حفظ</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
   $('#fPl').addEventListener('submit',async e=>{e.preventDefault();const g=id=>cashAmt($('#'+id).value)||0;await putSettings({sales:{price_m:g('plPm'),down:g('plD'),handover:g('plH'),monthly:g('plM'),base:g('plB'),max:g('plX')}});closeOv();toast('انحفظت')})}
-function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const av=(S.units||[]).filter(u=>u.status==='available'||u.id===unitId||u.id===c0?.unit_id);
+function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const DRE=/(?:^|\s*·\s*)خصم [\d,]+ من [\d,]+(?: \([^)]*\))?(?: — ([^·]*))?/;const dm=(c0?.notes||'').match(DRE),notes0=(c0?.notes||'').replace(DRE,'').replace(/^\s*·\s*/,'').trim(),why0=(dm?.[1]||'').trim();const av=(S.units||[]).filter(u=>u.status==='available'||u.id===unitId||u.id===c0?.unit_id);
   if(!av.length){toast('ماكو وحدات متاحة. ضيف وحدة أول.');return}
   const u0=unitOf(unitId||c0?.unit_id)||av[0];const M=(id,l,v,h)=>`<label class="l">${l}${h?` <em>${h}</em>`:''}<input id="${id}" class="in num" dir="ltr" inputmode="numeric" value="${v?nf.format(v):''}"></label>`;
   overlay('book',edit?'تعديل الحجز':'حجز جديد',`<form class="f" id="fBk">
@@ -2494,7 +2494,7 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const av=(S.units||[]).fi
    <label class="l"><span id="bkUL">الشقة</span><select id="bkU" class="in"></select></label>
    <div class="fr"><label class="l">اسم المشتري<input id="bkN" class="in" required maxlength="80" value="${esc(c0?.name||'')}"></label><label class="l">الهاتف<input id="bkPh" class="in num" dir="ltr" inputmode="tel" placeholder="07xxxxxxxxx" value="${esc(c0?.phone||'')}"></label></div>
    <div class="fr">${M('bkA','المساحة م²',+u0.area)}${M('bkPm','سعر المتر',+u0.price_m||p.price_m)}</div>
-   <div class="fr">${M('bkDs','الخصم',0,'(اختياري)')}<label class="l">سبب الخصم<input id="bkDr" class="in" maxlength="120" placeholder="مثال: دفع نقدي، عرض"></label></div>
+   <div class="fr"><label class="l">نوع الخصم<select id="bkDk" class="in"><option value="amt">مبلغ من السعر الكلي</option><option value="pct">نسبة %</option><option value="m">على سعر المتر</option></select></label><label class="l">الخصم <em>(اختياري)</em><input id="bkDs" class="in num" dir="ltr" inputmode="decimal" placeholder="0"></label></div><div class="fr"><label class="l">سبب الخصم<input id="bkDr" class="in" maxlength="120" placeholder="مثال: دفع نقدي، عرض" value="${esc(why0)}"></label></div>
    ${M('bkT','السعر بعد الخصم',c0?.total||Math.round(u0.area*(u0.price_m||p.price_m)))}<p class="small muted" id="bkBase" style="margin:-6px 0 0"></p>
    <div class="fr">${M('bkD','المقدمة',c0?.down??p.down)}${M('bkH','دفعة الاستلام',c0?.handover??p.handover)}</div>
    <div class="acts" style="margin:-4px 0 0;gap:6px"><button type="button" class="btn sm ghost" id="bkDsp">✂ تقسيم المقدمة على دفعات</button><button type="button" class="btn sm ghost" id="bkHsp">✂ تقسيم الاستلام على دفعات</button></div><div id="bkDP"></div><div id="bkHP"></div>
@@ -2503,15 +2503,21 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const av=(S.units||[]).fi
    <div class="sec" id="bkCalc" style="margin:4px 0"></div>
    <div class="fr"><label class="l">الحالة<select id="bkSt" class="in">${(edit?['reserved','active','delivered','done']:['reserved','active']).map(k=>`<option value="${k}" ${(c0?.status||'reserved')===k?'selected':''}>${KST[k][0]}</option>`).join('')}</select></label>
    ${edit?'':`<label class="l">مبلغ مستلم الآن <em>(عربون أو المقدمة)</em><input id="bkPay" class="in num" dir="ltr" inputmode="numeric" placeholder="0"></label>`}</div>
-   <label class="l">ملاحظات<input id="bkNo" class="in" maxlength="400" value="${esc(c0?.notes||'')}" placeholder="مثال: كفيل، اتفاق خاص…"></label>
+   <label class="l">ملاحظات<input id="bkNo" class="in" maxlength="400" value="${esc(notes0)}" placeholder="مثال: كفيل، اتفاق خاص…"></label>
    <div class="err" id="bkE"></div><div class="acts"><button class="btn pri" type="submit">${edit?'حفظ':'تسجيل الحجز'}</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
   const v=id=>cashAmt($('#'+id)?.value)||0;
-  const base=()=>Math.round((+normDigits($('#bkA').value)||0)*v('bkPm'));const setT=()=>{$('#bkT').value=nf.format(Math.max(0,base()-v('bkDs')));const d=base()-v('bkT');$('#bkBase').textContent='السعر الأساسي '+iqd(base())+(d>0?' · خصم '+iqd(d)+' ('+(d/base()*100).toFixed(1)+'%)':'')};
+  const area=()=>+normDigits($('#bkA').value).replace(/,/g,'')||0,base=()=>Math.round(area()*v('bkPm'));
+  const disc=()=>{const x=+normDigits($('#bkDs').value).replace(/[^\d.]/g,'')||0,k=$('#bkDk').value,b=base();return Math.max(0,Math.min(b,Math.round(k==='pct'?b*Math.min(x,100)/100:k==='m'?x*area():x)))};
+  const baseTxt=()=>{const b=base(),d=b-v('bkT'),x=+normDigits($('#bkDs').value).replace(/[^\d.]/g,'')||0,k=$('#bkDk').value;
+    $('#bkBase').innerHTML='السعر الأساسي '+iqd(b)+(d>0?` · <b style="color:var(--ok)">خصم ${iqd(d)} (${(d/b*100).toFixed(1)}%${k==='m'&&x?' — '+iqd(x)+' بالمتر':''})</b>`:d<0?` · <b style="color:var(--warn)">أعلى من الأساسي بـ ${iqd(-d)}</b>`:'')+(k==='amt'&&x>0&&x<1000?' <b style="color:var(--bad)">— الرقم صغير، إذا تقصد نسبة اختار «نسبة %»</b>':'')};
+  const setT=()=>{$('#bkT').value=nf.format(Math.max(0,base()-disc()));baseTxt()};
   const calc=()=>{const c=planCalc(v('bkT'),v('bkD'),v('bkH'),v('bkM')||p.monthly,p.max);const el=$('#bkCalc');
     if(v('bkD')+v('bkH')>v('bkT')){el.innerHTML='<div class="err">المقدمة ودفعة الاستلام أكثر من السعر</div>';return c}
     el.innerHTML=`<div class="small" style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px"><span class="muted">المتبقي للأقساط</span><b class="num">${iqd(c.rest)}</b><span class="muted">عدد الأقساط</span><b class="num">${c.months} شهر${c.months>p.base?` <span class="pill p-warn">تمديد ${c.months-p.base} شهر</span>`:''}</b><span class="muted">القسط الشهري</span><b class="num">${iqd(c.monthly)}${c.ext?' <span class="pill p-bad">ارتفع لأن الأشهر وصلت '+p.max+'</span>':''}</b>${c.months>1&&c.last!==c.monthly?`<span class="muted">آخر قسط</span><b class="num">${iqd(c.last)}</b>`:''}<span class="muted">المدة الكلية</span><b class="num">${(c.months/12).toFixed(1)} سنة · ينتهي ${c.months?dayName(addMD($('#bkS').value||addMD(bgDay(),1),c.months-1)):'—'}</b></div>`;return c};
   const fmt=e=>{const d=normDigits(e.target.value).replace(/\D/g,'');e.target.value=d?nf.format(+d):''};
-  ['bkPm','bkT','bkD','bkH','bkM','bkPay','bkDs'].forEach(id=>$('#'+id)?.addEventListener('input',e=>{if(id!=='bkA')fmt(e);if(id==='bkPm'||id==='bkDs')setT();else if(id==='bkT'){const d=base()-v('bkT');$('#bkBase').textContent='السعر الأساسي '+iqd(base())+(d>0?' · خصم '+iqd(d)+' ('+(d/base()*100).toFixed(1)+'%)':'')}calc()}));
+  ['bkPm','bkT','bkD','bkH','bkM','bkPay','bkDs'].forEach(id=>$('#'+id)?.addEventListener('input',e=>{if(id==='bkDs'){if($('#bkDk').value!=='pct')fmt(e);else e.target.value=normDigits(e.target.value).replace(/[^\d.]/g,'')}else fmt(e);
+    if(id==='bkPm'||id==='bkDs')setT();else if(id==='bkT'){const d=base()-v('bkT');$('#bkDk').value='amt';$('#bkDs').value=d>0?nf.format(d):'';baseTxt()}calc()}));
+  $('#bkDk').addEventListener('change',()=>{$('#bkDs').value='';setT();calc();$('#bkDs').focus()});
   $('#bkA').addEventListener('input',()=>{setT();calc()});
   const bOf=u=>u.building&&u.floor?u.building:'';const Bs=[...new Set(av.map(bOf))].sort(nsort);
   const fill=(sel,opts,val)=>{sel.innerHTML=opts.map(([v,t])=>`<option value="${esc(v)}" ${v===val?'selected':''}>${esc(t)}</option>`).join('')};
@@ -2523,7 +2529,7 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const av=(S.units||[]).fi
   $('#bkB').addEventListener('change',()=>{drawB($('#bkB').value);$('#bkU').dispatchEvent(new Event('change'))});
   $('#bkF').addEventListener('change',()=>{drawB($('#bkB').value,$('#bkF').value);$('#bkU').dispatchEvent(new Event('change'))});
   $('#bkU').addEventListener('change',()=>{const u=unitOf($('#bkU').value);if(!u)return;$('#bkA').value=nf.format(+u.area);$('#bkPm').value=nf.format(+u.price_m||p.price_m);setT();calc()});
-  $('#bkS').addEventListener('change',calc);if(!edit)setT();else $('#bkBase').textContent='السعر الأساسي '+iqd(base());calc();
+  $('#bkS').addEventListener('change',calc);if(!edit)setT();else{const d=base()-(+c0.total||0);if(d>0)$('#bkDs').value=nf.format(d);baseTxt()}calc();
   /* تقسيم المقدمة / الاستلام على أكثر من دفعة */
   const cp=k=>{const P=c0?.parts?.[k];return Array.isArray(P)&&P.length>1?P.map(x=>({a:+x.a||0,m:fullD(x.m)||''})):null};
   const PT={down:cp('down'),hand:cp('hand')},PC={down:{n:PT.down?.length||3,iv:1,st:PT.down?.[0]?.m||$('#bkSd').value||bgDay()},hand:{n:PT.hand?.length||2,iv:1,st:PT.hand?.[0]?.m||''}};
@@ -2547,7 +2553,7 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const av=(S.units||[]).fi
   const ptCheck=()=>{for(const k of ['down','hand']){if(!PT[k])continue;const nm=k==='down'?'المقدمة':'دفعة الاستلام';if(PT[k].some(x=>!(+x.a>0)))return'كل دفعة من تقسيم '+nm+' لازم بيها مبلغ';
       if(PT[k].reduce((a,x)=>a+x.a,0)!==ptAmt(k))return'مجموع دفعات '+nm+' لازم يساوي '+iqd(ptAmt(k));if(k==='down'&&PT[k].some(x=>!x.m))return'حدد تاريخ كل دفعة من المقدمة'}return''};
   $('#fBk').addEventListener('submit',async e=>{e.preventDefault();const c=calc();if(v('bkD')+v('bkH')>v('bkT')||!(v('bkT')>0))return;
-    const o={unit_id:$('#bkU').value,name:$('#bkN').value.trim(),phone:normDigits($('#bkPh').value).replace(/\D/g,'')||null,notes:[$('#bkNo').value.trim(),!edit&&base()-v('bkT')>0?`خصم ${iqd(base()-v('bkT'))} من ${iqd(base())}${$('#bkDr').value.trim()?' — '+$('#bkDr').value.trim():''}`:''].filter(Boolean).join(' · ')||null,total:v('bkT'),down:v('bkD'),handover:v('bkH'),monthly:c.monthly,months:c.months,start_month:$('#bkS').value||addMD(bgDay(),1),signed_on:$('#bkSd').value||bgDay(),status:$('#bkSt').value};
+    const o={unit_id:$('#bkU').value,name:$('#bkN').value.trim(),phone:normDigits($('#bkPh').value).replace(/\D/g,'')||null,notes:[$('#bkNo').value.trim(),base()-v('bkT')>0?`خصم ${iqd(base()-v('bkT'))} من ${iqd(base())} (${((base()-v('bkT'))/base()*100).toFixed(1)}%)${$('#bkDr').value.trim()?' — '+$('#bkDr').value.trim().replace(/·/g,'-'):''}`:''].filter(Boolean).join(' · ')||null,total:v('bkT'),down:v('bkD'),handover:v('bkH'),monthly:c.monthly,months:c.months,start_month:$('#bkS').value||addMD(bgDay(),1),signed_on:$('#bkSd').value||bgDay(),status:$('#bkSt').value};
     const pe=ptCheck();if(pe){$('#bkE').textContent=pe;return}o.parts=PT.down||PT.hand?{...(PT.down?{down:PT.down.map(x=>({a:+x.a,m:x.m||''}))}:{}),...(PT.hand?{hand:PT.hand.map(x=>({a:+x.a,m:x.m||''}))}:{})}:c0?.parts?.down?.length===1&&+c0.parts.down[0].a===v('bkD')?{down:c0.parts.down}:null;
     let r;if(edit)r=await sb.from('contracts').update(o).eq('id',c0.id).select().single();else r=await sb.from('contracts').insert({...o,kind:'sale',branch:curBranch()}).select().single();
     if(r.error){$('#bkE').textContent=r.error.message;return}const k=r.data;
