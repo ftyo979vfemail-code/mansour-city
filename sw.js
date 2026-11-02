@@ -1,6 +1,6 @@
 // Mansour system — push notifications
 // + offline app shell so the timekeeper can open the app on site without signal
-const CACHE = 'mansour-shell-v2';
+const CACHE = 'mansour-shell-v1';
 const SHELL = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 const CDN = /^https:\/\/(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 self.addEventListener('install', (e) => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {})); });
