@@ -660,9 +660,9 @@ async function loadAll(which){
   if(want('notifications')&&seesNotifs()){const {data}=await sb.from('notifications').select('id,kind,data,created_at').order('id',{ascending:false}).limit(200);const prevTop=S.notifs[0]?.id||0;S.notifs=data||[];if(which==='notifications')S.notifs.filter(n=>n.id>prevTop).forEach(sysNotify)}
   if(want('staff')){const {data}=await sb.from('staff').select('id,full_name,role,active,status,admin_ok,project_ok,hidden,manager_id,machine_id,created_at,company,specialty,att_team,branch,branches,cur_branch');S.staff=data||[];try{const {data:c}=await sb.rpc('staff_contacts');const cm={};(c||[]).forEach(x=>cm[x.id]=x);S.staff.forEach(p=>{if(cm[p.id]){p.username=cm[p.id].username;p.phone=cm[p.id].phone}})}catch(e){}S.staff.forEach(p=>S.names[p.id]={name:p.full_name||p.username||'—'})}
   if(want('invoices')&&(INVC_ROLES.includes(S.me?.role)||EXP_ROLES.includes(S.me?.role)||S.me?.role==='owner')){const {data}=await sb.from('invoices').select('id,wh,data').order('created_at',{ascending:false}).limit(1000);S.invoices=(data||[]).map(d=>({...d.data,id:d.id,wh:d.wh}))}
-  if(want('cash')&&seesCash())await cashLoad();
-  if((want('units')||want('contracts'))&&seesSales())await salesLoad();
-  if(!which&&seesAtt())await attLoad();
+  if(want('cash')&&seesCash())try{await cashLoad()}catch(e){console.warn(e)}
+  if((want('units')||want('contracts'))&&seesSales())try{await salesLoad()}catch(e){console.warn(e)}
+  if(!which&&seesAtt())try{await attLoad()}catch(e){console.warn(e)}
   if(want('staff_locations')&&seesReps()){const {data}=await sb.from('staff_locations').select('id,lat,lng,acc,at');S.locs=data||[]}
   await signAll()}
 let rtTimers={};
@@ -1955,7 +1955,8 @@ function render(){
   if(S.mode==='loading')h+=`<div class="empty"><b>جارِ التحميل…</b>${ATT_ONLY?'تحميل العمال والدوام':'تحميل الطلبات والمخزون'}</div>`;
   else if(S.mode==='login')h+=ATT_ONLY?attGateView():loginView();
   else if(S.me&&S.me.status==='pending')h+=ATT_ONLY&&isExt()?attExtPending():pendingView();
-  else if(!S.me||!S.me.active||(!isOwner()&&!ROLES[S.me.role]))h+=noRoleView();
+  else if(!S.me)h+=ATT_ONLY?attGateView():loginView();
+  else if(!S.me.active||(!isOwner()&&!ROLES[S.me.role]))h+=noRoleView();
   else if(ATT_ONLY)h+=attOnlyHome();
   else if(isExt())h+=`<section class="gate"><div class="gcard"><img src="${LOGO}" alt="" class="glogo"><h2>حسابك للمتابعة عن بعد</h2><p>حساب ${esc(ROLES[S.me.role]?.name||'')} يشتغل بموقع حضور العمال فقط.</p><a class="btn pri" href="attendance/">فتح موقع الحضور</a><button class="btn ghost" data-a="logout">خروج</button></div></section>`;
   else if(isOwner()&&S.view==='accounts')h+=accountsView();
@@ -3868,7 +3869,9 @@ async function afterLogin(){
   if(!me||!me.active){S.mode='db';render();return}
   if(me.role!=='owner'){S.role=me.role}else if(S.role&&!ROLES[S.role])S.role=null;
   if(me.hidden&&!S.role&&!S.view)S.view='dev';
-  await loadAll();S.mode='db';render();subscribe();checkPush();startTracking();if(seesAtt())attFlush();
+  try{await loadAll()}catch(e){toast('تعذر تحميل جزء من البيانات: '+(e.message||e))}
+  if(!S.me||S.me.id!==me.id)return; /* logged out while loading */
+  S.mode='db';render();subscribe();checkPush();startTracking();if(seesAtt())attFlush();
 }
 document.addEventListener('click',e=>{const f=$('#fab');if(f&&f.classList.contains('open')&&!f.contains(e.target))f.classList.remove('open')},true);
 document.addEventListener('click',e=>{/*fab-outside*/const f=$('#fab');if(f&&f.classList.contains('open')&&!f.contains(e.target))f.classList.remove('open')},true);
