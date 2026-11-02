@@ -23,3 +23,6 @@ alter policy inv_i on public.invoices with check ((branch = (select public.cur_b
 -- تقسيم المقدمة/الاستلام على أكثر من دفعة
 alter table public.contracts add column if not exists parts jsonb;
 -- (private.contract_log يسجل تغيير parts ضمن «خطة الدفع»)
+
+-- تاريخ الحجز/العقد الفعلي — الأقساط تستحق بنفس يوم start_month من كل شهر
+alter table public.contracts add column if not exists signed_on date default ((now() at time zone 'Asia/Baghdad')::date);
