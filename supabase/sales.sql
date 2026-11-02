@@ -11,3 +11,11 @@ alter policy cash_ins on public.cash with check (branch = (select public.cur_bra
 alter policy cash_upd on public.cash using (branch = (select public.cur_branch()) and (public.writes_cash() or (public.my_role() = 'sales' and by_uid = auth.uid())))
   with check (branch = (select public.cur_branch()) and (public.writes_cash() or (public.my_role() = 'sales' and kind = 'in' and category = 'إيرادات مبيعات')));
 alter policy inv_i on public.invoices with check ((branch = (select public.cur_branch())) and (created_by = auth.uid()) and sees_wh(wh) and public.my_role() not in ('accountant','sales'));
+
+-- ===== الوحدات والعقود (حجز/بيع بالأقساط + إيجار) — applied as migrations sales_units_contracts + contract_log_simplify =====
+-- tables: public.units (branch, code unique per branch, kind, building, floor, area, price_m, status)
+--         public.contracts (branch, unit_id, kind sale|rent, status reserved|active|delivered|done|cancelled, buyer/tenant,
+--                           total, down, handover, monthly, months, start_month | rent, deposit, rent_start, rent_end, log)
+--         public.cash.contract_id links every payment to its contract
+-- read: sales, owner, project, accountant, admin1, admin2 · write: sales, owner · delete unit: owner
+-- sales may record cash income in categories «إيرادات مبيعات» and «إيجارات» only
