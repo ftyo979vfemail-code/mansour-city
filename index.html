@@ -852,7 +852,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='7132f62cfa';
+const APP_BUILD='a5ca5fae1d';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -4263,21 +4263,26 @@ function startTracking(force){
   if(!tracks()||LOC.watch!==null)return;
   if(!navigator.geolocation){setLoc('na');return}
   LOC.state='wait';if(force)render();
-  LOC.watch=navigator.geolocation.watchPosition(onPos,e=>setLoc(e.code===1?'denied':'err'),{enableHighAccuracy:true,maximumAge:15000,timeout:45000});
+  LOC.watch=navigator.geolocation.watchPosition(onPos,locErr,{enableHighAccuracy:true,maximumAge:15000,timeout:45000});
   LOC.hb=setInterval(()=>{if(LOC.last&&document.visibilityState==='visible'&&Date.now()-LOC.sentAt>120000)sendLoc(LOC.last)},60000);
 }
-function stopTracking(){if(LOC.watch!==null)navigator.geolocation.clearWatch(LOC.watch);clearInterval(LOC.hb);LOC.watch=null;LOC.hb=null;LOC.state='off';LOC.last=null;LOC.sentPos=null}
+/* يشتغل وحده: إذا فشل يعيد المحاولة تلقائياً، وإذا انسمح الموقع بعدين يشتغل بدون زر */
+function locErr(e){if(e.code===1){setLoc('denied');locRestart(60000);return}if(LOC.state!=='on'||!LOC.last||Date.now()-LOC.last.t>120000)setLoc('err');locRestart(20000)}
+function locRestart(ms){clearTimeout(LOC.rt);LOC.rt=setTimeout(()=>{if(!tracks())return;if(LOC.watch!==null){navigator.geolocation.clearWatch(LOC.watch);clearInterval(LOC.hb);LOC.watch=null;LOC.hb=null}startTracking()},ms)}
+try{navigator.permissions?.query({name:'geolocation'}).then(ps=>{ps.onchange=()=>{if(ps.state==='granted'&&tracks()){if(LOC.watch!==null){navigator.geolocation.clearWatch(LOC.watch);clearInterval(LOC.hb);LOC.watch=null;LOC.hb=null}startTracking(true)}}}).catch(()=>{})}catch(e){}
+setInterval(()=>{if(!tracks())return;if(LOC.watch===null)startTracking();else if(LOC.state==='on'&&LOC.last&&Date.now()-LOC.last.t>180000&&document.visibilityState==='visible')navigator.geolocation.getCurrentPosition(onPos,()=>{},{enableHighAccuracy:true,maximumAge:20000,timeout:30000})},60000);
+function stopTracking(){clearTimeout(LOC.rt);if(LOC.watch!==null)navigator.geolocation.clearWatch(LOC.watch);clearInterval(LOC.hb);LOC.watch=null;LOC.hb=null;LOC.state='off';LOC.last=null;LOC.sentPos=null}
 function onPos(p){const c={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy||0),t:Date.now()};LOC.last=c;
   const moved=LOC.sentPos?meters(LOC.sentPos,c):1e9;if(moved>30||Date.now()-LOC.sentAt>60000)sendLoc(c);setLoc('on')}
 async function sendLoc(c){if(!tracks())return;LOC.sentAt=Date.now();LOC.sentPos=c;
   try{await sb.from('staff_locations').upsert({id:S.me.id,lat:c.lat,lng:c.lng,acc:c.acc,sharing:true});
     if(!LOC.trailPos||meters(LOC.trailPos,c)>80||Date.now()-LOC.trailAt>300000){LOC.trailAt=Date.now();LOC.trailPos=c;await sb.from('loc_trail').insert({uid:S.me.id,lat:c.lat,lng:c.lng,acc:c.acc})}}catch(e){}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&tracks()&&LOC.watch!==null)navigator.geolocation.getCurrentPosition(onPos,()=>{},{enableHighAccuracy:true,maximumAge:10000,timeout:30000})});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||!tracks())return;if(LOC.watch===null){startTracking();return}navigator.geolocation.getCurrentPosition(onPos,()=>{},{enableHighAccuracy:true,maximumAge:10000,timeout:30000})});
 function gpsBanner(){if(!tracks())return'';
   if(LOC.state==='on')return`<div class="banner gpsOn"><span class="gdot"></span><span><b>الـGPS شغّال</b> — ${REP_ROLES.includes(S.me?.role)?'موقعك يظهر لمدير المشروع والإدارة أثناء فتح التطبيق':'خلي التطبيق مفتوح بالطريق حتى ينسجّل مسار رحلتك'}${LOC.last?` · دقة <span class="num">${LOC.last.acc}</span> م`:''}</span></div>`;
   if(LOC.state==='denied')return`<div class="banner gpsBad"><span><b>الموقع مقفول</b> — لازم تسمح بالموقع حتى تشتغل. اضغط على 🔒 جنب الرابط ← الأذونات ← الموقع ← سماح، وبعدين اضغط «تشغيل».</span><button class="btn sm" data-a="locRetry">تشغيل الـGPS</button></div>`;
   if(LOC.state==='na')return`<div class="banner gpsBad"><span>هذا المتصفح ما يدعم تحديد الموقع. افتح الرابط من Chrome أو Safari.</span></div>`;
-  if(LOC.state==='err')return`<div class="banner gpsBad"><span>ما كدرنا نحدد موقعك. شغّل الموقع (GPS) من إعدادات الموبايل.</span><button class="btn sm" data-a="locRetry">إعادة المحاولة</button></div>`;
+  if(LOC.state==='err')return`<div class="banner gpsBad"><span>ما كدرنا نحدد موقعك — النظام يحاول وحده كل 20 ثانية. تأكد إن الموقع (GPS) مشغّل بالموبايل.</span></div>`;
   return`<div class="banner"><span>📍 جارِ تشغيل الـGPS… إذا طلع لك سؤال «السماح بالموقع» اختار <b>سماح</b>.</span></div>`}
 function autoGps(inId,noteId){const i=$('#'+inId),n=$('#'+noteId);if(!i||i.value.trim())return;
   const put=c=>{if(i.value.trim())return;i.value=c.lat+', '+c.lng;n.className='note ok';n.textContent='تم تحديد موقعك تلقائياً (دقة '+c.acc+' م)'};
