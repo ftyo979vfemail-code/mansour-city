@@ -853,7 +853,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='b85305b77a';
+const APP_BUILD='65a0dee983';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -1456,7 +1456,7 @@ function attPay(w,o){const c=attCfg(),wage=+w.wage||0;if(!wage)return null;
 
 /* ---- views ---- */
 function attTabsTK(){const t=bgDay(),un=S.att.workers.filter(w=>w.active&&!attRec(w.id,t)).length;
-  return[['round','جولة اليوم',isClosed(t)||isHoliday(t)?0:un],['sheets','حضور الفورمن',shPend()],['workers','العمال',0],['abs','الغيابات',0],['rep','التقارير',0]]}
+  return[['round','جولة اليوم',isClosed(t)||isHoliday(t)?0:un],['recs','السجلات',0],['sheets','حضور الفورمن',shPend()],['workers','العمال',0],['abs','الغيابات',0],['rep','التقارير',0]]}
 function attHomeTK(){const tabs=attTabsTK();if(!S.tab||!tabs.find(t=>t[0]===S.tab))S.tab='round';
   return pushBanner()+`<div class="head"><div><h2>مراقب الدوام</h2><p>${roleDesc('timekeeper')}</p></div></div>`+
    `<div class="tabs" role="tablist">${tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-a="tab" data-v="${k}">${t}${c?`<span class="c num">${c}</span>`:''}</button>`).join('')}</div>`+attBody(S.tab)}
@@ -1467,12 +1467,12 @@ function attOnlyHome(){
     return`<div class="head"><div><h2>متابعة عن بعد</h2><p>${esc(ROLES[S.me.role].name.split(' (')[0])}${me.company?' · '+esc(me.company):''} · عرض فقط: الحضور، الغيابات، التقارير</p></div></div>`+
      (co?(me.att_team?`<div class="banner" style="background:var(--info-soft);color:var(--info)">تشوف عمال فريق <b>${esc(me.att_team)}</b> فقط · <span class="num">${S.att.workers.length}</span> عامل</div>`:`<div class="banner">مدير المشروع ما حدد فريقك بعد، فما تشوف أي عامل لحد ما يحدده.</div>`):'')+attHub()}
   return pushBanner()+`<div class="head"><div><h2>حضور العمال</h2><p>${esc(ROLES[S.me.role]?.name||OWNER_NAME)} · الدوام اليومي، الغيابات، التقارير${attSeesAudit()?'، وسجل التعديلات':''}</p></div></div>`+attHub()}
-function attHub(){const subs=[['round','الدوام اليومي'],['workers','العمال'],['abs','الغيابات'],['rep','التقارير'],...(attSeesPay()?[['pay','الرواتب والخصومات']]:[]),...(attBoss()?[['sheets','حضور الفورمن'+(shPend()?' ('+shPend()+')':'')],['finger','رفع البصمة']]:[]),...(['project','hr','owner','admin1','admin2'].includes(S.me?.role)?[['join','مهندسين ومقاولين'+(attReqPending().length?' ('+attReqPending().length+')':'')]]:[]),...(attSeesAudit()?[['audit','سجل التعديلات']]:[])];
+function attHub(){const subs=[['round','الدوام اليومي'],['workers','العمال'],['abs','الغيابات'],['rep','التقارير'],...(attSeesPay()?[['pay','الرواتب والخصومات']]:[]),...(attBoss()?[['recs','السجلات'],['sheets','حضور الفورمن'+(shPend()?' ('+shPend()+')':'')],['finger','رفع البصمة']]:[]),...(['project','hr','owner','admin1','admin2'].includes(S.me?.role)?[['join','مهندسين ومقاولين'+(attReqPending().length?' ('+attReqPending().length+')':'')]]:[]),...(attSeesAudit()?[['audit','سجل التعديلات']]:[])];
   if(!subs.find(s=>s[0]===S.att.sub))S.att.sub='round';
   return`<div class="atsub" role="tablist">${ATT_ONLY?'':`<a class="btn sm ghost" href="attendance/" target="_blank" rel="noopener" title="موقع الحضور المستقل">↗ موقع الحضور</a>`}${subs.map(([k,t])=>`<button class="btn sm ${S.att.sub===k?'pri':''}" data-a="atSub" data-v="${k}">${t}</button>`).join('')}</div>`+attBody(S.att.sub)}
 function attBody(k){
   if(S.att.err&&!S.att.workers.length)return`<div class="empty"><b>تعذر تحميل بيانات الحضور</b>${esc(S.att.err)}<div class="row"><button class="btn" data-a="atReload">إعادة المحاولة</button></div></div>`;
-  return attQBanner()+(k==='workers'?attWorkersView():k==='abs'?attAbsView():k==='rep'?attRepView():k==='audit'?attAuditView():k==='join'?attReqView():k==='pay'?attPayView():k==='finger'?attFingerView():k==='sheets'?attSheetsView():attRoundView())}
+  return attQBanner()+(k==='workers'?attWorkersView():k==='abs'?attAbsView():k==='rep'?attRepView():k==='audit'?attAuditView():k==='join'?attReqView():k==='pay'?attPayView():k==='finger'?attFingerView():k==='sheets'?attSheetsView():k==='recs'?attRecsView():attRoundView())}
 function attQBanner(){const q=attQ(),bad=q.filter(x=>x.err),wait=q.length-bad.length;let h='';
   if(!navigator.onLine)h+=`<div class="banner atoff">📴 بدون إنترنت — كمّل التسجيل عادي، كل شي ينحفظ على الجهاز وينرفع تلقائياً.${wait?` <b class="num">(${wait})</b>`:''}</div>`;
   else if(wait)h+=`<div class="banner">⏳ <span><span class="num">${wait}</span> تسجيل بانتظار الرفع</span><button class="btn sm" data-a="atFlush">ارفع الآن</button></div>`;
@@ -2882,6 +2882,17 @@ async function fphAttRead(x,files,kind,loud){try{const images=[];for(const f of 
 async function fphAttFromStore(id){const x=(S.fphotos||[]).find(y=>y.id===id);if(!x)return;toast('جارِ قراءة الحضور من الصور…');
   try{const files=[];for(const r of (x.imgs||[]).slice(0,4)){if(!r.startsWith('s:'))continue;const {data}=await sb.storage.from('files').download(r.slice(2));if(data)files.push(data)}
     if(!files.length&&!(x.crew||[]).length){toast('ماكو صور أو أسماء');return}await fphAttRead(x,files,x.kind,true);render()}catch(e){toast('تعذرت القراءة: '+(e.message||e))}}
+/* «السجلات»: كل اللي يرفعه الفورمن (صور العمل والأوراق والجداول) عند مسؤول الإدارة */
+function attRecsView(){loadFph(Date.now()-(S._fphT||0)>60000);shLoad();const A=S.att,k=A.recK||'',from=A.recFrom||'',to=A.recTo||'',q=arn(A.recQ||'').trim();
+  const canT=['owner','hr'].includes(S.me?.role);
+  const L=(S.fphotos||[]).filter(x=>(canT||x.kind==='work')&&(!k||x.kind===k)).filter(x=>{const d=bgDay(x.at||x.createdAt||Date.now());return(!from||d>=from)&&(!to||d<=to)}).filter(x=>!q||arn([x.title,x.area,x.note,(x.crew||[]).join(' '),S.names[x.uid]?.name].join(' ')).includes(q));
+  const days={};L.forEach(x=>{const d=bgDay(x.at||x.createdAt||Date.now());(days[d]=days[d]||[]).push(x)});
+  return`<div class="sec" style="margin-top:12px"><h4 style="margin:0">🗂 السجلات — كل اللي يرفعه الفورمن</h4><p class="small muted" style="margin:6px 0 0">صور العمل والأوراق${canT?' والجداول':''} اللي ينزلها الفورمن تنزل هنا أول بأول. «🔎 اقرا الحضور» يقرا أسماء العمال منها ويسجّلهم بالحضور.</p>
+   <div class="filters" style="margin-top:8px"><select id="recK" class="in" style="flex:1 1 130px"><option value="">الكل (${(S.fphotos||[]).filter(x=>canT||x.kind==='work').length})</option><option value="work" ${k==='work'?'selected':''}>صور العمل</option>${canT?`<option value="table" ${k==='table'?'selected':''}>الأوراق والجداول</option>`:''}</select>
+   <input id="recFrom" class="in num" type="date" value="${from}" max="${bgDay()}" title="من" style="flex:1 1 130px"><input id="recTo" class="in num" type="date" value="${to}" max="${bgDay()}" title="إلى" style="flex:1 1 130px"><input id="recQ" class="in" type="search" placeholder="بحث: الشغل، المكان، الاسم" value="${esc(A.recQ||'')}" style="flex:2 1 180px"></div></div>
+   ${L.length?Object.entries(days).sort((a,b)=>a[0]<b[0]?1:-1).map(([d,xs])=>`<h4 style="margin:14px 0 6px">${dayName(d)} <span class="small muted">(${xs.length})</span></h4><div class="list">${xs.map(x=>fphCard(x).replace('<div class="t">',`<div class="t"><span class="pill p-${x.kind==='table'?'info':'accent'}">${x.kind==='table'?'ورقة / جدول':'صور العمل'}</span> `)).join('')}</div>`).join(''):`<div class="empty"><b>${(S.fphotos||[]).length?'ماكو سجلات بهالتصفية':'الفورمن ما رفع شي بعد'}</b></div>`}`}
+document.addEventListener('change',e=>{const t=e.target,A=S.att;if(t.id==='recK'){A.recK=t.value;render()}else if(t.id==='recFrom'){A.recFrom=t.value;render()}else if(t.id==='recTo'){A.recTo=t.value;render()}});
+document.addEventListener('input',e=>{if(e.target.id!=='recQ')return;S.att.recQ=e.target.value;clearTimeout(S._rqT);S._rqT=setTimeout(()=>{render();const i=$('#recQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)});
 /* واجهة الفورمن */
 function fSheetView(){shLoad();const mine=(S.sheets||[]).filter(x=>x.uid===S.me?.id);
   return`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">📝 ورقة الحضور</h3><p class="muted" style="margin:2px 0 0">صوّر ورقة أسماء العمال الحاضرين. الذكاء الاصطناعي يقرا الأسماء ويسجّلهم حاضرين عند مسؤول الإدارة تلقائياً.</p></div></div>
@@ -4248,7 +4259,7 @@ async function audAction(a,v){
 
 /* ===== foreman: schedule photos (owner only) + daily work photos with crew ===== */
 const FPK={table:['الجداول','📋'],work:['صور العمل','🏗']};
-async function loadFph(force){if(S._fphL&&!force)return;S._fphL=1;const {data}=await sb.from('field_photos').select('id,kind,uid,data,created_at').order('created_at',{ascending:false}).limit(500);
+async function loadFph(force){if(S._fphL&&!force)return;S._fphL=1;S._fphT=Date.now();const {data}=await sb.from('field_photos').select('id,kind,uid,data,created_at').order('created_at',{ascending:false}).limit(500);
   S.fphotos=(data||[]).map(r=>({...r.data,id:r.id,kind:r.kind,uid:r.uid}));await signAll();render()}
 function fphCard(x){return`<div class="card" style="cursor:default;align-items:flex-start"><div class="photos" style="flex:0 0 auto;margin:0;gap:6px;display:flex;flex-wrap:wrap;max-width:50%">${(x.imgs||[]).map(r=>imgTag(r,'thumb','')).join('')}</div>
   <div class="mid"><div class="t">${esc(x.title||FPK[x.kind][0])}</div><div class="meta"><span class="num">${dt(x.at)}</span>${x.area?`<span>📍 ${esc(x.area)}</span>`:''}<span>${esc(S.names[x.uid]?.name||'')}</span></div>${(x.crew||[]).length?`<div class="meta"><span>👷 الكادر: ${x.crew.map(esc).join('، ')}</span></div>`:''}${x.note?`<p class="small" style="margin:4px 0 0">${esc(x.note)}</p>`:''}</div>${['owner','project','hr'].includes(S.me?.role)?`<div class="end" style="display:flex;flex-direction:column;gap:6px">${(S.sheets||[]).some(s=>s.result?.fph===x.id)?'<span class="pill p-ok">✓ انقرا الحضور</span>':`<button class="btn sm" data-a="fphAtt" data-v="${esc(x.id)}">🔎 اقرا الحضور</button>`}${S.me?.role==='owner'?`<button class="btn sm ghost" data-a="fphDel" data-v="${esc(x.id)}">حذف</button>`:''}</div>`:''}</div>`}
