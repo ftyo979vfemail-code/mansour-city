@@ -853,7 +853,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='65a0dee983';
+const APP_BUILD='720e1ac505';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -2932,9 +2932,9 @@ function wiImport(){const inp=document.createElement('input');inp.type='file';in
       wiDraw()}catch(e){$('#ovroot .sh-b').innerHTML=`<div class="err">${esc(e.message)}</div>`}});inp.click()}
 function wiPlan(){const t=S.wi,col=k=>t.map.indexOf(k),g=(r,k)=>{const i=col(k);return i<0?'':String(r[i]??'').replace(/\s+/g,' ').trim()};
   const W=S.att.workers,byName=new Map(W.map(w=>[arn(w.name).replace(/\s+/g,' ').trim(),w])),byCode=new Map(W.filter(w=>w.code).map(w=>[String(w.code).trim().toLowerCase(),w]));
-  const R={add:[],upd:[],skip:[]},seen=new Set();
-  t.rows.forEach((r,ri)=>{const name=g(r,'name');if(name.length<2||/^\d+$/.test(name)){if(r.some(c=>String(c).trim()))R.skip.push([ri+1,'بدون اسم']);return}
-    const key=arn(name).replace(/\s+/g,' ').trim();if(seen.has(key)){R.skip.push([ri+1,name+' — مكرر بالملف']);return}seen.add(key);
+  const R={add:[],upd:[],skip:[],st:{}},seen=new Set();
+  t.rows.forEach((r,ri)=>{const name=g(r,'name');if(name.length<2||/^\d+$/.test(name)){if(r.some(c=>String(c).trim())){R.skip.push([ri+1,'بدون اسم']);R.st[ri]='skip'}return}
+    const key=arn(name).replace(/\s+/g,' ').trim();if(seen.has(key)){R.skip.push([ri+1,name+' — مكرر بالملف']);R.st[ri]='skip';return}seen.add(key);
     let ph=normDigits(g(r,'phone')).replace(/\D/g,'');if(/^7\d{9}$/.test(ph))ph='0'+ph;if(/^9647\d{9}$/.test(ph))ph='0'+ph.slice(3);
     const oRaw=g(r,'origin'),oa=arn(oRaw),origin=oRaw?(WI_ORIG.find(([re])=>re.test(oa))?.[1]||oRaw.slice(0,40)):'';
     const wage=siNum(g(r,'wage'))||0,pt=arn(g(r,'pay_type')),pay_type=/شهر|month/.test(pt)?'monthly':/يوم|day/.test(pt)?'daily':(wage>=300000?'monthly':'daily');
@@ -2942,14 +2942,15 @@ function wiPlan(){const t=S.wi,col=k=>t.map.indexOf(k),g=(r,k)=>{const i=col(k);
     const o={name:name.slice(0,80),phone:ph||null,trade:g(r,'trade').slice(0,40)||null,origin:origin&&origin.length>=2?origin:null,site:g(r,'site').slice(0,40)||null,team:g(r,'team').slice(0,60)||null,notes:g(r,'notes').slice(0,200)||null};
     if(col('wage')>=0&&wage>0){o.wage=wage;o.pay_type=pay_type}else if(col('pay_type')>=0&&pt)o.pay_type=pay_type;
     const ex=(code&&byCode.get(code.toLowerCase()))||byName.get(key);
-    if(ex){if(!t.upd){R.skip.push([ri+1,name+' — موجود من قبل']);return}const p={};Object.entries(o).forEach(([k,v])=>{if(v!=null&&v!==''&&k!=='name'&&String(ex[k]??'')!==String(v))p[k]=v});
-      if(Object.keys(p).length)R.upd.push({id:ex.id,name:ex.name,p});else R.skip.push([ri+1,name+' — موجود وما تغيّر شي']);return}
-    if(code&&!byCode.has(code.toLowerCase()))o.code=code;R.add.push(o)});
+    if(ex){R.st[ri]='old';if(!t.upd){R.skip.push([ri+1,name+' — موجود من قبل']);return}const p={};Object.entries(o).forEach(([k,v])=>{if(v!=null&&v!==''&&k!=='name'&&String(ex[k]??'')!==String(v))p[k]=v});
+      if(Object.keys(p).length){R.upd.push({id:ex.id,name:ex.name,p});R.st[ri]='upd'}else R.skip.push([ri+1,name+' — موجود وما تغيّر شي']);return}
+    if(code&&!byCode.has(code.toLowerCase()))o.code=code;R.add.push(o);R.st[ri]='new'});
   return R}
 function wiDraw(){const t=S.wi,R=wiPlan(),opts=v=>WI_F.map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join(''),cell=c=>c instanceof Date?xlDate(c):esc(String(c));const need=t.map.includes('name')?'':'اختار عمود «الاسم».';
   $('#ovroot .sh-b').innerHTML=`<div class="sec"><p class="muted" style="margin:0">الملف: <b>${esc(t.file)}</b> · ${nf.format(t.rows.length)} سطر. تحت كل عمود اختار شنو يمثّل (النظام خمّن لك).</p>
-   <div style="overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:var(--r)"><table class="attbl atsmall"><thead><tr>${t.header.map((h,i)=>`<th style="min-width:120px"><div class="small">${esc(h)}</div><select class="in wim" data-i="${i}" style="margin-top:4px;font-size:13px">${opts(t.map[i])}</select></th>`).join('')}</tr></thead>
-   <tbody>${t.rows.slice(0,6).map(r=>`<tr>${r.map(c=>`<td class="small">${cell(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+   <div style="overflow:auto;max-height:55vh;margin-top:10px;border:1px solid var(--line);border-radius:var(--r)"><table class="attbl atsmall"><thead style="position:sticky;top:0;background:var(--surface);z-index:1"><tr><th>#</th><th>الحالة</th>${t.header.map((h,i)=>`<th style="min-width:120px"><div class="small">${esc(h)}</div><select class="in wim" data-i="${i}" style="margin-top:4px;font-size:13px">${opts(t.map[i])}</select></th>`).join('')}</tr></thead>
+   <tbody>${t.rows.map((r,ri)=>{const st=R.st[ri];return st||r.some(c=>String(c).trim())?`<tr${st==='skip'?' style="opacity:.45"':''}><td class="num small">${ri+1}</td><td>${{new:'<span class="pill p-ok">جديد</span>',upd:'<span class="pill p-info">يتحدث</span>',old:'<span class="pill p-mute">موجود</span>',skip:'<span class="pill p-mute">يتخطى</span>'}[st]||''}</td>${r.map(c=>`<td class="small">${cell(c)}</td>`).join('')}</tr>`:''}).join('')}</tbody></table></div>
+   <p class="small muted" style="margin:4px 0 0">كل أسطر الملف ظاهرة فوق (${nf.format(t.rows.length)} سطر) — انزل بالجدول حتى تشوفهم كلهم.</p>
    <label class="l" style="display:flex;gap:8px;align-items:center;flex-direction:row;margin-top:8px"><input type="checkbox" id="wiU" ${t.upd?'checked':''}> العمال الموجودين بنفس الاسم أو الرمز: حدّث بياناتهم (الهاتف، المهنة، الموقع…) بدل ما يتخطون</label>
    <div class="stats" style="margin-top:10px"><div class="stat"><b style="color:var(--ok)">${nf.format(R.add.length)}</b><span>عامل جديد ينضاف</span></div><div class="stat"><b>${nf.format(R.upd.length)}</b><span>موجود يتحدث</span></div><div class="stat"><b>${nf.format(R.skip.length)}</b><span>سطر يتخطى</span></div></div>
    ${R.skip.length?`<details style="margin-top:6px"><summary class="small">الأسطر اللي تتخطى (${R.skip.length})</summary><div class="small muted">${R.skip.slice(0,80).map(([l,x])=>`سطر ${l}: ${esc(x)}`).join('<br>')}</div></details>`:''}
