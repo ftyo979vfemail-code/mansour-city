@@ -852,7 +852,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='a5ca5fae1d';
+const APP_BUILD='4eb7b08da5';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -1610,7 +1610,7 @@ function attQErrDlg(){const q=attQ();overlay('atqerr','تسجيلات ما ان�
 function attWorkersView(){const A=S.att,q=A.wq.trim(),pay=attSeesPay();
   const list=A.workers.filter(w=>(A.woff||w.active)&&(!A.wsite||w.site===A.wsite)&&(!A.worig||origOf(w)===A.worig)&&(!q||[w.name,w.code,w.trade,w.site,w.team,w.phone,w.origin].join(' ').includes(q))).sort((a,b)=>(b.active-a.active)||a.name.localeCompare(b.name,'ar'));
   const act=A.workers.filter(w=>w.active).length;
-  let h=`<div class="filters">${attCanMark()?`<button class="btn pri" data-a="atWNew">+ إضافة عامل</button>`:''}${isExt()?'':`<button class="btn" data-a="atPrint" ${list.some(w=>w.active)?'':'disabled'}>🖨 طباعة باجات (${list.filter(w=>w.active).length})</button>`}${pay?`<button class="btn" data-a="atWCsv">⬇ Excel</button>`:''}</div>
+  let h=`<div class="filters">${attCanMark()?`<button class="btn pri" data-a="atWNew">+ إضافة عامل</button><button class="btn" data-a="wiImp">📥 رفع ملف العمال</button>`:''}${isExt()?'':`<button class="btn" data-a="atPrint" ${list.some(w=>w.active)?'':'disabled'}>🖨 طباعة باجات (${list.filter(w=>w.active).length})</button>`}${pay?`<button class="btn" data-a="atWCsv">⬇ Excel</button>`:''}</div>
    <div class="filters"><input id="atWQ" class="in" placeholder="بحث بالاسم أو الرمز أو المهنة أو الهاتف…" value="${esc(A.wq)}" autocomplete="off">${origSel('atWOrig',A.worig)}<select id="atWSite" class="in" aria-label="البناية"><option value="">كل المواقع</option>${attSites().map(s=>`<option ${A.wsite===s?'selected':''}>${esc(s)}</option>`).join('')}</select><label class="atchk"><input type="checkbox" id="atWOff" ${A.woff?'checked':''}> إظهار الموقوفين</label></div>
    <p class="note"><span class="num">${act}</span> عامل فعّال${A.workers.length>act?` · <span class="num">${A.workers.length-act}</span> موقوف`:''}${S.me?.role==='timekeeper'?' · الأجور يحددها مدير المشروع':''}</p>`;
   if(!list.length)return h+`<div class="empty"><b>${A.workers.length?'لا نتائج':'ما مسجّل أي عامل بعد'}</b>${A.workers.length?'غيّر البحث.':'اضغط «+ إضافة عامل».'}</div>`;
@@ -2897,6 +2897,7 @@ async function fsUpload(f){const day=$('#fsD')?.value||bgDay();S.fsDay=day;
     $('#ovroot .sh-b').innerHTML=`<div class="rcbox"><div class="okmark" style="background:var(--ok-soft);color:var(--ok)">✓</div><b style="font-size:20px">انقرت ${data.total} اسم</b><span style="font-size:16px"><b class="num" style="color:var(--ok)">${data.applied}</b> انسجلوا حاضرين ليوم ${dayName(data.day)}</span>${data.pending?`<span class="note"><b class="num">${data.pending}</b> اسم ما تأكدنا منه — راح لمسؤول الإدارة يثبّته</span>`:''}</div><div class="acts" style="justify-content:center"><button class="btn pri" data-a="close">تمام</button></div>`}
   catch(x){$('#ovroot .sh-b').innerHTML=`<div class="err">${esc(x.message||x)}</div><div class="acts"><button class="btn" data-a="fsUp">📷 حاول مرة ثانية</button><button class="btn ghost" data-a="close">إغلاق</button></div>`}}
 document.addEventListener('click',async e=>{const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,v=el.dataset.v,box=el.closest('details[data-sh]'),sid=box?.dataset.sh;
+  if(a==='wiImp'){wiImport();return}
   if(a==='fphAtt'){el.disabled=true;el.textContent='جارِ القراءة…';await fphAttFromStore(v);return}
   if(a==='shGo'){S.view=null;if(S.me?.role==='timekeeper')S.tab='sheets';else{S.tab='att';S.att.sub='sheets'}S._shL=0;closeOv();render();return}
   if(a==='fsUp'){const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='environment';inp.hidden=true;document.body.appendChild(inp);inp.onchange=()=>{const f=inp.files[0];inp.remove();if(f)fsUpload(f)};inp.click()}
@@ -2906,6 +2907,52 @@ document.addEventListener('click',async e=>{const el=e.target.closest('[data-a]'
   else if(a==='shDel'&&sid){if(el.dataset.c!=='1'){el.dataset.c='1';el.textContent='اضغط مرة ثانية للتأكيد';return}const {error}=await sb.from('att_sheets').delete().eq('id',sid);if(error){toast(error.message);return}S.sheets=S.sheets.filter(x=>x.id!==sid);render();toast('انحذفت الورقة (الحضور المسجّل يبقى)')}});
 document.addEventListener('change',e=>{if(e.target.id==='fsD')S.fsDay=e.target.value});
 document.addEventListener('toggle',e=>{const d=e.target;if(d.matches?.('details[data-sh]'))S.shOpen=d.open?d.dataset.sh:(S.shOpen===d.dataset.sh?null:S.shOpen)},true);
+
+/* ===== رفع ملف العمال (Excel / CSV / PDF / صورة) — ينزل كل العمال مرة وحدة ===== */
+const WI_F=[['','— تجاهل —'],['name','الاسم',/اسم|name|العامل|الموظف/],['code','الرمز / رقم البصمة',/رمز|كود|code|بصمه|رقم العامل|رقم الموظف|الرقم الوظيفي|ac.?no|^id$|^no\.?$/],['phone','الهاتف',/هاتف|موبايل|جوال|تلفون|phone|mobile/],['trade','المهنة',/مهنه|المهنه|الحرفه|الاختصاص|العمل|trade|job|الوظيفه/],['origin','الجنسية',/جنسيه|الجنسيه|البلد|nationality|origin/],['site','الموقع / العمارة',/موقع|عماره|بنايه|site|المشروع/],['team','الفريق / المقاول',/فريق|مقاول|الشركه|team|contractor|الكادر/],['pay_type','نوع الأجر',/نوع الاجر|نوع الراتب|شهري|يومي|pay/],['wage','الأجر / الراتب',/اجر|راتب|يوميه|الاجره|wage|salary/],['notes','ملاحظات',/ملاحظ|notes/]];
+const WI_ORIG=[[/ترك/,'الأتراك'],[/افغان/,'الأفغان'],[/كرد|اكراد/,'الأكراد'],[/بنغال|بنغلاد|بنكلاد/,'البنغلادش'],[/باكستان/,'الباكستان'],[/ايران/,'الإيرانيين'],[/سوري/,'السوريين']];
+function wiImport(){const inp=document.createElement('input');inp.type='file';inp.accept='.xlsx,.xls,.xlsm,.ods,.csv,.pdf,image/*,application/pdf';inp.hidden=true;document.body.appendChild(inp);
+  inp.addEventListener('change',async()=>{const f=inp.files[0];inp.remove();if(!f)return;
+    overlay('wimp','📥 رفع ملف العمال',`<div class="rcbox"><div class="spin"></div><b>جارِ قراءة الملف…</b><span class="note">${/\.(xlsx|xls|xlsm|ods|csv)$/i.test(f.name)?'':'الـPDF والصور تنقرا بالذكاء الاصطناعي، ممكن تاخذ دقيقة'}</span></div>`);
+    try{const t=await siRead(f);if(!t.rows.length)throw new Error('ما لكيت بيانات بالملف.');S.wi={...t,file:f.name,map:t.header.map(()=>''),upd:true};
+      const used=new Set();t.header.forEach((h,i)=>{const a=arn(h).trim();if(!a)return;const hit=WI_F.find(x=>x[2]&&!used.has(x[0])&&(x[0]!=='name'||!/مقاول|شركه|فريق/.test(a))&&(x[0]!=='code'||!/هاتف|موبايل/.test(a))&&x[2].test(a));if(hit){S.wi.map[i]=hit[0];used.add(hit[0])}});
+      if(!used.has('name')){let best=-1,bs=0;t.header.forEach((h,i)=>{if(S.wi.map[i])return;const sc=t.rows.slice(0,30).filter(r=>/[؀-ۿa-z]{2,}\s+[؀-ۿa-z]{2,}/i.test(String(r[i]||''))).length;if(sc>bs){bs=sc;best=i}});if(best>=0)S.wi.map[best]='name'}
+      wiDraw()}catch(e){$('#ovroot .sh-b').innerHTML=`<div class="err">${esc(e.message)}</div>`}});inp.click()}
+function wiPlan(){const t=S.wi,col=k=>t.map.indexOf(k),g=(r,k)=>{const i=col(k);return i<0?'':String(r[i]??'').replace(/\s+/g,' ').trim()};
+  const W=S.att.workers,byName=new Map(W.map(w=>[arn(w.name).replace(/\s+/g,' ').trim(),w])),byCode=new Map(W.filter(w=>w.code).map(w=>[String(w.code).trim().toLowerCase(),w]));
+  const R={add:[],upd:[],skip:[]},seen=new Set();
+  t.rows.forEach((r,ri)=>{const name=g(r,'name');if(name.length<2||/^\d+$/.test(name)){if(r.some(c=>String(c).trim()))R.skip.push([ri+1,'بدون اسم']);return}
+    const key=arn(name).replace(/\s+/g,' ').trim();if(seen.has(key)){R.skip.push([ri+1,name+' — مكرر بالملف']);return}seen.add(key);
+    let ph=normDigits(g(r,'phone')).replace(/\D/g,'');if(/^7\d{9}$/.test(ph))ph='0'+ph;if(/^9647\d{9}$/.test(ph))ph='0'+ph.slice(3);
+    const oRaw=g(r,'origin'),oa=arn(oRaw),origin=oRaw?(WI_ORIG.find(([re])=>re.test(oa))?.[1]||oRaw.slice(0,40)):'';
+    const wage=siNum(g(r,'wage'))||0,pt=arn(g(r,'pay_type')),pay_type=/شهر|month/.test(pt)?'monthly':/يوم|day/.test(pt)?'daily':(wage>=300000?'monthly':'daily');
+    const code=g(r,'code').slice(0,30);
+    const o={name:name.slice(0,80),phone:ph||null,trade:g(r,'trade').slice(0,40)||null,origin:origin&&origin.length>=2?origin:null,site:g(r,'site').slice(0,40)||null,team:g(r,'team').slice(0,60)||null,notes:g(r,'notes').slice(0,200)||null};
+    if(col('wage')>=0&&wage>0){o.wage=wage;o.pay_type=pay_type}else if(col('pay_type')>=0&&pt)o.pay_type=pay_type;
+    const ex=(code&&byCode.get(code.toLowerCase()))||byName.get(key);
+    if(ex){if(!t.upd){R.skip.push([ri+1,name+' — موجود من قبل']);return}const p={};Object.entries(o).forEach(([k,v])=>{if(v!=null&&v!==''&&k!=='name'&&String(ex[k]??'')!==String(v))p[k]=v});
+      if(Object.keys(p).length)R.upd.push({id:ex.id,name:ex.name,p});else R.skip.push([ri+1,name+' — موجود وما تغيّر شي']);return}
+    if(code&&!byCode.has(code.toLowerCase()))o.code=code;R.add.push(o)});
+  return R}
+function wiDraw(){const t=S.wi,R=wiPlan(),opts=v=>WI_F.map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join(''),cell=c=>c instanceof Date?xlDate(c):esc(String(c));const need=t.map.includes('name')?'':'اختار عمود «الاسم».';
+  $('#ovroot .sh-b').innerHTML=`<div class="sec"><p class="muted" style="margin:0">الملف: <b>${esc(t.file)}</b> · ${nf.format(t.rows.length)} سطر. تحت كل عمود اختار شنو يمثّل (النظام خمّن لك).</p>
+   <div style="overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:var(--r)"><table class="attbl atsmall"><thead><tr>${t.header.map((h,i)=>`<th style="min-width:120px"><div class="small">${esc(h)}</div><select class="in wim" data-i="${i}" style="margin-top:4px;font-size:13px">${opts(t.map[i])}</select></th>`).join('')}</tr></thead>
+   <tbody>${t.rows.slice(0,6).map(r=>`<tr>${r.map(c=>`<td class="small">${cell(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+   <label class="l" style="display:flex;gap:8px;align-items:center;flex-direction:row;margin-top:8px"><input type="checkbox" id="wiU" ${t.upd?'checked':''}> العمال الموجودين بنفس الاسم أو الرمز: حدّث بياناتهم (الهاتف، المهنة، الموقع…) بدل ما يتخطون</label>
+   <div class="stats" style="margin-top:10px"><div class="stat"><b style="color:var(--ok)">${nf.format(R.add.length)}</b><span>عامل جديد ينضاف</span></div><div class="stat"><b>${nf.format(R.upd.length)}</b><span>موجود يتحدث</span></div><div class="stat"><b>${nf.format(R.skip.length)}</b><span>سطر يتخطى</span></div></div>
+   ${R.skip.length?`<details style="margin-top:6px"><summary class="small">الأسطر اللي تتخطى (${R.skip.length})</summary><div class="small muted">${R.skip.slice(0,80).map(([l,x])=>`سطر ${l}: ${esc(x)}`).join('<br>')}</div></details>`:''}
+   ${R.add.length?`<p class="small muted" style="margin:6px 0 0">أول الجدد: ${R.add.slice(0,8).map(o=>esc(o.name)).join('، ')}${R.add.length>8?' …':''}</p>`:''}
+   ${S.me?.role==='timekeeper'&&t.map.includes('wage')?'<p class="note">الأجور يحددها مدير المشروع أو مسؤول الإدارة — عمود الأجر ما ينحفظ من حسابك.</p>':''}
+   <div class="err" id="wiE">${need}</div><div class="acts"><button class="btn pri" id="wiGo" ${need||!(R.add.length+R.upd.length)?'disabled':''}>تنزيل ${nf.format(R.add.length+R.upd.length)} عامل</button><button class="btn ghost" data-a="close">إلغاء</button></div></div>`;
+  document.querySelectorAll('#ovroot .wim').forEach(s=>s.onchange=()=>{const k=s.value;if(k)t.map=t.map.map((x,j)=>x===k&&j!==+s.dataset.i?'':x);t.map[+s.dataset.i]=k;wiDraw()});
+  $('#wiU').onchange=()=>{t.upd=$('#wiU').checked;wiDraw()};$('#wiGo').onclick=wiRun}
+async function wiRun(){const R=wiPlan(),b=$('#wiGo'),E=$('#wiE');b.disabled=true;let nA=0,nU=0;
+  try{for(let i=0;i<R.add.length;i+=200){b.textContent='جارِ الإضافة… '+nA+' من '+R.add.length;const part=R.add.slice(i,i+200);
+      let r=await sb.from('workers').insert(part).select();if(r.error&&/code|duplicate|unique/i.test(r.error.message)){r=await sb.from('workers').insert(part.map(o=>{const x={...o};delete x.code;return x})).select()}
+      if(r.error)throw new Error(attErrMsg(r.error));(r.data||[]).forEach(w=>{if(!S.att.workers.some(x=>x.id===w.id))S.att.workers.push(w)});nA+=part.length}
+    for(const u of R.upd){b.textContent='جارِ التحديث… '+nU+' من '+R.upd.length;const r=await sb.from('workers').update(u.p).eq('id',u.id).select().single();if(r.error)throw new Error(attErrMsg(r.error));const i=S.att.workers.findIndex(x=>x.id===u.id);if(i>=0)S.att.workers[i]=r.data;nU++}
+    await invLog('رفع ملف العمال',`${nA} جديد · ${nU} تحديث — ${S.wi.file}`);S.wi=null;closeOv();attRerender(true);render();toast(`تم: ${nA} عامل جديد${nU?' · '+nU+' تحديث':''}`)}
+  catch(e){E.textContent=(e.message||e)+(nA||nU?` (انحفظ ${nA} جديد و${nU} تحديث قبل الخطأ — إذا تعيد الرفع الموجودين ما يتكررون)`:'');b.disabled=false;b.textContent='أعد المحاولة'}}
 
 /* ===== مسؤول المبيعات: رفع ملف النظام القديم (Excel / CSV / PDF / صورة) ===== */
 const SI_F=[['','— تجاهل —'],['name','الاسم',/اسم|المشتري|الزبون|المستاجر|العميل|صاحب/],['phone','الهاتف',/هاتف|موبايل|جوال|تلفون|رقم الهاتف|الرقم|phone|mobile/],['unit','الوحدة كاملة (مثل T2-12-3)',/^(الوحده|العقار|الشقه والعماره|الموقع|العنوان)$/],['building','العمارة',/عماره|برج|بنايه|بلوك|tower|block/],['floor','الطابق',/طابق|floor/],['apt','الشقة',/شقه|apt|flat/],['code','رقم الوحدة / الدار',/رقم الوحده|رقم الدار|الدار|رقم العقار|كود/],['area','المساحة',/مساحه|م2|area/],['price_m','سعر المتر',/سعر المتر/],['total','السعر الكلي',/سعر|القيمه|المبلغ الكلي|الكلي|اجمالي|total/],['down','المقدمة',/مقدم|عربون/],['handover','دفعة الاستلام',/استلام/],['monthly','القسط الشهري',/قسط شهري|القسط|الشهري|monthly/],['months','عدد الأقساط',/عدد الاقساط|عدد الاشهر|المده|الاشهر/],['paid','المدفوع لحد الآن',/مدفوع|مسدد|واصل|المستلم|paid/],['remain','المتبقي (للمعلومة)',/متبقي|باقي|الباقي|remain/],['date','تاريخ الحجز / العقد',/^(?!.*(اول|بدايه|بدء)).*تاريخ/],['start','أول قسط / بداية الإيجار',/اول قسط|بدايه|بدء/],['type','النوع (بيع/إيجار)',/نوع|بيع|type/],['status','الحالة',/حاله|status/],['rent','الإيجار الشهري',/ايجار|rent/],['deposit','التأمينات',/تامين|deposit/],['notes','ملاحظات',/ملاحظ|تفاصيل|notes/]];
