@@ -793,6 +793,7 @@ function notifCard(n){const d=n.data||{},t=dt(new Date(n.created_at).getTime()),
   if(n.kind==='staff_pending')return`<div class="nc ${isNew?'new':''}"><div class="nh"><span class="pill p-warn">طلب انضمام</span><span class="num muted small">${t}</span></div><b>${esc(d.name)}</b> يطلب الدخول بصفة ${esc(ROLES[d.role]?.name||d.role)}${d.company?' · '+esc(d.company):''}${d.specialty?' · '+esc(d.specialty):''} <span class="num muted">${esc(d.phone||'')}</span></div>`;
   if(n.kind==='att_join')return`<div class="nc ${isNew?'new':''}"><div class="nh"><span class="pill p-info">عامل يطلب التسجيل</span><span class="num muted small">${t}</span></div><b>${esc(d.name)}</b> · ${esc(d.origin||'')} · ${esc(d.trade||'')} <span class="num muted">${esc(d.phone||'')}</span></div>`;
   if(n.kind==='att_absent')return`<div class="nc ${isNew?'new':''}" data-a="atOpen" data-v="${esc(d.wid)}" role="button" tabindex="0"><div class="nh"><span class="pill p-bad">غياب متكرر</span><span class="num muted small">${t}</span></div><b>${esc(d.name)}</b> غائب <span class="num">${esc(d.days)}</span> أيام متتالية بدون إذن${d.site?' · '+esc(d.site):''}${d.trade?' · '+esc(d.trade):''}</div>`;
+  if(n.kind==='att_sheet')return`<div class="nc ${isNew?'new':''}" data-a="shGo" role="button" tabindex="0"><div class="nh"><span class="pill p-warn">ورقة حضور</span><span class="num muted small">${t}</span></div>ورقة حضور ليوم <b class="num">${esc(d.day||'')}</b>: <b class="num">${+d.applied||0}</b> انسجلوا حاضرين تلقائياً، و<b class="num">${+d.pending||0}</b> ينتظرون تثبيتك</div>`;
   if(n.kind==='staff_active')return`<div class="nc ${isNew?'new':''}"><div class="nh"><span class="pill p-info">حساب مفعّل</span><span class="num muted small">${t}</span></div><b>${esc(d.name)}</b> صار يدخل بصفة ${esc(ROLES[d.role]?.name||d.role)}</div>`;
   return''}
 function notifView(){
@@ -801,7 +802,7 @@ function notifView(){
   if(!S.notifs.length)return h+`<div class="empty"><b>لا توجد إشعارات بعد</b>كل عملية استلام تتم بالباركود تظهر هنا: المادة والسعر والمشتري ومدير المخزن ووقت التسليم.</div>`;
   return h+`<div class="list">${S.notifs.map(notifCard).join('')}</div>`}
 function sysNotify(n){try{if(!('Notification' in window)||Notification.permission!=='granted')return;const d=n.data||{};
-  const body=n.kind==='att_join'?`${d.name} · ${d.origin} · ${d.trade}`:n.kind==='att_absent'?`${d.name} غائب ${d.days} أيام متتالية بدون إذن`:n.kind==='receipt'?`${d.item} — ${money(+d.total)}\nالمشتري: ${d.buyer} · المخزن: ${d.store}`:n.kind==='staff_pending'?`${d.name} يطلب الانضمام`:`${d.name} صار مفعّلاً`;
+  const body=n.kind==='att_sheet'?`ورقة حضور ${d.day}: ${d.applied} حاضر تلقائياً، ${d.pending} ينتظرون تثبيتك`:n.kind==='att_join'?`${d.name} · ${d.origin} · ${d.trade}`:n.kind==='att_absent'?`${d.name} غائب ${d.days} أيام متتالية بدون إذن`:n.kind==='receipt'?`${d.item} — ${money(+d.total)}\nالمشتري: ${d.buyer} · المخزن: ${d.store}`:n.kind==='staff_pending'?`${d.name} يطلب الانضمام`:`${d.name} صار مفعّلاً`;
   new Notification(n.kind==='receipt'?'استلام مكتمل':n.kind==='att_absent'?'غياب متكرر':'نظام شركة المنصور',{body,icon:'icon-192.png',tag:'n'+n.id})}catch(e){}}
 /* approvals */
 const canApprove=()=>['owner','admin1','admin2','project'].includes(S.me?.role);
@@ -1451,7 +1452,7 @@ function attPay(w,o){const c=attCfg(),wage=+w.wage||0;if(!wage)return null;
 
 /* ---- views ---- */
 function attTabsTK(){const t=bgDay(),un=S.att.workers.filter(w=>w.active&&!attRec(w.id,t)).length;
-  return[['round','جولة اليوم',isClosed(t)||isHoliday(t)?0:un],['workers','العمال',0],['abs','الغيابات',0],['rep','التقارير',0]]}
+  return[['round','جولة اليوم',isClosed(t)||isHoliday(t)?0:un],['sheets','أوراق الحضور',shPend()],['workers','العمال',0],['abs','الغيابات',0],['rep','التقارير',0]]}
 function attHomeTK(){const tabs=attTabsTK();if(!S.tab||!tabs.find(t=>t[0]===S.tab))S.tab='round';
   return pushBanner()+`<div class="head"><div><h2>مراقب الدوام</h2><p>${roleDesc('timekeeper')}</p></div></div>`+
    `<div class="tabs" role="tablist">${tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-a="tab" data-v="${k}">${t}${c?`<span class="c num">${c}</span>`:''}</button>`).join('')}</div>`+attBody(S.tab)}
@@ -1462,12 +1463,12 @@ function attOnlyHome(){
     return`<div class="head"><div><h2>متابعة عن بعد</h2><p>${esc(ROLES[S.me.role].name.split(' (')[0])}${me.company?' · '+esc(me.company):''} · عرض فقط: الحضور، الغيابات، التقارير</p></div></div>`+
      (co?(me.att_team?`<div class="banner" style="background:var(--info-soft);color:var(--info)">تشوف عمال فريق <b>${esc(me.att_team)}</b> فقط · <span class="num">${S.att.workers.length}</span> عامل</div>`:`<div class="banner">مدير المشروع ما حدد فريقك بعد، فما تشوف أي عامل لحد ما يحدده.</div>`):'')+attHub()}
   return pushBanner()+`<div class="head"><div><h2>حضور العمال</h2><p>${esc(ROLES[S.me.role]?.name||OWNER_NAME)} · الدوام اليومي، الغيابات، التقارير${attSeesAudit()?'، وسجل التعديلات':''}</p></div></div>`+attHub()}
-function attHub(){const subs=[['round','الدوام اليومي'],['workers','العمال'],['abs','الغيابات'],['rep','التقارير'],...(attSeesPay()?[['pay','الرواتب والخصومات']]:[]),...(attBoss()?[['finger','رفع البصمة']]:[]),...(['project','hr','owner','admin1','admin2'].includes(S.me?.role)?[['join','مهندسين ومقاولين'+(attReqPending().length?' ('+attReqPending().length+')':'')]]:[]),...(attSeesAudit()?[['audit','سجل التعديلات']]:[])];
+function attHub(){const subs=[['round','الدوام اليومي'],['workers','العمال'],['abs','الغيابات'],['rep','التقارير'],...(attSeesPay()?[['pay','الرواتب والخصومات']]:[]),...(attBoss()?[['sheets','أوراق الحضور'+(shPend()?' ('+shPend()+')':'')],['finger','رفع البصمة']]:[]),...(['project','hr','owner','admin1','admin2'].includes(S.me?.role)?[['join','مهندسين ومقاولين'+(attReqPending().length?' ('+attReqPending().length+')':'')]]:[]),...(attSeesAudit()?[['audit','سجل التعديلات']]:[])];
   if(!subs.find(s=>s[0]===S.att.sub))S.att.sub='round';
   return`<div class="atsub" role="tablist">${ATT_ONLY?'':`<a class="btn sm ghost" href="attendance/" target="_blank" rel="noopener" title="موقع الحضور المستقل">↗ موقع الحضور</a>`}${subs.map(([k,t])=>`<button class="btn sm ${S.att.sub===k?'pri':''}" data-a="atSub" data-v="${k}">${t}</button>`).join('')}</div>`+attBody(S.att.sub)}
 function attBody(k){
   if(S.att.err&&!S.att.workers.length)return`<div class="empty"><b>تعذر تحميل بيانات الحضور</b>${esc(S.att.err)}<div class="row"><button class="btn" data-a="atReload">إعادة المحاولة</button></div></div>`;
-  return attQBanner()+(k==='workers'?attWorkersView():k==='abs'?attAbsView():k==='rep'?attRepView():k==='audit'?attAuditView():k==='join'?attReqView():k==='pay'?attPayView():k==='finger'?attFingerView():attRoundView())}
+  return attQBanner()+(k==='workers'?attWorkersView():k==='abs'?attAbsView():k==='rep'?attRepView():k==='audit'?attAuditView():k==='join'?attReqView():k==='pay'?attPayView():k==='finger'?attFingerView():k==='sheets'?attSheetsView():attRoundView())}
 function attQBanner(){const q=attQ(),bad=q.filter(x=>x.err),wait=q.length-bad.length;let h='';
   if(!navigator.onLine)h+=`<div class="banner atoff">📴 بدون إنترنت — كمّل التسجيل عادي، كل شي ينحفظ على الجهاز وينرفع تلقائياً.${wait?` <b class="num">(${wait})</b>`:''}</div>`;
   else if(wait)h+=`<div class="banner">⏳ <span><span class="num">${wait}</span> تسجيل بانتظار الرفع</span><button class="btn sm" data-a="atFlush">ارفع الآن</button></div>`;
@@ -1993,7 +1994,7 @@ function tabsFor0(role){
   if(role==='mechanic')return[['work','أعمال الصيانة',S.machines.filter(m=>m.status==='down').length],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='guard')return[['gate','البوابة',S.machines.filter(m=>m.cycle).length]];
   if(role==='driver')return[['mywork','عملي',0]];
-  if(role==='foreman')return[['fwork','صور العمل',0],['ftable','الجداول',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
+  if(role==='foreman')return[['fsheet','ورقة الحضور',0],['fwork','صور العمل',0],['ftable','الجداول',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(role==='fueler')return[['work','تعبئة الوقود',0],['mach','الآليات',0]];
   if(role==='receiver')return[['receive','للاستلام',S.requests.filter(r=>r.status==='receive'&&canAct(r,role)).length],['inv','المخزون',0],['all','كل الطلبات',0]];
   if(role==='supply')return[['dlv','التنزيل',dlvOpen().length],['dinv','الفواتير',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
@@ -2049,7 +2050,7 @@ function tabBody(role){
   if(t==='att')return seesAtt()?attHub():'';
   if(t==='exp')return expView(role);
   if(t==='jrd')return auditView(role);
-  if(t==='fwork'||t==='ftable')return foremanView(t==='ftable'?'table':'work');
+  if(t==='fsheet')return fSheetView();if(t==='fwork'||t==='ftable')return foremanView(t==='ftable'?'table':'work');
   if(t==='fph')return fphView();
   if(t==='feed')return feedView();
   if(t==='dinv')return dlvInvView();
@@ -2838,6 +2839,60 @@ document.addEventListener('change',e=>{const t=e.target;
   else if(t.id==='fpOv'&&S.fp){S.fp.over=t.checked;render()}
   else if(t.classList?.contains('fpw')&&S.fp){S.fp.man[t.dataset.k]=t.value||'';render()}});
 document.addEventListener('input',e=>{if(e.target.id!=='hpQ')return;S.att.payQ=e.target.value;clearTimeout(S._hpT);S._hpT=setTimeout(()=>{render();const i=$('#hpQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)});
+
+/* ===== ورقة الحضور: الفورمن يصوّر ← الذكاء الاصطناعي يقرا ويطابق ← حاضرين تلقائياً، والباقي لمسؤول الإدارة ===== */
+const SH_ERR={no_key:'القراءة تحتاج تفعيل مفتاح الذكاء الاصطناعي. راجع مطوّر النظام.',rate_limited:'طلبات كثيرة، حاول بعد دقيقة.',bad_image:'الصورة كبيرة أو تالفة.',forbidden:'غير متاح لصفتك.',no_workers:'ماكو عمال مسجلين بهذا الموقع بعد. مسؤول الإدارة يضيفهم أول.',bad_day:'ما تكدر تختار يوم قادم.',bad_output:'ما انقرت الورقة. صوّرها أوضح وكاملة.'};
+async function shLoad(force){if(S._shL&&!force)return;S._shL=1;const {data,error}=await sb.from('att_sheets').select('*').order('created_at',{ascending:false}).limit(120);if(error){S.sheets=[];S.shErr=error.message;return}S.sheets=data||[];
+  const paths=[...new Set(S.sheets.map(x=>x.img).filter(r=>r&&r.startsWith('s:')&&!S.imgCache[r.slice(2)]).map(r=>r.slice(2)))];
+  if(paths.length){try{const {data:u}=await sb.storage.from('files').createSignedUrls(paths,604800);(u||[]).forEach(x=>{if(x.signedUrl)S.imgCache[x.path]=x.signedUrl})}catch(e){}}
+  render()}
+const shPend=()=>(S.sheets||[]).reduce((a,x)=>a+(+x.pending||0),0);
+function shRow(x,i,boss){const ok=x.state==='applied',ig=x.state==='ignored',info=x.state==='info';
+  const wsel=boss&&x.state==='pending'?`<select class="in shW" data-s="${i}" style="flex:1 1 180px;min-width:0"><option value="">— اختار العامل —</option>${S.att.workers.filter(w=>w.active).sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(w=>`<option value="${w.id}" ${w.id===x.wid?'selected':''}>${esc(w.name)}${w.code?' · '+esc(w.code):''}</option>`).join('')}</select>`:'';
+  return`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--line)${ig?';opacity:.5':''}"><span style="flex:1 1 140px;min-width:0"><b>${esc(x.written)}</b>${ok||info||!boss?`<span class="small muted"> ← ${x.name?esc(x.name):'ما تطابق'}${x.conf&&x.name?' · '+Math.round(x.conf*100)+'%':''}</span>`:''}</span>
+   ${ok?'<span class="pill p-ok">✓ انسجل حاضر</span>':ig?'<span class="pill p-mute">متجاهل</span>':info?`<span class="pill p-${x.mark==='absent'?'bad':'mute'}">${x.mark==='absent'?'مأشر غائب':'إجازة'}</span>`:boss?`${wsel}<button class="btn sm ok" data-a="shOk" data-v="${i}">✓ حاضر</button><button class="btn sm ghost" data-a="shIg" data-v="${i}">تجاهل</button>`:'<span class="pill p-warn">ينتظر مسؤول الإدارة</span>'}</div>`}
+function shCard(s,boss){const R=s.result?.rows||[],src=s.img&&s.img.startsWith('s:')?S.imgCache[s.img.slice(2)]:'';const pend=R.filter(x=>x.state==='pending');
+  return`<details class="sec" data-sh="${s.id}" ${S.shOpen===s.id?'open':''} style="margin-top:10px"><summary style="cursor:pointer;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>📝 ${dayName(s.day)}</b><span class="small muted">${esc(S.names[s.uid]?.name||'')} · ${dt(Date.parse(s.created_at))}</span><span class="pill p-ok">${s.applied} انسجلوا حاضرين</span>${s.pending?`<span class="pill p-warn">${s.pending} ينتظر</span>`:''}</summary>
+   ${src?`<a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="ورقة الحضور" style="max-width:100%;max-height:360px;border-radius:10px;margin-top:8px;border:1px solid var(--line)"></a>`:''}
+   ${s.result?.date_on_sheet&&s.result.date_on_sheet!==s.day?`<p class="note">التاريخ المكتوب بالورقة: <b class="num">${esc(s.result.date_on_sheet)}</b> — والورقة انسجلت ليوم <b class="num">${s.day}</b>.</p>`:''}
+   ${s.result?.unreadable?`<p class="small muted">ما انقرا: ${esc(s.result.unreadable)}</p>`:''}
+   <div style="margin-top:6px">${R.map((x,i)=>shRow(x,i,boss)).join('')||'<p class="muted small">ما انقرت أسماء.</p>'}</div>
+   ${boss&&pend.some(x=>x.wid)?`<div class="acts" style="margin-top:8px"><button class="btn ok" data-a="shAll">✓ سجّل كل المقترحين حاضرين (${pend.filter(x=>x.wid).length})</button>${boss&&['project','hr','owner'].includes(S.me?.role)?`<button class="btn ghost bad" data-a="shDel">حذف الورقة</button>`:''}</div>`:boss&&['project','hr','owner'].includes(S.me?.role)?`<div class="acts" style="margin-top:8px"><button class="btn sm ghost" data-a="shDel">حذف الورقة</button></div>`:''}</details>`}
+function attSheetsView(){shLoad();const L=S.sheets;if(!L)return`<div class="empty"><b>جارِ التحميل…</b></div>`;const boss=attBoss()||S.me?.role==='timekeeper';
+  return`<div class="sec" style="margin-top:12px"><h4 style="margin:0">📝 أوراق الحضور من الفورمن</h4><p class="small muted" style="margin:6px 0 0">الفورمن يصوّر ورقة الحضور، والذكاء الاصطناعي يقرا الأسماء ويطابقها ويا العمال. اللي تطابقوا بثقة عالية (80% وفوك) انسجلوا حاضرين تلقائياً. الباقي هنا: تأكد من العامل المقترح واضغط «✓ حاضر» أو «تجاهل».</p></div>
+   ${L.length?L.map(s=>shCard(s,boss)).join(''):'<div class="empty"><b>ماكو أوراق حضور بعد</b>أول ما الفورمن يرفع ورقة تطلع هنا.</div>'}`}
+async function shApply(sid,idxs){const s=(S.sheets||[]).find(x=>x.id===sid);if(!s)return;const R=s.result.rows,c=attCfg();let n=0,bad=0;
+  for(const i of idxs){const x=R[i];if(!x||x.state!=='pending')continue;const sel=document.querySelector(`details[data-sh="${sid}"] .shW[data-s="${i}"]`),wid=sel?sel.value:x.wid;if(!wid){bad++;continue}
+    const w=attWorker(wid),ex=attRec(wid,s.day);
+    if(!(ex&&ATT_WORK.includes(ex.status))){const ok=await attSave(wid,s.day,{status:'present',in_at:dayIso(s.day,c.start),method:'sheet',reason:'ورقة الحضور',excused:false},isClosed(s.day)?'ورقة الحضور':undefined);if(!ok){bad++;continue}}
+    R[i]={...x,wid,name:w?.name||x.name,state:'applied',by:S.me.id};n++}
+  const pending=R.filter(x=>x.state==='pending').length,applied=R.filter(x=>x.state==='applied').length;
+  const {error}=await sb.from('att_sheets').update({result:s.result,pending,applied}).eq('id',sid);if(error)toast(error.message);s.pending=pending;s.applied=applied;S.shOpen=sid;render();
+  toast(n?`انسجل ${n} حاضر`+(bad?` · ${bad} بدون عامل`:''):bad?'اختار العامل أول':'ماكو شي')}
+/* واجهة الفورمن */
+function fSheetView(){shLoad();const mine=(S.sheets||[]).filter(x=>x.uid===S.me?.id);
+  return`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">📝 ورقة الحضور</h3><p class="muted" style="margin:2px 0 0">صوّر ورقة أسماء العمال الحاضرين. الذكاء الاصطناعي يقرا الأسماء ويسجّلهم حاضرين عند مسؤول الإدارة تلقائياً.</p></div></div>
+   <div class="sec"><div class="fr"><label class="l">يوم الحضور<input id="fsD" class="in num" type="date" value="${S.fsDay||bgDay()}" max="${bgDay()}"></label></div>
+   <div class="acts"><button class="btn pri" data-a="fsUp" style="font-size:16px;padding:12px 18px">📷 تصوير ورقة الحضور</button></div>
+   <p class="note">صوّر الورقة كاملة، واضحة، من فوق، بضوء زين. إذا الأسماء على أكثر من ورقة ارفع كل وحدة لحالها.</p></div>
+   ${mine.length?mine.map(s=>shCard(s,false)).join(''):'<div class="empty"><b>ما رفعت أوراق حضور بعد</b></div>'}`}
+async function fsUpload(f){const day=$('#fsD')?.value||bgDay();S.fsDay=day;
+  overlay('fsup','📝 قراءة ورقة الحضور',`<div class="rcbox"><div class="spin"></div><b>جارِ قراءة الأسماء ومطابقتها ويا العمال…</b><span class="note">ممكن ياخذ دقيقة</span></div>`);
+  try{const blob=await compress(f,2400,.88);const b64=(await blobToData(blob)).split(',')[1];let ref=null;try{ref=(await saveFile(f,'ورقة حضور '+day))?.ref||null}catch(e){}
+    const {data,error}=await sb.functions.invoke('att-sheet',{body:{image:b64,mime:'image/jpeg',day,img:ref}});let code=data?.code,det=data?.detail;if(error){try{const j=await error.context.json();code=j.code;det=j.detail}catch(x){code='upstream'}}
+    if(code)throw new Error(SH_ERR[code]||('تعذرت القراءة'+(det?': '+det:'. جرّب صورة أوضح.')));
+    await shLoad(true);S.shOpen=data.id;
+    $('#ovroot .sh-b').innerHTML=`<div class="rcbox"><div class="okmark" style="background:var(--ok-soft);color:var(--ok)">✓</div><b style="font-size:20px">انقرت ${data.total} اسم</b><span style="font-size:16px"><b class="num" style="color:var(--ok)">${data.applied}</b> انسجلوا حاضرين ليوم ${dayName(data.day)}</span>${data.pending?`<span class="note"><b class="num">${data.pending}</b> اسم ما تأكدنا منه — راح لمسؤول الإدارة يثبّته</span>`:''}</div><div class="acts" style="justify-content:center"><button class="btn pri" data-a="close">تمام</button></div>`}
+  catch(x){$('#ovroot .sh-b').innerHTML=`<div class="err">${esc(x.message||x)}</div><div class="acts"><button class="btn" data-a="fsUp">📷 حاول مرة ثانية</button><button class="btn ghost" data-a="close">إغلاق</button></div>`}}
+document.addEventListener('click',async e=>{const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,v=el.dataset.v,box=el.closest('details[data-sh]'),sid=box?.dataset.sh;
+  if(a==='shGo'){S.view=null;if(S.me?.role==='timekeeper')S.tab='sheets';else{S.tab='att';S.att.sub='sheets'}S._shL=0;closeOv();render();return}
+  if(a==='fsUp'){const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='environment';inp.hidden=true;document.body.appendChild(inp);inp.onchange=()=>{const f=inp.files[0];inp.remove();if(f)fsUpload(f)};inp.click()}
+  else if(a==='shOk'&&sid){el.disabled=true;await shApply(sid,[+v])}
+  else if(a==='shAll'&&sid){el.disabled=true;const s=S.sheets.find(x=>x.id===sid);await shApply(sid,s.result.rows.map((x,i)=>i).filter(i=>s.result.rows[i].state==='pending'&&(document.querySelector(`details[data-sh="${sid}"] .shW[data-s="${i}"]`)?.value||s.result.rows[i].wid)))}
+  else if(a==='shIg'&&sid){const s=S.sheets.find(x=>x.id===sid);s.result.rows[+v].state='ignored';const pending=s.result.rows.filter(x=>x.state==='pending').length;const {error}=await sb.from('att_sheets').update({result:s.result,pending}).eq('id',sid);if(error){toast(error.message);return}s.pending=pending;S.shOpen=sid;render()}
+  else if(a==='shDel'&&sid){if(el.dataset.c!=='1'){el.dataset.c='1';el.textContent='اضغط مرة ثانية للتأكيد';return}const {error}=await sb.from('att_sheets').delete().eq('id',sid);if(error){toast(error.message);return}S.sheets=S.sheets.filter(x=>x.id!==sid);render();toast('انحذفت الورقة (الحضور المسجّل يبقى)')}});
+document.addEventListener('change',e=>{if(e.target.id==='fsD')S.fsDay=e.target.value});
+document.addEventListener('toggle',e=>{const d=e.target;if(d.matches?.('details[data-sh]'))S.shOpen=d.open?d.dataset.sh:(S.shOpen===d.dataset.sh?null:S.shOpen)},true);
 
 /* ===== مسؤول المبيعات: رفع ملف النظام القديم (Excel / CSV / PDF / صورة) ===== */
 const SI_F=[['','— تجاهل —'],['name','الاسم',/اسم|المشتري|الزبون|المستاجر|العميل|صاحب/],['phone','الهاتف',/هاتف|موبايل|جوال|تلفون|رقم الهاتف|الرقم|phone|mobile/],['unit','الوحدة كاملة (مثل T2-12-3)',/^(الوحده|العقار|الشقه والعماره|الموقع|العنوان)$/],['building','العمارة',/عماره|برج|بنايه|بلوك|tower|block/],['floor','الطابق',/طابق|floor/],['apt','الشقة',/شقه|apt|flat/],['code','رقم الوحدة / الدار',/رقم الوحده|رقم الدار|الدار|رقم العقار|كود/],['area','المساحة',/مساحه|م2|area/],['price_m','سعر المتر',/سعر المتر/],['total','السعر الكلي',/سعر|القيمه|المبلغ الكلي|الكلي|اجمالي|total/],['down','المقدمة',/مقدم|عربون/],['handover','دفعة الاستلام',/استلام/],['monthly','القسط الشهري',/قسط شهري|القسط|الشهري|monthly/],['months','عدد الأقساط',/عدد الاقساط|عدد الاشهر|المده|الاشهر/],['paid','المدفوع لحد الآن',/مدفوع|مسدد|واصل|المستلم|paid/],['remain','المتبقي (للمعلومة)',/متبقي|باقي|الباقي|remain/],['date','تاريخ الحجز / العقد',/^(?!.*(اول|بدايه|بدء)).*تاريخ/],['start','أول قسط / بداية الإيجار',/اول قسط|بدايه|بدء/],['type','النوع (بيع/إيجار)',/نوع|بيع|type/],['status','الحالة',/حاله|status/],['rent','الإيجار الشهري',/ايجار|rent/],['deposit','التأمينات',/تامين|deposit/],['notes','ملاحظات',/ملاحظ|تفاصيل|notes/]];
