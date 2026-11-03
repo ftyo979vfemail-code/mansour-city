@@ -853,7 +853,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='720e1ac505';
+const APP_BUILD='88562ddd99';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -2797,31 +2797,33 @@ function attFingerView(){const F=S.fp;
   if(!F)return h;
   const opts=v=>FP_F.map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join(''),P=fpPlan();
   h+=`<div class="sec"><p class="small muted" style="margin:0">الملف: <b>${esc(F.file)}</b> · ${nf.format(F.rows.length)} سطر. تحت كل عمود اختار شنو يمثّل.</p>
-   <div style="overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:var(--r)"><table class="attbl atsmall"><thead><tr>${F.header.map((x,i)=>`<th style="min-width:120px"><div class="small">${esc(x)}</div><select class="in fpm" data-i="${i}" style="margin-top:4px;font-size:13px">${opts(F.map[i])}</select></th>`).join('')}</tr></thead><tbody>${F.rows.slice(0,5).map(r=>`<tr>${r.map(c=>`<td class="small">${esc(c instanceof Date?fpDate(c)+' '+fpTime(c):String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+   <div style="overflow:auto;max-height:40vh;margin-top:8px;border:1px solid var(--line);border-radius:var(--r)"><table class="attbl atsmall"><thead style="position:sticky;top:0;background:var(--surface);z-index:1"><tr>${F.header.map((x,i)=>`<th style="min-width:120px"><div class="small">${esc(x)}</div><select class="in fpm" data-i="${i}" style="margin-top:4px;font-size:13px">${opts(F.map[i])}</select></th>`).join('')}</tr></thead><tbody>${F.rows.map(r=>`<tr>${r.map(c=>`<td class="small">${esc(c instanceof Date?fpDate(c)+' '+fpTime(c):String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
    <label class="l" style="flex-direction:row;display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="fpOv" ${F.over?'checked':''}> حدّث حتى الأيام المسجّلة يدوياً (بدون الصح: يعبّي بس الأيام الفارغة والغياب التلقائي)</label>
    <div class="err">${P.err||''}</div>
    ${P.err?'':`<div class="stats" style="margin-top:8px"><div class="stat"><b>${nf.format(P.recs.length)}</b><span>يوم دوام ينسجل</span></div><div class="stat"><b>${nf.format(P.matched)}</b><span>عامل متطابق</span></div><div class="stat"><b>${nf.format(P.late)}</b><span>منها تأخير</span></div><div class="stat"><b>${nf.format(P.skip)}</b><span>يوم موجود يتخطى</span></div></div>
-   <p class="small muted">من ${P.from||'—'} إلى ${P.to||'—'}</p>
+   <p class="small muted">من ${P.from||'—'} إلى ${P.to||'—'} · ${nf.format(F.rows.length)} بصمة بالملف لـ ${nf.format(P.per.length)} شخص</p>
+   <details open style="margin-top:6px"><summary class="small"><b>كل الأشخاص بالملف (${P.per.length})</b></summary><div style="overflow:auto;max-height:40vh;border:1px solid var(--line);border-radius:var(--r);margin-top:6px"><table class="attbl atsmall"><thead style="position:sticky;top:0;background:var(--surface)"><tr><th>بالملف</th><th>الرقم</th><th>العامل بالنظام</th><th>أيام تنسجل</th></tr></thead><tbody>${P.per.map(pp=>`<tr${pp.w?'':' style="opacity:.6"'}><td>${esc(pp.name||'—')}</td><td class="num">${esc(pp.id||'')}</td><td>${pp.w?`✓ ${esc(pp.w.name)} <span class="num muted">${esc(pp.w.code||'')}</span>`:'<span class="pill p-warn">ما تطابق</span>'}</td><td class="num">${pp.days}</td></tr>`).join('')}</tbody></table></div></details>
    ${P.un.length?`<div class="sec" style="margin:8px 0"><b>أشخاص بالملف ما تطابقوا (${P.un.length})</b> — اختار العامل المقابل أو خليه «تجاهل»:<div class="list">${P.un.slice(0,60).map(u=>`<div style="display:flex;gap:8px;align-items:center;padding:4px 0"><span class="small" style="flex:1">${esc(u.name||'')} <span class="num muted">${esc(u.id||'')}</span> · ${u.n} بصمة</span><select class="in fpw" data-k="${esc(u.key)}" style="flex:1"><option value="">— تجاهل —</option>${S.att.workers.filter(w=>w.active).sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(w=>`<option value="${w.id}">${esc(w.name)} ${esc(w.code||'')}</option>`).join('')}</select></div>`).join('')}</div></div>`:''}
    <div class="err" id="fpE"></div><div class="acts"><button class="btn pri" data-a="fpGo" ${P.recs.length?'':'disabled'}>تسجيل ${nf.format(P.recs.length)} يوم دوام</button></div>`}</div>`;
   return h}
 function fpKey(id,name){return (normDigits(String(id||'')).replace(/\D/g,'')||'')+'|'+arn(name||'').replace(/\s+/g,' ').trim()}
 function fpPlan(){const F=S.fp,c=attCfg(),col=k=>F.map.indexOf(k),t=bgDay();
   if(col('id')<0&&col('name')<0)return{err:'اختار عمود «رقم البصمة» أو «الاسم».'};if(col('dt')<0&&col('date')<0)return{err:'اختار عمود «التاريخ والوقت» أو «التاريخ».'};
-  const W=S.att.workers.filter(w=>w.active),byCode=new Map(W.filter(w=>w.code).map(w=>[normDigits(String(w.code)).replace(/\D/g,'')||String(w.code).toLowerCase(),w])),byName=new Map(W.map(w=>[arn(w.name).replace(/\s+/g,' ').trim(),w]));
+  const W=S.att.workers.filter(w=>w.active),byCode=new Map(W.filter(w=>/^\d+$/.test(normDigits(String(w.code||'')).trim())).map(w=>[String(+normDigits(String(w.code)).trim()),w])),byName=new Map(W.map(w=>[arn(w.name).replace(/\s+/g,' ').trim(),w]));
   const P={},people={};
   F.rows.forEach(r=>{const id=col('id')>=0?r[col('id')]:'',nm=col('name')>=0?r[col('name')]:'';if(!String(id).trim()&&!String(nm).trim())return;const key=fpKey(id,nm);
     let day,tin=null,tout=null;if(col('dt')>=0){day=fpDate(r[col('dt')]);tin=fpTime(r[col('dt')])}if(!day&&col('date')>=0)day=fpDate(r[col('date')]);if(!day||day>t)return;
     if(col('in')>=0)tin=fpTime(r[col('in')])||tin;if(col('out')>=0)tout=fpTime(r[col('out')]);if(!tin&&!tout)return;
     const pp=people[key]=people[key]||{key,id:String(id).trim(),name:String(nm).trim(),n:0};pp.n++;const k=key+'#'+day,o=P[k]=P[k]||{key,day,t:[]};if(tin)o.t.push(tin);if(tout)o.t.push(tout)});
-  const res=k=>{const pp=people[k];if(F.man[k]!==undefined)return F.man[k]?attWorker(F.man[k]):null;const cid=normDigits(pp.id).replace(/\D/g,'');return(cid&&byCode.get(cid))||byName.get(arn(pp.name).replace(/\s+/g,' ').trim())||null};
+  const res=k=>{const pp=people[k];if(F.man[k]!==undefined)return F.man[k]?attWorker(F.man[k]):null;const cid=normDigits(pp.id).replace(/\D/g,'');return(cid&&byCode.get(String(+cid)))||byName.get(arn(pp.name).replace(/\s+/g,' ').trim())||null};
   const recs=[],mt=new Set();let late=0,skip=0,from=null,to=null;
   Object.values(P).forEach(o=>{const w=res(o.key);if(!w)return;mt.add(o.key);const ts=o.t.slice().sort(),tin=ts[0],tout=ts.length>1&&ts[ts.length-1]!==tin?ts[ts.length-1]:null;
     const ex=attRec(w.id,o.day);if(ex&&!F.over&&!(ex.status==='absent'&&ex.method==='auto'))return void skip++;
     const st=hm2min(tin)>hm2min(c.start)+c.grace?'late':'present';if(st==='late')late++;from=!from||o.day<from?o.day:from;to=!to||o.day>to?o.day:to;
     recs.push({worker_id:w.id,day:o.day,status:st,in_at:dayIso(o.day,tin),out_at:tout?dayIso(o.day,tout):null,in_lat:null,in_lng:null,in_acc:null,out_lat:null,out_lng:null,method:'finger',reason:null,excused:false,attach:null,edit_reason:'رفع ملف البصمة'})});
   const un=Object.values(people).filter(pp=>!mt.has(pp.key)&&!(F.man[pp.key]===''));
-  return{recs,matched:mt.size,late,skip,from,to,un}}
+  const per=Object.values(people).map(pp=>{const w=res(pp.key);return{...pp,w,days:recs.filter(r=>w&&r.worker_id===w.id).length}}).sort((a,b)=>(!!b.w-!!a.w)||String(a.name).localeCompare(String(b.name),'ar'));
+  return{recs,matched:mt.size,late,skip,from,to,un,per}}
 async function fpRead(f){const X=await loadXLSX();const wb=/\.csv$/i.test(f.name)||f.type==='text/csv'?X.read(new TextDecoder('utf-8').decode(await f.arrayBuffer()).replace(/^\uFEFF/,''),{type:'string',raw:true}):X.read(new Uint8Array(await f.arrayBuffer()),{type:'array',cellDates:true});
   let best=null;for(const n of wb.SheetNames){const rows=X.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true}).filter(r=>r.some(c=>String(c).trim()!==''));let hi=0;for(let i=0;i<Math.min(rows.length,15);i++)if(rows[i].filter(c=>typeof c==='string'&&c.trim()&&!/^[\d\s:\/.\-]+$/.test(normDigits(c))).length>=2){hi=i;break}
     const header=(rows[hi]||[]).map(x=>String(x).trim()),n2=Math.max(header.length,...rows.slice(hi+1).map(r=>r.length));const r={header:Array.from({length:n2},(_,i)=>header[i]||'عمود '+(i+1)),rows:rows.slice(hi+1).map(r=>Array.from({length:n2},(_,i)=>r[i]??''))};if(!best||r.rows.length>best.rows.length)best=r}
@@ -2941,8 +2943,9 @@ function wiPlan(){const t=S.wi,col=k=>t.map.indexOf(k),g=(r,k)=>{const i=col(k);
     const code=g(r,'code').slice(0,30);
     const o={name:name.slice(0,80),phone:ph||null,trade:g(r,'trade').slice(0,40)||null,origin:origin&&origin.length>=2?origin:null,site:g(r,'site').slice(0,40)||null,team:g(r,'team').slice(0,60)||null,notes:g(r,'notes').slice(0,200)||null};
     if(col('wage')>=0&&wage>0){o.wage=wage;o.pay_type=pay_type}else if(col('pay_type')>=0&&pt)o.pay_type=pay_type;
-    const ex=(code&&byCode.get(code.toLowerCase()))||byName.get(key);
-    if(ex){R.st[ri]='old';if(!t.upd){R.skip.push([ri+1,name+' — موجود من قبل']);return}const p={};Object.entries(o).forEach(([k,v])=>{if(v!=null&&v!==''&&k!=='name'&&String(ex[k]??'')!==String(v))p[k]=v});
+    let ex=(code&&byCode.get(code.toLowerCase()))||byName.get(key);
+    if(!ex&&key.split(' ').length>=2){const c=W.filter(w=>{const k2=arn(w.name).replace(/\s+/g,' ').trim();return k2.startsWith(key+' ')||key.startsWith(k2+' ')&&k2.split(' ').length>=2});if(c.length===1)ex=c[0]}
+    if(ex){R.st[ri]='old';if(code&&String(ex.code).toLowerCase()!==code.toLowerCase()&&!byCode.has(code.toLowerCase()))o.code=code;if(!t.upd){R.skip.push([ri+1,name+' — موجود من قبل']);return}const p={};Object.entries(o).forEach(([k,v])=>{if(v!=null&&v!==''&&k!=='name'&&String(ex[k]??'')!==String(v))p[k]=v});if(o.code)byCode.set(o.code.toLowerCase(),ex);
       if(Object.keys(p).length){R.upd.push({id:ex.id,name:ex.name,p});R.st[ri]='upd'}else R.skip.push([ri+1,name+' — موجود وما تغيّر شي']);return}
     if(code&&!byCode.has(code.toLowerCase()))o.code=code;R.add.push(o);R.st[ri]='new'});
   return R}
@@ -2951,7 +2954,7 @@ function wiDraw(){const t=S.wi,R=wiPlan(),opts=v=>WI_F.map(([k,l])=>`<option val
    <div style="overflow:auto;max-height:55vh;margin-top:10px;border:1px solid var(--line);border-radius:var(--r)"><table class="attbl atsmall"><thead style="position:sticky;top:0;background:var(--surface);z-index:1"><tr><th>#</th><th>الحالة</th>${t.header.map((h,i)=>`<th style="min-width:120px"><div class="small">${esc(h)}</div><select class="in wim" data-i="${i}" style="margin-top:4px;font-size:13px">${opts(t.map[i])}</select></th>`).join('')}</tr></thead>
    <tbody>${t.rows.map((r,ri)=>{const st=R.st[ri];return st||r.some(c=>String(c).trim())?`<tr${st==='skip'?' style="opacity:.45"':''}><td class="num small">${ri+1}</td><td>${{new:'<span class="pill p-ok">جديد</span>',upd:'<span class="pill p-info">يتحدث</span>',old:'<span class="pill p-mute">موجود</span>',skip:'<span class="pill p-mute">يتخطى</span>'}[st]||''}</td>${r.map(c=>`<td class="small">${cell(c)}</td>`).join('')}</tr>`:''}).join('')}</tbody></table></div>
    <p class="small muted" style="margin:4px 0 0">كل أسطر الملف ظاهرة فوق (${nf.format(t.rows.length)} سطر) — انزل بالجدول حتى تشوفهم كلهم.</p>
-   <label class="l" style="display:flex;gap:8px;align-items:center;flex-direction:row;margin-top:8px"><input type="checkbox" id="wiU" ${t.upd?'checked':''}> العمال الموجودين بنفس الاسم أو الرمز: حدّث بياناتهم (الهاتف، المهنة، الموقع…) بدل ما يتخطون</label>
+   <label class="l" style="display:flex;gap:8px;align-items:center;flex-direction:row;margin-top:8px"><input type="checkbox" id="wiU" ${t.upd?'checked':''}> العمال الموجودين (نفس الاسم، أو اسم مختصر منه، أو نفس الرمز): حدّث بياناتهم ورقم البصمة بدل ما ينضافون مرة ثانية</label>
    <div class="stats" style="margin-top:10px"><div class="stat"><b style="color:var(--ok)">${nf.format(R.add.length)}</b><span>عامل جديد ينضاف</span></div><div class="stat"><b>${nf.format(R.upd.length)}</b><span>موجود يتحدث</span></div><div class="stat"><b>${nf.format(R.skip.length)}</b><span>سطر يتخطى</span></div></div>
    ${R.skip.length?`<details style="margin-top:6px"><summary class="small">الأسطر اللي تتخطى (${R.skip.length})</summary><div class="small muted">${R.skip.slice(0,80).map(([l,x])=>`سطر ${l}: ${esc(x)}`).join('<br>')}</div></details>`:''}
    ${R.add.length?`<p class="small muted" style="margin:6px 0 0">أول الجدد: ${R.add.slice(0,8).map(o=>esc(o.name)).join('، ')}${R.add.length>8?' …':''}</p>`:''}
