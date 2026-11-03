@@ -852,7 +852,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='4eb7b08da5';
+const APP_BUILD='b85305b77a';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -1591,13 +1591,13 @@ function attBulk(){const A=S.att,d=A.day||bgDay(),q=A.q.trim();
 function attCloseDlg(){const A=S.att,d=A.day||bgDay(),c=attCfg(),off=c.off.includes(dayDow(d))||isHoliday(d);
   const un=A.workers.filter(w=>w.active&&!attRec(w.id,d)),pend=attQ().filter(x=>x.p.day===d).length;
   overlay('atclose','إغلاق '+esc(dayLabel(d)),`<div class="rcbox"><b style="font-family:var(--display);font-size:18px">${esc(dayLong(d))}</b>
-   ${off?`<p style="margin:0">هذا يوم عطلة، فالإغلاق ما يسجّل غياب على أحد.</p>`:un.length?`<p style="margin:0"><b class="num">${un.length}</b> عامل ما انسجلوا، راح يتسجّلون <b style="color:var(--bad)">غائبين</b> تلقائياً.</p><div class="atchips">${un.slice(0,30).map(w=>`<span class="pill p-bad">${esc(w.name)}</span>`).join('')}${un.length>30?`<span class="muted small">و${un.length-30} غيرهم</span>`:''}</div>`:`<p style="margin:0">كل العمال مسجّلين ✓</p>`}
+   ${off?`<p style="margin:0">هذا يوم عطلة، فالإغلاق ما يسجّل غياب على أحد.</p>`:un.length?`<p style="margin:0"><b class="num">${un.length}</b> عامل ما انسجلوا — يبقون بقائمة <b>«غير مسجلين»</b>، وما ينحسب عليهم غياب.</p><div class="atchips">${un.slice(0,30).map(w=>`<span class="pill p-mute">${esc(w.name)}</span>`).join('')}${un.length>30?`<span class="muted small">و${un.length-30} غيرهم</span>`:''}</div>`:`<p style="margin:0">كل العمال مسجّلين ✓</p>`}
    <p class="note" style="margin:0">بعد الإغلاق ما يگدر مراقب الدوام يعدّل هذا اليوم. التعديل بعدها عن طريق مدير المشروع مع ذكر السبب. النظام يغلق كل يوم تلقائياً الساعة 11 بالليل إذا ما انغلق.</p>
    ${pend?`<p class="note bad" style="margin:0">عندك ${pend} تسجيل بهذا اليوم ما انرفع بعد. ارفعهم أولاً.</p>`:''}</div>
    <div class="acts"><button class="btn pri" id="atCloseGo" ${pend||!navigator.onLine?'disabled':''}>إغلاق اليوم</button><button class="btn ghost" data-a="close">رجوع</button></div>${!navigator.onLine?'<p class="note bad">الإغلاق يحتاج إنترنت.</p>':''}`);
   $('#atCloseGo').addEventListener('click',async e=>{e.target.disabled=true;const {data,error}=await sb.rpc('att_close_day',{p_day:d});
     if(error){toast(attErrMsg(error));e.target.disabled=false;return}
-    await attLoad();closeOv();render();toast(data?.off?'انغلق اليوم (عطلة)':`انغلق اليوم — ${data?.absent||0} غائب${data?.alerts?' · '+data.alerts+' تنبيه غياب متكرر':''}`)})}
+    await attLoad();closeOv();render();toast(data?.off?'انغلق اليوم (عطلة)':`انغلق اليوم${un.length?' — '+un.length+' غير مسجّل':''}`)})}
 function attReopenDlg(){const d=S.att.day;overlay('atreopen','إعادة فتح '+esc(dayLabel(d)),`<form class="f" id="atRo"><label class="l">سبب إعادة الفتح<input id="atRoR" class="in" required placeholder="مثال: نسينا نسجّل عمال البناية T4"></label><p class="note" style="margin:0">بعد الفتح يگدر مراقب الدوام يعدّل (إذا اليوم أو أمس). سجلات الغياب التلقائي تبقى لحد ما تتعدّل.</p><div class="acts"><button class="btn pri" type="submit">إعادة الفتح</button><button class="btn ghost" type="button" data-a="close">رجوع</button></div></form>`);
   $('#atRo').addEventListener('submit',async e=>{e.preventDefault();const {error}=await sb.rpc('att_reopen_day',{p_day:d,p_reason:$('#atRoR').value.trim()});if(error){toast(attErrMsg(error));return}await attLoad();closeOv();render();toast('انفتح اليوم')})}
 function attHolidayDlg(on){const d=S.att.day;
