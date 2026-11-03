@@ -3407,7 +3407,15 @@ function fuelEdit(t){const f=fuelItem();const i=(f?.log||[]).findIndex(l=>String
    <div class="fr"><label class="l">الكمية المسجّلة<input class="in num" value="${l.l}" disabled></label><label class="l">الكمية الصحيحة (لتر)<input id="feL" class="in num" type="number" min="0" step="any" required value="${l.l}" autofocus></label></div>
    <label class="l">سبب التعديل<input id="feN" class="in" required placeholder="مثال: كتبت 450 بدل 45"></label>
    ${(l.edits||[]).length?`<p class="note">عُدّلت قبل: ${(l.edits||[]).map(x=>`${nf.format(x.from)} ← ${nf.format(x.to)} (${esc(S.names[x.uid]?.name||'')})`).join('، ')}</p>`:''}
-   <div class="err" id="feE"></div><div class="acts"><button class="btn pri" type="submit">حفظ التعديل</button><button class="btn ghost" type="button" data-a="fuelLog">رجوع</button></div></form>`);
+   <div class="err" id="feE"></div><div class="acts"><button class="btn pri" type="submit">حفظ التعديل</button><button class="btn bad" type="button" id="feDel">🗑 حذف الحركة</button><button class="btn ghost" type="button" data-a="fuelLog">رجوع</button></div><div id="feDelC"></div></form>`);
+  $('#feDel').onclick=()=>{$('#feDelC').innerHTML=`<div class="sec" style="margin-top:8px;border-color:var(--bad)"><p style="margin:0">راح تنحذف ${l.k==='in'?'استلام':'تعبئة'} <b class="num">${nf.format(l.l)}</b> لتر${l.k==='in'?'':' ← '+esc(l.to||'')}، والخزان ${l.k==='in'?'ينقص':'يرجعله'} <b class="num">${nf.format(l.l)}</b> لتر${l.k==='out'&&l.mid?'، وتنشال من سجل وقود الآلية':''}.</p><label class="l" style="margin-top:6px">سبب الحذف<input id="feDR" class="in" placeholder="مثال: تسجيل مكرر"></label><div class="acts"><button class="btn bad" type="button" id="feDelGo">تأكيد الحذف</button></div></div>`;
+    $('#feDelGo').onclick=async()=>{const why=$('#feDR').value.trim();if(!why){$('#feE').textContent='اكتب سبب الحذف';return}$('#feDelGo').disabled=true;
+      try{const cur=clean(fuelItem());const j=cur.log.findIndex(x=>String(x.t)===String(t));if(j<0)throw new Error('الحركة مو موجودة');const L0=+cur.log[j].l;
+        const nq=+((+cur.qty)+(l.k==='in'?-L0:L0)).toFixed(2);if(nq<0)throw new Error('الرصيد ما يكفي لحذف هذا الاستلام (صار بالسالب).');
+        cur.qty=nq;cur.log.splice(j,1);await putInv(cur);
+        if(l.k==='out'&&l.mid){const m=S.machines.find(x=>x.id===l.mid);if(m){const nm=clean(m);let k=(nm.fuel||[]).findIndex(x=>x.t===l.t);if(k<0)k=(nm.fuel||[]).findIndex(x=>+x.liters===L0&&Math.abs(x.t-l.t)<10000);if(k>=0){nm.fuel.splice(k,1);mLog(nm,'حذف تعبئة وقود',nf.format(L0)+' لتر · '+why);await putMachine(nm)}}}
+        await invLog('حذف حركة كاز',(l.k==='in'?'استلام ':'تعبئة '+(l.to||'')+' ')+nf.format(L0)+' لتر · '+dt(l.at||l.t)+' · '+why);closeOv();render();toast('انحذفت الحركة — الرصيد '+nf.format(nq)+' لتر')}
+      catch(x){$('#feE').textContent='تعذر الحذف: '+(x.message||x);$('#feDelGo').disabled=false}}};
   $('#fFe').addEventListener('submit',async e=>{e.preventDefault();const N=+$('#feL').value;if(N===+l.l){closeOv();return}
     const cur=clean(fuelItem());const j=cur.log.findIndex(x=>String(x.t)===String(t));if(j<0)return;const old=+cur.log[j].l,diff=N-old;
     const nq=+((+cur.qty)+(l.k==='in'?diff:-diff)).toFixed(2);if(nq<0){$('#feE').textContent='الرصيد ما يكفي لهالتعديل.';return}
