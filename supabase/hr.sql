@@ -5,3 +5,4 @@
 -- ورقة الحضور (att-sheet edge function): جدول att_sheets + attendance.method 'sheet'
 -- + public/private.att_sheet_apply(branch, day, wids[], by, start) — service_role فقط، يسجّل حاضر بدون ما يكتب فوق تسجيل يدوي،
 --   ويحوّل الغياب التلقائي (method=auto) إلى حاضر. المطابقة بثقة ≥ 0.8 تنسجل تلقائياً، والباقي pending لمسؤول الإدارة.
+-- on_notification: kind att_sheet يدز إشعار لـ hr, timekeeper, project, owner
