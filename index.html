@@ -852,7 +852,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='88562ddd99';
+const APP_BUILD='e79872dc09';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -2800,11 +2800,20 @@ function attFingerView(){const F=S.fp;
    <label class="l" style="flex-direction:row;display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="fpOv" ${F.over?'checked':''}> حدّث حتى الأيام المسجّلة يدوياً (بدون الصح: يعبّي بس الأيام الفارغة والغياب التلقائي)</label>
    <div class="err">${P.err||''}</div>
    ${P.err?'':`<div class="stats" style="margin-top:8px"><div class="stat"><b>${nf.format(P.recs.length)}</b><span>يوم دوام ينسجل</span></div><div class="stat"><b>${nf.format(P.matched)}</b><span>عامل متطابق</span></div><div class="stat"><b>${nf.format(P.late)}</b><span>منها تأخير</span></div><div class="stat"><b>${nf.format(P.skip)}</b><span>يوم موجود يتخطى</span></div></div>
-   <p class="small muted">من ${P.from||'—'} إلى ${P.to||'—'} · ${nf.format(F.rows.length)} بصمة بالملف لـ ${nf.format(P.per.length)} شخص</p>
-   <details open style="margin-top:6px"><summary class="small"><b>كل الأشخاص بالملف (${P.per.length})</b></summary><div style="overflow:auto;max-height:40vh;border:1px solid var(--line);border-radius:var(--r);margin-top:6px"><table class="attbl atsmall"><thead style="position:sticky;top:0;background:var(--surface)"><tr><th>بالملف</th><th>الرقم</th><th>العامل بالنظام</th><th>أيام تنسجل</th></tr></thead><tbody>${P.per.map(pp=>`<tr${pp.w?'':' style="opacity:.6"'}><td>${esc(pp.name||'—')}</td><td class="num">${esc(pp.id||'')}</td><td>${pp.w?`✓ ${esc(pp.w.name)} <span class="num muted">${esc(pp.w.code||'')}</span>`:'<span class="pill p-warn">ما تطابق</span>'}</td><td class="num">${pp.days}</td></tr>`).join('')}</tbody></table></div></details>
+   <p class="small muted">من ${P.from||'—'} إلى ${P.to||'—'} · ${nf.format(F.rows.length)} بصمة بالملف لـ ${nf.format(P.per.length)} شخص · تطابق ${nf.format(P.per.filter(x=>x.w).length)}</p>
+   ${F.aiBusy?'<div class="banner"><div class="spin" style="width:18px;height:18px"></div> جارِ مطابقة الأسماء الباقية بالذكاء الاصطناعي…</div>':P.un.some(u=>u.name)?`<div class="acts"><button class="btn" data-a="fpAI">🤖 طابق الباقين بالذكاء الاصطناعي (${P.un.filter(u=>u.name).length})</button></div>`:''}
+   <details open style="margin-top:6px"><summary class="small"><b>كل الأشخاص بالملف (${P.per.length})</b></summary><div style="overflow:auto;max-height:40vh;border:1px solid var(--line);border-radius:var(--r);margin-top:6px"><table class="attbl atsmall"><thead style="position:sticky;top:0;background:var(--surface)"><tr><th>بالملف</th><th>الرقم</th><th>العامل بالنظام</th><th>أيام تنسجل</th></tr></thead><tbody>${P.per.map(pp=>`<tr${pp.w?'':' style="opacity:.6"'}><td>${esc(pp.name||'—')}</td><td class="num">${esc(pp.id||'')}</td><td>${pp.w?`✓ ${esc(pp.w.name)} <span class="num muted">${esc(pp.w.code||'')}</span>${pp.ai?' <span class="pill p-info">🤖 ذكاء</span>':''}`:'<span class="pill p-warn">ما تطابق</span>'}</td><td class="num">${pp.days}</td></tr>`).join('')}</tbody></table></div></details>
    ${P.un.length?`<div class="sec" style="margin:8px 0"><b>أشخاص بالملف ما تطابقوا (${P.un.length})</b> — اختار العامل المقابل أو خليه «تجاهل»:<div class="list">${P.un.slice(0,60).map(u=>`<div style="display:flex;gap:8px;align-items:center;padding:4px 0"><span class="small" style="flex:1">${esc(u.name||'')} <span class="num muted">${esc(u.id||'')}</span> · ${u.n} بصمة</span><select class="in fpw" data-k="${esc(u.key)}" style="flex:1"><option value="">— تجاهل —</option>${S.att.workers.filter(w=>w.active).sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(w=>`<option value="${w.id}">${esc(w.name)} ${esc(w.code||'')}</option>`).join('')}</select></div>`).join('')}</div></div>`:''}
    <div class="err" id="fpE"></div><div class="acts"><button class="btn pri" data-a="fpGo" ${P.recs.length?'':'disabled'}>تسجيل ${nf.format(P.recs.length)} يوم دوام</button></div>`}</div>`;
   return h}
+async function fpAI(){const F=S.fp;if(!F||F.aiBusy)return;const P=fpPlan();const un=(P.un||[]).filter(u=>u.name);if(!un.length)return;F.aiBusy=1;render();
+  try{const {data,error}=await sb.functions.invoke('att-sheet',{body:{names:un.map(u=>u.name),match_only:true}});let code=data?.code;if(error){try{code=(await error.context.json()).code}catch(e){code='upstream'}}
+    if(code){toast(SH_ERR[code]||'تعذرت المطابقة بالذكاء الاصطناعي');return}F.ai=F.ai||{};let n=0;const taken=new Set(P.per.filter(x=>x.w).map(x=>x.w.id));
+    (data.rows||[]).forEach(r=>{const k=arn(r.written||'').replace(/\s+/g,' ').trim();un.filter(u=>arn(u.name).replace(/\s+/g,' ').trim()===k).forEach(u=>{if(r.wid&&r.conf>=0.75&&!taken.has(r.wid)){F.ai[u.key]={wid:r.wid,conf:r.conf};taken.add(r.wid);n++}})});
+    toast(n?`الذكاء الاصطناعي طابق ${n} اسم`:'الذكاء الاصطناعي ما لكى مطابقة أكيدة — اختار العامل باليد')}catch(e){toast('تعذرت المطابقة: '+(e.message||e))}finally{if(S.fp)S.fp.aiBusy=0;render()}}
+async function fpLearnCodes(P){if(!['project','hr','owner'].includes(S.me?.role))return 0;const used=new Set(S.att.workers.map(w=>String(w.code||'').trim()));let n=0;
+  for(const pp of P.per){const id=String(+normDigits(pp.id||'').replace(/\D/g,'')||'');if(!pp.w||!id||id==='0'||String(pp.w.code)===id||used.has(id)||/^\d+$/.test(String(pp.w.code||'')))continue;
+    const r=await sb.from('workers').update({code:id}).eq('id',pp.w.id).select().single();if(!r.error&&r.data){used.add(id);const i=S.att.workers.findIndex(x=>x.id===pp.w.id);if(i>=0)S.att.workers[i]=r.data;n++}}return n}
 function fpKey(id,name){return (normDigits(String(id||'')).replace(/\D/g,'')||'')+'|'+arn(name||'').replace(/\s+/g,' ').trim()}
 function fpPlan(){const F=S.fp,c=attCfg(),col=k=>F.map.indexOf(k),t=bgDay();
   if(col('id')<0&&col('name')<0)return{err:'اختار عمود «رقم البصمة» أو «الاسم».'};if(col('dt')<0&&col('date')<0)return{err:'اختار عمود «التاريخ والوقت» أو «التاريخ».'};
@@ -2814,14 +2823,17 @@ function fpPlan(){const F=S.fp,c=attCfg(),col=k=>F.map.indexOf(k),t=bgDay();
     let day,tin=null,tout=null;if(col('dt')>=0){day=fpDate(r[col('dt')]);tin=fpTime(r[col('dt')])}if(!day&&col('date')>=0)day=fpDate(r[col('date')]);if(!day||day>t)return;
     if(col('in')>=0)tin=fpTime(r[col('in')])||tin;if(col('out')>=0)tout=fpTime(r[col('out')]);if(!tin&&!tout)return;
     const pp=people[key]=people[key]||{key,id:String(id).trim(),name:String(nm).trim(),n:0};pp.n++;const k=key+'#'+day,o=P[k]=P[k]||{key,day,t:[]};if(tin)o.t.push(tin);if(tout)o.t.push(tout)});
-  const res=k=>{const pp=people[k];if(F.man[k]!==undefined)return F.man[k]?attWorker(F.man[k]):null;const cid=normDigits(pp.id).replace(/\D/g,'');return(cid&&byCode.get(String(+cid)))||byName.get(arn(pp.name).replace(/\s+/g,' ').trim())||null};
+  const NK=x=>arn(x||'').replace(/\s+/g,' ').trim(),fuzzy=nm=>{const a=NK(nm);if(!a)return null;const ta=a.split(' ');if(ta.length<2)return null;
+    let c=W.filter(w=>{const b=NK(w.name);return b.startsWith(a+' ')||(a.startsWith(b+' ')&&b.split(' ').length>=2)});if(c.length===1)return c[0];
+    c=W.filter(w=>{const tb=NK(w.name).split(' ');return tb[0]===ta[0]&&ta.slice(1).filter(t=>tb.includes(t)).length>=1});return c.length===1?c[0]:null};
+  const res=k=>{const pp=people[k];if(F.man[k]!==undefined)return F.man[k]?attWorker(F.man[k]):null;const cid=normDigits(pp.id).replace(/\D/g,'');return(cid&&byCode.get(String(+cid)))||byName.get(NK(pp.name))||fuzzy(pp.name)||(F.ai?.[k]?.wid?attWorker(F.ai[k].wid):null)||null};
   const recs=[],mt=new Set();let late=0,skip=0,from=null,to=null;
   Object.values(P).forEach(o=>{const w=res(o.key);if(!w)return;mt.add(o.key);const ts=o.t.slice().sort(),tin=ts[0],tout=ts.length>1&&ts[ts.length-1]!==tin?ts[ts.length-1]:null;
     const ex=attRec(w.id,o.day);if(ex&&!F.over&&!(ex.status==='absent'&&ex.method==='auto'))return void skip++;
     const st=hm2min(tin)>hm2min(c.start)+c.grace?'late':'present';if(st==='late')late++;from=!from||o.day<from?o.day:from;to=!to||o.day>to?o.day:to;
     recs.push({worker_id:w.id,day:o.day,status:st,in_at:dayIso(o.day,tin),out_at:tout?dayIso(o.day,tout):null,in_lat:null,in_lng:null,in_acc:null,out_lat:null,out_lng:null,method:'finger',reason:null,excused:false,attach:null,edit_reason:'رفع ملف البصمة'})});
   const un=Object.values(people).filter(pp=>!mt.has(pp.key)&&!(F.man[pp.key]===''));
-  const per=Object.values(people).map(pp=>{const w=res(pp.key);return{...pp,w,days:recs.filter(r=>w&&r.worker_id===w.id).length}}).sort((a,b)=>(!!b.w-!!a.w)||String(a.name).localeCompare(String(b.name),'ar'));
+  const per=Object.values(people).map(pp=>{const w=res(pp.key);return{...pp,w,ai:!!(w&&F.ai?.[pp.key]?.wid===w.id&&F.man[pp.key]===undefined),days:recs.filter(r=>w&&r.worker_id===w.id).length}}).sort((a,b)=>(!!b.w-!!a.w)||String(a.name).localeCompare(String(b.name),'ar'));
   return{recs,matched:mt.size,late,skip,from,to,un,per}}
 async function fpRead(f){const X=await loadXLSX();const wb=/\.csv$/i.test(f.name)||f.type==='text/csv'?X.read(new TextDecoder('utf-8').decode(await f.arrayBuffer()).replace(/^\uFEFF/,''),{type:'string',raw:true}):X.read(new Uint8Array(await f.arrayBuffer()),{type:'array',cellDates:true});
   let best=null;for(const n of wb.SheetNames){const rows=X.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true}).filter(r=>r.some(c=>String(c).trim()!==''));let hi=0;for(let i=0;i<Math.min(rows.length,15);i++)if(rows[i].filter(c=>typeof c==='string'&&c.trim()&&!/^[\d\s:\/.\-]+$/.test(normDigits(c))).length>=2){hi=i;break}
@@ -2829,15 +2841,16 @@ async function fpRead(f){const X=await loadXLSX();const wb=/\.csv$/i.test(f.name
   if(!best||!best.rows.length)throw new Error('ما لكيت بيانات بالملف');const map=best.header.map(()=>''),used=new Set();
   best.header.forEach((h,i)=>{const a=arn(h).trim();const hit=FP_F.find(x=>x[2]&&!used.has(x[0])&&x[2].test(a));if(hit){map[i]=hit[0];used.add(hit[0])}});
   if(!used.has('dt')&&!used.has('date')){const i=best.rows[0].findIndex(c=>c instanceof Date||(typeof c==='string'&&fpDate(c)&&fpTime(c)));if(i>=0&&!map[i])map[i]='dt'}
-  S.fp={file:f.name,header:best.header,rows:best.rows,map,over:false,man:{}}}
+  S.fp={file:f.name,header:best.header,rows:best.rows,map,over:false,man:{},ai:{}};setTimeout(fpAI,50)}
 document.addEventListener('click',async e=>{const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,v=el.dataset.v;
   if(a==='hpAdj')hpAdjForm(v);
   else if(a==='hpDel'){const x=(S.att.adj||[]).find(y=>String(y.id)===v);if(!x)return;const r=await sb.from('att_adj').delete().eq('id',x.id);if(r.error){toast(r.error.message);return}await attAdjLoad(S.att.payM);hpAdjForm(x.worker_id);attRerender(true)}
   else if(a==='hpCsv'){const {m,rows}=hpRows();csvDownload('رواتب-'+brName()+'-'+m+'.csv',[['الرمز','الاسم','الموقع','نوع الأجر','الأجر','مداوم','نص يوم','غياب','إضافي (ساعة)','المستحق','خصم','سلفة','مكافأة','قطع','الصافي','التفاصيل'],...rows.map(r=>[r.w.code||'',r.w.name,r.w.site||'',r.w.pay_type==='monthly'?'شهري':'يومي',+r.w.wage||0,r.o.present+r.o.late,r.o.half,r.o.absent,r.o.ot,Math.round(r.gross),r.ded,r.adv,r.bon,r.cut?'نعم':'',Math.round(r.net),r.adj.map(x=>ADJ_K[x.kind][0]+(x.kind==='cut'?'':' '+iqd(x.amount))+': '+(x.reason||'')).join(' | ')])])}
   else if(a==='fpUp'){const inp=document.createElement('input');inp.type='file';inp.accept='.xlsx,.xls,.csv,.xlsm,.ods';inp.hidden=true;document.body.appendChild(inp);inp.onchange=async()=>{const f=inp.files[0];inp.remove();if(!f)return;try{await fpRead(f);const P=fpPlan();if(P.from&&S.att.from&&P.from<S.att.from)await attEnsure(P.from,bgDay());render()}catch(x){toast(x.message)}};inp.click()}
   else if(a==='fpClr'){S.fp=null;render()}
+  else if(a==='fpAI')fpAI();
   else if(a==='fpGo'){const P=fpPlan();if(!P.recs.length)return;el.disabled=true;let n=0;try{for(let i=0;i<P.recs.length;i+=200){const part=P.recs.slice(i,i+200);el.textContent='جارِ التسجيل… '+n;const {data,error}=await sb.from('attendance').upsert(part,{onConflict:'worker_id,day'}).select();if(error)throw error;(data||[]).forEach(attPut);n+=part.length}
-      S.fp=null;attSnapSave?.();render();toast(`انسجل ${n} يوم دوام من البصمة`)}catch(x){const E=$('#fpE');if(E)E.textContent=(x.message||x)+(n?` (انسجل ${n} قبل الخطأ)`:'');el.disabled=false;el.textContent='أعد المحاولة'}}});
+      const lc=await fpLearnCodes(P);S.fp=null;attSnapSave?.();render();toast(`انسجل ${n} يوم دوام من البصمة${lc?' · انحفظ رقم البصمة لـ '+lc+' عامل':''}`)}catch(x){const E=$('#fpE');if(E)E.textContent=(x.message||x)+(n?` (انسجل ${n} قبل الخطأ)`:'');el.disabled=false;el.textContent='أعد المحاولة'}}});
 document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='hpM'){S.att.payM=t.value||bgDay().slice(0,7);render()}else if(t.id==='hpS'){S.att.paySite=t.value;render()}
   else if(t.classList?.contains('fpm')&&S.fp){const k=t.value,i=+t.dataset.i;if(k)S.fp.map=S.fp.map.map((x,j)=>x===k&&j!==i?'':x);S.fp.map[i]=k;render()}

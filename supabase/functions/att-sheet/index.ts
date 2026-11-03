@@ -81,6 +81,8 @@ Deno.serve(async (req) => {
       const auto = !!w && !dup && conf >= AUTO && mark === "present";
       return { written: String(x.written || "").slice(0, 120), wid: w?.id || null, name: w?.name || null, code: w?.code || null, conf: Math.round(conf * 100) / 100, mark, auto, state: auto ? "applied" : (mark === "present" ? "pending" : "info") };
     }).filter((x: { written: string }) => x.written);
+    // مطابقة أسماء بس (ملف البصمة): يرجّع المطابقة بدون ما يسجّل حضور
+    if (body.match_only) return json({ rows: rows.map((x: { written: string; wid: string | null; name: string | null; conf: number }) => ({ written: x.written, wid: x.wid, name: x.name, conf: x.conf })) });
 
     const { data: st } = await admin.from("settings").select("data").eq("branch", branch).eq("id", "main").maybeSingle();
     const start = String(st?.data?.att?.start || "07:00");
