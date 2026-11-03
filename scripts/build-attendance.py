@@ -6,6 +6,12 @@ import json, os, shutil
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 out = os.path.join(root, 'attendance'); os.makedirs(out, exist_ok=True)
 s = open(os.path.join(root, 'index.html'), encoding='utf-8').read()
+# stamp a build id (hash of the app) so open apps notice a new version and reload themselves
+import hashlib, re as _re
+_norm = _re.sub(r"const APP_BUILD='[^']*'", "const APP_BUILD=''", s)
+_bid = hashlib.sha1(_norm.encode('utf-8')).hexdigest()[:10]
+s = _re.sub(r"const APP_BUILD='[^']*'", "const APP_BUILD='" + _bid + "'", s, count=1)
+open(os.path.join(root, 'index.html'), 'w', encoding='utf-8').write(s)
 def rep(o, n):
     global s
     assert s.count(o) == 1, 'pattern not found once: ' + o[:60]

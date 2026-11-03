@@ -852,6 +852,10 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const APP_BUILD='7132f62cfa';
+async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
+  if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
+setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
 let swReg=null;if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').then(r=>{swReg=r;checkPush()}).catch(()=>{});
 S.push='checking';
 async function checkPush(){
@@ -2869,9 +2873,14 @@ async function shApply(sid,idxs){const s=(S.sheets||[]).find(x=>x.id===sid);if(!
   const {error}=await sb.from('att_sheets').update({result:s.result,pending,applied}).eq('id',sid);if(error)toast(error.message);s.pending=pending;s.applied=applied;S.shOpen=sid;render();
   toast(n?`انسجل ${n} حاضر`+(bad?` · ${bad} بدون عامل`:''):bad?'اختار العامل أول':'ماكو شي')}
 /* سجلات عمل الفورمن (صور العمل + الجداول + أسماء الكادر) ← تنقرا بالخلفية وتروح لسجل الحضور عند مسؤول الإدارة */
-async function fphAttRead(x,files,kind){try{const images=[];for(const f of files.slice(0,4)){const b=await compress(f,2000,.85);images.push((await blobToData(b)).split(',')[1])}
-    const day=bgDay(x.at||Date.now());const {data,error}=await sb.functions.invoke('att-sheet',{body:{images,mime:'image/jpeg',names:x.crew||[],day,imgs:kind==='table'?[]:(x.imgs||[]),src:kind}});
-    if(error||data?.code)return;if(data?.total)toast(`انقرت أسماء الكادر (${data.total}) وراحت لسجل الحضور`);S._shL=0}catch(e){}}
+async function fphAttRead(x,files,kind,loud){try{const images=[];for(const f of files.slice(0,4)){const b=await compress(f,2000,.85);images.push((await blobToData(b)).split(',')[1])}
+    const day=bgDay(x.at||Date.now());const {data,error}=await sb.functions.invoke('att-sheet',{body:{images,mime:'image/jpeg',names:x.crew||[],day,imgs:kind==='table'?[]:(x.imgs||[]),src:kind,fph:x.id}});
+    let code=data?.code;if(error){try{code=(await error.context.json()).code}catch(e){code='upstream'}}
+    if(code){if(loud)toast(SH_ERR[code]||'تعذرت القراءة');return}
+    if(data?.total)toast(`انقرت ${data.total} اسم — ${data.applied} انسجلوا حاضرين${data.pending?' · '+data.pending+' ينتظرون التثبيت':''}`);else if(loud)toast('ما لكيت أسماء عمال بهاي الصور');S._shL=0;await shLoad(true)}catch(e){if(loud)toast('تعذرت القراءة: '+(e.message||e))}}
+async function fphAttFromStore(id){const x=(S.fphotos||[]).find(y=>y.id===id);if(!x)return;toast('جارِ قراءة الحضور من الصور…');
+  try{const files=[];for(const r of (x.imgs||[]).slice(0,4)){if(!r.startsWith('s:'))continue;const {data}=await sb.storage.from('files').download(r.slice(2));if(data)files.push(data)}
+    if(!files.length&&!(x.crew||[]).length){toast('ماكو صور أو أسماء');return}await fphAttRead(x,files,x.kind,true);render()}catch(e){toast('تعذرت القراءة: '+(e.message||e))}}
 /* واجهة الفورمن */
 function fSheetView(){shLoad();const mine=(S.sheets||[]).filter(x=>x.uid===S.me?.id);
   return`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">📝 ورقة الحضور</h3><p class="muted" style="margin:2px 0 0">صوّر ورقة أسماء العمال الحاضرين. الذكاء الاصطناعي يقرا الأسماء ويسجّلهم حاضرين عند مسؤول الإدارة تلقائياً.</p></div></div>
@@ -2888,6 +2897,7 @@ async function fsUpload(f){const day=$('#fsD')?.value||bgDay();S.fsDay=day;
     $('#ovroot .sh-b').innerHTML=`<div class="rcbox"><div class="okmark" style="background:var(--ok-soft);color:var(--ok)">✓</div><b style="font-size:20px">انقرت ${data.total} اسم</b><span style="font-size:16px"><b class="num" style="color:var(--ok)">${data.applied}</b> انسجلوا حاضرين ليوم ${dayName(data.day)}</span>${data.pending?`<span class="note"><b class="num">${data.pending}</b> اسم ما تأكدنا منه — راح لمسؤول الإدارة يثبّته</span>`:''}</div><div class="acts" style="justify-content:center"><button class="btn pri" data-a="close">تمام</button></div>`}
   catch(x){$('#ovroot .sh-b').innerHTML=`<div class="err">${esc(x.message||x)}</div><div class="acts"><button class="btn" data-a="fsUp">📷 حاول مرة ثانية</button><button class="btn ghost" data-a="close">إغلاق</button></div>`}}
 document.addEventListener('click',async e=>{const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,v=el.dataset.v,box=el.closest('details[data-sh]'),sid=box?.dataset.sh;
+  if(a==='fphAtt'){el.disabled=true;el.textContent='جارِ القراءة…';await fphAttFromStore(v);return}
   if(a==='shGo'){S.view=null;if(S.me?.role==='timekeeper')S.tab='sheets';else{S.tab='att';S.att.sub='sheets'}S._shL=0;closeOv();render();return}
   if(a==='fsUp'){const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='environment';inp.hidden=true;document.body.appendChild(inp);inp.onchange=()=>{const f=inp.files[0];inp.remove();if(f)fsUpload(f)};inp.click()}
   else if(a==='shOk'&&sid){el.disabled=true;await shApply(sid,[+v])}
@@ -4193,12 +4203,12 @@ const FPK={table:['الجداول','📋'],work:['صور العمل','🏗']};
 async function loadFph(force){if(S._fphL&&!force)return;S._fphL=1;const {data}=await sb.from('field_photos').select('id,kind,uid,data,created_at').order('created_at',{ascending:false}).limit(500);
   S.fphotos=(data||[]).map(r=>({...r.data,id:r.id,kind:r.kind,uid:r.uid}));await signAll();render()}
 function fphCard(x){return`<div class="card" style="cursor:default;align-items:flex-start"><div class="photos" style="flex:0 0 auto;margin:0;gap:6px;display:flex;flex-wrap:wrap;max-width:50%">${(x.imgs||[]).map(r=>imgTag(r,'thumb','')).join('')}</div>
-  <div class="mid"><div class="t">${esc(x.title||FPK[x.kind][0])}</div><div class="meta"><span class="num">${dt(x.at)}</span>${x.area?`<span>📍 ${esc(x.area)}</span>`:''}<span>${esc(S.names[x.uid]?.name||'')}</span></div>${(x.crew||[]).length?`<div class="meta"><span>👷 الكادر: ${x.crew.map(esc).join('، ')}</span></div>`:''}${x.note?`<p class="small" style="margin:4px 0 0">${esc(x.note)}</p>`:''}</div>${S.me?.role==='owner'?`<div class="end"><button class="btn sm ghost" data-a="fphDel" data-v="${esc(x.id)}">حذف</button></div>`:''}</div>`}
-function foremanView(kind){loadFph();const L=(S.fphotos||[]).filter(x=>x.kind===kind&&x.uid===S.me?.id);
+  <div class="mid"><div class="t">${esc(x.title||FPK[x.kind][0])}</div><div class="meta"><span class="num">${dt(x.at)}</span>${x.area?`<span>📍 ${esc(x.area)}</span>`:''}<span>${esc(S.names[x.uid]?.name||'')}</span></div>${(x.crew||[]).length?`<div class="meta"><span>👷 الكادر: ${x.crew.map(esc).join('، ')}</span></div>`:''}${x.note?`<p class="small" style="margin:4px 0 0">${esc(x.note)}</p>`:''}</div>${['owner','project','hr'].includes(S.me?.role)?`<div class="end" style="display:flex;flex-direction:column;gap:6px">${(S.sheets||[]).some(s=>s.result?.fph===x.id)?'<span class="pill p-ok">✓ انقرا الحضور</span>':`<button class="btn sm" data-a="fphAtt" data-v="${esc(x.id)}">🔎 اقرا الحضور</button>`}${S.me?.role==='owner'?`<button class="btn sm ghost" data-a="fphDel" data-v="${esc(x.id)}">حذف</button>`:''}</div>`:''}</div>`}
+function foremanView(kind){loadFph();if(['owner','project','hr'].includes(S.me?.role))shLoad();const all=S.me?.role!=='foreman';const L=(S.fphotos||[]).filter(x=>x.kind===kind&&(all||x.uid===S.me?.id));
   const tbl=kind==='table';
   return`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">${FPK[kind][1]} ${FPK[kind][0]}</h3><p class="muted" style="margin:2px 0 0">${tbl?'صوّر الجداول وارفعها — تظهر للمدير العام فقط.':'ارفع صور الشغل اليومي واكتب أسماء الكادر اللي اشتغلوا ويّاك.'}</p></div><div class="acts"><button class="btn pri" data-a="fphNew" data-v="${kind}" style="font-size:16px;padding:12px 18px">📷 ${tbl?'رفع جدول':'رفع صور العمل'}</button></div></div>
-   ${L.length?`<div class="list" style="margin-top:12px">${L.map(fphCard).join('')}</div>`:`<div class="empty"><b>ما رفعت ${tbl?'جداول':'صور عمل'} بعد</b>اضغط الزر فوق وصوّر.</div>`}`}
-function fphView(){loadFph();const own=S.me?.role==='owner';const k=own?(S.fphK||'work'):'work';const L=(S.fphotos||[]).filter(x=>x.kind===k);
+   ${L.length?`${all?'<p class="small muted" style="margin:8px 0 0">انت تشوف كل اللي رفعوه الفورمن.</p>':''}<div class="list" style="margin-top:12px">${L.map(fphCard).join('')}</div>`:`<div class="empty"><b>${all?'الفورمن ما رفعوا':'ما رفعت'} ${tbl?'جداول':'صور عمل'} بعد</b>اضغط الزر فوق وصوّر.</div>`}`}
+function fphView(){loadFph();if(['owner','project','hr'].includes(S.me?.role))shLoad();const own=S.me?.role==='owner';const k=own?(S.fphK||'work'):'work';const L=(S.fphotos||[]).filter(x=>x.kind===k);
   return`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">صور الفورمن</h3><p class="muted" style="margin:2px 0 0">${own?'الجداول تظهر لك انت فقط. صور العمل تظهر لك وللإدارة.':'صور العمل اليومية من الفورمن.'}</p></div></div>
    ${own?`<div class="seg" style="margin:8px 0">${Object.entries(FPK).map(([kk,v])=>`<label><input type="radio" name="fphK" value="${kk}" ${k===kk?'checked':''}>${v[1]} ${v[0]} (${(S.fphotos||[]).filter(x=>x.kind===kk).length})</label>`).join('')}</div>`:''}
    ${L.length?`<div class="list">${L.map(fphCard).join('')}</div>`:'<div class="empty"><b>ماكو صور بعد</b></div>'}`}

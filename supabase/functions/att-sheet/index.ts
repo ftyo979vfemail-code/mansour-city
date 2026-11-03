@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
     }
     const pending = rows.filter((x: { state: string }) => x.state === "pending").length;
     if (!rows.length) return json({ id: null, applied: 0, pending: 0, total: 0, result: { rows: [] } });
-    const result = { date_on_sheet: String(v.date || ""), unreadable: String(v.unreadable || "").slice(0, 300), rows, imgs, src: ["work", "table", "sheet"].includes(src) ? src : "sheet", typed: typedNames.length };
+    const result = { date_on_sheet: String(v.date || ""), unreadable: String(v.unreadable || "").slice(0, 300), rows, imgs, src: ["work", "table", "sheet"].includes(src) ? src : "sheet", typed: typedNames.length, fph: typeof body.fph === "string" ? body.fph.slice(0, 60) : null };
     const { data: sh, error: e2 } = await admin.from("att_sheets").insert({ branch, day: d, uid: user.id, img: imgs[0] || null, result, applied, pending }).select("id").single();
     if (e2) return json({ code: "save", detail: e2.message }, 400);
     if (pending) await admin.from("notifications").insert({ branch, kind: "att_sheet", data: { id: sh.id, day: d, pending, applied, at: Date.now() } }).then(() => {}, () => {});
