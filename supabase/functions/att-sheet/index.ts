@@ -12,12 +12,14 @@ const json = (b: unknown, status = 200) =>
 const ROLES = ["foreman", "timekeeper", "project", "hr", "owner"];
 const AUTO = 0.8;
 
-const PROMPT = (list: string) => `أمامك صورة ورقة حضور عمال من موقع بناء بالعراق (مكتوبة بخط اليد أو مطبوعة، بالعربي غالباً، وأحياناً أسماء أجنبية مكتوبة بالعربي أو الإنكليزي، وقد يكون جنب الاسم ✓ أو × أو كلمة حاضر/غائب أو توقيع).
+const PROMPT = (list: string, typed: string, nimg: number) => `${nimg ? `أمامك ${nimg > 1 ? nimg + " صور" : "صورة"} رفعها الفورمن من سجلات العمل اليومية (ورقة حضور، جدول عمل، دفتر، أو صور شغل). إذا صورة ما بيها أسماء عمال (مثلاً صورة موقع أو شغل) تجاهلها.` : "ما أكو صور، بس أسماء كتبها الفورمن."}
+${typed ? `وهذه أسماء الكادر اللي كتبها الفورمن بيده إنهم اشتغلوا اليوم (كلهم حاضرين):\n${typed}\n` : ""}
+الأوراق تكون عادة لعمال موقع بناء بالعراق (ورقة حضور عمال مكتوبة بخط اليد أو مطبوعة، بالعربي غالباً، وأحياناً أسماء أجنبية مكتوبة بالعربي أو الإنكليزي، وقد يكون جنب الاسم ✓ أو × أو كلمة حاضر/غائب أو توقيع).
 هذه قائمة العمال المسجلين بالنظام (الرقم|الاسم|الرمز|المهنة|الموقع):
 ${list}
 
 المطلوب:
-1) اقرأ كل اسم مكتوب بالورقة كسطر مستقل، كما هو مكتوب بالضبط (written).
+1) اقرأ كل اسم عامل مكتوب بالصور، وكل اسم كتبه الفورمن، كسطر مستقل كما هو مكتوب بالضبط (written). نفس الشخص إذا تكرر بأكثر من مكان اكتبه مرة وحدة.
 2) طابقه ويا عامل واحد من القائمة (n = رقمه بالقائمة) حسب شكل الاسم والخط: انتبه للأخطاء الإملائية، اختصار الاسم الثلاثي، الألقاب، الهمزات والتاء المربوطة، وتشابه الحروف بخط اليد (مثل ح/ج/خ، س/ش، ر/ز، ف/ق، ة/ه، ي/ى). إذا الرمز مكتوب استخدمه. إذا ما تكدر تحدد عامل واحد بثقة ضع n = 0.
 3) conf: ثقتك بالمطابقة من 0 إلى 1 (1 = متأكد تماماً). لا ترفع الثقة إذا أكثر من عامل يشبه الاسم.
 4) mark: present إذا الاسم مأشر حاضر أو مكتوب بقائمة الحاضرين أو ما عليه إشارة غياب؛ absent إذا مأشر غائب أو مشطوب؛ leave إذا مكتوب إجازة.
@@ -39,8 +41,13 @@ Deno.serve(async (req) => {
 
     const key = Deno.env.get("ANTHROPIC_API_KEY");
     if (!key) return json({ code: "no_key" }, 400);
-    const { image, mime, day, img } = await req.json();
-    if (typeof image !== "string" || image.length < 200 || image.length > 7_000_000) return json({ code: "bad_image" }, 400);
+    const body = await req.json();
+    const { mime, day, img, src } = body;
+    const images: string[] = (Array.isArray(body.images) ? body.images : body.image ? [body.image] : []).filter((x: unknown) => typeof x === "string" && (x as string).length > 200).slice(0, 4);
+    if (images.some((x) => x.length > 7_000_000)) return json({ code: "bad_image" }, 400);
+    const typedNames: string[] = (Array.isArray(body.names) ? body.names : []).map((x: unknown) => String(x || "").trim().slice(0, 80)).filter(Boolean).slice(0, 200);
+    if (!images.length && !typedNames.length) return json({ id: null, applied: 0, pending: 0, total: 0, result: { rows: [] } });
+    const imgs: string[] = (Array.isArray(body.imgs) ? body.imgs : img ? [img] : []).filter((x: unknown) => typeof x === "string").map((x: string) => x.slice(0, 300)).slice(0, 10);
     const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Baghdad" }).format(new Date());
     const d = /^\d{4}-\d{2}-\d{2}$/.test(String(day || "")) ? String(day) : today;
     if (d > today) return json({ code: "bad_day" }, 400);
@@ -55,7 +62,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 8000,
-        messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: media, data: image } }, { type: "text", text: PROMPT(list) }] }] }),
+        messages: [{ role: "user", content: [...images.map((data) => ({ type: "image", source: { type: "base64", media_type: media, data } })), { type: "text", text: PROMPT(list, typedNames.join("\n"), images.length) }] }] }),
     });
     if (r.status === 429) return json({ code: "rate_limited" }, 429);
     if (!r.ok) return json({ code: "upstream", detail: (await r.text()).slice(0, 300) }, 502);
@@ -85,8 +92,9 @@ Deno.serve(async (req) => {
       applied = Number(n) || 0;
     }
     const pending = rows.filter((x: { state: string }) => x.state === "pending").length;
-    const result = { date_on_sheet: String(v.date || ""), unreadable: String(v.unreadable || "").slice(0, 300), rows };
-    const { data: sh, error: e2 } = await admin.from("att_sheets").insert({ branch, day: d, uid: user.id, img: typeof img === "string" ? img.slice(0, 300) : null, result, applied, pending }).select("id").single();
+    if (!rows.length) return json({ id: null, applied: 0, pending: 0, total: 0, result: { rows: [] } });
+    const result = { date_on_sheet: String(v.date || ""), unreadable: String(v.unreadable || "").slice(0, 300), rows, imgs, src: ["work", "table", "sheet"].includes(src) ? src : "sheet", typed: typedNames.length };
+    const { data: sh, error: e2 } = await admin.from("att_sheets").insert({ branch, day: d, uid: user.id, img: imgs[0] || null, result, applied, pending }).select("id").single();
     if (e2) return json({ code: "save", detail: e2.message }, 400);
     if (pending) await admin.from("notifications").insert({ branch, kind: "att_sheet", data: { id: sh.id, day: d, pending, applied, at: Date.now() } }).then(() => {}, () => {});
     return json({ id: sh.id, day: d, applied, pending, total: rows.length, result });
