@@ -853,7 +853,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='4d2a441258';
+const APP_BUILD='bd42006102';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -1478,7 +1478,7 @@ function attQBanner(){const q=attQ(),bad=q.filter(x=>x.err),wait=q.length-bad.le
   else if(wait)h+=`<div class="banner">⏳ <span><span class="num">${wait}</span> تسجيل بانتظار الرفع</span><button class="btn sm" data-a="atFlush">ارفع الآن</button></div>`;
   if(bad.length)h+=`<div class="banner gpsBad">⚠ <span><span class="num">${bad.length}</span> تسجيل ما انرفع بسبب خطأ</span><button class="btn sm" data-a="atQErr">عرض</button></div>`;return h}
 function attPill(r){if(!r)return`<span class="pill p-mute atnone">لم يُسجّل</span>`;const s=ATT_ST[r.status]||['؟','mute'];
-  return`<span class="pill p-${s[1]}">${s[0]}${r.status==='absent'&&r.excused?' بإذن':''}</span>${r._err?'<span class="pill p-bad">لم يُرفع</span>':r._pending?'<span class="atpend" title="بانتظار الرفع">⏳</span>':''}`}
+  return`<span class="pill p-${s[1]}">${r.method==='finger'?'🖐 ':r.method==='sheet'?'📝 ':''}${s[0]}${r.status==='absent'&&r.excused?' بإذن':''}</span>${r._err?'<span class="pill p-bad">لم يُرفع</span>':r._pending?'<span class="atpend" title="بانتظار الرفع">⏳</span>':''}`}
 
 function attRoundView(){
   const A=S.att,t=bgDay(),tk=S.me?.role==='timekeeper',c=attCfg();if(!A.day||A.day>t||(tk&&A.day<dayAdd(t,-1)))A.day=t;
@@ -2784,6 +2784,10 @@ function hpAdjForm(wid){const A=S.att,w=attWorker(wid);if(!w)return;const m=A.pa
     await attAdjLoad(m);toast('انحفظ');hpAdjForm(wid);attRerender(true)})}
 /* رفع ملف جهاز البصمة (Excel/CSV): كل بصمة سطر، أو كل يوم سطر بيه دخول وخروج */
 const FP_F=[['','— تجاهل —'],['id','رقم البصمة / رمز العامل',/^(ac.?no|no\.?|id|user.?id|emp.?no|enroll|badge|code|رقم|الرقم|الرمز|كود|رقم البصمه|رقم الموظف)/i],['name','الاسم',/name|الاسم|اسم/i],['dt','التاريخ والوقت (بصمة)',/^(time|datetime|date.?time|check.?time|punch|الوقت والتاريخ|التاريخ والوقت|وقت البصمه)$/i],['date','التاريخ',/^(date|التاريخ|اليوم|تاريخ)$/i],['in','وقت الدخول',/(in|clock.?in|on.?duty|دخول|الحضور)/i],['out','وقت الخروج',/(out|clock.?out|off.?duty|خروج|الانصراف)/i]];
+function fpSavedView(){shLoad();const t=bgDay(),c=attCfg(),ups=(S.sheets||[]).filter(x=>x.result?.src==='finger');const cnt={};Object.values(S.att.rows).forEach(r=>{if(r.method==='finger')cnt[r.day]=(cnt[r.day]||0)+1});
+  const rows=[];for(let i=0;i<14;i++){const d=dayAdd(t,-i),off=c.off.includes(dayDow(d))||isHoliday(d),n=cnt[d]||0,u=ups.filter(x=>x.result?.days?.[d]);
+    rows.push(`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)"><span>${dayName(d)}${d===t?' <span class="pill p-info">اليوم</span>':''}</span>${n?`<span><span class="pill p-ok">✓ البصمة محفوظة</span> <b class="num">${n}</b> عامل${u.length?` <span class="small muted">· ${esc(u[0].result.file||'')} · ${esc(S.names[u[0].uid]?.name||'')}</span>`:''}</span>`:off?'<span class="pill p-mute">عطلة</span>':'<span class="pill p-warn">ما انرفعت بصمة</span>'}</div>`)}
+  return`<div class="sec"><h4 style="margin:0">📅 البصمات المحفوظة — آخر 14 يوم</h4><p class="small muted" style="margin:4px 0 0">كل يوم ترفع بصمته يطلع عليه ✓ ويبقى ثابت بتاريخه. بقائمة الدوام اليومي حضور البصمة عليه علامة 🖐.</p><div style="margin-top:6px">${rows.join('')}</div></div>`}
 function fpTime(v){if(v==null||v==='')return null;if(v instanceof Date&&!isNaN(v))return String(v.getHours()).padStart(2,'0')+':'+String(v.getMinutes()).padStart(2,'0');
   if(typeof v==='number'){const f=v%1,mn=Math.round(f*1440);return String(Math.floor(mn/60)%24).padStart(2,'0')+':'+String(mn%60).padStart(2,'0')}
   const s=normDigits(String(v)).trim(),m=s.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm|ص|م)?/i);if(!m)return null;let h=+m[1];const ap=(m[3]||'').toLowerCase();if((ap==='pm'||ap==='م')&&h<12)h+=12;if((ap==='am'||ap==='ص')&&h===12)h=0;return String(h).padStart(2,'0')+':'+m[2]}
@@ -2794,7 +2798,7 @@ function fpDate(v){if(v==null||v==='')return null;if(v instanceof Date&&!isNaN(v
 function attFingerView(){const F=S.fp;
   let h=`<div class="sec" style="margin-top:12px"><h4 style="margin:0">رفع ملف جهاز البصمة</h4><p class="small muted" style="margin:6px 0">صدّر التقرير من جهاز البصمة أو برنامجه كـ Excel أو CSV وارفعه هنا. النظام يطابق كل شخص ويا العامل بالرمز أو بالاسم، وياخذ أول بصمة كدخول وآخر بصمة كخروج لكل يوم، ويحسب التأخير حسب بداية الدوام (${attCfg().start} + ${attCfg().grace} دقيقة سماح).</p>
    <div class="acts"><button class="btn pri" data-a="fpUp">⬆ اختيار ملف البصمة</button>${F?'<button class="btn ghost" data-a="fpClr">إلغاء</button>':''}</div></div>`;
-  if(!F)return h;
+  if(!F)return h+fpSavedView();
   const opts=v=>FP_F.map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join(''),P=fpPlan();
   h+=`<div class="sec"><p class="small muted" style="margin:0">الملف: <b>${esc(F.file)}</b> · ${nf.format(F.rows.length)} سطر. تحت كل عمود اختار شنو يمثّل.</p>
    <div style="overflow:auto;max-height:40vh;margin-top:8px;border:1px solid var(--line);border-radius:var(--r)"><table class="attbl atsmall"><thead style="position:sticky;top:0;background:var(--surface);z-index:1"><tr>${F.header.map((x,i)=>`<th style="min-width:120px"><div class="small">${esc(x)}</div><select class="in fpm" data-i="${i}" style="margin-top:4px;font-size:13px">${opts(F.map[i])}</select></th>`).join('')}</tr></thead><tbody>${F.rows.map(r=>`<tr>${r.map(c=>`<td class="small">${esc(c instanceof Date?fpDate(c)+' '+fpTime(c):String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
@@ -2853,7 +2857,11 @@ document.addEventListener('click',async e=>{const el=e.target.closest('[data-a]'
   else if(a==='fpClr'){S.fp=null;render()}
   else if(a==='fpAI')fpAI();
   else if(a==='fpGo'){const P=fpPlan();if(!P.recs.length)return;el.disabled=true;let n=0;try{for(let i=0;i<P.recs.length;i+=200){const part=P.recs.slice(i,i+200);el.textContent='جارِ التسجيل… '+n;const {data,error}=await sb.from('attendance').upsert(part,{onConflict:'worker_id,day'}).select();if(error)throw error;(data||[]).forEach(attPut);n+=part.length}
-      const lc=await fpLearnCodes(P);S.fp=null;attSnapSave?.();render();toast(`انسجل ${n} يوم دوام من البصمة${lc?' · انحفظ رقم البصمة لـ '+lc+' عامل':''}`)}catch(x){const E=$('#fpE');if(E)E.textContent=(x.message||x)+(n?` (انسجل ${n} قبل الخطأ)`:'');el.disabled=false;el.textContent='أعد المحاولة'}}});
+      const lc=await fpLearnCodes(P);const byDay={};P.recs.forEach(r=>byDay[r.day]=(byDay[r.day]||0)+1);const days=Object.keys(byDay).sort(),file=S.fp.file;
+      try{await sb.from('att_sheets').insert({day:days[days.length-1],uid:S.me.id,branch:curBranch(),applied:n,pending:0,result:{src:'finger',file,days:byDay,people:P.per.filter(x=>x.w).length,late:P.late,rows:[]}});S._shL=0;shLoad(true)}catch(e){}
+      S.fp=null;attSnapSave?.();render();
+      overlay('fpok','✓ انحفظت البصمة',`<div class="rcbox"><div class="okmark" style="background:var(--ok-soft);color:var(--ok)">✓</div><b style="font-size:20px">انحفظت البصمة</b><span>${nf.format(n)} يوم دوام لـ ${nf.format(P.per.filter(x=>x.w).length)} عامل — ثابتة بتواريخها</span></div>
+        <div class="list" style="margin-top:8px">${days.map(d=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)"><span>✓ ${dayName(d)}</span><b class="num">${byDay[d]} عامل</b></div>`).join('')}</div>${lc?`<p class="note">وانحفظ رقم البصمة لـ ${lc} عامل — المرة الجاية يتطابقون بالرقم مباشرة.</p>`:''}<div class="acts" style="justify-content:center"><button class="btn pri" data-a="close">تمام</button></div>`)}catch(x){const E=$('#fpE');if(E)E.textContent=(x.message||x)+(n?` (انسجل ${n} قبل الخطأ)`:'');el.disabled=false;el.textContent='أعد المحاولة'}}});
 document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='hpM'){S.att.payM=t.value||bgDay().slice(0,7);render()}else if(t.id==='hpS'){S.att.paySite=t.value;render()}
   else if(t.classList?.contains('fpm')&&S.fp){const k=t.value,i=+t.dataset.i;if(k)S.fp.map=S.fp.map.map((x,j)=>x===k&&j!==i?'':x);S.fp.map[i]=k;render()}
@@ -2879,7 +2887,7 @@ function shCard(s,boss){const R=s.result?.rows||[],refs=(s.result?.imgs||[]).len
    ${s.result?.unreadable?`<p class="small muted">ما انقرا: ${esc(s.result.unreadable)}</p>`:''}
    <div style="margin-top:6px">${R.map((x,i)=>shRow(x,i,boss)).join('')||'<p class="muted small">ما انقرت أسماء.</p>'}</div>
    ${boss&&pend.some(x=>x.wid)?`<div class="acts" style="margin-top:8px"><button class="btn ok" data-a="shAll">✓ سجّل كل المقترحين حاضرين (${pend.filter(x=>x.wid).length})</button>${boss&&['project','hr','owner'].includes(S.me?.role)?`<button class="btn ghost bad" data-a="shDel">حذف الورقة</button>`:''}</div>`:boss&&['project','hr','owner'].includes(S.me?.role)?`<div class="acts" style="margin-top:8px"><button class="btn sm ghost" data-a="shDel">حذف الورقة</button></div>`:''}</details>`}
-function attSheetsView(){shLoad();const L=S.sheets;if(!L)return`<div class="empty"><b>جارِ التحميل…</b></div>`;const boss=attBoss()||S.me?.role==='timekeeper';
+function attSheetsView(){shLoad();const L=S.sheets&&S.sheets.filter(x=>x.result?.src!=='finger');if(!L)return`<div class="empty"><b>جارِ التحميل…</b></div>`;const boss=attBoss()||S.me?.role==='timekeeper';
   return`<div class="sec" style="margin-top:12px"><h4 style="margin:0">📝 الحضور من سجلات الفورمن</h4><p class="small muted" style="margin:6px 0 0">كل ما الفورمن يرفع سجلات العمل (صور العمل، الجداول، وأسماء الكادر اللي يكتبها)، الذكاء الاصطناعي يقرا الأسماء ويطابقها ويا العمال. اللي تطابقوا بثقة عالية (80% وفوك) انسجلوا حاضرين تلقائياً. الباقي هنا: تأكد من العامل المقترح واضغط «✓ حاضر» أو «تجاهل».</p></div>
    ${L.length?L.map(s=>shCard(s,boss)).join(''):'<div class="empty"><b>ماكو سجلات بعد</b>أول ما الفورمن يرفع صور العمل أو الجداول تطلع هنا.</div>'}`}
 async function shApply(sid,idxs){const s=(S.sheets||[]).find(x=>x.id===sid);if(!s)return;const R=s.result.rows,c=attCfg();let n=0,bad=0;
