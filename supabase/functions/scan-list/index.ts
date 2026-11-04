@@ -33,7 +33,13 @@ const VERIFY_PROMPT = (kind: string) => `أنت مدقق فواتير. أمام�
 3) readable: هل الكتابة واضحة ومقروءة (غير مهزوزة/مظلمة/بعيدة جداً)؟
 ثم استخرج ما تستطيع قراءته.
 أجب بـ JSON فقط:
-{"is_invoice":true,"complete":true,"readable":true,"problem":"too_close|cropped|blurry|dark|too_far|not_document|none","doc_type":"نوع المستند","number":"رقم الفاتورة أو الوصل أو فارغ","date":"التاريخ المكتوب أو فارغ","supplier":"اسم المورد أو الجهة أو فارغ","total":رقم أو null,"items":[{"name":"","qty":null,"price":null}]}`;
+{"is_invoice":true,"complete":true,"readable":true,"problem":"too_close|cropped|blurry|dark|too_far|not_document|none","doc_type":"نوع المستند","number":"رقم الفاتورة أو الوصل أو فارغ","date":"التاريخ بصيغة YYYY-MM-DD إن أمكن وإلا كما مكتوب","supplier":"اسم المورد أو الشركة أو المحل (البائع وليس الزبون) أو فارغ","customer":"اسم الزبون المكتوب أو فارغ","payment":"credit|cash|","delivery":رقم أو null,"prev_balance":رقم أو null,"total":رقم أو null,"items":[{"name":"","qty":null,"unit":"","price":null}]}
+ملاحظات الاستخراج:
+- payment: credit إذا مكتوب ذمم أو آجل أو دين أو On credit أو بالحساب؛ cash إذا مكتوب نقداً أو واصل أو مدفوع أو Cash؛ وإلا فارغ.
+- delivery: أجور النقل أو التوصيل أو التحميل إن وجدت (ليست مادة).
+- prev_balance: الرصيد السابق إن كان مكتوباً.
+- items: كل مادة سطر. price سعر الوحدة بالدينار كرقم كامل (إذا مكتوب 13 أو 190 بمعنى الآلاف حسب المجموع اكتبه 13000 أو 190000). qty الكمية المحاسب عليها (مثلاً الأمتار إذا السعر بالمتر). unit: قطعة، متر، م²، كيس، علبة، كارتون، لتر، كغم، طن.
+- تأكد أن qty × price يساوي مبلغ السطر، وأن مجموع الأسطر + delivery = total.`;
 
 const TABLE_PROMPT = `أمامك ملف أو صورة فيها جدول بيانات (قوائم مشترين أو مستأجرين أو حجوزات أو عقود أو وحدات سكنية) من نظام قديم. قد يكون بالعربي أو الإنكليزي، مطبوع أو بخط اليد.
 انقل الجدول كما هو حرفياً: سطر العناوين ثم كل سطر بيانات. لا تترجم ولا تغيّر الأسماء أو الأرقام، ولا تحذف أي سطر بيانات، ولا تضف أسطر المجاميع.
@@ -60,7 +66,7 @@ Deno.serve(async (req) => {
       const rv = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 2000, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: media, data: image } }, { type: "text", text: VERIFY_PROMPT(String(dept || "")) }] }] }),
+        body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 4000, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: media, data: image } }, { type: "text", text: VERIFY_PROMPT(String(dept || "")) }] }] }),
       });
       if (rv.status === 429) return json({ code: "rate_limited" }, 429);
       if (!rv.ok) return json({ code: "upstream", detail: (await rv.text()).slice(0, 300) }, 502);
@@ -71,8 +77,9 @@ Deno.serve(async (req) => {
       const v = JSON.parse(mm[0]);
       const num = (x: unknown) => { if (x === null || x === undefined || x === "") return null; const n = Number(String(x).replace(/[^\d.\-]/g, "")); return isFinite(n) ? n : null; };
       return json({ is_invoice: !!v.is_invoice, complete: !!v.complete, readable: !!v.readable, problem: String(v.problem || ""), doc_type: String(v.doc_type || "").slice(0, 60),
-        number: String(v.number || "").slice(0, 40), date: String(v.date || "").slice(0, 40), supplier: String(v.supplier || "").slice(0, 120), total: num(v.total),
-        items: (Array.isArray(v.items) ? v.items : []).slice(0, 60).map((x: Record<string, unknown>) => ({ name: String(x.name || "").slice(0, 120), qty: num(x.qty), price: num(x.price) })).filter((x: { name: string }) => x.name) });
+        number: String(v.number || "").slice(0, 40), date: String(v.date || "").slice(0, 40), supplier: String(v.supplier || "").slice(0, 120), customer: String(v.customer || "").slice(0, 120),
+        payment: ["credit", "cash"].includes(String(v.payment)) ? String(v.payment) : "", delivery: num(v.delivery), prev_balance: num(v.prev_balance), total: num(v.total),
+        items: (Array.isArray(v.items) ? v.items : []).slice(0, 60).map((x: Record<string, unknown>) => ({ name: String(x.name || "").slice(0, 120), qty: num(x.qty), unit: String(x.unit || "").slice(0, 20), price: num(x.price) })).filter((x: { name: string }) => x.name) });
     }
     if (mode === "table") {
       const block = isPdf ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } } : { type: "image", source: { type: "base64", media_type: media, data: image } };
