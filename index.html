@@ -853,7 +853,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='fbeb7c75bb';
+const APP_BUILD='fa84e00aac';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -3892,7 +3892,7 @@ function expEntries(wh){const E=[];const ok=w=>!wh||w===wh;
     if(r.purchase?.total)E.push({t:r.purchase.at||r.updatedAt,k:'buy',d:`${r.item} × ${nf.format(r.qty)} — ${r.purchase.supplier||''}`,a:+r.purchase.total,wh:w,uid:(r.log||[]).filter(l=>/الشراء|اشترى/.test(l.a)).slice(-1)[0]?.uid});});
   if(ok('mach')){S.machines.forEach(m=>(m.issues||[]).forEach(x=>E.push({t:x.t,k:'issue',d:`${x.item} × ${nf.format(x.qty)} ${x.unit||''} ← ${m.name}`,a:x.total||0,uid:x.uid,wh:'mach'})));
     const f=fuelItem();(f?.log||[]).forEach(l=>{if(l.k==='adj')return;if(l.k==='in')E.push({t:l.at||l.t,k:'fuelin',d:`استلام كاز ${nf.format(l.l)} لتر${l.sup?' — '+l.sup:''}`,a:l.p?l.l*l.p:0,uid:l.uid,wh:'mach'});else E.push({t:l.at||l.t,k:'fuelout',d:`كاز ${nf.format(l.l)} لتر ← ${l.to||''}`,a:l.p?l.l*l.p:0,uid:l.uid,wh:'mach'})})}
-  S.invlog.forEach(e=>{if(e.kind==='out'&&ok(e.wh))E.push({t:e.at||e.t,k:'out',d:`${e.item} × ${nf.format(e.qty)} ${e.unit||''}${e.to?' ← '+e.to:''}${e.dept?' ('+e.dept+')':''}`,a:e.total||0,uid:e.uid,wh:e.wh})});
+  S.invlog.forEach(e=>{if(e.kind==='out'&&ok(e.wh)&&!e.reqId)E.push({t:e.at||e.t,k:'out',d:`${e.item} × ${nf.format(e.qty)} ${e.unit||''}${e.to?' ← '+e.to:''}${e.dept?' ('+e.dept+')':''}`,a:e.total||0,uid:e.uid,wh:e.wh})});
   (S.invoices||[]).forEach(v=>{if(ok(v.wh)&&!(v.reqIds?.length&&!v.delivery))E.push({t:v.at||v.createdAt,k:v.kind==='in'?'in':'inv',d:v.reqIds?.length?`توصيل فاتورة${v.number?' #'+v.number:''} ${v.supplier||''} (المواد محسوبة بالشراء)`:`فاتورة${v.number?' #'+v.number:''} ${v.supplier||''}${v.lines?.length?' — '+v.lines.length+' مادة':''}`,a:v.reqIds?.length?+v.delivery||0:+v.total||0,uid:v.uid,wh:v.wh,id:v.id})});
   return E.sort((a,b)=>b.t-a.t)}
 const EXPK={in:['مدخلات (فواتير)','accent'],out:['مخرجات يدوية','info'],issue:['صرف من المخزن','info'],buy:['شراء','accent'],inv:['فاتورة خارجية','warn'],fuelin:['استلام كاز','ok'],fuelout:['صرف كاز','mute']};
