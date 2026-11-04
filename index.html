@@ -853,7 +853,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='57e6cf58a0';
+const APP_BUILD='ed3d8382e4';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -2036,28 +2036,28 @@ function listView(list,emptyMsg,withSearch){
   if(!f.length)return h+`<div class="empty"><b>لا شيء هنا</b>${emptyMsg}</div>`;
   return h+`<div class="list">${f.map(card).join('')}</div>`;
 }
-/* ===== التصليح: قطعة تطلع للتصليح (مخرجات) وترجع (مدخلات) ===== */
-function rpSend(r){overlay('rp','🔧 إرسال للتصليح — '+esc(r.item),`<form class="f" id="fRp"><p class="muted" style="margin:0">#${esc(r.code)} · ${esc(r.dept||'')}${r.machineId?' · '+esc(S.machines.find(m=>m.id===r.machineId)?.name||''):''}</p>
-   <label class="l">وين راحت للتصليح (الورشة / المحل / الفني)<input id="rpTo" class="in" data-sug="people" autocomplete="off" required placeholder="مثال: ورشة أبو علي — الصناعة"></label>
-   <label class="l">ملاحظة<input id="rpN" class="in" placeholder="مثال: دينمو مدحلة 938 — يحتاج لف"></label>${dtField('rpW','تاريخ الإرسال')}
-   <div class="err" id="rpE"></div><div class="acts"><button class="btn pri" type="submit">إرسال للتصليح</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
+/* ===== التصليح: القطعة تدخل للتصليح (مدخلات) ومن يكمل تطلع (مخرجات) ===== */
+function rpSend(r){overlay('rp','🔧 دخول للتصليح — '+esc(r.item),`<form class="f" id="fRp"><p class="muted" style="margin:0">#${esc(r.code)} · ${esc(r.dept||'')}${r.machineId?' · '+esc(S.machines.find(m=>m.id===r.machineId)?.name||''):''}</p>
+   <label class="l">منو يصلحها / مكان التصليح <em>(اختياري)</em><input id="rpTo" class="in" data-sug="people" autocomplete="off" placeholder="مثال: الميكانيكي أبو علي"></label>
+   <label class="l">ملاحظة<input id="rpN" class="in" placeholder="مثال: دينمو مدحلة 938 — يحتاج لف"></label>${dtField('rpW','تاريخ الدخول للتصليح')}
+   <div class="err" id="rpE"></div><div class="acts"><button class="btn pri" type="submit">دخلت للتصليح — سجّلها بالمدخلات</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
   $('#fRp').addEventListener('submit',async e=>{e.preventDefault();const nr=clean(r),to=$('#rpTo').value.trim(),at=readDt('rpW')||Date.now();nr.status='repair';nr.repair={to,at,note:$('#rpN').value.trim(),uid:S.me?.id||null};
-    nr.log=[...(nr.log||[]),{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أرسلها للتصليح'+(to?' — '+to:''),note:nr.repair.note}];
-    try{await putReq(nr);await invLog('أرسل للتصليح: '+r.item,to);closeOv();toast('انسجلت بالمخرجات — جاري التصليح')}catch(x){$('#rpE').textContent='تعذر الحفظ: '+(x.message||x)}})}
-function rpBack(r){overlay('rp','✓ رجعت من التصليح — '+esc(r.item),`<form class="f" id="fRb"><p class="muted" style="margin:0">انرسلت${r.repair?.to?' لـ '+esc(r.repair.to):''}${r.repair?.at?' · '+dt(r.repair.at):''}</p>
-   <div class="fr"><label class="l">كلفة التصليح (دينار) <em>(اختياري)</em><input id="rbC" class="in num" type="number" min="0" step="any"></label>${dtField('rbW','تاريخ الرجوع')}</div>
-   <label class="l">ملاحظة<input id="rbN" class="in" placeholder="مثال: انصلحت ورجعت للمدحلة"></label>
-   <div class="err" id="rbE"></div><div class="acts"><button class="btn pri" type="submit">رجعت — سجّلها بالمدخلات</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
+    nr.log=[...(nr.log||[]),{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'دخلت للتصليح'+(to?' — '+to:''),note:nr.repair.note}];
+    try{await putReq(nr);await invLog('دخل للتصليح: '+r.item,to);closeOv();toast('انسجلت بالمدخلات — جاري التصليح')}catch(x){$('#rpE').textContent='تعذر الحفظ: '+(x.message||x)}})}
+function rpBack(r){overlay('rp','✓ انتهى التصليح — '+esc(r.item),`<form class="f" id="fRb"><p class="muted" style="margin:0">دخلت للتصليح${r.repair?.to?' لـ '+esc(r.repair.to):''}${r.repair?.at?' · '+dt(r.repair.at):''}</p>
+   <div class="fr"><label class="l">كلفة التصليح (دينار) <em>(اختياري)</em><input id="rbC" class="in num" type="number" min="0" step="any"></label>${dtField('rbW','تاريخ انتهاء التصليح')}</div>
+   <label class="l">ملاحظة<input id="rbN" class="in" placeholder="مثال: انصلحت وانركبت بالمدحلة"></label>
+   <div class="err" id="rbE"></div><div class="acts"><button class="btn pri" type="submit">انتهى — سجّلها بالمخرجات</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
   $('#fRb').addEventListener('submit',async e=>{e.preventDefault();const nr=clean(r),c=$('#rbC').value===''?null:+$('#rbC').value;nr.status='done';nr.repair={...(r.repair||{}),back:{at:readDt('rbW')||Date.now(),cost:c,note:$('#rbN').value.trim(),uid:S.me?.id||null}};
-    nr.log=[...(nr.log||[]),{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'رجعت من التصليح'+(c?' — الكلفة '+money(c):''),note:$('#rbN').value.trim()}];
-    try{await putReq(nr);await invLog('رجعت من التصليح: '+r.item,(r.repair?.to||'')+(c?' · '+money(c):''));closeOv();toast('انسجلت بالمدخلات — رجعت من التصليح')}catch(x){$('#rbE').textContent='تعذر الحفظ: '+(x.message||x)}})}
+    nr.log=[...(nr.log||[]),{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'انتهى التصليح'+(c?' — الكلفة '+money(c):''),note:$('#rbN').value.trim()}];
+    try{await putReq(nr);await invLog('انتهى التصليح: '+r.item,(r.repair?.to||'')+(c?' · '+money(c):''));closeOv();toast('انتهى التصليح — انتقلت للمخرجات')}catch(x){$('#rbE').textContent='تعذر الحفظ: '+(x.message||x)}})}
 const rpList=()=>S.requests.filter(r=>whOf(r)==='mach'&&(r.status==='repair'||r.repair));
-function rpCard(r,back){const m=r.machineId&&S.machines.find(x=>x.id===r.machineId);return`<button class="card" data-a="open" data-v="${r.id}">${r.productImg?imgTag(r.productImg,'thumb'):'<div class="thumb">🔧</div>'}<div class="mid"><div class="t">${esc(r.item)}</div><div class="meta"><span class="num">#${esc(r.code)}</span>${m?`<span>${esc(m.name)}</span>`:''}${r.repair?.to?`<span>📍 ${esc(r.repair.to)}</span>`:''}${back&&r.repair?.back?.cost?`<span class="num">${money(r.repair.back.cost)}</span>`:''}</div></div><div class="end">${back?`<span class="pill p-ok">✓ رجعت</span><span class="small muted">${dt(r.repair.back.at)}</span>`:`<span class="pill p-warn">🔧 جاري التصليح</span><span class="small muted">${r.repair?.at?ago(r.repair.at):''}</span>`}</div></button>`}
-function rpOutSection(){const L=rpList();const now=L.filter(r=>r.status==='repair'),old=L.filter(r=>r.status!=='repair'&&r.repair?.at).slice(0,20);
-  return`<div class="sec" style="margin-top:12px"><h4 style="margin:0">🔧 مرسلة للتصليح (${now.length})</h4><p class="small muted" style="margin:4px 0 0">القطع اللي طلعت للتصليح وبعدها ما رجعت. افتح القطعة واضغط «✓ رجع من التصليح» لما ترجع.</p>
+function rpCard(r,back){const m=r.machineId&&S.machines.find(x=>x.id===r.machineId);return`<button class="card" data-a="open" data-v="${r.id}">${r.productImg?imgTag(r.productImg,'thumb'):'<div class="thumb">🔧</div>'}<div class="mid"><div class="t">${esc(r.item)}</div><div class="meta"><span class="num">#${esc(r.code)}</span>${m?`<span>${esc(m.name)}</span>`:''}${r.repair?.to?`<span>📍 ${esc(r.repair.to)}</span>`:''}${back&&r.repair?.back?.cost?`<span class="num">${money(r.repair.back.cost)}</span>`:''}</div></div><div class="end">${back?`<span class="pill p-ok">✓ انتهى التصليح</span><span class="small muted">${dt(r.repair.back.at)}</span>`:`<span class="pill p-warn">🔧 جاري التصليح</span><span class="small muted">${r.repair?.at?ago(r.repair.at):''}</span>`}</div></button>`}
+function rpNowSection(){const now=rpList().filter(r=>r.status==='repair');
+  return`<div class="sec" style="margin-top:12px"><h4 style="margin:0">🔧 داخل للتصليح — جاري التصليح (${now.length})</h4><p class="small muted" style="margin:4px 0 0">القطع اللي دخلت للتصليح وبعدها ما خلصت. لما يكمل التصليح افتح القطعة واضغط «✓ انتهى التصليح» وتنتقل للمخرجات.</p>
    ${now.length?`<div class="list" style="margin-top:8px">${now.map(r=>rpCard(r,false)).join('')}</div>`:'<p class="muted small">ماكو شي بالتصليح هسه.</p>'}</div>`}
-function rpInSection(){const L=rpList().filter(r=>r.repair?.back).sort((a,b)=>b.repair.back.at-a.repair.back.at);
-  return`<div class="sec" style="margin-top:12px"><h4 style="margin:0">🔧 رجعت من التصليح (${L.length})</h4>${L.length?`<div class="list" style="margin-top:8px">${L.slice(0,40).map(r=>rpCard(r,true)).join('')}</div>`:'<p class="muted small">ماكو قطع رجعت من التصليح بعد.</p>'}</div>`}
+function rpDoneSection(){const L=rpList().filter(r=>r.repair?.back).sort((a,b)=>b.repair.back.at-a.repair.back.at);
+  return`<div class="sec" style="margin-top:12px"><h4 style="margin:0">✓ انتهى تصليحها وطلعت (${L.length})</h4>${L.length?`<div class="list" style="margin-top:8px">${L.slice(0,40).map(r=>rpCard(r,true)).join('')}</div>`:'<p class="muted small">ماكو قطع خلص تصليحها بعد.</p>'}</div>`}
 /* وين صار الطلب هسه وعند منو */
 function reqWhere(r){const L=r.log||[],last=a=>[...L].reverse().find(x=>a.test(x.a||'')),nm=x=>x?(S.names?.[x.uid]?.name||ROLES[x.role]?.name||''):'';
   switch(r.status){
@@ -2067,7 +2067,7 @@ function reqWhere(r){const L=r.log||[],last=a=>[...L].reverse().find(x=>a.test(x
     case'buying':{const b=last(/بدأ الشراء/);return'🛒 يشتريه '+(nm(b)||'مندوب المشتريات')}
     case'repair':return'🔧 جاري التصليح'+(r.repair?.to?' — عند '+r.repair.to:'')+(r.repair?.at?' · من '+ago(r.repair.at):'');
     case'receive':return'🚚 انشترى — بانتظار الاستلام بـ'+whName(whOf(r));
-    case'done':{if(r.repair?.back)return'✓ رجع من التصليح'+(r.repair.to?' ('+r.repair.to+')':'');const x=last(/صرف|استلم|سلّم|تسليم/);return'✓ مكتمل'+(x?' — '+nm(x):'')}
+    case'done':{if(r.repair?.back)return'✓ انتهى التصليح'+(r.repair.to?' ('+r.repair.to+')':'');const x=last(/صرف|استلم|سلّم|تسليم/);return'✓ مكتمل'+(x?' — '+nm(x):'')}
     case'rejected':{const x=last(/رفض/);return'✗ رفضه '+(nm(x)||'')}
   }return''}
 function card(r){
@@ -3178,7 +3178,7 @@ function openReq(r,keep){
   const dd=$('#devDel');if(dd)dd.addEventListener('click',()=>{$('#devDelC').innerHTML='<button class="btn bad sm" id="devDel2">تأكيد الحذف</button>';$('#devDel2').addEventListener('click',()=>devDelReq(r))});
 }
 function actionsHTML(r,role){if(!role||!ROLES[role])return"";
-  if(r.status==='store_check'&&whOf(r)==='mach'&&['machines','supply'].includes(role))return`<div class="sec"><h4>إجراؤك</h4><div class="acts"><button class="btn" data-a="rpSend">🔧 إرسال للتصليح</button></div><p class="note">الصرف أو التحويل للشراء بيد مخزن الآليات.</p></div>`;
+  if(r.status==='store_check'&&whOf(r)==='mach'&&['machines','supply'].includes(role))return`<div class="sec"><h4>إجراؤك</h4><div class="acts"><button class="btn" data-a="rpSend">🔧 دخول للتصليح</button></div><p class="note">الصرف أو التحويل للشراء بيد مخزن الآليات.</p></div>`;
   let ownNote='';if(S.me?.role==='owner'&&!canAct(r,role)&&ST[r.status]?.who.length&&r.status!=='receive'){const as=r.status==='store_check'?(whOf(r)==='mach'?'mstore':'store'):ST[r.status].who[0];ownNote=`<p class="note" style="margin:0 0 6px">👑 هذه المرحلة بيد ${ROLES[as]?.name||''} — انت كمالك النظام تكدر تتصرف بيها من هنا.</p>`;role=as}
   if(ROLES[role].kind==='admin'&&!canAct(r,role))return`<p class="note">وضع المراقبة: ترى كل التفاصيل والسجل والفاتورة. ${ST[r.status].who.length?'المرحلة الحالية بيد: '+ST[r.status].who.map(w=>ROLES[w].name).join(' أو '):''}</p>`;
   if(!canAct(r,role))return ST[r.status].who.length?`<p class="note">هذه المرحلة بيد: ${ST[r.status].who.map(w=>ROLES[w].name).join(' أو ')}</p>`:'';
@@ -3186,8 +3186,8 @@ function actionsHTML(r,role){if(!role||!ROLES[role])return"";
   const rej=`<button class="btn bad" data-a="do" data-v="reject">رفض</button>`;
   let a='';
   switch(r.status){
-    case'store_check':a=`<button class="btn ok" data-a="issueForm">صرف من ${whName(whOf(r))}</button><button class="btn pri" data-a="do" data-v="toBuy">غير متوفر - تحويل للشراء</button>${whOf(r)==='mach'?'<button class="btn" data-a="rpSend">🔧 إرسال للتصليح</button>':''}${rej}`;break;
-    case'repair':a=`<div class="note" style="flex-basis:100%;margin:0">🔧 بالتصليح${r.repair?.to?' عند <b>'+esc(r.repair.to)+'</b>':''}${r.repair?.at?' من '+dt(r.repair.at):''}${r.repair?.note?' — '+esc(r.repair.note):''}</div><button class="btn ok" data-a="rpBack">✓ رجع من التصليح</button>`;break;
+    case'store_check':a=`<button class="btn ok" data-a="issueForm">صرف من ${whName(whOf(r))}</button><button class="btn pri" data-a="do" data-v="toBuy">غير متوفر - تحويل للشراء</button>${whOf(r)==='mach'?'<button class="btn" data-a="rpSend">🔧 دخول للتصليح</button>':''}${rej}`;break;
+    case'repair':a=`<div class="note" style="flex-basis:100%;margin:0">🔧 بالتصليح${r.repair?.to?' عند <b>'+esc(r.repair.to)+'</b>':''}${r.repair?.at?' من '+dt(r.repair.at):''}${r.repair?.note?' — '+esc(r.repair.note):''}</div><button class="btn ok" data-a="rpBack">✓ انتهى التصليح</button>`;break;
     case'proj':a=`<button class="btn ok" data-a="do" data-v="projOk">موافقة</button>${rej}`;break;
     case'pur_ok':a=`<button class="btn ok" data-a="do" data-v="projOk">موافقة على الشراء</button>${rej}`;break;
     case'buy':a=`<button class="btn" data-a="do" data-v="startBuy">بدء الشراء</button><button class="btn pri" data-a="buyForm">تأكيد الشراء وإرفاق الفاتورة</button>`;break;
@@ -3823,7 +3823,7 @@ function outsView(role){const wh=scopeWh(role)||myWh(role),per=S.outP||'today',r
   const all=S.invlog.filter(e=>e.kind==='out'&&e.wh===wh).sort((a,b)=>(b.at||b.t)-(a.at||a.t));
   const list=all.filter(e=>per==='all'||(per==='today'?sameDayT(e.at||e.t):sameMonthT(e.at||e.t)));
   const tot=list.reduce((a,e)=>a+(+e.total||0),0);
-  let h=`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">المخرجات</h3><p class="muted" style="margin:2px 0 0">سجّل أي مادة طلعت من المخزن بدون طلب بالتطبيق. تنخصم من الرصيد وتنحسب بالصرفيات.</p></div><div class="acts">${ro?'':'<button class="btn pri" data-a="outNew">+ تسجيل مخرج</button>'}</div></div>${wh==='mach'?rpOutSection():''}
+  let h=`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">المخرجات</h3><p class="muted" style="margin:2px 0 0">سجّل أي مادة طلعت من المخزن بدون طلب بالتطبيق. تنخصم من الرصيد وتنحسب بالصرفيات.</p></div><div class="acts">${ro?'':'<button class="btn pri" data-a="outNew">+ تسجيل مخرج</button>'}</div></div>${wh==='mach'?rpDoneSection():''}
    <div class="filters"><div class="seg" style="flex:1 1 220px">${[['today','اليوم'],['month','هذا الشهر'],['all','الكل']].map(([k,t])=>`<label><input type="radio" name="outP" value="${k}" ${per===k?'checked':''}>${t}</label>`).join('')}</div></div>
    <div class="stats"><div class="stat"><b>${list.length}</b><span>مخرج</span></div><div class="stat"><b class="num" style="font-size:18px">${money(tot)}</b><span>القيمة</span></div></div>`;
   if(!list.length)return h+`<div class="empty"><b>ماكو مخرجات بهاي الفترة</b>اضغط «+ تسجيل مخرج» واختار المادة والكمية ولمن طلعت.</div>`;
@@ -3862,7 +3862,7 @@ function insView(role){const wh=scopeWh(role)||myWh(role),per=S.inP||'month',q=(
   const all=(S.invoices||[]).filter(v=>v.kind==='in'&&v.wh===wh).sort((a,b)=>(b.at||0)-(a.at||0));
   const list=all.filter(v=>(per==='all'||(per==='today'?sameDayT(v.at):sameMonthT(v.at)))&&(!q||[v.number,v.supplier,...(v.lines||[]).map(l=>l.name)].join(' ').includes(q)));
   const tot=list.reduce((a,v)=>a+(+v.total||0),0),credit=list.filter(v=>v.pay==='credit').reduce((a,v)=>a+(+v.total||0),0);
-  let h=`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">المدخلات</h3><p class="muted" style="margin:2px 0 0">كل مادة تدخل المخزن تنسجل بفاتورتها: رقم الفاتورة، التاريخ، المورد، والمواد بأسعارها. تنضاف للرصيد وحدها.</p></div><div class="acts">${ro?'':'<button class="btn pri" data-a="inNew">+ تسجيل مدخل</button>'}</div></div>${wh==='mach'?rpInSection():''}
+  let h=`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">المدخلات</h3><p class="muted" style="margin:2px 0 0">كل مادة تدخل المخزن تنسجل بفاتورتها: رقم الفاتورة، التاريخ، المورد، والمواد بأسعارها. تنضاف للرصيد وحدها.</p></div><div class="acts">${ro?'':'<button class="btn pri" data-a="inNew">+ تسجيل مدخل</button>'}</div></div>${wh==='mach'?rpNowSection():''}
    <div class="filters"><input id="inQ" class="in" placeholder="بحث برقم الفاتورة أو المورد أو المادة…" value="${esc(q)}" style="flex:1 1 200px"><div class="seg" style="flex:1 1 220px">${[['today','اليوم'],['month','هذا الشهر'],['all','الكل']].map(([k,t])=>`<label><input type="radio" name="inP" value="${k}" ${per===k?'checked':''}>${t}</label>`).join('')}</div></div>
    <div class="stats"><div class="stat"><b>${list.length}</b><span>فاتورة</span></div><div class="stat"><b class="num" style="font-size:18px">${money(tot)}</b><span>المجموع</span></div>${credit?`<div class="stat hot"><b class="num" style="font-size:18px">${money(credit)}</b><span>منها آجل (دين)</span></div>`:''}</div>`;
   if(!list.length)return h+`<div class="empty"><b>ماكو مدخلات بهاي الفترة</b>اضغط «+ تسجيل مدخل» واكتب رقم الفاتورة والمواد.</div>`;
