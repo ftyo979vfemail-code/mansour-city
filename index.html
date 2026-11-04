@@ -720,7 +720,8 @@ async function act(r,action,extra={}){
   const role=S.role||(isOwner()?'project':null),note=(extra.note||'').trim();const nr=clean(r);nr.log=nr.log||[];
   const push=a=>nr.log.push({t:Date.now(),role,uid:S.me?.id||null,a,note});
   switch(action){
-    case'toBuy':nr.status='proj';push('حوّل للشراء - غير متوفر بالمخزن');break;
+    case'toBuy':nr.status='proj';push('حوّل للشراء - غير متوفر بالمخزن'+(whOf(r)==='main'&&r.fwd?' الرئيسي (ولا بمخزن الآليات)':''));break;
+    case'toMain':nr.wh='main';nr.fwd={from:'mach',t:Date.now(),uid:S.me?.id||null};push('غير متوفر بمخزن الآليات — حوّله للمخزن الرئيسي');break;
     case'issue':nr.status='done';nr.fromStock=true;if(extra.issue)nr.issue=extra.issue;push('صرف من المخزن'+(extra.itemName?' ('+extra.itemName+')':''));break;
     case'projOk':nr.status='buy';push('وافق — أُرسل لمندوبي المشتريات');break;
     case'direct':nr.status='buy';push('أرسل الطلب مباشرة للمشتريات (أولوية مدير المشروع)');break;
@@ -729,7 +730,7 @@ async function act(r,action,extra={}){
     case'bought':nr.status='receive';nr.purchase=extra.purchase;push('أكد الشراء وأرفق الفاتورة');break;
     case'reject':nr.status='rejected';push('رفض الطلب');break;
   }
-  await putReq(nr);toast(extra.toast||('تم: '+ST[nr.status].t));
+  await putReq(nr);toast(extra.toast||(action==='toMain'?'انحوّل للمخزن الرئيسي':'تم: '+ST[nr.status].t));
 }
 
 /* ---------- theme & history ---------- */
@@ -852,7 +853,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='671d2dd376';
+const APP_BUILD='35dbfccdf5';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -1111,7 +1112,7 @@ function paperForm(){S.paper={pages:[],items:[],files:[]};
   $('#ppGo').addEventListener('click',analyzePaper)}
 async function analyzePaper(){
   const P=S.paper;P.dept=$('#ppDept').value;P.area=$('#ppArea').value.trim();P.mach=$('#ppMach')?.value||null;P.pri=document.querySelector('input[name=ppPri]:checked').value;
-  P.wh=(P.mach||P.dept==='الآليات'||['machines','mstore','keeper','operator','mechanic','fueler','supply'].includes(S.role))?'mach':'main';
+  P.wh=['mstore','keeper'].includes(S.role)?'main':(P.mach||P.dept==='الآليات'||['machines','operator','mechanic','fueler','supply'].includes(S.role))?'mach':'main';
   const stock=S.inventory.filter(i=>(i.wh==='mach'?'mach':'main')===P.wh).map(i=>i.name);
   const box=$('#ovroot .sh-b');box.innerHTML=`<div class="rcbox"><div class="spin"></div><b>جارِ قراءة الورقة…</b><span class="note" id="ppProg">الصفحة 1 من ${P.files.length}</span></div>`;
   try{P.items=[];P.header={};P.unread=[];P.refs=[];
@@ -3149,7 +3150,8 @@ function actionsHTML(r,role){if(!role||!ROLES[role])return"";
   const rej=`<button class="btn bad" data-a="do" data-v="reject">رفض</button>`;
   let a='';
   switch(r.status){
-    case'store_check':a=`<button class="btn ok" data-a="issueForm">صرف من المخزن</button><button class="btn pri" data-a="do" data-v="toBuy">غير متوفر - تحويل للشراء</button>${rej}`;break;
+    case'store_check':a=whOf(r)==='mach'?`<button class="btn ok" data-a="issueForm">صرف من مخزن الآليات</button><button class="btn pri" data-a="do" data-v="toMain">غير متوفر — تحويل للمخزن الرئيسي</button>${['project','owner'].includes(S.me?.role)?`<button class="btn" data-a="do" data-v="toBuy">تحويل للشراء مباشرة</button>`:''}${rej}`
+      :`${r.fwd?'<p class="note" style="margin:0 0 6px">↩ هذا الطلب محوّل من مخزن الآليات لأنه غير متوفر عندهم.</p>':''}<button class="btn ok" data-a="issueForm">صرف من المخزن الرئيسي</button><button class="btn pri" data-a="do" data-v="toBuy">غير متوفر — تحويل للمشتريات</button>${rej}`;break;
     case'proj':a=`<button class="btn ok" data-a="do" data-v="projOk">موافقة</button>${rej}`;break;
     case'pur_ok':a=`<button class="btn ok" data-a="do" data-v="projOk">موافقة على الشراء</button>${rej}`;break;
     case'buy':a=`<button class="btn" data-a="do" data-v="startBuy">بدء الشراء</button><button class="btn pri" data-a="buyForm">تأكيد الشراء وإرفاق الفاتورة</button>`;break;

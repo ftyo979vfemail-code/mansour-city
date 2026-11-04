@@ -10,3 +10,4 @@
 -- field_photos.fp_read: hr يشوف كل اللي يرفعه الفورمن (صور العمل والجداول)، timekeeper يشوف صور العمل
 -- workers_guard: الرمز (رقم البصمة) يتعدل من project/hr/owner؛ ودمج 3 مكررين (ثامر عمر/فالح هادي/ميسم خيري) على أسمائهم الكاملة برقم البصمة
 -- att_sheets: سياسة sh_ins (timekeeper/project/hr/owner) — كل رفع بصمة ينسجل (src=finger) حتى يطلع ✓ على يومه
+-- requests: مخزن الآليات يحوّل طلب store_check للمخزن الرئيسي (wh mach→main، fwd) + إشعار للمخزن الرئيسي؛ طلبات mstore/keeper تروح للرئيسي
