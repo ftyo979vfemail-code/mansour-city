@@ -853,7 +853,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='aeb0b94e76';
+const APP_BUILD='ccb3d8bc72';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -3144,6 +3144,7 @@ function openReq(r,keep){
   const dd=$('#devDel');if(dd)dd.addEventListener('click',()=>{$('#devDelC').innerHTML='<button class="btn bad sm" id="devDel2">تأكيد الحذف</button>';$('#devDel2').addEventListener('click',()=>devDelReq(r))});
 }
 function actionsHTML(r,role){if(!role||!ROLES[role])return"";
+  let ownNote='';if(S.me?.role==='owner'&&!canAct(r,role)&&ST[r.status]?.who.length&&r.status!=='receive'){const as=r.status==='store_check'?(whOf(r)==='mach'?'mstore':'store'):ST[r.status].who[0];ownNote=`<p class="note" style="margin:0 0 6px">👑 هذه المرحلة بيد ${ROLES[as]?.name||''} — انت كمالك النظام تكدر تتصرف بيها من هنا.</p>`;role=as}
   if(ROLES[role].kind==='admin'&&!canAct(r,role))return`<p class="note">وضع المراقبة: ترى كل التفاصيل والسجل والفاتورة. ${ST[r.status].who.length?'المرحلة الحالية بيد: '+ST[r.status].who.map(w=>ROLES[w].name).join(' أو '):''}</p>`;
   if(!canAct(r,role))return ST[r.status].who.length?`<p class="note">هذه المرحلة بيد: ${ST[r.status].who.map(w=>ROLES[w].name).join(' أو ')}</p>`:'';
   const note=`<textarea id="actNote" class="in" placeholder="ملاحظة (اختيارية)"></textarea>`;
@@ -3159,7 +3160,7 @@ function actionsHTML(r,role){if(!role||!ROLES[role])return"";
     case'receive':a=role==='receiver'?`<button class="btn pri" data-a="rcIssue">إصدار باركود الاستلام</button><span class="note">يمسحه مندوب المشتريات عند تسليم المادة</span>`:role==='project'?`<button class="btn" data-a="rcIssue">إصدار باركود الاستلام</button><button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button>`:ROLES[role].kind==='store'?`<button class="btn pri" data-a="rcIssue">إصدار باركود الاستلام</button><span class="note">يمسحه مندوب المشتريات عند تسليم المادة</span>`:`<button class="btn pri" data-a="rcScan">مسح باركود الاستلام</button><span class="note">اطلب من مدير المخزن إظهار الباركود</span>`;return`<div class="sec"><h4>الاستلام بالباركود</h4><div class="acts">${a}</div></div>`;
   }
   if(role==='project'&&['store_check','proj','pur_ok'].includes(r.status))a=`<button class="btn pri" data-a="do" data-v="direct">إرسال مباشرة للمشتريات</button>`+a;
-  return`<div class="sec"><h4>إجراؤك</h4><div class="acts">${note}${a}</div></div>`;
+  return`<div class="sec"><h4>إجراؤك</h4>${ownNote}<div class="acts">${note}${a}</div></div>`;
 }
 
 function fileField(id,label,hint,capture){
