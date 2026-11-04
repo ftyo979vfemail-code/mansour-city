@@ -11,3 +11,4 @@
 -- workers_guard: الرمز (رقم البصمة) يتعدل من project/hr/owner؛ ودمج 3 مكررين (ثامر عمر/فالح هادي/ميسم خيري) على أسمائهم الكاملة برقم البصمة
 -- att_sheets: سياسة sh_ins (timekeeper/project/hr/owner) — كل رفع بصمة ينسجل (src=finger) حتى يطلع ✓ على يومه
 -- requests: مخزن الآليات يحوّل طلب store_check للمخزن الرئيسي (wh mach→main، fwd) + إشعار للمخزن الرئيسي؛ طلبات mstore/keeper تروح للرئيسي
+-- انلغى تحويل طلبات الآليات للمخزن الرئيسي (رجعت enforce_request و on_request_change مثل قبل، والطلبين المحوّلين رجعوا لمخزن الآليات)
