@@ -853,7 +853,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='bd42006102';
+const APP_BUILD='671d2dd376';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -2783,7 +2783,7 @@ function hpAdjForm(wid){const A=S.att,w=attWorker(wid);if(!w)return;const m=A.pa
     const x=await sb.from('att_adj').insert({worker_id:wid,month:m+'-01',kind:k,amount:a,reason:r,by_uid:S.me.id,branch:curBranch()});if(x.error){$('#haE').textContent=x.error.message;return}
     await attAdjLoad(m);toast('انحفظ');hpAdjForm(wid);attRerender(true)})}
 /* رفع ملف جهاز البصمة (Excel/CSV): كل بصمة سطر، أو كل يوم سطر بيه دخول وخروج */
-const FP_F=[['','— تجاهل —'],['id','رقم البصمة / رمز العامل',/^(ac.?no|no\.?|id|user.?id|emp.?no|enroll|badge|code|رقم|الرقم|الرمز|كود|رقم البصمه|رقم الموظف)/i],['name','الاسم',/name|الاسم|اسم/i],['dt','التاريخ والوقت (بصمة)',/^(time|datetime|date.?time|check.?time|punch|الوقت والتاريخ|التاريخ والوقت|وقت البصمه)$/i],['date','التاريخ',/^(date|التاريخ|اليوم|تاريخ)$/i],['in','وقت الدخول',/(in|clock.?in|on.?duty|دخول|الحضور)/i],['out','وقت الخروج',/(out|clock.?out|off.?duty|خروج|الانصراف)/i]];
+const FP_F=[['','— تجاهل —'],['id','رقم البصمة / رمز العامل',/^(ac.?no|no\.?|id|user.?id|emp.?no|enroll|badge|code|الرمز|كود|الرقم|رقم(?! ?(الهاتف|الموبايل|الجوال)))/i],['name','الاسم',/name|الاسم|اسم/i],['dt','التاريخ والوقت (بصمة)',/^(time|datetime|date.?time|check.?time|punch|الوقت والتاريخ|التاريخ والوقت|وقت البصمه)$/i],['date','التاريخ',/^(date|التاريخ|اليوم|تاريخ)$/i],['in','وقت الدخول / الحضور',/^(in|clock.?in|on.?duty|check.?in|time.?in)$|وقت الحضور|وقت الدخول|ساعه الحضور|ساعه الدخول|^الدخول$|^دخول$/i],['out','وقت الخروج / الانصراف',/^(out|clock.?out|off.?duty|check.?out|time.?out)$|وقت الخروج|وقت الانصراف|ساعه الخروج|^الخروج$|^خروج$|انصراف/i],['st','الحالة (حاضر / غائب / إجازة)',/تفاصيل الحضور|^الحاله$|حاله الحضور|^status$|^الحضور$/i]];
 function fpSavedView(){shLoad();const t=bgDay(),c=attCfg(),ups=(S.sheets||[]).filter(x=>x.result?.src==='finger');const cnt={};Object.values(S.att.rows).forEach(r=>{if(r.method==='finger')cnt[r.day]=(cnt[r.day]||0)+1});
   const rows=[];for(let i=0;i<14;i++){const d=dayAdd(t,-i),off=c.off.includes(dayDow(d))||isHoliday(d),n=cnt[d]||0,u=ups.filter(x=>x.result?.days?.[d]);
     rows.push(`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)"><span>${dayName(d)}${d===t?' <span class="pill p-info">اليوم</span>':''}</span>${n?`<span><span class="pill p-ok">✓ البصمة محفوظة</span> <b class="num">${n}</b> عامل${u.length?` <span class="small muted">· ${esc(u[0].result.file||'')} · ${esc(S.names[u[0].uid]?.name||'')}</span>`:''}</span>`:off?'<span class="pill p-mute">عطلة</span>':'<span class="pill p-warn">ما انرفعت بصمة</span>'}</div>`)}
@@ -2801,7 +2801,8 @@ function attFingerView(){const F=S.fp;
   if(!F)return h+fpSavedView();
   const opts=v=>FP_F.map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join(''),P=fpPlan();
   h+=`<div class="sec"><p class="small muted" style="margin:0">الملف: <b>${esc(F.file)}</b> · ${nf.format(F.rows.length)} سطر. تحت كل عمود اختار شنو يمثّل.</p>
-   <div style="overflow:auto;max-height:40vh;margin-top:8px;border:1px solid var(--line);border-radius:var(--r)"><table class="attbl atsmall"><thead style="position:sticky;top:0;background:var(--surface);z-index:1"><tr>${F.header.map((x,i)=>`<th style="min-width:120px"><div class="small">${esc(x)}</div><select class="in fpm" data-i="${i}" style="margin-top:4px;font-size:13px">${opts(F.map[i])}</select></th>`).join('')}</tr></thead><tbody>${F.rows.map(r=>`<tr>${r.map(c=>`<td class="small">${esc(c instanceof Date?fpDate(c)+' '+fpTime(c):String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+   <div style="overflow:auto;max-height:40vh;margin-top:8px;border:1px solid var(--line);border-radius:var(--r)"><table class="attbl atsmall"><thead style="position:sticky;top:0;background:var(--surface);z-index:1"><tr>${F.header.map((x,i)=>`<th style="min-width:120px"><div class="small">${esc(x)}</div><select class="in fpm" data-i="${i}" style="margin-top:4px;font-size:13px">${opts(F.map[i])}</select></th>`).join('')}</tr></thead><tbody>${F.rows.map(r=>`<tr>${r.map(c=>`<td class="small">${esc(typeof c==='number'&&c>20000?(fpDate(c)+(c%1?' '+fpTime(c):'')):typeof c==='number'&&c>0&&c<1?fpTime(c):String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+   ${F.map.includes('dt')||F.map.includes('date')?'':`<label class="l" style="margin-top:8px">تاريخ الملف <em>(الملف ما بيه عمود تاريخ${F.day?' — لكيته مكتوب بالعنوان':''})</em><input id="fpDay" class="in num" type="date" value="${F.day||''}" max="${bgDay()}" style="max-width:220px"></label>`}
    <label class="l" style="flex-direction:row;display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="fpOv" ${F.over?'checked':''}> حدّث حتى الأيام المسجّلة يدوياً (بدون الصح: يعبّي بس الأيام الفارغة والغياب التلقائي)</label>
    <div class="err">${P.err||''}</div>
    ${P.err?'':`<div class="stats" style="margin-top:8px"><div class="stat"><b>${nf.format(P.recs.length)}</b><span>يوم دوام ينسجل</span></div><div class="stat"><b>${nf.format(P.matched)}</b><span>عامل متطابق</span></div><div class="stat"><b>${nf.format(P.late)}</b><span>منها تأخير</span></div><div class="stat"><b>${nf.format(P.skip)}</b><span>يوم موجود يتخطى</span></div></div>
@@ -2823,32 +2824,41 @@ async function fpLearnCodes(P){if(!['project','hr','owner'].includes(S.me?.role)
     const r=await sb.from('workers').update({code:id}).eq('id',pp.w.id).select().single();if(!r.error&&r.data){used.add(id);const i=S.att.workers.findIndex(x=>x.id===pp.w.id);if(i>=0)S.att.workers[i]=r.data;n++}}return n}
 function fpKey(id,name){return (normDigits(String(id||'')).replace(/\D/g,'')||'')+'|'+arn(name||'').replace(/\s+/g,' ').trim()}
 function fpPlan(){const F=S.fp,c=attCfg(),col=k=>F.map.indexOf(k),t=bgDay();
-  if(col('id')<0&&col('name')<0)return{err:'اختار عمود «رقم البصمة» أو «الاسم».'};if(col('dt')<0&&col('date')<0)return{err:'اختار عمود «التاريخ والوقت» أو «التاريخ».'};
+  if(col('id')<0&&col('name')<0)return{err:'اختار عمود «رقم البصمة» أو «الاسم».'};if(col('dt')<0&&col('date')<0&&!F.day)return{err:'الملف ما بيه عمود تاريخ — اختار «تاريخ الملف» فوك.'};
   const W=S.att.workers.filter(w=>w.active),byCode=new Map(W.filter(w=>/^\d+$/.test(normDigits(String(w.code||'')).trim())).map(w=>[String(+normDigits(String(w.code)).trim()),w])),byName=new Map(W.map(w=>[arn(w.name).replace(/\s+/g,' ').trim(),w]));
   const P={},people={};
   F.rows.forEach(r=>{const id=col('id')>=0?r[col('id')]:'',nm=col('name')>=0?r[col('name')]:'';if(!String(id).trim()&&!String(nm).trim())return;const key=fpKey(id,nm);
-    let day,tin=null,tout=null;if(col('dt')>=0){day=fpDate(r[col('dt')]);tin=fpTime(r[col('dt')])}if(!day&&col('date')>=0)day=fpDate(r[col('date')]);if(!day||day>t)return;
-    if(col('in')>=0)tin=fpTime(r[col('in')])||tin;if(col('out')>=0)tout=fpTime(r[col('out')]);if(!tin&&!tout)return;
-    const pp=people[key]=people[key]||{key,id:String(id).trim(),name:String(nm).trim(),n:0};pp.n++;const k=key+'#'+day,o=P[k]=P[k]||{key,day,t:[]};if(tin)o.t.push(tin);if(tout)o.t.push(tout)});
+    let day,tin=null,tout=null;if(col('dt')>=0){const v=r[col('dt')];day=v instanceof Date&&v.getFullYear()<1950?null:fpDate(v);tin=fpTime(v)}if(!day&&col('date')>=0)day=fpDate(r[col('date')]);if(!day)day=F.day||null;if(!day||day>t)return;
+    if(col('in')>=0)tin=fpTime(r[col('in')])||tin;if(col('out')>=0)tout=fpTime(r[col('out')]);
+    if(tin&&tout&&hm2min(tout)<hm2min(tin)&&hm2min(tout)+720>hm2min(tin))tout=String(Math.floor((hm2min(tout)+720)/60)).padStart(2,'0')+':'+tout.slice(3);
+    const sv=col('st')>=0?arn(String(r[col('st')]||'')):'',st=/غائب|غياب|absent/.test(sv)?'absent':/اجاز|leave/.test(sv)?'leave':/نص|نصف|half/.test(sv)?'half':(sv?'present':'');
+    if(!tin&&!tout&&!st)return;
+    const pp=people[key]=people[key]||{key,id:String(id).trim(),name:String(nm).trim(),n:0};pp.n++;const k=key+'#'+day,o=P[k]=P[k]||{key,day,t:[],st:''};if(tin)o.t.push(tin);if(tout)o.t.push(tout);if(st&&st!=='present')o.st=st;else if(st&&!o.st)o.st='present'});
   const NK=x=>arn(x||'').replace(/\s+/g,' ').trim(),fuzzy=nm=>{const a=NK(nm);if(!a)return null;const ta=a.split(' ');if(ta.length<2)return null;
     let c=W.filter(w=>{const b=NK(w.name);return b.startsWith(a+' ')||(a.startsWith(b+' ')&&b.split(' ').length>=2)});if(c.length===1)return c[0];
     c=W.filter(w=>{const tb=NK(w.name).split(' ');return tb[0]===ta[0]&&ta.slice(1).filter(t=>tb.includes(t)).length>=1});return c.length===1?c[0]:null};
-  const res=k=>{const pp=people[k];if(F.man[k]!==undefined)return F.man[k]?attWorker(F.man[k]):null;const cid=normDigits(pp.id).replace(/\D/g,'');return(cid&&byCode.get(String(+cid)))||byName.get(NK(pp.name))||fuzzy(pp.name)||(F.ai?.[k]?.wid?attWorker(F.ai[k].wid):null)||null};
+  const res=k=>{const pp=people[k];if(F.man[k]!==undefined)return F.man[k]?attWorker(F.man[k]):null;const cid=normDigits(pp.id).replace(/\D/g,'');let bc=cid?byCode.get(String(+cid)):null;
+    if(bc&&NK(pp.name)&&/[\u0600-\u06FF]/.test(pp.name)){const ta=NK(pp.name).split(' '),tb=NK(bc.name).split(' ');if(!ta.some(t=>t.length>1&&tb.includes(t)))bc=null}
+    return bc||byName.get(NK(pp.name))||fuzzy(pp.name)||(F.ai?.[k]?.wid?attWorker(F.ai[k].wid):null)||null};
   const recs=[],mt=new Set();let late=0,skip=0,from=null,to=null;
-  Object.values(P).forEach(o=>{const w=res(o.key);if(!w)return;mt.add(o.key);const ts=o.t.slice().sort(),tin=ts[0],tout=ts.length>1&&ts[ts.length-1]!==tin?ts[ts.length-1]:null;
+  Object.values(P).forEach(o=>{const w=res(o.key);if(!w)return;mt.add(o.key);const ts=o.t.slice().sort();let tin=ts[0],tout=ts.length>1&&ts[ts.length-1]!==tin?ts[ts.length-1]:null;
     const ex=attRec(w.id,o.day);if(ex&&!F.over&&!(ex.status==='absent'&&ex.method==='auto'))return void skip++;
-    const st=hm2min(tin)>hm2min(c.start)+c.grace?'late':'present';if(st==='late')late++;from=!from||o.day<from?o.day:from;to=!to||o.day>to?o.day:to;
+    if((o.st==='absent'||o.st==='leave')&&!ts.length){from=!from||o.day<from?o.day:from;to=!to||o.day>to?o.day:to;recs.push({worker_id:w.id,day:o.day,status:o.st,in_at:null,out_at:null,in_lat:null,in_lng:null,in_acc:null,out_lat:null,out_lng:null,method:'finger',reason:'من ملف الحضور',excused:o.st==='leave',attach:null,edit_reason:'رفع ملف البصمة'});return}
+    if(!tin)tin=c.start;
+    const st=o.st==='half'?'half':hm2min(tin)>hm2min(c.start)+c.grace?'late':'present';if(st==='late')late++;from=!from||o.day<from?o.day:from;to=!to||o.day>to?o.day:to;
     recs.push({worker_id:w.id,day:o.day,status:st,in_at:dayIso(o.day,tin),out_at:tout?dayIso(o.day,tout):null,in_lat:null,in_lng:null,in_acc:null,out_lat:null,out_lng:null,method:'finger',reason:null,excused:false,attach:null,edit_reason:'رفع ملف البصمة'})});
   const un=Object.values(people).filter(pp=>!mt.has(pp.key)&&!(F.man[pp.key]===''));
   const per=Object.values(people).map(pp=>{const w=res(pp.key);return{...pp,w,ai:!!(w&&F.ai?.[pp.key]?.wid===w.id&&F.man[pp.key]===undefined),days:recs.filter(r=>w&&r.worker_id===w.id).length}}).sort((a,b)=>(!!b.w-!!a.w)||String(a.name).localeCompare(String(b.name),'ar'));
   return{recs,matched:mt.size,late,skip,from,to,un,per}}
-async function fpRead(f){const X=await loadXLSX();const wb=/\.csv$/i.test(f.name)||f.type==='text/csv'?X.read(new TextDecoder('utf-8').decode(await f.arrayBuffer()).replace(/^\uFEFF/,''),{type:'string',raw:true}):X.read(new Uint8Array(await f.arrayBuffer()),{type:'array',cellDates:true});
-  let best=null;for(const n of wb.SheetNames){const rows=X.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true}).filter(r=>r.some(c=>String(c).trim()!==''));let hi=0;for(let i=0;i<Math.min(rows.length,15);i++)if(rows[i].filter(c=>typeof c==='string'&&c.trim()&&!/^[\d\s:\/.\-]+$/.test(normDigits(c))).length>=2){hi=i;break}
-    const header=(rows[hi]||[]).map(x=>String(x).trim()),n2=Math.max(header.length,...rows.slice(hi+1).map(r=>r.length));const r={header:Array.from({length:n2},(_,i)=>header[i]||'عمود '+(i+1)),rows:rows.slice(hi+1).map(r=>Array.from({length:n2},(_,i)=>r[i]??''))};if(!best||r.rows.length>best.rows.length)best=r}
+async function fpRead(f){const X=await loadXLSX();const wb=/\.csv$/i.test(f.name)||f.type==='text/csv'?X.read(new TextDecoder('utf-8').decode(await f.arrayBuffer()).replace(/^\uFEFF/,''),{type:'string',raw:true}):X.read(new Uint8Array(await f.arrayBuffer()),{type:'array',cellDates:false});
+  let best=null;for(const n of wb.SheetNames){const rows=X.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true}).filter(r=>r.some(c=>String(c).trim()!==''));let hi=-1,bs=1;for(let i=0;i<Math.min(rows.length,15);i++){const sc=rows[i].filter(c=>typeof c==='string'&&c.trim()&&FP_F.some(x=>x[2]&&x[2].test(arn(c).trim()))).length;if(sc>bs){bs=sc;hi=i}}
+    if(hi<0){hi=0;for(let i=0;i<Math.min(rows.length,15);i++)if(rows[i].filter(c=>typeof c==='string'&&c.trim()&&!/^[\d\s:\/.\-]+$/.test(normDigits(c))).length>=2){hi=i;break}}
+    let fdate=null;for(let i=0;i<=hi&&!fdate;i++)for(const c of rows[i]){const d=c instanceof Date&&c.getFullYear()>1950?fpDate(c):typeof c==='string'?fpDate(c):null;if(d){fdate=d;break}}
+    const header=(rows[hi]||[]).map(x=>String(x).trim()),n2=Math.max(header.length,...rows.slice(hi+1).map(r=>r.length));const r={fdate,header:Array.from({length:n2},(_,i)=>header[i]||'عمود '+(i+1)),rows:rows.slice(hi+1).map(r=>Array.from({length:n2},(_,i)=>r[i]??''))};if(!best||r.rows.length>best.rows.length)best=r}
   if(!best||!best.rows.length)throw new Error('ما لكيت بيانات بالملف');const map=best.header.map(()=>''),used=new Set();
   best.header.forEach((h,i)=>{const a=arn(h).trim();const hit=FP_F.find(x=>x[2]&&!used.has(x[0])&&x[2].test(a));if(hit){map[i]=hit[0];used.add(hit[0])}});
-  if(!used.has('dt')&&!used.has('date')){const i=best.rows[0].findIndex(c=>c instanceof Date||(typeof c==='string'&&fpDate(c)&&fpTime(c)));if(i>=0&&!map[i])map[i]='dt'}
-  S.fp={file:f.name,header:best.header,rows:best.rows,map,over:false,man:{},ai:{}};setTimeout(fpAI,50)}
+  if(!used.has('dt')&&!used.has('date')&&!used.has('in')){const i=best.rows[0].findIndex(c=>(typeof c==='number'&&c>20000&&c%1>0)||(typeof c==='string'&&fpDate(c)&&fpTime(c)));if(i>=0&&!map[i])map[i]='dt'}
+  S.fp={file:f.name,header:best.header,rows:best.rows,map,over:false,man:{},ai:{},day:best.fdate&&best.fdate<=bgDay()?best.fdate:''};setTimeout(fpAI,50)}
 document.addEventListener('click',async e=>{const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,v=el.dataset.v;
   if(a==='hpAdj')hpAdjForm(v);
   else if(a==='hpDel'){const x=(S.att.adj||[]).find(y=>String(y.id)===v);if(!x)return;const r=await sb.from('att_adj').delete().eq('id',x.id);if(r.error){toast(r.error.message);return}await attAdjLoad(S.att.payM);hpAdjForm(x.worker_id);attRerender(true)}
@@ -2866,6 +2876,7 @@ document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='hpM'){S.att.payM=t.value||bgDay().slice(0,7);render()}else if(t.id==='hpS'){S.att.paySite=t.value;render()}
   else if(t.classList?.contains('fpm')&&S.fp){const k=t.value,i=+t.dataset.i;if(k)S.fp.map=S.fp.map.map((x,j)=>x===k&&j!==i?'':x);S.fp.map[i]=k;render()}
   else if(t.id==='fpOv'&&S.fp){S.fp.over=t.checked;render()}
+  else if(t.id==='fpDay'&&S.fp){S.fp.day=t.value;render()}
   else if(t.classList?.contains('fpw')&&S.fp){S.fp.man[t.dataset.k]=t.value||'';render()}});
 document.addEventListener('input',e=>{if(e.target.id!=='hpQ')return;S.att.payQ=e.target.value;clearTimeout(S._hpT);S._hpT=setTimeout(()=>{render();const i=$('#hpQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)});
 
