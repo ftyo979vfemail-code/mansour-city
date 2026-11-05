@@ -102,6 +102,8 @@ public class MonitorService extends Service {
             case "closed":  title = "⚠ أغلق التطبيق"; alarm = true; break;
             case "lost":    title = "⚠ انقطع الإرسال"; alarm = true; break;
             case "stopped": title = "أطفأ التتبع"; alarm = true; break;
+            case "unlogged": title = "⚠ يتحرك بدون سفرة مسجّلة"; alarm = true; break;
+            case "rejected": title = "⚠ رفض سفرة من المكتب"; alarm = true; break;
             case "started": title = "شغّل التتبع"; alarm = false; break;
             case "gps_on":  title = "رجع الإرسال"; alarm = false; break;
             default: return; // "background" is normal for the app

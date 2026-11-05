@@ -153,6 +153,24 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
   .grid2{grid-template-columns:1fr}
 }
 
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.kpi small{color:var(--muted);font-size:13px}
+.kpi b{font:700 22px var(--display);font-variant-numeric:tabular-nums}
+.kpi-bad{border-color:color-mix(in srgb,var(--bad) 45%,var(--line));background:color-mix(in srgb,var(--bad) 7%,var(--panel))}
+.kpi-bad b{color:var(--bad)}
+.num{font-variant-numeric:tabular-nums}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.h4{font:600 15px var(--display);margin:6px 0 0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.wrap .note{margin:0 0 14px}
+select.btn{font-weight:500}
+.trip{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.trip h3{font-size:19px}.trip p{margin:0;color:var(--muted);line-height:1.8}.trip p b{color:var(--fg)}
+.trip.offer{border:2px solid var(--amber);background:color-mix(in srgb,var(--amber) 10%,var(--panel))}
+.trip.on{border:2px solid var(--ok)}
+.btn.big{font-size:18px;padding:14px;width:100%}
+.row2{display:grid;grid-template-columns:2fr 1fr;gap:10px}
 /* ---------- Landing ---------- */
 .lp{min-height:100%;display:flex;flex-direction:column}
 .lp-in{width:100%;max-width:1120px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
@@ -256,10 +274,14 @@ function status(c){
   if(c.gps_state==="lost") return {k:"bad",t:"انقطع الإرسال"};
   const old=(Date.now()-new Date(c.last_seen))/1000>STALE_SEC;
   if(old) return {k:"bad",t:"انقطع الإرسال"};
-  if(c.gps_state==="background") return {k:"warn",t:"بالخلفية"};
-  return {k:"ok",t:"متصل"};
+  if(c.unlogged_flagged) return {k:"bad",t:"⚠ يتحرك بدون سفرة"};
+  if(c.trip&&TS[c.trip.status]) return {k:c.trip.status==="assigned"?"warn":"ok",t:TS[c.trip.status][1]};
+  return {k:"ok",t:"فاضي"};
 }
-const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"]};
+const TS={assigned:["s-warn","بانتظار قبول السائق"],accepted:["s-ok","رايح للزبون"],started:["s-ok","بسفرة"],done:["s-idle","انتهت"],cancelled:["s-idle","ملغية"],rejected:["s-bad","رفضها السائق"]};
+const fmt=n=>Number(n||0).toLocaleString("en-US");
+const dinar=n=>fmt(n)+" د.ع";
+const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"]};
 const ICON=`<img class="logo-light" src="img/mark.png" alt=""><img class="logo-dark" src="img/mark-light.png" alt="">`;
 const ICON_OLD=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M4 13l2-6a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l2 6v4H4z"/><path d="M10 4h4"/><circle cx="7.5" cy="13.5" r="1"/><circle cx="16.5" cy="13.5" r="1"/></svg>`;
 
@@ -363,20 +385,24 @@ function adminShell(){
    <header class="top">
      <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>المنصور تاكسي</h1><small id="clock">تحديث مباشر كل 5 ثوانٍ</small></div></div>
      <div class="counts" id="counts"></div>
-     <button class="btn primary" id="addBtn">+ إضافة سيارة</button>
+     <button class="btn primary" id="tripBtn">+ حجز سفرة</button>
+     <button class="btn" id="addBtn">+ إضافة سيارة</button>
      <button class="btn sm" id="out">خروج</button>
    </header>
    <div>
      <div class="alert" id="alert" hidden></div>
      <nav class="tabs" role="tablist">
        <button role="tab" data-t="live">الخريطة الحيّة</button>
+       <button role="tab" data-t="trips">السفرات</button>
+       <button role="tab" data-t="acc">الحسابات</button>
        <button role="tab" data-t="cars">السيارات والسائقين</button>
-       <button role="tab" data-t="log">سجل الانقطاعات</button>
+       <button role="tab" data-t="log">سجل التنبيهات</button>
        <button role="tab" data-t="set">الإعدادات</button>
      </nav>
    </div>
    <main class="view" id="view"></main></div>`;
   $("#addBtn").onclick=()=>carForm();
+  $("#tripBtn").onclick=()=>tripForm();
   $("#out").onclick=()=>{sess.del("taxi_pin");PIN=null;clearInterval(pollT);clearInterval(evT);adminGate()};
   document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderTab()});
   document.addEventListener("pointerdown",()=>{try{audioCtx=audioCtx||new AudioContext()}catch{}},{once:true});
@@ -393,7 +419,7 @@ async function poll(){
   const nowBad=new Set(bad.map(([c])=>c.id));
   if([...nowBad].some(id=>!prevBad.has(id))) beep();
   prevBad=nowBad;
-  if(tab==="live") renderLive(); else if(tab==="cars") renderCars();
+  if(tab==="live") renderLive(); else if(tab==="cars") renderCars(); else if(tab==="trips") loadTrips(true);
 }
 function beep(){try{if(!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(.2,audioCtx.currentTime);o.start();o.stop(audioCtx.currentTime+.35)}catch{}}
 function renderTab(){
@@ -402,8 +428,10 @@ function renderTab(){
   const v=$("#view");
   if(tab==="live"){v.innerHTML=`<div class="live"><div class="list" id="list"></div><div id="map"></div></div>`;initMap();renderLive()}
   if(tab==="cars"){v.innerHTML=`<div class="wrap" id="carsWrap"></div>`;renderCars()}
-  if(tab==="log"){v.innerHTML=`<div class="wrap"><div class="bar"><h2>سجل الانقطاعات وإطفاء الـ GPS</h2></div><ul class="log" id="log"><li class="empty">جارٍ التحميل…</li></ul></div>`;loadLog();evT=setInterval(loadLog,10000)}
+  if(tab==="log"){v.innerHTML=`<div class="wrap"><div class="bar"><h2>سجل التنبيهات</h2></div><ul class="log" id="log"><li class="empty">جارٍ التحميل…</li></ul></div>`;loadLog();evT=setInterval(loadLog,10000)}
   if(tab==="set") renderSettings();
+  if(tab==="trips") renderTrips();
+  if(tab==="acc") renderAccounts();
 }
 function initMap(){
   if(typeof L==="undefined"){$("#map").innerHTML=`<div class="empty">تعذّر تحميل الخريطة. تأكد من الإنترنت.</div>`;return}
@@ -418,6 +446,7 @@ function renderLive(){
   list.innerHTML=cars.map(c=>{const s=status(c);return `<button class="car${c.id===selId?" sel":""}" data-id="${c.id}">
     <div>${plateHTML(c.plate)} <span class="who">${esc(c.driver_name)}</span></div>
     <span class="pill s-${s.k}${s.k==="ok"?" live":""}">${s.t}</span>
+    ${c.trip?`<div class="meta" style="color:var(--fg)">🚕 ${esc(c.trip.pickup||"—")} ← ${esc(c.trip.dropoff||"—")}${c.trip.customer_phone?` · <span dir="ltr">${esc(c.trip.customer_phone)}</span>`:""}</div>`:""}
     <div class="meta"><span>${esc([c.model,c.year].filter(Boolean).join(" "))||"—"}</span><span>آخر إشارة: ${ago(c.last_seen)}</span>${c.last_speed!=null?`<span>${Math.round((c.last_speed||0)*3.6)} كم/س</span>`:""}${c.battery!=null?`<span>بطارية ${c.battery}%</span>`:""}</div></button>`}).join("");
   list.querySelectorAll(".car").forEach(b=>b.onclick=()=>selectCar(b.dataset.id));
   if(!map) return;
@@ -442,6 +471,154 @@ async function selectCar(id){
     if(trailLine) map.removeLayer(trailLine);
     if(t.length>1) trailLine=L.polyline(t.map(p=>[p[0],p[1]]),{color:getComputedStyle(document.documentElement).getPropertyValue("--amber").trim()||"#f2a400",weight:4,opacity:.85}).addTo(map);
   }catch{}
+}
+
+/* ---------- Trips (office dispatch) ---------- */
+let tripsDay=null, tripsCache=[];
+function todayStr(){const d=new Date(Date.now()+3*3600e3);return d.toISOString().slice(0,10)}
+function hm(ts){return ts?new Date(ts).toLocaleTimeString("ar-IQ",{hour:"2-digit",minute:"2-digit"}):"—"}
+function renderTrips(){
+  tripsDay=tripsDay||todayStr();
+  $("#view").innerHTML=`<div class="wrap">
+    <div class="bar"><h2>السفرات</h2><label class="sr" for="tday">اليوم</label><input id="tday" type="date" value="${tripsDay}" class="btn"><button class="btn primary" id="nt">+ حجز سفرة</button></div>
+    <div id="tsum" class="kpis"></div>
+    <div id="tlist"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  $("#tday").onchange=e=>{tripsDay=e.target.value;loadTrips()};
+  $("#nt").onclick=()=>tripForm();
+  loadTrips();
+}
+async function loadTrips(quiet){
+  const box=$("#tlist"); if(!box) return;
+  if(document.querySelector(".modal")&&quiet) return;
+  try{tripsCache=await rpc("taxi_admin_trips",{p_pin:PIN,p_day:tripsDay})}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const done=tripsCache.filter(t=>t.status==="done"), open=tripsCache.filter(t=>["assigned","accepted","started"].includes(t.status));
+  $("#tsum").innerHTML=`<div class="kpi"><small>سفرات مكتملة</small><b>${done.length}</b></div><div class="kpi"><small>مجموع الأجرة</small><b>${dinar(done.reduce((a,t)=>a+(t.fare||0),0))}</b></div><div class="kpi"><small>مفتوحة هسه</small><b>${open.length}</b></div><div class="kpi"><small>مرفوضة</small><b>${tripsCache.filter(t=>t.status==="rejected").length}</b></div>`;
+  if(!tripsCache.length){box.innerHTML=`<div class="empty card">ماكو سفرات بهذا اليوم. اضغط «حجز سفرة» لما يخابرك زبون، واختار السائق، فتوصله السفرة على تطبيقه.</div>`;return}
+  box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>الوقت</th><th>السائق</th><th>من ← إلى</th><th>الزبون</th><th>المصدر</th><th>الحالة</th><th>الأجرة</th><th>كم</th><th></th></tr></thead><tbody>
+  ${tripsCache.map(t=>{const st=TS[t.status]||["s-idle",t.status];const openT=["assigned","accepted","started"].includes(t.status);return `<tr>
+    <td style="font-variant-numeric:tabular-nums">${hm(t.created_at)}${t.ended_at?`<br><small style="color:var(--muted)">${hm(t.started_at)}–${hm(t.ended_at)}</small>`:""}</td>
+    <td>${t.plate?plateHTML(t.plate):""} ${esc(t.driver_name||"—")}</td>
+    <td>${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}${t.note?`<br><small style="color:var(--muted)">${esc(t.note)}</small>`:""}</td>
+    <td dir="ltr" style="text-align:right">${esc(t.customer_phone||"—")}</td>
+    <td>${t.source==="office"?"المكتب":"السائق"}</td>
+    <td><span class="pill ${st[0]}">${st[1]}</span>${t.cancel_reason?`<br><small style="color:var(--muted)">${esc(t.cancel_reason)}</small>`:""}</td>
+    <td style="font-variant-numeric:tabular-nums">${t.fare?fmt(t.fare):"—"}</td><td>${t.km!=null?t.km:"—"}</td>
+    <td><div class="acts">${["assigned","rejected"].includes(t.status)?`<button class="btn sm" data-ta="re" data-id="${t.id}">تحويل لسائق</button>`:""}${openT?`<button class="btn sm danger" data-ta="cancel" data-id="${t.id}">إلغاء</button>`:""}</div></td></tr>`}).join("")}
+  </tbody></table></div>`;
+  box.querySelectorAll("[data-ta]").forEach(b=>b.onclick=()=>{
+    const id=+b.dataset.id;
+    if(b.dataset.ta==="cancel") confirmBox("إلغاء هذي السفرة؟","إلغاء السفرة",async()=>{await rpc("taxi_admin_trip_action",{p_pin:PIN,p_id:id,p_action:"cancel"});toast("انلغت");loadTrips()});
+    else pickDriver("تحويل السفرة لسائق ثاني",async car=>{await rpc("taxi_admin_trip_action",{p_pin:PIN,p_id:id,p_action:"reassign",p_car:car});toast("انرسلت للسائق");loadTrips()});
+  });
+}
+function driverOptions(){
+  const rank=c=>{const s=status(c);return c.trip?3:s.k==="ok"?0:s.k==="warn"?1:2};
+  return [...cars].filter(c=>c.active).sort((a,b)=>rank(a)-rank(b)).map(c=>{const s=status(c);return `<option value="${c.id}" ${c.trip?"disabled":""}>${esc(c.driver_name)} · ${esc(c.plate)} — ${c.trip?"عنده سفرة":s.t}</option>`}).join("");
+}
+function pickDriver(title,fn){
+  const m=modal(`<h3>${esc(title)}</h3><div class="field"><label for="pd">السائق</label><select id="pd" class="btn" style="width:100%">${driverOptions()}</select></div><div class="err" id="pe"></div><div class="row"><button class="btn" id="pc">رجوع</button><button class="btn primary" id="po">إرسال</button></div>`);
+  $("#pc",m).onclick=()=>m.remove();
+  $("#po",m).onclick=async()=>{try{await fn($("#pd",m).value);m.remove()}catch(e){$("#pe",m).textContent=e.message}};
+}
+function tripForm(){
+  if(!cars.filter(c=>c.active).length) return toast("أضف سيارة أولًا");
+  const m=modal(`<h3>حجز سفرة جديدة</h3>
+   <form id="tf" style="display:flex;flex-direction:column;gap:12px">
+    <div class="grid2">
+      <div class="field"><label for="t-ph">رقم الزبون</label><input id="t-ph" inputmode="tel" dir="ltr" placeholder="07xx xxx xxxx"></div>
+      <div class="field"><label for="t-drv">السائق</label><select id="t-drv" class="btn" style="width:100%">${driverOptions()}</select></div>
+      <div class="field"><label for="t-from">من (مكان الزبون)</label><input id="t-from" required placeholder="مثال: عمارة T5، البوابة 2"></div>
+      <div class="field"><label for="t-to">إلى</label><input id="t-to" placeholder="مثال: الكرادة"></div>
+    </div>
+    <div class="field"><label for="t-note">ملاحظة</label><input id="t-note" placeholder="اختياري"></div>
+    <p class="note" style="margin:0">السفرة توصل للسائق على تطبيقه، ولازم يقبلها. إذا رفضها تنسجل عليه وتگدر تحوّلها لسائق ثاني.</p>
+    <div class="err" id="tfe"></div>
+    <div class="row"><button type="button" class="btn" id="tfc">إلغاء</button><button class="btn primary">إرسال للسائق</button></div>
+   </form>`);
+  $("#tfc",m).onclick=()=>m.remove();
+  $("#tf",m).onsubmit=async e=>{e.preventDefault();
+    try{await rpc("taxi_admin_trip_create",{p_pin:PIN,p:{car_id:$("#t-drv",m).value,customer_phone:$("#t-ph",m).value,pickup:$("#t-from",m).value,dropoff:$("#t-to",m).value,note:$("#t-note",m).value}});
+      const c=cars.find(x=>x.id===$("#t-drv",m).value);m.remove();toast("انرسلت السفرة لـ "+(c?c.driver_name:"السائق"));poll();if(tab==="trips")loadTrips();
+    }catch(err){$("#tfe",m).textContent=err.message}};
+}
+
+/* ---------- Accounts: who drove how much, and what came in ---------- */
+let accMonth=null, accRows=[];
+function renderAccounts(){
+  accMonth=accMonth||todayStr().slice(0,7);
+  $("#view").innerHTML=`<div class="wrap">
+    <div class="bar"><h2>الحسابات الشهرية</h2><label class="sr" for="mon">الشهر</label><input id="mon" type="month" value="${accMonth}" class="btn"></div>
+    <div id="akpi" class="kpis"></div>
+    <p class="note">«تحرّك بدون سفرة» يعني الـ GPS سجّل السيارة تمشي مسافة أكثر من 300 متر بدون ما يكون عند السائق سفرة مفتوحة. هاي أول علامة إنه دا يشتغل لحسابه.</p>
+    <div id="alist"><div class="empty">جارٍ الحساب…</div></div></div>`;
+  $("#mon").onchange=e=>{accMonth=e.target.value;loadAccounts()};
+  loadAccounts();
+}
+async function loadAccounts(){
+  const box=$("#alist"); if(!box) return;
+  try{accRows=await rpc("taxi_admin_statement",{p_pin:PIN,p_month:accMonth+"-01"})}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const base=accRows[0]?.fare_base, perkm=accRows[0]?.fare_per_km;
+  const est=r=>base?(r.unlogged*base+(perkm?Math.round(r.unlogged_km*perkm):0)):null;
+  const sum=k=>accRows.reduce((a,r)=>a+Number(r[k]||0),0);
+  const lost=base?accRows.reduce((a,r)=>a+est(r),0):null;
+  $("#akpi").innerHTML=`<div class="kpi"><small>الأجرة المسجّلة</small><b>${dinar(sum("fares"))}</b></div>
+    <div class="kpi"><small>المستلَم من السواق</small><b>${dinar(sum("paid"))}</b></div>
+    <div class="kpi"><small>باقي بذمّة السواق</small><b>${dinar(sum("fares")-sum("paid"))}</b></div>
+    <div class="kpi ${sum("unlogged")?"kpi-bad":""}"><small>تحرّكات بدون سفرة</small><b>${fmt(sum("unlogged"))} <span style="font-size:14px">(${sum("unlogged_km").toFixed(1)} كم)</span></b>${lost!=null?`<small>تقدير الضايع ≈ ${dinar(lost)}</small>`:`<small><a href="#" id="setf">حدّد الأجرة</a> حتى نقدّر الضايع</small>`}</div>`;
+  const sf=$("#setf"); if(sf) sf.onclick=e=>{e.preventDefault();tab="set";renderTab()};
+  if(!accRows.length){box.innerHTML=`<div class="empty card">ماكو سيارات.</div>`;return}
+  box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>السائق</th><th>سفرات</th><th>الأجرة</th><th>المستلَم</th><th>الباقي</th><th>كم بالـ GPS</th><th>بدون سفرة</th><th>ساعات التتبع</th><th>رفض</th><th>انقطاعات</th><th></th></tr></thead><tbody>
+  ${accRows.map(r=>`<tr>
+    <td>${plateHTML(r.plate)} <b>${esc(r.driver_name)}</b></td>
+    <td class="num">${fmt(r.trips)}</td><td class="num">${fmt(r.fares)}</td><td class="num">${fmt(r.paid)}</td>
+    <td class="num"><b style="color:${r.fares-r.paid>0?"var(--bad)":"var(--ok)"}">${fmt(r.fares-r.paid)}</b></td>
+    <td class="num">${r.km_total}</td>
+    <td>${r.unlogged?`<span class="pill s-bad">${r.unlogged} مرة · ${r.unlogged_km} كم</span>${base?`<br><small style="color:var(--muted)">≈ ${dinar(est(r))}</small>`:""}`:`<span class="pill s-ok">ماكو</span>`}</td>
+    <td class="num">${r.online_hours}</td><td class="num">${r.rejected?`<b style="color:var(--bad)">${r.rejected}</b>`:0}</td><td class="num">${r.cutoffs?`<b style="color:var(--bad)">${r.cutoffs}</b>`:0}</td>
+    <td><div class="acts"><button class="btn sm primary" data-cash="${r.id}">استلام مبلغ</button><button class="btn sm" data-det="${r.id}">التفاصيل</button></div></td></tr>`).join("")}
+  </tbody></table></div>`;
+  box.querySelectorAll("[data-cash]").forEach(b=>b.onclick=()=>cashForm(accRows.find(r=>r.id===b.dataset.cash)));
+  box.querySelectorAll("[data-det]").forEach(b=>b.onclick=()=>driverDetail(accRows.find(r=>r.id===b.dataset.det)));
+}
+function cashForm(r){
+  const m=modal(`<h3>استلام مبلغ من ${esc(r.driver_name)}</h3>
+   <p style="margin:0">الباقي بذمّته هذا الشهر: <b>${dinar(r.fares-r.paid)}</b></p>
+   <form id="cf2" style="display:flex;flex-direction:column;gap:12px">
+    <div class="field"><label for="cm">المبلغ المستلَم (دينار)</label><input id="cm" inputmode="numeric" required value="${Math.max(r.fares-r.paid,0)||""}"></div>
+    <div class="field"><label for="cn2">ملاحظة</label><input id="cn2" placeholder="اختياري"></div>
+    <div class="err" id="cme"></div>
+    <div class="row"><button type="button" class="btn" id="cmc">إلغاء</button><button class="btn primary">تسجيل الاستلام</button></div></form>`);
+  $("#cmc",m).onclick=()=>m.remove();
+  $("#cf2",m).onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p:{car_id:r.id,amount:$("#cm",m).value,note:$("#cn2",m).value}});m.remove();toast("انسجل الاستلام");loadAccounts()}catch(err){$("#cme",m).textContent=err.message}};
+}
+async function driverDetail(r){
+  const m=modal(`<h3>${esc(r.driver_name)} · ${esc(r.plate)}</h3><div id="dd"><div class="empty">جارٍ التحميل…</div></div><div class="row"><button class="btn" id="ddc">سدّ</button></div>`);
+  m.querySelector(".sheet").style.width="min(760px,100%)";
+  $("#ddc",m).onclick=()=>m.remove();
+  let d; try{d=await rpc("taxi_admin_driver_detail",{p_pin:PIN,p_car:r.id,p_month:accMonth+"-01"})}catch(e){$("#dd",m).innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
+  const dt=ts=>new Date(ts).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"});
+  $("#dd",m).innerHTML=`
+   <h4 class="h4">تحرّكات بدون سفرة (${d.moves.length})</h4>
+   ${d.moves.length?`<ul class="log">${d.moves.map((v,i)=>`<li><span class="pill s-bad">${v.km} كم</span><span>${dt(v.started_at)} ← ${hm(v.ended_at)}</span><button class="btn sm" data-mv="${i}">عرض المسار</button></li>`).join("")}</ul>`:`<p class="note">ماكو. كل حركة السيارة چانت ضمن سفرات مسجّلة.</p>`}
+   <h4 class="h4">السفرات (${d.trips.length})</h4>
+   ${d.trips.length?`<ul class="log">${d.trips.map(t=>`<li><span class="pill ${(TS[t.status]||["s-idle"])[0]}">${(TS[t.status]||["",t.status])[1]}</span><span>${dt(t.created_at)} · ${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}</span><b>${t.fare?fmt(t.fare):"—"}</b></li>`).join("")}</ul>`:`<p class="note">ماكو سفرات مسجّلة هذا الشهر.</p>`}
+   <h4 class="h4">المبالغ المستلَمة (${d.cash.length})</h4>
+   ${d.cash.length?`<ul class="log">${d.cash.map(k=>`<li><span class="pill s-ok">${fmt(k.amount)}</span><span>${dt(k.at)}${k.note?" · "+esc(k.note):""}</span>${(Date.now()-new Date(k.at))<48*3600e3?`<button class="btn sm danger" data-cdel="${k.id}">حذف</button>`:"<span></span>"}</li>`).join("")}</ul>`:`<p class="note">ما استلمت منه شي هذا الشهر.</p>`}`;
+  $("#dd",m).querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{const v=d.moves[+b.dataset.mv];m.remove();showRange(r.id,v.started_at,v.ended_at)});
+  $("#dd",m).querySelectorAll("[data-cdel]").forEach(b=>b.onclick=async()=>{try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"delete",p:{id:b.dataset.cdel}});m.remove();toast("انحذف");loadAccounts()}catch(e){toast(e.message)}});
+}
+async function showRange(carId,from,to){
+  tab="live"; selId=carId; renderTab();
+  try{const t=await rpc("taxi_admin_trail_range",{p_pin:PIN,p_car:carId,p_from:from,p_to:to});
+    if(!map||t.length<2) return toast("ماكو نقاط كافية لهذا المسار");
+    if(trailLine) map.removeLayer(trailLine);
+    const pts=t.map(p=>[p[0],p[1]]);
+    trailLine=L.polyline(pts,{color:getComputedStyle(document.documentElement).getPropertyValue("--bad").trim()||"#d6332b",weight:5,opacity:.9}).addTo(map);
+    L.circleMarker(pts[0],{radius:7,color:"#16935a",fillOpacity:1}).addTo(map).bindTooltip("بداية "+hm(from));
+    L.circleMarker(pts[pts.length-1],{radius:7,color:"#d6332b",fillOpacity:1}).addTo(map).bindTooltip("نهاية "+hm(to));
+    fitted=true; map.fitBounds(pts,{padding:[40,40]});
+    toast("المسار الأحمر: تحرّك بدون سفرة");
+  }catch(e){toast(e.message)}
 }
 function driverLink(){return location.href.split("#")[0]+"#driver"}
 function siteLink(){return location.href.split("#")[0]}
@@ -509,6 +686,12 @@ async function loadLog(){
 }
 function renderSettings(){
   $("#view").innerHTML=`<div class="wrap" style="max-width:520px"><div class="bar"><h2>الإعدادات</h2></div>
+   <form id="fr" class="gate-card" style="width:100%;margin-bottom:16px">
+    <h3>الأجرة</h3>
+    <p class="note" style="margin:0">تنستخدم حتى نقدّر المبلغ الضايع من التحرّكات بدون سفرة، وتطلع للسائق كمبلغ مقترح لما يسدّ السفرة.</p>
+    <div class="grid2"><div class="field"><label for="f-base">أجرة السفرة (دينار)</label><input id="f-base" inputmode="numeric" placeholder="مثال: 3000"></div>
+    <div class="field"><label for="f-km">إضافة لكل كيلومتر (اختياري)</label><input id="f-km" inputmode="numeric" placeholder="مثال: 500"></div></div>
+    <div class="err" id="fre"></div><button class="btn primary">حفظ الأجرة</button></form>
    <form id="ct" class="gate-card" style="width:100%;margin-bottom:16px">
     <h3>أرقام الحجز بالصفحة الرئيسية</h3>
     <p class="note" style="margin:0">تظهر للزباين بالصفحة الرئيسية على زر «اتصل» و«واتساب». اتركها فارغة حتى تنشال.</p>
@@ -521,7 +704,8 @@ function renderSettings(){
     <h3>تغيير رمز المدير</h3>
     <div class="field"><label for="np">الرمز الجديد (4 أرقام أو أكثر)</label><input id="np" class="code-input" inputmode="numeric" minlength="4" required></div>
     <div class="err" id="se"></div><button class="btn primary">حفظ الرمز</button></form></div>`;
-  rpc("taxi_public_info",{}).then(i=>{$("#c-phone").value=i.phone||"";$("#c-wa").value=i.whatsapp||"";$("#c-hours").value=i.hours||""}).catch(()=>{});
+  $("#fr").onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_fares",{p_pin:PIN,p:{fare_base:$("#f-base").value,fare_per_km:$("#f-km").value}});toast("انحفظت الأجرة")}catch(err){$("#fre").textContent=err.message}};
+  rpc("taxi_public_info",{}).then(i=>{$("#f-base").value=i.fare_base||"";$("#f-km").value=i.fare_per_km||"";$("#c-phone").value=i.phone||"";$("#c-wa").value=i.whatsapp||"";$("#c-hours").value=i.hours||""}).catch(()=>{});
   $("#ct").onsubmit=async e=>{e.preventDefault();
     try{await rpc("taxi_admin_contact",{p_pin:PIN,p:{contact_phone:$("#c-phone").value,contact_whatsapp:$("#c-wa").value,contact_hours:$("#c-hours").value}});toast("انحفظت أرقام الحجز")}catch(err){$("#ce2").textContent=err.message}};
   $("#sp").onsubmit=async e=>{e.preventDefault();const n=$("#np").value.trim();
@@ -556,6 +740,7 @@ async function driverStart(){
       <div class="stat"><small>السرعة</small><b id="st-spd">—</b></div>
       <div class="stat"><small>عدد الإرسالات</small><b id="st-n">0</b></div>
     </div>
+    <div id="tripBox"></div>
     <p class="note" id="tips">الزر الأحمر يشغّل التتبع، ولما يشتغل يصير أخضر، واضغطه مرة ثانية حتى تطفيه. أثناء الدوام أبقِ الصفحة مفتوحة، وإطفاء الـ GPS أو إغلاق الصفحة يُسجَّل عند الإدارة فورًا.</p>
   </div>
   <div class="block" id="block" hidden><h2 id="bt">الـ GPS مطفأ</h2><p id="bp">شغّل الموقع (GPS) من إعدادات الهاتف حالًا. الإدارة تم إبلاغها.</p><button class="btn" id="retry">شغّلته، أعد المحاولة</button></div>`;
@@ -573,13 +758,47 @@ async function driverStart(){
   window.addEventListener("pagehide",()=>{if(ON)beacon("closed")});
   if(navigator.permissions&&navigator.permissions.query){try{const p=await navigator.permissions.query({name:"geolocation"});p.onchange=()=>{if(!ON)return;if(p.state==="denied")gpsError({code:1});else startWatch()}}catch{}}
 }
+/* ---------- Driver trips ---------- */
+let curTrip, tripPoll, lastOffer=null, today={trips:0,fares:0,base:null};
+async function refreshTrip(){
+  if(!CODE) return;
+  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,base:st.fare_base};showTrip(st.trip,true)}catch{}
+}
+function showTrip(t,force){
+  const box=$("#tripBox"); if(!box) return;
+  const key=JSON.stringify(t&&[t.id,t.status]);
+  if(!force&&key===JSON.stringify(curTrip&&[curTrip.id,curTrip.status])) return;
+  curTrip=t;
+  if(!ON){box.innerHTML="";return}
+  const sum=`<div class="stat" style="margin-top:10px"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)} د.ع</b></div>`;
+  if(!t){box.innerHTML=`<div class="trip"><h3>ماكو سفرة</h3><p>إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.</p>
+      <div class="field"><label for="tr-to">إلى وين؟ (اختياري)</label><input id="tr-to"></div>
+      <button class="btn primary big" id="tr-start">بدء سفرة</button></div>${sum}`;
+    $("#tr-start").onclick=()=>tripAct("start",{dropoff:$("#tr-to").value});return}
+  const where=`<p><b>من:</b> ${esc(t.pickup||"—")}<br><b>إلى:</b> ${esc(t.dropoff||"—")}${t.customer_phone?`<br><b>الزبون:</b> <span dir="ltr">${esc(t.customer_phone)}</span>`:""}${t.note?`<br><b>ملاحظة:</b> ${esc(t.note)}`:""}</p>`;
+  if(t.status==="assigned"){
+    if(lastOffer!==t.id){lastOffer=t.id;try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch{};siren(true);setTimeout(()=>siren(false),3000)}
+    box.innerHTML=`<div class="trip offer"><h3>📣 سفرة جديدة من المكتب</h3>${where}<div class="row2"><button class="btn primary big" id="tr-acc">قبول</button><button class="btn big" id="tr-rej">رفض</button></div></div>`;
+    $("#tr-acc").onclick=()=>{siren(false);tripAct("accept")};
+    $("#tr-rej").onclick=()=>{siren(false);const m=modal(`<h3>رفض السفرة؟</h3><p style="margin:0">الرفض ينسجل عليك ويوصل للإدارة.</p><div class="field"><label for="rr">السبب</label><input id="rr" placeholder="مثال: بعيد، عندي عطل"></div><div class="row"><button class="btn" id="rn">رجوع</button><button class="btn primary" id="ry">رفض</button></div>`);$("#rn",m).onclick=()=>m.remove();$("#ry",m).onclick=()=>{m.remove();tripAct("reject",{reason:$("#rr",m).value})}};
+    return}
+  if(t.status==="accepted"){box.innerHTML=`<div class="trip"><h3>رايح للزبون</h3>${where}<button class="btn primary big" id="tr-go">وصلت، ابدأ السفرة</button></div>`;$("#tr-go").onclick=()=>tripAct("start");return}
+  box.innerHTML=`<div class="trip on"><h3>بسفرة من ${hm(t.started_at)}</h3>${where}
+    <div class="field"><label for="tr-fare">الأجرة المستلمة (دينار)</label><input id="tr-fare" inputmode="numeric" value="${today.base||""}" style="font:600 22px var(--mono);text-align:center"></div>
+    <button class="btn primary big" id="tr-end">إنهاء السفرة</button></div>`;
+  $("#tr-end").onclick=()=>tripAct("end",{fare:$("#tr-fare").value});
+}
+async function tripAct(a,p){
+  try{await rpc("taxi_driver_trip",{p_code:CODE,p_action:a,p:p||{}});toast(a==="end"?"انسجلت السفرة":a==="reject"?"انرفضت":"تم");await refreshTrip()}catch(e){toast(e.message)}
+}
 function goOn(){
   ON=true;store.set("taxi_on","1");
   const r=$("#ring");r.className="ring wait";$("#rs").textContent="إطفاء التتبع";$("#rsub").textContent="جارٍ تحديد الموقع…";
   keepAwake();startWatch();clearInterval(hb);hb=setInterval(heartbeat,15000);
+  clearInterval(tripPoll);refreshTrip();tripPoll=setInterval(refreshTrip,8000);
 }
 function goOff(){
-  ON=false;store.set("taxi_on","0");
+  ON=false;store.set("taxi_on","0");clearInterval(tripPoll);showTrip(null,true);
   if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null}
   clearInterval(hb);siren(false);gpsBad=false;$("#block").hidden=true;
   try{wake&&wake.release()}catch{}wake=null;
@@ -613,8 +832,9 @@ function onFix(pos){
   if(Date.now()-lastSent>4000) send(c);
 }
 async function send(c){
-  try{await rpc("taxi_ping",{p_code:CODE,p_lat:c.latitude,p_lng:c.longitude,p_speed:c.speed,p_acc:c.accuracy,p_heading:c.heading,p_battery:battery});
+  try{const r=await rpc("taxi_ping_v2",{p_code:CODE,p_lat:c.latitude,p_lng:c.longitude,p_speed:c.speed,p_acc:c.accuracy,p_heading:c.heading,p_battery:battery});
     lastSent=Date.now();sentCount++;$("#st-n").textContent=sentCount;
+    if(r) showTrip(r.trip);
   }catch(e){
     if(/رمز/.test(e.message)){store.del("taxi_driver_code");CODE=null;location.reload()}
     $("#rsub").textContent="لا يوجد إنترنت، سيُعاد الإرسال تلقائيًا";

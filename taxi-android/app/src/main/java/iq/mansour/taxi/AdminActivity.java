@@ -233,7 +233,16 @@ public class AdminActivity extends Activity {
             case "denied": return new String[]{"bad", "رفض الموقع"};
             case "closed": return new String[]{"bad", "أغلق التطبيق"};
             case "lost": return new String[]{"bad", "انقطع الإرسال"};
-            case "background": return new String[]{"ok", "متصل"};
+            case "ok": case "background":
+                if (c.optBoolean("unlogged_flagged")) return new String[]{"bad", "يتحرك بدون سفرة"};
+                JSONObject t = c.optJSONObject("trip");
+                if (t != null) {
+                    String s = t.optString("status");
+                    if (s.equals("assigned")) return new String[]{"warn", "بانتظار القبول"};
+                    if (s.equals("accepted")) return new String[]{"ok", "رايح للزبون"};
+                    return new String[]{"ok", "بسفرة"};
+                }
+                return new String[]{"ok", "فاضي"};
             default: return new String[]{"ok", "متصل"};
         }
     }

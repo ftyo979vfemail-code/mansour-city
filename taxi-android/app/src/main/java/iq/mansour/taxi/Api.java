@@ -78,14 +78,24 @@ final class Api {
         return new JSONObject(call("taxi_driver_login", new JSONObject().put("p_code", code)));
     }
 
-    static void ping(String code, double lat, double lng, Float speed, Float acc, Float heading, Integer battery) throws Exception {
+    static JSONObject ping(String code, double lat, double lng, Float speed, Float acc, Float heading, Integer battery) throws Exception {
         JSONObject b = new JSONObject()
                 .put("p_code", code).put("p_lat", lat).put("p_lng", lng)
                 .put("p_speed", speed == null ? JSONObject.NULL : speed)
                 .put("p_acc", acc == null ? JSONObject.NULL : acc)
                 .put("p_heading", heading == null ? JSONObject.NULL : heading)
                 .put("p_battery", battery == null ? JSONObject.NULL : battery);
-        call("taxi_ping", b);
+        String r = call("taxi_ping_v2", b);
+        try { return new JSONObject(r); } catch (Exception e) { return new JSONObject(); }
+    }
+
+    static JSONObject driverState(String code) throws Exception {
+        return new JSONObject(call("taxi_driver_state", new JSONObject().put("p_code", code)));
+    }
+
+    static JSONObject driverTrip(String code, String action, JSONObject p) throws Exception {
+        return new JSONObject(call("taxi_driver_trip", new JSONObject().put("p_code", code).put("p_action", action)
+                .put("p", p == null ? new JSONObject() : p)));
     }
 
     static void state(String code, String state) {

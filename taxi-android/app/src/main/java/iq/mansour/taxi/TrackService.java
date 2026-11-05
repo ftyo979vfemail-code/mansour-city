@@ -180,7 +180,14 @@ public class TrackService extends Service implements LocationListener {
         final Integer bat = battery();
         net.execute(() -> {
             try {
-                Api.ping(code, lat, lng, spd, acc, hd, bat);
+                org.json.JSONObject r = Api.ping(code, lat, lng, spd, acc, hd, bat);
+                org.json.JSONObject trip = r.optJSONObject("trip");
+                Prefs.of(this).edit().putString("trip", trip == null ? "" : trip.toString()).apply();
+                if (trip != null && "assigned".equals(trip.optString("status"))
+                        && Prefs.of(this).getLong("offer_seen", 0) != trip.optLong("id")) {
+                    Prefs.of(this).edit().putLong("offer_seen", trip.optLong("id")).apply();
+                    notifyOffer(trip);
+                }
                 Prefs.of(this).edit()
                         .putLong("sentAt", System.currentTimeMillis())
                         .putFloat("acc", acc == null ? -1f : acc)
@@ -199,6 +206,31 @@ public class TrackService extends Service implements LocationListener {
                 Prefs.of(this).edit().putString("err", "لا يوجد إنترنت، سيُعاد الإرسال تلقائيًا").apply();
             }
         });
+    }
+
+    static final String CH_OFFER = "trip_offer_v1";
+
+    private void notifyOffer(org.json.JSONObject t) {
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        NotificationChannel ch = new NotificationChannel(CH_OFFER, "سفرات المكتب", NotificationManager.IMPORTANCE_HIGH);
+        ch.enableVibration(true);
+        ch.setVibrationPattern(new long[]{0, 500, 200, 500});
+        ch.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE),
+                new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE).build());
+        nm.createNotificationChannel(ch);
+        PendingIntent open = PendingIntent.getActivity(this, 2, new Intent(this, MainActivity.class),
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        String text = "من: " + (t.optString("pickup").isEmpty() ? "—" : t.optString("pickup"))
+                + (t.optString("dropoff").isEmpty() ? "" : "  إلى: " + t.optString("dropoff"));
+        nm.notify(3, new Notification.Builder(this, CH_OFFER)
+                .setSmallIcon(R.drawable.ic_car)
+                .setContentTitle("📣 سفرة جديدة من المكتب")
+                .setContentText(text)
+                .setCategory(Notification.CATEGORY_CALL)
+                .setAutoCancel(true)
+                .setContentIntent(open)
+                .setFullScreenIntent(open, true)
+                .build());
     }
 
     private Integer battery() {

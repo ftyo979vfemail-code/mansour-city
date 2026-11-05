@@ -38,6 +38,9 @@ public class MainActivity extends Activity {
     private TextView status, sub, sent, acc, spd, count;
     private LinearLayout setup;
     private LinearLayout ringView;
+    private LinearLayout tripBox;
+    private String tripKey = "";
+    private int tickN = 0;
 
     private final Runnable tick = new Runnable() {
         @Override public void run() { refresh(); h.postDelayed(this, 2000); }
@@ -161,6 +164,10 @@ public class MainActivity extends Activity {
         ringWrap.addView(ring, new LinearLayout.LayoutParams(dp(230), dp(230)));
         root.addView(ringWrap, full());
         root.addView(space(16));
+        tripBox = new LinearLayout(this);
+        tripBox.setOrientation(LinearLayout.VERTICAL);
+        root.addView(tripBox, full());
+        tripKey = "";
 
         LinearLayout r1 = row(), r2 = row();
         sent = stat(r1, "آخر إرسال");
@@ -228,6 +235,134 @@ public class MainActivity extends Activity {
         acc.setText(a < 0 ? "—" : Math.round(a) + " م");
         spd.setText(Math.round(Prefs.of(this).getFloat("spd", 0) * 3.6f) + " كم/س");
         count.setText(String.valueOf(Prefs.of(this).getInt("count", 0)));
+
+        if (!on) { if (tripBox != null && tripBox.getChildCount() > 0) { tripBox.removeAllViews(); tripKey = ""; } }
+        else if (tickN++ % 2 == 0) loadTrip();
+    }
+
+    /* ---------- Trips ---------- */
+    private void loadTrip() {
+        final String code = Prefs.code(this);
+        if (code == null) return;
+        new Thread(() -> {
+            try { final JSONObject st = Api.driverState(code); h.post(() -> renderTrip(st)); }
+            catch (Exception ignored) {}
+        }).start();
+    }
+
+    private void renderTrip(JSONObject st) {
+        if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
+        JSONObject t = st.optJSONObject("trip");
+        String key = t == null ? "none:" + st.optInt("today_trips") : t.optLong("id") + ":" + t.optString("status");
+        if (key.equals(tripKey)) return;
+        tripKey = key;
+        tripBox.removeAllViews();
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(16), dp(14), dp(16), dp(14));
+        String status = t == null ? "" : t.optString("status");
+        card.setBackground(box(status.equals("assigned") ? 0xFFFFF4DC : CARD,
+                status.equals("assigned") ? AMBER : status.equals("started") ? OK : LINE, 16));
+        if (t == null) {
+            card.addView(text("ماكو سفرة", 19, FG, true));
+            card.addView(text("إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.", 14, MUTED, false));
+            card.addView(space(8));
+            final EditText to = input("إلى وين؟ (اختياري)", InputType.TYPE_CLASS_TEXT);
+            card.addView(to, full());
+            card.addView(space(8));
+            Button go = button("بدء سفرة", true);
+            go.setOnClickListener(v -> tripAction("start", obj("dropoff", to.getText().toString())));
+            card.addView(go, full());
+        } else {
+            String where = "من: " + or(t.optString("pickup")) + "\nإلى: " + or(t.optString("dropoff"))
+                    + (t.optString("customer_phone").isEmpty() ? "" : "\nالزبون: " + t.optString("customer_phone"))
+                    + (t.optString("note").isEmpty() ? "" : "\nملاحظة: " + t.optString("note"));
+            if (status.equals("assigned")) {
+                card.addView(text("📣 سفرة جديدة من المكتب", 19, FG, true));
+                card.addView(text(where, 15, FG, false));
+                card.addView(space(10));
+                LinearLayout r = row();
+                Button acc = button("قبول", true);
+                acc.setOnClickListener(v -> tripAction("accept", null));
+                Button rej = button("رفض", false);
+                rej.setOnClickListener(v -> {
+                    final EditText why = input("السبب", InputType.TYPE_CLASS_TEXT);
+                    new android.app.AlertDialog.Builder(this).setTitle("رفض السفرة؟")
+                            .setMessage("الرفض ينسجل عليك ويوصل للإدارة.").setView(why)
+                            .setNegativeButton("رجوع", null)
+                            .setPositiveButton("رفض", (d, w) -> tripAction("reject", obj("reason", why.getText().toString()))).show();
+                });
+                r.addView(acc, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+                lp.setMarginStart(dp(8));
+                r.addView(rej, lp);
+                card.addView(r, full());
+            } else if (status.equals("accepted")) {
+                card.addView(text("رايح للزبون", 19, FG, true));
+                card.addView(text(where, 15, FG, false));
+                card.addView(space(10));
+                Button go = button("وصلت، ابدأ السفرة", true);
+                go.setOnClickListener(v -> tripAction("start", null));
+                card.addView(go, full());
+            } else {
+                card.addView(text("بسفرة من " + hm(t.optString("started_at")), 19, OK, true));
+                card.addView(text(where, 15, FG, false));
+                card.addView(space(10));
+                final EditText fare = input("الأجرة المستلمة (دينار)", InputType.TYPE_CLASS_NUMBER);
+                int base = st.optInt("fare_base", 0);
+                if (base > 0) fare.setText(String.valueOf(base));
+                fare.setTextSize(22);
+                fare.setGravity(Gravity.CENTER);
+                card.addView(text("الأجرة المستلمة (دينار)", 13, MUTED, true));
+                card.addView(fare, full());
+                card.addView(space(8));
+                Button end = button("إنهاء السفرة", true);
+                end.setOnClickListener(v -> tripAction("end", obj("fare", fare.getText().toString())));
+                card.addView(end, full());
+            }
+        }
+        tripBox.addView(card, full());
+        TextView sum = text("سفرات اليوم: " + st.optInt("today_trips") + " · " + String.format(java.util.Locale.US, "%,d", st.optLong("today_fares")) + " د.ع", 14, MUTED, true);
+        sum.setPadding(dp(4), dp(8), dp(4), dp(4));
+        tripBox.addView(sum);
+    }
+
+    private void tripAction(String action, JSONObject p) {
+        final String code = Prefs.code(this);
+        if (code == null) return;
+        new Thread(() -> {
+            try {
+                Api.driverTrip(code, action, p);
+                h.post(() -> {
+                    android.widget.Toast.makeText(this, action.equals("end") ? "انسجلت السفرة" : action.equals("reject") ? "انرفضت" : "تم", android.widget.Toast.LENGTH_SHORT).show();
+                    tripKey = ""; loadTrip();
+                });
+            } catch (Exception e) {
+                h.post(() -> android.widget.Toast.makeText(this, e instanceof Api.ApiError ? e.getMessage() : "ماكو إنترنت", android.widget.Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    private EditText input(String hint, int type) {
+        EditText e = new EditText(this);
+        e.setHint(hint);
+        e.setInputType(type);
+        e.setBackground(box(CARD, LINE, 10));
+        e.setPadding(dp(12), dp(10), dp(12), dp(10));
+        return e;
+    }
+
+    private static JSONObject obj(String k, String v) {
+        try { return new JSONObject().put(k, v); } catch (Exception e) { return new JSONObject(); }
+    }
+
+    private static String or(String s) { return s == null || s.isEmpty() ? "—" : s; }
+
+    private static String hm(String iso) {
+        try {
+            java.time.OffsetDateTime t = java.time.OffsetDateTime.parse(iso);
+            return t.atZoneSameInstant(java.time.ZoneId.systemDefault()).toLocalTime().withNano(0).withSecond(0).toString();
+        } catch (Exception e) { return ""; }
     }
 
     private void toggle() {
