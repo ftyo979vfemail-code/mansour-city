@@ -1,5 +1,7 @@
 package iq.mansour.taxi;
 
+import android.content.Context;
+
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -11,11 +13,40 @@ import java.nio.charset.StandardCharsets;
 
 /** Thin client for the Supabase RPC functions used by the taxi system. */
 final class Api {
-    static final String URL_BASE = "https://azvpzlsgzaglerapuayc.supabase.co/rest/v1/rpc/";
+    static final String DEFAULT_BASE = "https://azvpzlsgzaglerapuayc.supabase.co";
+    /** Tells installed apps which server to use, so moving servers needs no reinstall. */
+    static final String CONFIG_URL = "https://ftyo979vfemail-code.github.io/mansour-city/taxi/config.json";
     static final String KEY = "sb_publishable_LSh2trzuxWteNF4ltsBDZA_otyI__gu";
+    static volatile String base = DEFAULT_BASE;
+    private static volatile long checkedAt = 0;
+
+    /** Loads the saved server address, then refreshes it from config.json in the background (at most every 10 min). */
+    static void init(Context ctx) {
+        final Context app = ctx.getApplicationContext();
+        base = Prefs.of(app).getString("api", DEFAULT_BASE);
+        if (System.currentTimeMillis() - checkedAt < 10 * 60 * 1000) return;
+        checkedAt = System.currentTimeMillis();
+        new Thread(() -> {
+            try {
+                HttpURLConnection c = (HttpURLConnection) new URL(CONFIG_URL + "?t=" + System.currentTimeMillis()).openConnection();
+                c.setConnectTimeout(8000);
+                c.setReadTimeout(8000);
+                c.setUseCaches(false);
+                if (c.getResponseCode() == 200) {
+                    String api = new JSONObject(read(c.getInputStream())).optString("api", "").trim();
+                    while (api.endsWith("/")) api = api.substring(0, api.length() - 1);
+                    if (api.startsWith("https://")) {
+                        base = api;
+                        Prefs.of(app).edit().putString("api", api).apply();
+                    }
+                }
+                c.disconnect();
+            } catch (Exception ignored) {}
+        }).start();
+    }
 
     static String call(String fn, JSONObject body) throws Exception {
-        HttpURLConnection c = (HttpURLConnection) new URL(URL_BASE + fn).openConnection();
+        HttpURLConnection c = (HttpURLConnection) new URL(base + "/rest/v1/rpc/" + fn).openConnection();
         c.setConnectTimeout(12000);
         c.setReadTimeout(15000);
         c.setRequestMethod("POST");

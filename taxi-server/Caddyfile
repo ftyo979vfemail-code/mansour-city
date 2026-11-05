@@ -1,0 +1,40 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# API: same paths the pages and the Android app already use (/rest/v1/rpc/<function>).
+	# Only function calls are exposed. The query string (the beacon adds ?apikey=) and any
+	# auth headers are dropped; PostgREST runs every call as the restricted web_anon role.
+	@rpc path_regexp rpc ^/rest/v1/rpc/([a-z_]+)$
+	handle @rpc {
+		rewrite * /rpc/{re.rpc.1}?
+		reverse_proxy api:3000 {
+			header_up -Authorization
+			header_up -Apikey
+		}
+	}
+	handle /rest/* {
+		respond 404
+	}
+
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# Admin and driver pages.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+}

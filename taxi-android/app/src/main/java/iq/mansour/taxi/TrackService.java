@@ -66,6 +66,7 @@ public class TrackService extends Service implements LocationListener {
     private final Runnable heartbeat = new Runnable() {
         @Override public void run() {
             checkGps();
+            Api.init(TrackService.this);
             if (gpsEnabled()) {
                 Location l = last;
                 if (l == null || System.currentTimeMillis() - lastSentAt > HEARTBEAT_MS) {
@@ -81,6 +82,7 @@ public class TrackService extends Service implements LocationListener {
     public void onCreate() {
         super.onCreate();
         alive = true;
+        Api.init(this);
         lm = (LocationManager) getSystemService(LOCATION_SERVICE);
         channels();
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
