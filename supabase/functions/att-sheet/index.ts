@@ -19,10 +19,10 @@ ${typed ? `وهذه أسماء الكادر اللي كتبها الفورمن �
 ${list}
 
 المطلوب:
-1) اقرأ كل اسم عامل مكتوب بالصور، وكل اسم كتبه الفورمن، كسطر مستقل كما هو مكتوب بالضبط (written). نفس الشخص إذا تكرر بأكثر من مكان اكتبه مرة وحدة.
+1) اقرأ كل اسم عامل مكتوب بالصور، وكل اسم كتبه الفورمن، كسطر مستقل كما هو مكتوب بالضبط (written). نفس الشخص إذا تكرر بأكثر من مكان اكتبه مرة وحدة. اقرأ الورقة كاملة لآخرها: الأسماء اللي بأسفل الورقة أو تحت الجدول أو بسطر «التفاصيل» أو الملاحظات أو المضافة بخط اليد خارج الجدول هم عمال ولازم تنقراهم. عد الأسطر المرقمة وتأكد ما فاتك ولا سطر.
 2) طابقه ويا عامل واحد من القائمة (n = رقمه بالقائمة) حسب شكل الاسم والخط: انتبه للأخطاء الإملائية، اختصار الاسم الثلاثي، الألقاب، الهمزات والتاء المربوطة، وتشابه الحروف بخط اليد (مثل ح/ج/خ، س/ش، ر/ز، ف/ق، ة/ه، ي/ى). إذا الرمز مكتوب استخدمه. إذا ما تكدر تحدد عامل واحد بثقة ضع n = 0.
 3) conf: ثقتك بالمطابقة من 0 إلى 1 (1 = متأكد تماماً). لا ترفع الثقة إذا أكثر من عامل يشبه الاسم.
-4) mark: present إذا الاسم مأشر حاضر أو مكتوب بقائمة الحاضرين أو ما عليه إشارة غياب؛ absent إذا مأشر غائب أو مشطوب؛ leave إذا مكتوب إجازة.
+4) mark: present إذا الاسم عليه ✓ أو مأشر حاضر أو مكتوب بقائمة الحاضرين أو ما عليه إشارة غياب؛ absent إذا عليه × أو X أو إشارة غياب بعمود الحضور أو مكتوب غائب أو مشطوب؛ leave إذا مكتوب إجازة أو مجاز. انتبه: علامة × أو X بعمود الحضور معناها غائب.
 5) date: التاريخ المكتوب على الورقة إن وجد بصيغة YYYY-MM-DD وإلا "".
 لا تخترع أسماء غير موجودة بالورقة، ولا تطابق نفس العامل مرتين.
 أجب بـ JSON فقط: {"date":"","rows":[{"written":"","n":0,"conf":0,"mark":"present"}],"unreadable":""}`;
@@ -92,6 +92,13 @@ Deno.serve(async (req) => {
       const { data: n, error } = await admin.rpc("att_sheet_apply", { p_branch: branch, p_day: d, p_wids: ids, p_by: user.id, p_start: start });
       if (error) return json({ code: "apply", detail: error.message }, 400);
       applied = Number(n) || 0;
+    }
+    // الغياب المأشر بالورقة (× أو X) ينسجل غائب تلقائياً إذا المطابقة واثقة
+    const abs = rows.filter((x: { wid: string | null; mark: string; conf: number }) => x.wid && x.mark === "absent" && x.conf >= AUTO).map((x: { wid: string }) => x.wid);
+    if (abs.length) {
+      const { data: na } = await admin.rpc("att_sheet_absent", { p_branch: branch, p_day: d, p_wids: abs, p_by: user.id });
+      rows.forEach((x: { wid: string | null; mark: string; conf: number; state: string; auto: boolean }) => { if (x.wid && x.mark === "absent" && x.conf >= AUTO) { x.state = "applied"; x.auto = true; } });
+      applied += Number(na) || 0;
     }
     const pending = rows.filter((x: { state: string }) => x.state === "pending").length;
     if (!rows.length) return json({ id: null, applied: 0, pending: 0, total: 0, result: { rows: [] } });
