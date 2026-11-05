@@ -46,6 +46,19 @@ const TABLE_PROMPT = `أمامك ملف أو صورة فيها جدول بيان
 إذا الجدول ممتد على عدة صفحات اجمعها كلها بنفس الأعمدة. إذا خلية فارغة اكتب "".
 أجب بـ JSON فقط: {"header":["العنوان1","العنوان2"],"rows":[["قيمة","قيمة"]]}`;
 
+const FUEL_PROMPT = `أمامك كشف حساب من محطة وقود (كاز/ديزل/بنزين) مرسل لشركة. قد يكون صورة أو PDF أو جدول منسوخ من Excel، بالعربي أو الإنكليزي، مطبوع أو بخط اليد.
+استخرج كل عملية تجهيز/تعبئة كسطر مستقل بالترتيب. لا تخترع أسطر. لا تُدخل أسطر المجموع أو الرصيد المدور أو الدفعات (الدفعات ضعها في payments).
+- date: تاريخ العملية بصيغة YYYY-MM-DD (السنة إذا ناقصة خمّنها من سياق الكشف).
+- liters: الكمية باللتر كرقم (إذا مكتوبة بالمتر المكعب حوّلها ×1000، وإذا بالبرميل اتركها واكتب الوحدة في note).
+- price: سعر اللتر بالدينار كرقم أو null.
+- amount: مبلغ السطر بالدينار كرقم أو null.
+- ref: رقم الوصل أو القسيمة إن وجد.
+- vehicle: رقم السيارة أو التانكر أو اسم السائق أو المستلم إن وجد.
+- fuel: نوع الوقود (كاز، بنزين، ...) إن ذُكر.
+- note: أي ملاحظة على السطر.
+تأكد أن liters × price = amount عندما تكون كلها موجودة.
+أجب بـ JSON فقط: {"station":"اسم المحطة","from":"YYYY-MM-DD","to":"YYYY-MM-DD","lines":[{"date":"","liters":0,"price":null,"amount":null,"ref":"","vehicle":"","fuel":"","note":""}],"payments":[{"date":"","amount":0,"note":""}],"total_liters":null,"total_amount":null,"balance":null}`;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -58,7 +71,32 @@ Deno.serve(async (req) => {
 
     const key = Deno.env.get("ANTHROPIC_API_KEY");
     if (!key) return json({ code: "no_key" }, 400);
-    const { image, mime, dept, stock, mode } = await req.json();
+    const { image, mime, dept, stock, mode, text: srcText } = await req.json();
+    if (mode === "fuel") {
+      const isPdfF = mime === "application/pdf";
+      let block: Record<string, unknown>;
+      if (typeof srcText === "string" && srcText.trim().length > 10) block = { type: "text", text: "الكشف (منسوخ من Excel/CSV):\n" + srcText.slice(0, 200_000) };
+      else if (typeof image === "string" && image.length >= 200 && image.length <= (isPdfF ? 30_000_000 : 7_000_000)) block = isPdfF ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } } : { type: "image", source: { type: "base64", media_type: ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mime) ? mime : "image/jpeg", data: image } };
+      else return json({ code: "bad_image" }, 400);
+      const rf = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 16000, messages: [{ role: "user", content: [block, { type: "text", text: FUEL_PROMPT }] }] }),
+      });
+      if (rf.status === 429) return json({ code: "rate_limited" }, 429);
+      if (!rf.ok) return json({ code: "upstream", detail: (await rf.text()).slice(0, 300) }, 502);
+      const o = await rf.json();
+      const tx: string = (o.content || []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("");
+      const mm = tx.match(/\{[\s\S]*\}/);
+      if (!mm) return json({ code: "bad_output" }, 502);
+      const fj = JSON.parse(mm[0]);
+      const num = (v: unknown) => { if (v === null || v === undefined || v === "") return null; const n = Number(String(v).replace(/[^\d.\-]/g, "")); return isFinite(n) ? n : null; };
+      const str = (v: unknown, n: number) => String(v ?? "").slice(0, n);
+      return json({ station: str(fj.station, 120), from: str(fj.from, 20), to: str(fj.to, 20),
+        lines: (Array.isArray(fj.lines) ? fj.lines : []).slice(0, 3000).map((x: Record<string, unknown>) => ({ date: str(x.date, 20), liters: num(x.liters), price: num(x.price), amount: num(x.amount), ref: str(x.ref, 40), vehicle: str(x.vehicle, 80), fuel: str(x.fuel, 20), note: str(x.note, 160) })).filter((x: { liters: number | null; amount: number | null }) => x.liters || x.amount),
+        payments: (Array.isArray(fj.payments) ? fj.payments : []).slice(0, 200).map((x: Record<string, unknown>) => ({ date: str(x.date, 20), amount: num(x.amount), note: str(x.note, 120) })),
+        total_liters: num(fj.total_liters), total_amount: num(fj.total_amount), balance: num(fj.balance) });
+    }
     const isPdf = mime === "application/pdf";
     if (typeof image !== "string" || image.length < 200 || image.length > (isPdf ? 30_000_000 : 7_000_000)) return json({ code: "bad_image" }, 400);
     const media = ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mime) ? mime : "image/jpeg";
