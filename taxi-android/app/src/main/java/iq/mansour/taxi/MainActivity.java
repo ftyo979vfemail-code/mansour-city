@@ -29,7 +29,7 @@ import org.json.JSONObject;
 
 /** Driver screen: sign in with the 6-digit code, grant permissions once, then tracking runs on its own. */
 public class MainActivity extends Activity {
-    static final int AMBER = 0xFFF2A400, INK = 0xFF2A1D00, BG = 0xFFF3F2EE, FG = 0xFF1B1D22,
+    static final int AMBER = 0xFFFEBD02, INK = 0xFF2A1D00, BG = 0xFFF3F2EE, FG = 0xFF1B1D22,
             MUTED = 0xFF6C6A63, OK = 0xFF16935A, BAD = 0xFFD6332B, CARD = 0xFFFFFFFF, LINE = 0xFFE0DDD4;
     static final int RQ_FINE = 1, RQ_BG = 2, RQ_NOTIF = 3;
 
@@ -81,7 +81,7 @@ public class MainActivity extends Activity {
     private void showLogin(String error) {
         h.removeCallbacks(tick);
         root.removeAllViews();
-        root.addView(brand("صفحة السائق", "تكاسي المجمّع"));
+        root.addView(brand("صفحة السائق", "المنصور تاكسي"));
         root.addView(space(24));
         root.addView(label("رمز السائق (6 أرقام من الإدارة)"));
         final EditText in = new EditText(this);
@@ -316,10 +316,10 @@ public class MainActivity extends Activity {
     private View brand(String title, String subtitle) {
         LinearLayout r = row();
         r.setGravity(Gravity.CENTER_VERTICAL);
-        TextView mark = text("🚕", 24, INK, false);
-        mark.setGravity(Gravity.CENTER);
-        mark.setBackground(box(AMBER, AMBER, 12));
-        r.addView(mark, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        android.widget.ImageView mark = new android.widget.ImageView(this);
+        mark.setImageResource(R.drawable.logo_mark);
+        mark.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+        r.addView(mark, new LinearLayout.LayoutParams(dp(48), dp(56)));
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setPadding(dp(12), 0, dp(12), 0);

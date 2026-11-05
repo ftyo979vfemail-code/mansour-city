@@ -30,7 +30,7 @@ import org.json.JSONObject;
 
 /** Manager mode: sign in with the admin PIN; the phone then rings whenever a driver switches off. */
 public class AdminActivity extends Activity {
-    static final int AMBER = 0xFFF2A400, INK = 0xFF2A1D00, BG = 0xFFF3F2EE, FG = 0xFF1B1D22,
+    static final int AMBER = 0xFFFEBD02, INK = 0xFF2A1D00, BG = 0xFFF3F2EE, FG = 0xFF1B1D22,
             MUTED = 0xFF6C6A63, OK = 0xFF16935A, BAD = 0xFFD6332B, WARN = 0xFFD97706, IDLE = 0xFF8A8A8A,
             CARD = 0xFFFFFFFF, LINE = 0xFFE0DDD4;
 
@@ -264,6 +264,12 @@ public class AdminActivity extends Activity {
     private View title(String t, String s) {
         LinearLayout c = new LinearLayout(this);
         c.setOrientation(LinearLayout.VERTICAL);
+        android.widget.ImageView logo = new android.widget.ImageView(this);
+        logo.setImageResource(R.drawable.logo_mark);
+        logo.setAdjustViewBounds(true);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(58));
+        lp.bottomMargin = dp(8);
+        c.addView(logo, lp);
         c.addView(text(t, 24, FG, true));
         c.addView(text(s, 14, MUTED, false));
         return c;

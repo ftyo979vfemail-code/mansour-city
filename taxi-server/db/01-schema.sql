@@ -200,6 +200,29 @@ begin
        where e.id > p_after order by e.id limit 50) x), '[]'::json));
 end $$;
 
+create or replace function public.taxi_public_info() returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'cars',    (select count(*) from taxi_cars where active),
+    'online',  (select count(*) from taxi_cars where active and gps_state in ('ok','background') and last_seen > now() - interval '3 minutes'),
+    'phone',   (select v from taxi_settings where k='contact_phone'),
+    'whatsapp',(select v from taxi_settings where k='contact_whatsapp'),
+    'hours',   (select v from taxi_settings where k='contact_hours'));
+$$;
+
+create or replace function public.taxi_admin_contact(p_pin text, p jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare f text;
+begin
+  perform taxi_chk(p_pin);
+  foreach f in array array['contact_phone','contact_whatsapp','contact_hours'] loop
+    if p ? f then
+      if coalesce(trim(p->>f),'') = '' then delete from taxi_settings s where s.k = f;
+      else insert into taxi_settings as s(k,v) values (f, left(trim(p->>f),80)) on conflict (k) do update set v = excluded.v; end if;
+    end if;
+  end loop;
+end $$;
+
 -- ---------- Server-side only (never granted to the API) ----------
 -- A phone that stops sending (battery dead, app force-stopped, no signal) is marked "lost" after 2 minutes.
 create or replace function public.taxi_mark_lost() returns void
@@ -251,6 +274,7 @@ grant execute on function
   public.taxi_admin_newcode(text,uuid), public.taxi_admin_trail(text,uuid,int), public.taxi_admin_events(text),
   public.taxi_admin_setpin(text,text), public.taxi_export(text), public.taxi_driver_login(text),
   public.taxi_admin_alerts(text,bigint),
+  public.taxi_public_info(), public.taxi_admin_contact(text,jsonb),
   public.taxi_ping(text,double precision,double precision,double precision,double precision,double precision,int),
   public.taxi_gps_state(text,text)
 to web_anon;

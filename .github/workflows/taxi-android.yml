@@ -37,6 +37,6 @@ jobs:
         run: |
           cp taxi-android/app/build/outputs/apk/release/app-release.apk taxi-driver.apk
           if ! gh release view taxi-driver >/dev/null 2>&1; then
-            gh release create taxi-driver --title "تطبيق سائق التكاسي" --notes "حمّل taxi-driver.apk وثبّته على تلفون السائق." --latest=false
+            gh release create taxi-driver --title "تطبيق المنصور تاكسي" --notes "حمّل taxi-driver.apk وثبّته على تلفون السائق." --latest=false
           fi
           gh release upload taxi-driver taxi-driver.apk --clobber
