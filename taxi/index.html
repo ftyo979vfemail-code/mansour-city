@@ -330,7 +330,9 @@ function landingApp(){
   </div></footer>
   </div>`;
   const render=i=>{
-    if(i.cars>0){$("#live").hidden=false;$("#online").textContent=i.online;$("#fleet").textContent=i.cars}
+    if(i.cars>0){$("#live").hidden=false;
+      $("#live span").innerHTML=i.online>0?`<b>${i.online}</b> سيارة شغّالة هسه من أصل <b>${i.cars}</b>`:`<b>${i.cars}</b> سيارة مسجّلة بأسطول المنصور تاكسي`;
+      $("#live i").style.background=i.online>0?"":"var(--amber)"}
     const c=$("#contact");
     if(!i.phone&&!i.whatsapp){c.innerHTML=`<div class="no-contact">أرقام الحجز تنضاف هنا قريبًا</div>`;return}
     c.innerHTML=`<div class="ctas">${i.phone?`<a class="cta call" href="${telHref(i.phone)}">${IC.phone}<span>اتصل واحجز<small>${esc(i.phone)}</small></span></a>`:""}${i.whatsapp?`<a class="cta wa" href="${waHref(i.whatsapp)}" target="_blank" rel="noopener">${IC.wa}<span>واتساب<small>${esc(i.whatsapp)}</small></span></a>`:""}</div>${i.hours?`<div class="hours">أوقات العمل: ${esc(i.hours)}</div>`:""}`;
