@@ -253,7 +253,7 @@ public class MainActivity extends Activity {
     private void renderTrip(JSONObject st) {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
-        String key = t == null ? "none:" + st.optInt("today_trips") : t.optLong("id") + ":" + t.optString("status");
+        String key = (t == null ? "none:" + st.optInt("today_trips") : t.optLong("id") + ":" + t.optString("status")) + ":" + st.optLong("week_share");
         if (key.equals(tripKey)) return;
         tripKey = key;
         tripBox.removeAllViews();
@@ -323,8 +323,14 @@ public class MainActivity extends Activity {
         }
         tripBox.addView(card, full());
         TextView sum = text("سفرات اليوم: " + st.optInt("today_trips") + " · " + String.format(java.util.Locale.US, "%,d", st.optLong("today_fares")) + " د.ع", 14, MUTED, true);
-        sum.setPadding(dp(4), dp(8), dp(4), dp(4));
+        sum.setPadding(dp(4), dp(8), dp(4), dp(2));
         tripBox.addView(sum);
+        TextView wk = text("حصتك هذا الأسبوع: " + String.format(java.util.Locale.US, "%,d", st.optLong("week_share")) + " د.ع  (" + st.optInt("week_trips") + " سفرة)", 16, OK, true);
+        wk.setPadding(dp(4), dp(2), dp(4), dp(2));
+        tripBox.addView(wk);
+        TextView hint = text("الحصة تنحسب من السفرات المسجّلة بس.", 12, MUTED, false);
+        hint.setPadding(dp(4), 0, dp(4), dp(4));
+        tripBox.addView(hint);
     }
 
     private void tripAction(String action, JSONObject p) {

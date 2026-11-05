@@ -171,6 +171,31 @@ select.btn{font-weight:500}
 .trip.on{border:2px solid var(--ok)}
 .btn.big{font-size:18px;padding:14px;width:100%}
 .row2{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.wk{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.wk b{font:600 15px var(--display);font-variant-numeric:tabular-nums}
+.kpi-warn{border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
+.kpi-warn b{color:var(--warn)}
+.calc{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.calc div{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.calc div:last-child{border-bottom:0}
+.calc b{font-variant-numeric:tabular-nums}
+.calc .tot{background:color-mix(in srgb,var(--amber) 14%,var(--panel));font-size:17px}
+.rcpt{display:flex;flex-direction:column;gap:12px}
+.rcpt p{margin:0}
+.rc-head{display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--amber);padding-bottom:10px}
+.rc-head img{height:64px;width:auto}
+.rc-head small{color:var(--muted)}
+.rc-trips{min-width:0;font-size:13px}
+.rc-trips th,.rc-trips td{padding:6px 8px}
+.sig{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:22px}
+.sig div{border-top:1px solid var(--fg);padding-top:6px;text-align:center;color:var(--muted);font-size:13px}
+@media print{
+  body *{visibility:hidden}
+  .rc-modal,.rc-modal *{visibility:visible}
+  .rc-modal{position:absolute;inset:0;background:#fff;display:block;padding:0}
+  .rc-modal .sheet{width:100%!important;max-height:none;box-shadow:none;color:#000;background:#fff}
+  .no-print{display:none!important}
+}
 /* ---------- Landing ---------- */
 .lp{min-height:100%;display:flex;flex-direction:column}
 .lp-in{width:100%;max-width:1120px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
@@ -394,6 +419,7 @@ function adminShell(){
      <nav class="tabs" role="tablist">
        <button role="tab" data-t="live">الخريطة الحيّة</button>
        <button role="tab" data-t="trips">السفرات</button>
+       <button role="tab" data-t="week">التسوية الأسبوعية</button>
        <button role="tab" data-t="acc">الحسابات</button>
        <button role="tab" data-t="cars">السيارات والسائقين</button>
        <button role="tab" data-t="log">سجل التنبيهات</button>
@@ -432,6 +458,7 @@ function renderTab(){
   if(tab==="set") renderSettings();
   if(tab==="trips") renderTrips();
   if(tab==="acc") renderAccounts();
+  if(tab==="week") renderWeek();
 }
 function initMap(){
   if(typeof L==="undefined"){$("#map").innerHTML=`<div class="empty">تعذّر تحميل الخريطة. تأكد من الإنترنت.</div>`;return}
@@ -620,6 +647,96 @@ async function showRange(carId,from,to){
     toast("المسار الأحمر: تحرّك بدون سفرة");
   }catch(e){toast(e.message)}
 }
+
+/* ---------- Weekly settlement: collect fares, pay each driver his share ---------- */
+let weekDay=null, weekData=null;
+const dmy=d=>{const [y,m,dd]=String(d).split("-");return `${+dd}/${+m}`};
+function shiftWeek(n){const d=new Date((weekDay||todayStr())+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+7*n);weekDay=d.toISOString().slice(0,10);loadWeek()}
+function renderWeek(){
+  weekDay=weekDay||todayStr();
+  $("#view").innerHTML=`<div class="wrap">
+    <div class="bar"><h2>التسوية الأسبوعية</h2>
+      <div class="wk"><button class="btn sm" id="wprev" aria-label="الأسبوع السابق">‹ السابق</button><b id="wlabel">…</b><button class="btn sm" id="wnext" aria-label="الأسبوع الجاي">الجاي ›</button></div></div>
+    <div id="wkpi" class="kpis"></div>
+    <div id="wrule"></div>
+    <div id="wlist"><div class="empty">جارٍ الحساب…</div></div></div>`;
+  $("#wprev").onclick=()=>shiftWeek(-1); $("#wnext").onclick=()=>shiftWeek(1);
+  loadWeek();
+}
+async function loadWeek(){
+  const box=$("#wlist"); if(!box) return;
+  try{weekData=await rpc("taxi_admin_week",{p_pin:PIN,p_day:weekDay})}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const W=weekData, rows=W.rows;
+  $("#wlabel").textContent=`السبت ${dmy(W.week_start)} — الجمعة ${dmy(W.week_end)}`;
+  const ruleSet=(W.share_pct||W.per_trip);
+  $("#wrule").innerHTML=ruleSet?`<p class="note">حصة السائق = ${W.share_pct?`${W.share_pct}% من أجرة سفراته`:""}${W.share_pct&&W.per_trip?" + ":""}${W.per_trip?`${fmt(W.per_trip)} د.ع لكل سفرة`:""}. تنحسب من السفرات المسجّلة بس: السفرة اللي ما انسجلت ما إلها حصة. <a href="#" id="wset">تغيير</a></p>`
+    :`<p class="note" style="border-color:var(--warn)">⚠ ما حدّدت حصة السائق بعد، فالحصة تطلع صفر. <a href="#" id="wset">حدّدها من الإعدادات</a></p>`;
+  $("#wset").onclick=e=>{e.preventDefault();tab="set";renderTab()};
+  const sum=k=>rows.reduce((a,r)=>a+Number(r[k]||0),0);
+  const fares=sum("fares")+sum("settled_fares"), share=sum("share")+sum("settled_share");
+  $("#wkpi").innerHTML=`<div class="kpi"><small>أجرة السفرات المسجّلة</small><b>${dinar(fares)}</b><small>${fmt(sum("trips")+sum("settled_trips"))} سفرة</small></div>
+    <div class="kpi"><small>حصص السواق</small><b>${dinar(share)}</b></div>
+    <div class="kpi"><small>صافي الشركة</small><b>${dinar(fares-share)}</b></div>
+    <div class="kpi ${sum("fares")?"kpi-warn":""}"><small>باقي ما تسوّى</small><b>${dinar(sum("fares"))}</b><small>${fmt(sum("trips"))} سفرة</small></div>`;
+  if(!rows.length){box.innerHTML=`<div class="empty card">ماكو سيارات.</div>`;return}
+  box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>السائق</th><th>سفرات</th><th>الأجرة اللي بيده</th><th>حصّته</th><th>يسلّم للشركة (صافي)</th><th>بدون سفرة</th><th>الحالة</th><th></th></tr></thead><tbody>
+  ${rows.map(r=>{const pend=Number(r.trips)>0;const settled=r.settlement_ids.length>0;return `<tr>
+    <td>${plateHTML(r.plate)} <b>${esc(r.driver_name)}</b></td>
+    <td class="num">${fmt(r.trips)}${settled?`<br><small style="color:var(--muted)">+${fmt(r.settled_trips)} مسوّاة</small>`:""}</td>
+    <td class="num">${fmt(r.fares)}</td><td class="num" style="color:var(--ok)"><b>${fmt(r.share)}</b></td>
+    <td class="num"><b>${fmt(r.fares-r.share)}</b></td>
+    <td>${r.unlogged?`<span class="pill s-bad">${r.unlogged} مرة · ${r.unlogged_km} كم</span>`:`<span class="pill s-ok">ماكو</span>`}</td>
+    <td>${pend?`<span class="pill s-warn">بانتظار التسوية</span>`:settled?`<span class="pill s-ok">✔ مسوّاة</span>`:`<span class="pill s-idle">ماكو سفرات</span>`}</td>
+    <td><div class="acts">${pend?`<button class="btn sm primary" data-settle="${r.id}">تسوية</button>`:""}${r.settlement_ids.map(id=>`<button class="btn sm" data-rcpt="${id}">وصل #${id}</button>`).join("")}</div></td></tr>`}).join("")}
+  </tbody></table></div>`;
+  box.querySelectorAll("[data-settle]").forEach(b=>b.onclick=()=>settleForm(rows.find(r=>r.id===b.dataset.settle)));
+  box.querySelectorAll("[data-rcpt]").forEach(b=>b.onclick=async()=>{try{receipt(await rpc("taxi_admin_settlement",{p_pin:PIN,p_id:+b.dataset.rcpt}))}catch(e){toast(e.message)}});
+}
+function settleForm(r){
+  const net=r.fares-r.share;
+  const m=modal(`<h3>تسوية ${esc(r.driver_name)}</h3>
+   <div class="calc">
+     <div><span>أجرة ${fmt(r.trips)} سفرة مسجّلة</span><b>${dinar(r.fares)}</b></div>
+     <div><span>حصة السائق</span><b style="color:var(--ok)">− ${dinar(r.share)}</b></div>
+     <div class="tot"><span>يسلّم للشركة صافي</span><b>${dinar(net)}</b></div>
+   </div>
+   ${r.unlogged?`<p class="note" style="margin:0;border-color:var(--bad)">⚠ هذا الأسبوع عنده ${r.unlogged} تحرّك بدون سفرة (${r.unlogged_km} كم). هاي ما داخلة بالحساب.</p>`:""}
+   <form id="sf" style="display:flex;flex-direction:column;gap:12px">
+    <div class="grid2">
+      <div class="field"><label for="s-col">المبلغ المستلَم منه (دينار)</label><input id="s-col" inputmode="numeric" value="${r.fares}"></div>
+      <div class="field"><label for="s-pay">المبلغ المدفوع إله (دينار)</label><input id="s-pay" inputmode="numeric" value="${r.share}"></div>
+    </div>
+    <p class="note" style="margin:0">إذا يسلّمك الصافي بس، اكتب المستلَم ${fmt(net)} والمدفوع 0.</p>
+    <div class="field"><label for="s-note">ملاحظة</label><input id="s-note" placeholder="اختياري"></div>
+    <div class="err" id="se2"></div>
+    <div class="row"><button type="button" class="btn" id="sfc">إلغاء</button><button class="btn primary">تأكيد التسوية</button></div></form>`);
+  $("#sfc",m).onclick=()=>m.remove();
+  $("#sf",m).onsubmit=async e=>{e.preventDefault();
+    try{const st=await rpc("taxi_admin_settle",{p_pin:PIN,p_car:r.id,p_week:weekData.week_start,p:{collected:$("#s-col",m).value,paid_out:$("#s-pay",m).value,note:$("#s-note",m).value}});
+      m.remove();toast("تمت التسوية");loadWeek();receipt(st)}catch(err){$("#se2",m).textContent=err.message}};
+}
+function receipt(st){
+  const balance=st.fares-st.share-(st.collected-st.paid_out);
+  const m=modal(`<div class="rcpt" id="rcpt">
+    <div class="rc-head"><img src="img/logo.png" alt="المنصور تاكسي"><div><h3>وصل تسوية أسبوعية #${st.id}</h3><small>السبت ${dmy(st.week_start)} — الجمعة ${dmy(st.week_end)} · ${new Date(st.created_at).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}</small></div></div>
+    <p><b>السائق:</b> ${esc(st.driver_name)} &nbsp; ${plateHTML(st.plate)}</p>
+    <div class="calc">
+      <div><span>عدد السفرات</span><b>${fmt(st.trips)}</b></div>
+      <div><span>مجموع الأجرة</span><b>${dinar(st.fares)}</b></div>
+      <div><span>حصة السائق</span><b>${dinar(st.share)}</b></div>
+      <div><span>المستلَم من السائق</span><b>${dinar(st.collected)}</b></div>
+      <div><span>المدفوع للسائق</span><b>${dinar(st.paid_out)}</b></div>
+      <div class="tot"><span>${balance>0?"باقي بذمّة السائق":balance<0?"باقي للسائق على الشركة":"الحساب"}</span><b>${balance===0?"مسدّد ✔":dinar(Math.abs(balance))}</b></div>
+    </div>
+    ${st.note?`<p><b>ملاحظة:</b> ${esc(st.note)}</p>`:""}
+    ${st.trip_list.length?`<table class="rc-trips"><thead><tr><th>الوقت</th><th>من ← إلى</th><th>الأجرة</th></tr></thead><tbody>${st.trip_list.map(t=>`<tr><td>${new Date(t.ended_at).toLocaleString("ar-IQ",{weekday:"short",hour:"2-digit",minute:"2-digit"})}</td><td>${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}</td><td class="num">${fmt(t.fare)}</td></tr>`).join("")}</tbody></table>`:""}
+    <div class="sig"><div>توقيع السائق</div><div>توقيع المحاسب</div></div>
+   </div>
+   <div class="row no-print"><button class="btn" id="rcc">سدّ</button><button class="btn primary" id="rcp">طباعة الوصل</button></div>`);
+  m.classList.add("rc-modal");
+  $("#rcc",m).onclick=()=>m.remove();
+  $("#rcp",m).onclick=()=>window.print();
+}
 function driverLink(){return location.href.split("#")[0]+"#driver"}
 function siteLink(){return location.href.split("#")[0]}
 function renderCars(){
@@ -691,7 +808,11 @@ function renderSettings(){
     <p class="note" style="margin:0">تنستخدم حتى نقدّر المبلغ الضايع من التحرّكات بدون سفرة، وتطلع للسائق كمبلغ مقترح لما يسدّ السفرة.</p>
     <div class="grid2"><div class="field"><label for="f-base">أجرة السفرة (دينار)</label><input id="f-base" inputmode="numeric" placeholder="مثال: 3000"></div>
     <div class="field"><label for="f-km">إضافة لكل كيلومتر (اختياري)</label><input id="f-km" inputmode="numeric" placeholder="مثال: 500"></div></div>
-    <div class="err" id="fre"></div><button class="btn primary">حفظ الأجرة</button></form>
+    <h3 style="margin-top:6px">حصة السائق بالتسوية الأسبوعية</h3>
+    <p class="note" style="margin:0">حصة السائق تنحسب من سفراته المسجّلة بس. تگدر تستخدم نسبة، أو مبلغ لكل سفرة، أو الاثنين سوا.</p>
+    <div class="grid2"><div class="field"><label for="f-pct">نسبة السائق من الأجرة %</label><input id="f-pct" inputmode="numeric" placeholder="مثال: 40"></div>
+    <div class="field"><label for="f-pt">مبلغ للسائق لكل سفرة (دينار)</label><input id="f-pt" inputmode="numeric" placeholder="مثال: 1000"></div></div>
+    <div class="err" id="fre"></div><button class="btn primary">حفظ الأجرة والحصة</button></form>
    <form id="ct" class="gate-card" style="width:100%;margin-bottom:16px">
     <h3>أرقام الحجز بالصفحة الرئيسية</h3>
     <p class="note" style="margin:0">تظهر للزباين بالصفحة الرئيسية على زر «اتصل» و«واتساب». اتركها فارغة حتى تنشال.</p>
@@ -704,7 +825,8 @@ function renderSettings(){
     <h3>تغيير رمز المدير</h3>
     <div class="field"><label for="np">الرمز الجديد (4 أرقام أو أكثر)</label><input id="np" class="code-input" inputmode="numeric" minlength="4" required></div>
     <div class="err" id="se"></div><button class="btn primary">حفظ الرمز</button></form></div>`;
-  $("#fr").onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_fares",{p_pin:PIN,p:{fare_base:$("#f-base").value,fare_per_km:$("#f-km").value}});toast("انحفظت الأجرة")}catch(err){$("#fre").textContent=err.message}};
+  $("#fr").onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_fares",{p_pin:PIN,p:{fare_base:$("#f-base").value,fare_per_km:$("#f-km").value,driver_share_pct:$("#f-pct").value,driver_per_trip:$("#f-pt").value}});toast("انحفظت")}catch(err){$("#fre").textContent=err.message}};
+  rpc("taxi_admin_shares",{p_pin:PIN}).then(x=>{$("#f-pct").value=x.driver_share_pct??"";$("#f-pt").value=x.driver_per_trip??""}).catch(()=>{});
   rpc("taxi_public_info",{}).then(i=>{$("#f-base").value=i.fare_base||"";$("#f-km").value=i.fare_per_km||"";$("#c-phone").value=i.phone||"";$("#c-wa").value=i.whatsapp||"";$("#c-hours").value=i.hours||""}).catch(()=>{});
   $("#ct").onsubmit=async e=>{e.preventDefault();
     try{await rpc("taxi_admin_contact",{p_pin:PIN,p:{contact_phone:$("#c-phone").value,contact_whatsapp:$("#c-wa").value,contact_hours:$("#c-hours").value}});toast("انحفظت أرقام الحجز")}catch(err){$("#ce2").textContent=err.message}};
@@ -762,7 +884,7 @@ async function driverStart(){
 let curTrip, tripPoll, lastOffer=null, today={trips:0,fares:0,base:null};
 async function refreshTrip(){
   if(!CODE) return;
-  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,base:st.fare_base};showTrip(st.trip,true)}catch{}
+  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,base:st.fare_base,share:st.week_share||0};showTrip(st.trip,true)}catch{}
 }
 function showTrip(t,force){
   const box=$("#tripBox"); if(!box) return;
@@ -770,7 +892,7 @@ function showTrip(t,force){
   if(!force&&key===JSON.stringify(curTrip&&[curTrip.id,curTrip.status])) return;
   curTrip=t;
   if(!ON){box.innerHTML="";return}
-  const sum=`<div class="stat" style="margin-top:10px"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)} د.ع</b></div>`;
+  const sum=`<div class="stats" style="margin-top:10px"><div class="stat"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)}</b></div><div class="stat"><small>حصتك هذا الأسبوع</small><b style="color:var(--ok)">${fmt(today.share)} د.ع</b></div></div><p class="note" style="margin:8px 0 0">حصتك تنحسب من السفرات المسجّلة بس.</p>`;
   if(!t){box.innerHTML=`<div class="trip"><h3>ماكو سفرة</h3><p>إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.</p>
       <div class="field"><label for="tr-to">إلى وين؟ (اختياري)</label><input id="tr-to"></div>
       <button class="btn primary big" id="tr-start">بدء سفرة</button></div>${sum}`;
