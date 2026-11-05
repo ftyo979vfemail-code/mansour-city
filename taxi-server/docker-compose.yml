@@ -50,6 +50,20 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+  # Every minute: mark phones that stopped sending as "lost" (raises the manager's alarm).
+  ticker:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do psql -h db -U postgres -d taxi -qc "select public.taxi_mark_lost()" >/dev/null; sleep 60; done
+
   # Daily database backup (kept 14 days) + cleanup of old trail points.
   backup:
     image: postgres:16-alpine

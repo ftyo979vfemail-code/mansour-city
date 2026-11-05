@@ -63,6 +63,11 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (MonitorService.pin(this) != null && Prefs.code(this) == null && !getIntent().getBooleanExtra("driver", false)) {
+            startActivity(new Intent(this, AdminActivity.class));
+            finish();
+            return;
+        }
         if (Prefs.code(this) == null) showLogin(null); else showMain();
     }
 
@@ -113,6 +118,10 @@ public class MainActivity extends Activity {
         root.addView(go, full());
         root.addView(space(16));
         root.addView(note("بعد الدخول راح يطلب منك التطبيق أذونات. وافق على كلها حتى يشتغل التتبع بالخلفية والشاشة مقفولة."));
+        root.addView(space(24));
+        Button admin = button("دخول المدير (تنبيهات إطفاء السواق)", false);
+        admin.setOnClickListener(v -> { startActivity(new Intent(this, AdminActivity.class)); finish(); });
+        root.addView(admin, full());
     }
 
     /* ---------- Main ---------- */

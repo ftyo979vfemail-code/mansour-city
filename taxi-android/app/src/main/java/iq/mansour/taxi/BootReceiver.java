@@ -11,5 +11,6 @@ public class BootReceiver extends BroadcastReceiver {
         if (Prefs.code(ctx) != null && TrackService.hasLocation(ctx) && Prefs.of(ctx).getBoolean("on", false)) {
             TrackService.start(ctx);
         }
+        if (MonitorService.pin(ctx) != null) MonitorService.start(ctx);
     }
 }

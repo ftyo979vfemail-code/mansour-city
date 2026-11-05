@@ -178,13 +178,41 @@ begin
   select * into c from taxi_cars where driver_code=trim(p_code) and active;
   if c.id is null then raise exception 'رمز غير صالح'; end if;
   if c.gps_state = 'stopped' and p_state in ('closed','background') then return; end if;
+  if c.gps_state = 'lost' and p_state = 'closed' then return; end if;
   if c.gps_state <> p_state then
     insert into taxi_events(car_id,kind) values (c.id, p_state);
     update taxi_cars set gps_state=p_state where id=c.id;
   end if;
 end $$;
 
+create or replace function public.taxi_admin_alerts(p_pin text, p_after bigint default 0) returns json
+language plpgsql security definer set search_path = public as $$
+begin
+  perform taxi_chk(p_pin);
+  if coalesce(p_after,0) <= 0 then
+    return json_build_object('last', (select coalesce(max(id),0) from taxi_events), 'events', '[]'::json);
+  end if;
+  return json_build_object(
+    'last', (select coalesce(max(id),p_after) from taxi_events),
+    'events', coalesce((select json_agg(x order by x.id) from (
+       select e.id, e.kind, e.at, c.plate, c.driver_name, c.driver_phone
+       from taxi_events e join taxi_cars c on c.id=e.car_id
+       where e.id > p_after order by e.id limit 50) x), '[]'::json));
+end $$;
+
 -- ---------- Server-side only (never granted to the API) ----------
+-- A phone that stops sending (battery dead, app force-stopped, no signal) is marked "lost" after 2 minutes.
+create or replace function public.taxi_mark_lost() returns void
+language plpgsql security definer set search_path = public as $$
+declare r record;
+begin
+  for r in update taxi_cars set gps_state='lost'
+           where active and gps_state in ('ok','background') and last_seen < now() - interval '2 minutes'
+           returning id loop
+    insert into taxi_events(car_id,kind) values (r.id,'lost');
+  end loop;
+end $$;
+
 create or replace function public.taxi_set_admin_pin(p_new text) returns void
 language plpgsql set search_path = public, extensions as $$
 begin
@@ -222,6 +250,7 @@ grant execute on function
   public.taxi_admin_list(text), public.taxi_admin_save(text,jsonb), public.taxi_admin_delete(text,uuid),
   public.taxi_admin_newcode(text,uuid), public.taxi_admin_trail(text,uuid,int), public.taxi_admin_events(text),
   public.taxi_admin_setpin(text,text), public.taxi_export(text), public.taxi_driver_login(text),
+  public.taxi_admin_alerts(text,bigint),
   public.taxi_ping(text,double precision,double precision,double precision,double precision,double precision,int),
   public.taxi_gps_state(text,text)
 to web_anon;

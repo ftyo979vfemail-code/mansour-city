@@ -174,13 +174,14 @@ function status(c){
   if(c.gps_state==="stopped") return {k:"idle",t:"أنهى الدوام"};
   if(c.gps_state==="off") return {k:"bad",t:"GPS مطفأ"};
   if(c.gps_state==="denied") return {k:"bad",t:"رفض الموقع"};
-  if(c.gps_state==="closed") return {k:"bad",t:"أغلق الصفحة"};
+  if(c.gps_state==="closed") return {k:"bad",t:"أغلق التطبيق"};
+  if(c.gps_state==="lost") return {k:"bad",t:"انقطع الإرسال"};
   const old=(Date.now()-new Date(c.last_seen))/1000>STALE_SEC;
   if(old) return {k:"bad",t:"انقطع الإرسال"};
   if(c.gps_state==="background") return {k:"warn",t:"بالخلفية"};
   return {k:"ok",t:"متصل"};
 }
-const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق الصفحة"]};
+const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"]};
 const ICON=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M4 13l2-6a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l2 6v4H4z"/><path d="M10 4h4"/><circle cx="7.5" cy="13.5" r="1"/><circle cx="16.5" cy="13.5" r="1"/></svg>`;
 
 /* ---------------- Router ---------------- */
