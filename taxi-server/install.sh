@@ -7,8 +7,8 @@ set -euo pipefail
 
 REPO="https://github.com/ftyo979vfemail-code/mansour-city.git"
 DIR=/opt/taxi
-OLD_API="https://azvpzlsgzaglerapuayc.supabase.co/rest/v1/rpc"
-OLD_KEY="sb_publishable_LSh2trzuxWteNF4ltsBDZA_otyI__gu"
+OLD_API="https://xdyxcvyhoidojtfpoepk.supabase.co/rest/v1/rpc"
+OLD_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-"
 
 say()  { printf '\n\033[1;33m▶ %s\033[0m\n' "$*"; }
 ok()   { printf '\033[1;32m✔ %s\033[0m\n' "$*"; }

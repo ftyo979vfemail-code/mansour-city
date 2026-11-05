@@ -13,10 +13,11 @@ import java.nio.charset.StandardCharsets;
 
 /** Thin client for the Supabase RPC functions used by the taxi system. */
 final class Api {
-    static final String DEFAULT_BASE = "https://azvpzlsgzaglerapuayc.supabase.co";
+    static final String DEFAULT_BASE = "https://xdyxcvyhoidojtfpoepk.supabase.co";
     /** Tells installed apps which server to use, so moving servers needs no reinstall. */
     static final String CONFIG_URL = "https://ftyo979vfemail-code.github.io/mansour-city/taxi/config.json";
-    static final String KEY = "sb_publishable_LSh2trzuxWteNF4ltsBDZA_otyI__gu";
+    static final String DEFAULT_KEY = "sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
+    static volatile String key = DEFAULT_KEY;
     static volatile String base = DEFAULT_BASE;
     private static volatile long checkedAt = 0;
 
@@ -24,6 +25,7 @@ final class Api {
     static void init(Context ctx) {
         final Context app = ctx.getApplicationContext();
         base = Prefs.of(app).getString("api", DEFAULT_BASE);
+        key = Prefs.of(app).getString("key", DEFAULT_KEY);
         if (System.currentTimeMillis() - checkedAt < 10 * 60 * 1000) return;
         checkedAt = System.currentTimeMillis();
         new Thread(() -> {
@@ -33,11 +35,15 @@ final class Api {
                 c.setReadTimeout(8000);
                 c.setUseCaches(false);
                 if (c.getResponseCode() == 200) {
-                    String api = new JSONObject(read(c.getInputStream())).optString("api", "").trim();
+                    JSONObject cfg = new JSONObject(read(c.getInputStream()));
+                    String api = cfg.optString("api", "").trim();
+                    String k = cfg.optString("key", "").trim();
                     while (api.endsWith("/")) api = api.substring(0, api.length() - 1);
                     if (api.startsWith("https://")) {
+                        if (k.isEmpty()) k = key;
                         base = api;
-                        Prefs.of(app).edit().putString("api", api).apply();
+                        key = k;
+                        Prefs.of(app).edit().putString("api", api).putString("key", k).apply();
                     }
                 }
                 c.disconnect();
@@ -51,8 +57,8 @@ final class Api {
         c.setReadTimeout(15000);
         c.setRequestMethod("POST");
         c.setDoOutput(true);
-        c.setRequestProperty("apikey", KEY);
-        c.setRequestProperty("Authorization", "Bearer " + KEY);
+        c.setRequestProperty("apikey", key);
+        c.setRequestProperty("Authorization", "Bearer " + key);
         c.setRequestProperty("Content-Type", "application/json");
         try (OutputStream o = c.getOutputStream()) {
             o.write(body.toString().getBytes(StandardCharsets.UTF_8));
