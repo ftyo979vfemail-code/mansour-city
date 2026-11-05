@@ -854,7 +854,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='434ae730ab';
+const APP_BUILD='8645f73a11';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -3211,7 +3211,7 @@ function attFingerView(){const F=S.fp;
   h+=`<div class="sec"><p class="small muted" style="margin:0">الملف: <b>${esc(F.file)}</b> · ${nf.format(F.rows.length)} سطر. تحت كل عمود اختار شنو يمثّل.</p>
    <div style="overflow:auto;max-height:40vh;margin-top:8px;border:1px solid var(--line);border-radius:var(--r)"><table class="attbl atsmall"><thead style="position:sticky;top:0;background:var(--surface);z-index:1"><tr>${F.header.map((x,i)=>`<th style="min-width:120px"><div class="small">${esc(x)}</div><select class="in fpm" data-i="${i}" style="margin-top:4px;font-size:13px">${opts(F.map[i])}</select></th>`).join('')}</tr></thead><tbody>${F.rows.map(r=>`<tr>${r.map(c=>`<td class="small">${esc(typeof c==='number'&&c>20000?(fpDate(c)+(c%1?' '+fpTime(c):'')):typeof c==='number'&&c>0&&c<1?fpTime(c):String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
    ${F.map.includes('dt')||F.map.includes('date')?'':`<label class="l" style="margin-top:8px">تاريخ الملف <em>(الملف ما بيه عمود تاريخ${F.day?' — لكيته مكتوب بالعنوان':''})</em><input id="fpDay" class="in num" type="date" value="${F.day||''}" max="${bgDay()}" style="max-width:220px"></label>`}
-   <label class="l" style="flex-direction:row;display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="fpOv" ${F.over?'checked':''}> حدّث حتى الأيام المسجّلة يدوياً (بدون الصح: يعبّي بس الأيام الفارغة والغياب التلقائي)</label>
+   <label class="l" style="flex-direction:row;display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="fpOv" ${F.over?'checked':''}> حدّث حتى الأيام المسجّلة يدوياً (البصمة تكتب دائماً فوك حضور الفورمن والغياب التلقائي)</label>
    <div class="err">${P.err||''}</div>
    ${P.err?'':`<div class="stats" style="margin-top:8px"><div class="stat"><b>${nf.format(P.recs.length)}</b><span>يوم دوام ينسجل</span></div><div class="stat"><b>${nf.format(P.matched)}</b><span>عامل متطابق</span></div><div class="stat"><b>${nf.format(P.late)}</b><span>منها تأخير</span></div><div class="stat"><b>${nf.format(P.skip)}</b><span>يوم موجود يتخطى</span></div></div>
    ${P.recs.length?`<div class="acts"><button class="btn pri" data-a="fpGo">💾 حفظ البصمة (${nf.format(P.recs.length)} يوم)</button></div>`:''}
@@ -3250,11 +3250,11 @@ function fpPlan(){const F=S.fp,c=attCfg(),col=k=>F.map.indexOf(k),t=bgDay();
     return bc||byName.get(NK(pp.name))||fuzzy(pp.name)||(F.ai?.[k]?.wid?attWorker(F.ai[k].wid):null)||null};
   const recs=[],mt=new Set();let late=0,skip=0,from=null,to=null;
   Object.values(P).forEach(o=>{const w=res(o.key);if(!w)return;mt.add(o.key);const ts=o.t.slice().sort();let tin=ts[0],tout=ts.length>1&&ts[ts.length-1]!==tin?ts[ts.length-1]:null;
-    const ex=attRec(w.id,o.day);if(ex&&!F.over&&!(ex.status==='absent'&&ex.method==='auto'))return void skip++;
-    if((o.st==='absent'||o.st==='leave')&&!ts.length){from=!from||o.day<from?o.day:from;to=!to||o.day>to?o.day:to;recs.push({worker_id:w.id,day:o.day,status:o.st,in_at:null,out_at:null,in_lat:null,in_lng:null,in_acc:null,out_lat:null,out_lng:null,method:'finger',reason:'من ملف الحضور',excused:o.st==='leave',attach:null,edit_reason:'رفع ملف البصمة'});return}
+    const ex=attRec(w.id,o.day);if(ex&&!F.over&&ex.method==='manual')return void skip++;
+    if((o.st==='absent'||o.st==='leave')&&!ts.length){from=!from||o.day<from?o.day:from;to=!to||o.day>to?o.day:to;recs.push({worker_id:w.id,day:o.day,status:o.st,in_at:null,out_at:null,in_lat:null,in_lng:null,in_acc:null,out_lat:null,out_lng:null,method:'finger',reason:'من ملف الحضور',excused:o.st==='leave',attach:null,edit_reason:'رفع ملف البصمة — '+(F.file||'')+' · '+new Date().toLocaleString('en-GB')});return}
     if(!tin)tin=c.start;
     const st=o.st==='half'?'half':hm2min(tin)>hm2min(c.start)+c.grace?'late':'present';if(st==='late')late++;from=!from||o.day<from?o.day:from;to=!to||o.day>to?o.day:to;
-    recs.push({worker_id:w.id,day:o.day,status:st,in_at:dayIso(o.day,tin),out_at:tout?dayIso(o.day,tout):null,in_lat:null,in_lng:null,in_acc:null,out_lat:null,out_lng:null,method:'finger',reason:null,excused:false,attach:null,edit_reason:'رفع ملف البصمة'})});
+    recs.push({worker_id:w.id,day:o.day,status:st,in_at:dayIso(o.day,tin),out_at:tout?dayIso(o.day,tout):null,in_lat:null,in_lng:null,in_acc:null,out_lat:null,out_lng:null,method:'finger',reason:null,excused:false,attach:null,edit_reason:'رفع ملف البصمة — '+(F.file||'')+' · '+new Date().toLocaleString('en-GB')})});
   const un=Object.values(people).filter(pp=>!mt.has(pp.key)&&!(F.man[pp.key]===''));
   const per=Object.values(people).map(pp=>{const w=res(pp.key);return{...pp,w,ai:!!(w&&F.ai?.[pp.key]?.wid===w.id&&F.man[pp.key]===undefined),days:recs.filter(r=>w&&r.worker_id===w.id).length}}).sort((a,b)=>(!!b.w-!!a.w)||String(a.name).localeCompare(String(b.name),'ar'));
   return{recs,matched:mt.size,late,skip,from,to,un,per}}
@@ -3280,7 +3280,7 @@ document.addEventListener('click',async e=>{const el=e.target.closest('[data-a]'
       try{await sb.from('att_sheets').insert({day:days[days.length-1],uid:S.me.id,branch:curBranch(),applied:n,pending:0,result:{src:'finger',file,days:byDay,people:P.per.filter(x=>x.w).length,late:P.late,rows:[]}});S._shL=0;shLoad(true)}catch(e){}
       S.fp=null;attSnapSave?.();render();
       overlay('fpok','✓ انحفظت البصمة',`<div class="rcbox"><div class="okmark" style="background:var(--ok-soft);color:var(--ok)">✓</div><b style="font-size:20px">انحفظت البصمة</b><span>${nf.format(n)} يوم دوام لـ ${nf.format(P.per.filter(x=>x.w).length)} عامل — ثابتة بتواريخها</span></div>
-        <div class="list" style="margin-top:8px">${days.map(d=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)"><span>✓ ${dayName(d)}</span><b class="num">${byDay[d]} عامل</b></div>`).join('')}</div>${lc?`<p class="note">وانحفظ رقم البصمة لـ ${lc} عامل — المرة الجاية يتطابقون بالرقم مباشرة.</p>`:''}<div class="acts" style="justify-content:center"><button class="btn pri" data-a="close">تمام</button></div>`)}catch(x){const E=$('#fpE');if(E)E.textContent=(x.message||x)+(n?` (انسجل ${n} قبل الخطأ)`:'');el.disabled=false;el.textContent='أعد المحاولة'}}});
+        <div class="list" style="margin-top:8px">${days.map(d=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)"><span>✓ ${dayName(d)}</span><b class="num">${byDay[d]} عامل</b></div>`).join('')}</div>${lc?`<p class="note">وانحفظ رقم البصمة لـ ${lc} عامل — المرة الجاية يتطابقون بالرقم مباشرة.</p>`:''}<div class="acts" style="justify-content:center"><button class="btn pri" data-a="close">تمام</button></div>`)}catch(x){const E=$('#fpE');const msg='تعذر حفظ البصمة: '+(x.message||x)+(n?` (انسجل ${n} قبل الخطأ)`:'');if(E)E.textContent=msg;toast(msg);el.disabled=false;el.textContent='أعد المحاولة'}}});
 document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='hpM'){S.att.payM=t.value||bgDay().slice(0,7);render()}else if(t.id==='hpS'){S.att.paySite=t.value;render()}
   else if(t.classList?.contains('fpm')&&S.fp){const k=t.value,i=+t.dataset.i;if(k)S.fp.map=S.fp.map.map((x,j)=>x===k&&j!==i?'':x);S.fp.map[i]=k;render()}
