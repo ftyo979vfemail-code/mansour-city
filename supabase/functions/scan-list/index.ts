@@ -59,6 +59,16 @@ const FUEL_PROMPT = `أمامك كشف حساب من محطة وقود (كاز/�
 تأكد أن liters × price = amount عندما تكون كلها موجودة.
 أجب بـ JSON فقط: {"station":"اسم المحطة","from":"YYYY-MM-DD","to":"YYYY-MM-DD","lines":[{"date":"","liters":0,"price":null,"amount":null,"ref":"","vehicle":"","fuel":"","note":""}],"payments":[{"date":"","amount":0,"note":""}],"total_liters":null,"total_amount":null,"balance":null}`;
 
+const FUEL_AUDIT = (ex: string) => `أنت مدقق حسابات. أمامك نفس كشف محطة الوقود، وهذا ما استُخرج منه آلياً (JSON، الأسطر مرقمة من 0):
+${ex}
+قارن الاستخراج بالكشف سطراً سطراً بدقة 100%:
+- أي سطر موجود بالكشف وغير موجود بالاستخراج ضعه في missing بنفس شكل الأسطر.
+- أي سطر بالاستخراج غير موجود بالكشف (مكرر أو مخترع أو سطر مجموع/رصيد) ضع رقمه في extra.
+- أي رقم أو تاريخ مقروء خطأ (لترات، سعر، مبلغ، تاريخ، رقم وصل) ضعه في fix: {"i":رقم السطر,"field":"liters|price|amount|date|ref|vehicle","value":القيمة الصحيحة كما بالكشف}.
+- صحح from/to/total_liters/total_amount/balance إذا خطأ في header.
+- اكتب في notes أي ملاحظة مهمة للمحاسب (أسطر غير واضحة، شطب، تعديل باليد، اختلاف المجموع المكتوب عن مجموع الأسطر).
+لا تغيّر شيئاً صحيحاً. أجب بـ JSON فقط: {"fix":[],"missing":[],"extra":[],"header":{},"notes":[],"confidence":رقم من 0 إلى 1}`;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -92,8 +102,42 @@ Deno.serve(async (req) => {
       const fj = JSON.parse(mm[0]);
       const num = (v: unknown) => { if (v === null || v === undefined || v === "") return null; const n = Number(String(v).replace(/[^\d.\-]/g, "")); return isFinite(n) ? n : null; };
       const str = (v: unknown, n: number) => String(v ?? "").slice(0, n);
-      return json({ station: str(fj.station, 120), from: str(fj.from, 20), to: str(fj.to, 20),
-        lines: (Array.isArray(fj.lines) ? fj.lines : []).slice(0, 3000).map((x: Record<string, unknown>) => ({ date: str(x.date, 20), liters: num(x.liters), price: num(x.price), amount: num(x.amount), ref: str(x.ref, 40), vehicle: str(x.vehicle, 80), fuel: str(x.fuel, 20), note: str(x.note, 160) })).filter((x: { liters: number | null; amount: number | null }) => x.liters || x.amount),
+      // second pass: independent audit against the document
+      const audit = { fixed: 0, added: 0, removed: 0, notes: [] as string[], confidence: null as number | null, ok: false };
+      try {
+        const lines0 = Array.isArray(fj.lines) ? fj.lines : [];
+        const ex = JSON.stringify({ from: fj.from, to: fj.to, total_liters: fj.total_liters, total_amount: fj.total_amount, balance: fj.balance, lines: lines0.map((x: Record<string, unknown>, i: number) => ({ i, ...x })) });
+        const ra = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+          body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 16000, messages: [{ role: "user", content: [block, { type: "text", text: FUEL_AUDIT(ex.slice(0, 150_000)) }] }] }),
+        });
+        if (ra.ok) {
+          const ao = await ra.json();
+          const at: string = (ao.content || []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("");
+          const am = at.match(/\{[\s\S]*\}/);
+          if (am) {
+            const A = JSON.parse(am[0]);
+            for (const f of (Array.isArray(A.fix) ? A.fix : [])) {
+              const i = Number(f.i), k = String(f.field || "");
+              if (lines0[i] && ["liters", "price", "amount", "date", "ref", "vehicle"].includes(k)) { lines0[i][k] = f.value; lines0[i]._fixed = (lines0[i]._fixed || []).concat(k); audit.fixed++; }
+            }
+            const ext = new Set((Array.isArray(A.extra) ? A.extra : []).map((x: unknown) => Number(x)));
+            audit.removed = ext.size;
+            const kept = lines0.filter((_: unknown, i: number) => !ext.has(i));
+            const miss = (Array.isArray(A.missing) ? A.missing : []).map((x: Record<string, unknown>) => ({ ...x, _added: true }));
+            audit.added = miss.length;
+            fj.lines = kept.concat(miss);
+            const H = A.header || {};
+            for (const k of ["from", "to", "total_liters", "total_amount", "balance"]) if (H[k] !== undefined && H[k] !== null && H[k] !== "") fj[k] = H[k];
+            audit.notes = (Array.isArray(A.notes) ? A.notes : []).slice(0, 20).map((x: unknown) => String(x).slice(0, 300));
+            audit.confidence = num(A.confidence);
+            audit.ok = true;
+          }
+        }
+      } catch (_) { /* keep first pass */ }
+      return json({ audit, station: str(fj.station, 120), from: str(fj.from, 20), to: str(fj.to, 20),
+        lines: (Array.isArray(fj.lines) ? fj.lines : []).slice(0, 3000).map((x: Record<string, unknown>) => ({ date: str(x.date, 20), liters: num(x.liters), price: num(x.price), amount: num(x.amount), ref: str(x.ref, 40), vehicle: str(x.vehicle, 80), fuel: str(x.fuel, 20), note: str(x.note, 160), fixed: Array.isArray(x._fixed) ? x._fixed : undefined, added: x._added ? true : undefined })).filter((x: { liters: number | null; amount: number | null }) => x.liters || x.amount),
         payments: (Array.isArray(fj.payments) ? fj.payments : []).slice(0, 200).map((x: Record<string, unknown>) => ({ date: str(x.date, 20), amount: num(x.amount), note: str(x.note, 120) })),
         total_liters: num(fj.total_liters), total_amount: num(fj.total_amount), balance: num(fj.balance) });
     }
