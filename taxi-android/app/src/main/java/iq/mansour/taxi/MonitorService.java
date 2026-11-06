@@ -103,6 +103,7 @@ public class MonitorService extends Service {
             case "lost":    title = "⚠ انقطع الإرسال"; alarm = true; break;
             case "stopped": title = "أطفأ التتبع"; alarm = true; break;
             case "unlogged": title = "⚠ يتحرك بدون سفرة مسجّلة"; alarm = true; break;
+            case "request": title = "🔔 طلب زبون جديد"; alarm = true; who = e.optString("plate"); break;
             case "rejected": title = "⚠ رفض سفرة من المكتب"; alarm = true; break;
             case "started": title = "شغّل التتبع"; alarm = false; break;
             case "gps_on":  title = "رجع الإرسال"; alarm = false; break;

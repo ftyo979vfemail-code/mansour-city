@@ -267,15 +267,41 @@ public class MainActivity extends Activity {
             card.addView(text("ماكو سفرة", 19, FG, true));
             card.addView(text("إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.", 14, MUTED, false));
             card.addView(space(8));
-            final EditText to = input("إلى وين؟ (اختياري)", InputType.TYPE_CLASS_TEXT);
+            final org.json.JSONArray zones = st.optJSONArray("zones");
+            final java.util.List<String> labels = new java.util.ArrayList<>();
+            final java.util.List<Integer> ids = new java.util.ArrayList<>();
+            if (zones != null) for (int i = 0; i < zones.length(); i++) {
+                JSONObject z = zones.optJSONObject(i);
+                labels.add(z.optString("name") + " — " + String.format(java.util.Locale.US, "%,d", z.optInt("price")));
+                ids.add(z.optInt("id"));
+            }
+            labels.add("منطقة أخرى");
+            ids.add(0);
+            card.addView(text("إلى وين؟", 13, MUTED, true));
+            final android.widget.Spinner zone = new android.widget.Spinner(this);
+            zone.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, labels));
+            zone.setBackground(box(CARD, LINE, 10));
+            card.addView(zone, full());
+            final EditText to = input("اسم المكان", InputType.TYPE_CLASS_TEXT);
+            to.setVisibility(View.GONE);
             card.addView(to, full());
+            zone.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+                @Override public void onItemSelected(android.widget.AdapterView<?> a, View v, int pos, long id) { to.setVisibility(ids.get(pos) == 0 ? View.VISIBLE : View.GONE); }
+                @Override public void onNothingSelected(android.widget.AdapterView<?> a) {}
+            });
             card.addView(space(8));
             Button go = button("بدء سفرة", true);
-            go.setOnClickListener(v -> tripAction("start", obj("dropoff", to.getText().toString())));
+            go.setOnClickListener(v -> {
+                int zid = ids.get(Math.max(0, zone.getSelectedItemPosition()));
+                JSONObject p = obj("dropoff", to.getText().toString());
+                try { if (zid > 0) p.put("zone_id", zid); } catch (Exception ignored) {}
+                tripAction("start", p);
+            });
             card.addView(go, full());
         } else {
             String where = "من: " + or(t.optString("pickup")) + "\nإلى: " + or(t.optString("dropoff"))
-                    + (t.optString("customer_phone").isEmpty() ? "" : "\nالزبون: " + t.optString("customer_phone"))
+                    + (t.optString("customer_name").isEmpty() ? "" : "\nالزبون: " + t.optString("customer_name"))
+                    + (t.optInt("zone_id", 0) > 0 && t.optInt("fare", 0) > 0 ? "\nالأجرة: " + String.format(java.util.Locale.US, "%,d", t.optInt("fare")) + " د.ع (ثابتة)" : "")
                     + (t.optString("note").isEmpty() ? "" : "\nملاحظة: " + t.optString("note"));
             if (status.equals("assigned")) {
                 card.addView(text("📣 سفرة جديدة من المكتب", 19, FG, true));
@@ -308,13 +334,22 @@ public class MainActivity extends Activity {
                 card.addView(text("بسفرة من " + hm(t.optString("started_at")), 19, OK, true));
                 card.addView(text(where, 15, FG, false));
                 card.addView(space(10));
+                final boolean fixed = t.optInt("zone_id", 0) > 0 && t.optInt("fare", 0) > 0;
                 final EditText fare = input("الأجرة المستلمة (دينار)", InputType.TYPE_CLASS_NUMBER);
-                int base = st.optInt("fare_base", 0);
-                if (base > 0) fare.setText(String.valueOf(base));
-                fare.setTextSize(22);
-                fare.setGravity(Gravity.CENTER);
-                card.addView(text("الأجرة المستلمة (دينار)", 13, MUTED, true));
-                card.addView(fare, full());
+                if (fixed) {
+                    TextView fx = text("استلم من الزبون: " + String.format(java.util.Locale.US, "%,d", t.optInt("fare")) + " د.ع", 20, FG, true);
+                    fx.setGravity(Gravity.CENTER);
+                    fx.setBackground(box(0xFFFFF4DC, AMBER, 12));
+                    fx.setPadding(dp(12), dp(12), dp(12), dp(12));
+                    card.addView(fx, full());
+                } else {
+                    int base = st.optInt("fare_base", 0);
+                    if (base > 0) fare.setText(String.valueOf(base));
+                    fare.setTextSize(22);
+                    fare.setGravity(Gravity.CENTER);
+                    card.addView(text("الأجرة المستلمة (دينار)", 13, MUTED, true));
+                    card.addView(fare, full());
+                }
                 card.addView(space(8));
                 Button end = button("إنهاء السفرة", true);
                 end.setOnClickListener(v -> tripAction("end", obj("fare", fare.getText().toString())));
