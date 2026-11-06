@@ -200,6 +200,7 @@ select.btn{font-weight:500}
 .steps-sm b{color:var(--fg)} .steps-sm code{font-family:var(--mono);background:var(--bg);padding:1px 6px;border-radius:6px;color:var(--fg)}
 .chk{display:flex;gap:10px;align-items:center;font-weight:600}
 .chk input{width:20px;height:20px;accent-color:var(--ok)}
+.trip details{color:var(--muted);font-size:14px}.trip summary{cursor:pointer;font-weight:600;margin-bottom:6px}
 /* ---------- Landing ---------- */
 .lp{min-height:100%;display:flex;flex-direction:column}
 .lp-in{width:100%;max-width:1120px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
@@ -279,7 +280,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611060424";
+const BUILD="202611060429";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -895,20 +896,25 @@ async function driverStart(){
 }
 /* ---------- iPhone: background tracking through the Traccar Client app ---------- */
 const TRACCAR_URL="https://xdyxcvyhoidojtfpoepk.supabase.co/functions/v1/traccar";
+const APPSTORE_URL="https://apps.apple.com/app/traccar-client/id843156974";
+function traccarLink(){return "org.traccar.client://config?url="+encodeURIComponent(TRACCAR_URL)+"&id="+encodeURIComponent(CODE)+"&interval=30&accuracy=highest&distance=0"}
 function renderExtCard(){
   const box=document.createElement("div");box.className="trip";box.id="extCard";
-  box.innerHTML=`<h3>📱 آيفون؟ خلي التتبع يشتغل بالخلفية</h3>
-   <p>الآيفون يوقف موقع المتصفح أول ما تطلع من الصفحة. الحل: تطبيق <b>Traccar Client</b> المجاني من الـ App Store، يرسل موقعك حتى والشاشة مقفولة.</p>
-   <ol class="steps-sm">
-     <li>نزّل <b>Traccar Client</b> من الـ App Store.</li>
-     <li>بالإعدادات: <b>Device identifier</b> اكتب رمزك: <code dir="ltr">${esc(CODE)}</code></li>
-     <li><b>Server URL</b> الصق هذا: <code dir="ltr" style="word-break:break-all">${TRACCAR_URL}</code> <button class="btn sm" id="cpu" type="button">نسخ</button></li>
-     <li><b>Location accuracy</b>: High. <b>Heartbeat</b>: 60. فعّل <b>Prevent suspend</b>.</li>
-     <li>اسمح للموقع <b>«Always / دائمًا»</b>، وشغّل التتبع من التطبيق.</li>
-   </ol>
+  box.innerHTML=`<h3>📱 تشغيل التتبع على الآيفون</h3>
+   <p>الآيفون يوقف موقع المتصفح أول ما تطلع من الصفحة، فالتتبع بالخلفية يشتغل عن طريق تطبيق <b>Traccar Client</b> المجاني.</p>
+   <a class="btn big" href="${APPSTORE_URL}" target="_blank" rel="noopener" style="text-align:center">١- تنزيل التطبيق من الـ App Store</a>
+   <a class="btn primary big" href="${traccarLink()}" id="extGo" style="text-align:center">٢- تشغيل التتبع بضغطة وحدة</a>
+   <p style="font-size:13px">الزر الثاني يفتح التطبيق ويضبط رمزك والسيرفر وحده. اختار <b>«فتح»</b>، وبعدها اسمح للموقع <b>«دائمًا / Always»</b>، وشغّل الزر الأخضر بالتطبيق.</p>
+   <details><summary>ما اشتغل الزر؟ الضبط اليدوي</summary>
+     <ol class="steps-sm">
+       <li><b>Device identifier</b>: <code dir="ltr">${esc(CODE)}</code></li>
+       <li><b>Server URL</b>: <code dir="ltr" style="word-break:break-all">${TRACCAR_URL}</code> <button class="btn sm" id="cpu" type="button">نسخ</button></li>
+       <li><b>Location accuracy</b>: High · <b>Heartbeat</b>: 60 · فعّل <b>Prevent suspend</b></li>
+     </ol></details>
    <label class="chk"><input type="checkbox" id="extOn" ${EXT?"checked":""}> أستخدم Traccar للتتبع، وهاي الصفحة للسفرات بس</label>`;
   $(".drv").insertBefore(box,$("#ring"));
   $("#cpu").onclick=()=>copy(TRACCAR_URL);
+  $("#extGo").addEventListener("click",()=>{ if(!EXT){ $("#extOn").checked=true; setExt(true); } });
   $("#extOn").onchange=e=>setExt(e.target.checked);
 }
 let extT;
