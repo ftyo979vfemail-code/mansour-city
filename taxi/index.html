@@ -280,7 +280,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611060429";
+const BUILD="202611060436";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -876,12 +876,15 @@ async function driverStart(){
     <div id="tripBox"></div>
     <p class="note" id="tips">الزر الأحمر يشغّل التتبع، ولما يشتغل يصير أخضر، واضغطه مرة ثانية حتى تطفيه. أثناء الدوام أبقِ الصفحة مفتوحة، وإطفاء الـ GPS أو إغلاق الصفحة يُسجَّل عند الإدارة فورًا.</p>
   </div>
-  <div class="block" id="block" hidden><h2 id="bt">الـ GPS مطفأ</h2><p id="bp">شغّل الموقع (GPS) من إعدادات الهاتف حالًا. الإدارة تم إبلاغها.</p><button class="btn" id="retry">شغّلته، أعد المحاولة</button></div>`;
+  <div class="block" id="block" hidden><h2 id="bt">الـ GPS مطفأ</h2><p id="bp">شغّل الموقع (GPS) من إعدادات الهاتف حالًا. الإدارة تم إبلاغها.</p><button class="btn" id="retry">شغّلته، أعد المحاولة</button><button class="btn" id="toExt" hidden>عندي آيفون: استخدم تطبيق Traccar</button></div>`;
   $("#retry").onclick=()=>{unlockAudio();startWatch()};
+  $("#toExt").hidden=!/iPhone|iPad|iPod/.test(navigator.userAgent)&&!(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  $("#toExt").onclick=()=>{siren(false);$("#block").hidden=true;gpsBad=false;if(!$("#extCard"))renderExtCard();$("#extOn").checked=true;setExt(true);window.scrollTo(0,0)};
   unlockAudio();
   try{if(navigator.getBattery){const b=await navigator.getBattery();battery=Math.round(b.level*100);b.addEventListener("levelchange",()=>battery=Math.round(b.level*100))}}catch{}
   $("#ring").onclick=()=>{unlockAudio();ON?confirmStop():goOn()};
   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  if(ios&&store.get("taxi_ext")===null){EXT=true;store.set("taxi_ext","1")}
   if(ios||EXT) renderExtCard();
   if(EXT){ON=false;store.set("taxi_on","0");setExt(true)}
   else if(ON) goOn();
@@ -924,6 +927,7 @@ function setExt(on){
   clearInterval(extT); clearInterval(tripPoll);
   if(on){
     if(ON) goOff();
+    siren(false); gpsBad=false; $("#block").hidden=true;
     let st=$("#extStatus"); if(!st){st=document.createElement("div");st.id="extStatus";st.className="stat";$(".drv").insertBefore(st,$("#tripBox"))}
     const upd=async()=>{try{const s=await rpc("taxi_driver_state",{p_code:CODE});const fresh=s.last_seen&&(Date.now()-new Date(s.last_seen))<180000&&["ok","background"].includes(s.gps_state);
       st.innerHTML=`<small>التتبع عن طريق Traccar</small><b style="color:${fresh?"var(--ok)":"var(--bad)"}">${fresh?"✔ موقعك يوصل للإدارة":"⚠ ما دا يوصل موقع"}</b><small>آخر إشارة: ${ago(s.last_seen)}</small>`;
