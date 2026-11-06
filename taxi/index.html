@@ -298,7 +298,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611060702";
+const BUILD="202611060706";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -418,6 +418,24 @@ function landingApp(){
 
 
 /* ---------------- CUSTOMER ACCOUNTS ---------------- */
+const TOWERS=Array.from({length:22},(_,i)=>"T"+(i+1));
+function addrFields(saved,legend){
+  saved=saved||{}; const isOther=saved.b&&!TOWERS.includes(saved.b);
+  return `<fieldset class="addr"><legend>${legend}</legend>
+      <div class="addr-row">
+        <div class="field"><label for="o-bld">العمارة</label><select id="o-bld" class="btn" required><option value="">اختار</option>${TOWERS.map(t=>`<option ${saved.b===t?"selected":""}>${t}</option>`).join("")}<option value="other" ${isOther?"selected":""}>غيرها</option></select></div>
+        <div class="field"><label for="o-flr">الطابق</label><select id="o-flr" class="btn" required><option value="">اختار</option><option value="أرضي" ${saved.f==="أرضي"?"selected":""}>أرضي</option>${Array.from({length:25},(_,i)=>`<option ${saved.f===String(i+1)?"selected":""}>${i+1}</option>`).join("")}</select></div>
+        <div class="field"><label for="o-apt">الشقة</label><input id="o-apt" inputmode="numeric" required value="${esc(saved.a||"")}" placeholder="رقم"></div>
+      </div>
+      <div class="field" id="o-bld-o-f" ${isOther?"":"hidden"}><label for="o-bld-o">اسم العمارة أو المكان</label><input id="o-bld-o" value="${isOther?esc(saved.b):""}" placeholder="مثال: البيوت، البوابة الرئيسية"></div>
+    </fieldset>`;
+}
+function wireAddr(){ $("#o-bld").onchange=e=>{$("#o-bld-o-f").hidden=e.target.value!=="other"} }
+function readAddr(){
+  const b=$("#o-bld").value==="other"?$("#o-bld-o").value.trim():$("#o-bld").value, f=$("#o-flr").value, a=$("#o-apt").value.trim();
+  if(!b) throw new Error("اختار العمارة"); if(!f) throw new Error("اختار الطابق"); if(!a) throw new Error("اكتب رقم الشقة");
+  return {b,f,a};
+}
 const CS={get tok(){return store.get("taxi_cs")},get name(){return store.get("taxi_cs_name")||""},get phone(){return store.get("taxi_cs_phone")||""},
   set(r){store.set("taxi_cs",r.token);store.set("taxi_cs_name",r.name);store.set("taxi_cs_phone",r.phone)},
   clear(){store.del("taxi_cs");store.del("taxi_cs_name");store.del("taxi_cs_phone");store.del("taxi_order")}};
@@ -438,14 +456,18 @@ function signupApp(){
   $("#ord").innerHTML=`<form id="sg" class="ocard">
     <div class="field"><label for="s-name">اسمك</label><input id="s-name" autocomplete="name" required placeholder="مثال: أحمد علي"></div>
     <div class="field"><label for="s-phone">رقم الموبايل</label><input id="s-phone" inputmode="tel" dir="ltr" autocomplete="tel" required placeholder="07xx xxx xxxx"></div>
+    ${addrFields({},"سكنك بالمجمّع")}
     <div class="field"><label for="s-pass">كلمة السر</label><input id="s-pass" type="password" autocomplete="new-password" required minlength="6" placeholder="6 أحرف أو أكثر"></div>
     <div class="field"><label for="s-pass2">أعد كلمة السر</label><input id="s-pass2" type="password" autocomplete="new-password" required></div>
     <div class="err" id="se"></div>
     <button class="btn primary big">إنشاء الحساب</button>
     <p class="switch" style="margin:0">عندك حساب؟ <a href="#login">سجّل دخول</a></p></form>`;
+  wireAddr();
   $("#sg").onsubmit=async e=>{e.preventDefault();
-    if($("#s-pass").value!==$("#s-pass2").value){$("#se").textContent="كلمتين السر مو نفس الشي";return}
-    try{const r=await rpc("taxi_customer_signup",{p:{name:$("#s-name").value,phone:$("#s-phone").value,password:$("#s-pass").value}});CS.set(r);location.hash="#order"}
+    try{const ad=readAddr();
+      if($("#s-pass").value!==$("#s-pass2").value) throw new Error("كلمتين السر مو نفس الشي");
+      const r=await rpc("taxi_customer_signup",{p:{name:$("#s-name").value,phone:$("#s-phone").value,password:$("#s-pass").value,building:ad.b,floor:ad.f,apartment:ad.a}});
+      CS.set(r);store.set("taxi_c_addr",JSON.stringify(ad));location.hash="#order"}
     catch(err){$("#se").textContent=err.message}};
 }
 function loginApp(){
@@ -467,7 +489,7 @@ async function accountApp(){
   let me; try{me=await rpc("taxi_customer_me",{p_token:CS.tok})}catch(e){if(!custError(e)) box.innerHTML=`<div class="ocard err">${esc(e.message)}</div>`;return}
   const dt=ts=>new Date(ts).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"});
   box.innerHTML=`<div class="ocard">
-    <div class="drvcard" style="border-color:var(--line)"><div><small>الاسم</small><b>${esc(me.name)}</b></div><div><small>الموبايل</small><b dir="ltr">${esc(me.phone)}</b></div></div>
+    <div class="drvcard" style="border-color:var(--line)"><div><small>الاسم</small><b>${esc(me.name)}</b></div><div><small>الموبايل</small><b dir="ltr">${esc(me.phone)}</b></div>${me.building?`<div><small>السكن</small><b>عمارة ${esc(me.building)} · طابق ${esc(me.floor)} · شقة ${esc(me.apartment)}</b></div>`:""}</div>
     ${me.open?`<a class="btn primary big" href="#order" style="text-align:center">عندك طلب مفتوح: تابعه</a>`:`<a class="btn primary big" href="#order" style="text-align:center">🚕 اطلب تكسي</a>`}
     <h3 class="h4">طلباتي</h3>
     ${me.trips.length?`<ul class="log">${me.trips.map(t=>{const o=OS[t.status]||["",t.status];return `<li><span>${o[0]}</span><span>${esc(t.zone||"—")}<br><small style="color:var(--muted)">${dt(t.created_at)}</small></span><span class="pill ${t.status==="done"?"s-ok":t.status==="cancelled"?"s-idle":"s-warn"}">${o[1]}</span></li>`}).join("")}</ul>`:`<p class="note" style="margin:0">ما عندك طلبات بعد.</p>`}
@@ -485,19 +507,11 @@ async function orderApp(){
 }
 async function orderForm(){
   const box=$("#ord");
-  let saved={b:"",f:"",a:""}; try{saved=Object.assign(saved,JSON.parse(store.get("taxi_c_addr")||"{}"))}catch{}
-  const towers=Array.from({length:22},(_,i)=>"T"+(i+1));
-  const isOther=saved.b&&!towers.includes(saved.b);
+  let saved=null; try{saved=JSON.parse(store.get("taxi_c_addr")||"null")}catch{}
+  if(!saved||!saved.b){try{const me=await rpc("taxi_customer_me",{p_token:CS.tok});if(me.building)saved={b:me.building,f:me.floor,a:me.apartment}}catch(e){if(custError(e))return}}
   box.innerHTML=`<form id="of" class="ocard" novalidate>
     <p class="note" style="margin:0">الطلب باسم <b>${esc(CS.name)}</b> · <span dir="ltr">${esc(CS.phone)}</span> &nbsp; <a href="#account">حسابي</a></p>
-    <fieldset class="addr"><legend>وين تنتظر؟</legend>
-      <div class="addr-row">
-        <div class="field"><label for="o-bld">العمارة</label><select id="o-bld" class="btn" required><option value="">اختار</option>${towers.map(t=>`<option ${saved.b===t?"selected":""}>${t}</option>`).join("")}<option value="other" ${isOther?"selected":""}>غيرها</option></select></div>
-        <div class="field"><label for="o-flr">الطابق</label><select id="o-flr" class="btn" required><option value="">اختار</option><option value="أرضي" ${saved.f==="أرضي"?"selected":""}>أرضي</option>${Array.from({length:25},(_,i)=>`<option ${saved.f===String(i+1)?"selected":""}>${i+1}</option>`).join("")}</select></div>
-        <div class="field"><label for="o-apt">الشقة</label><input id="o-apt" inputmode="numeric" required value="${esc(saved.a)}" placeholder="رقم"></div>
-      </div>
-      <div class="field" id="o-bld-o-f" ${isOther?"":"hidden"}><label for="o-bld-o">اسم العمارة أو المكان</label><input id="o-bld-o" value="${isOther?esc(saved.b):""}" placeholder="مثال: البيوت، البوابة الرئيسية"></div>
-    </fieldset>
+    ${addrFields(saved||{},"وين تنتظر؟")}
     <div class="field"><label for="o-q">وين رايح؟</label><input id="o-q" type="search" placeholder="ابحث عن المنطقة…" autocomplete="off"></div>
     <div class="zones" id="zones" role="radiogroup" aria-label="المنطقة"><div class="empty">جارٍ التحميل…</div></div>
     <div class="field"><label for="o-note">ملاحظة (اختياري)</label><input id="o-note" placeholder="مثال: عندي جنطة كبيرة"></div>
@@ -510,17 +524,16 @@ async function orderForm(){
     $("#zones").innerHTML=list.length?list.map(z=>`<button type="button" role="radio" aria-checked="${orderZone===z.id}" class="zchip${orderZone===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}</button>`).join(""):`<div class="empty">ماكو منطقة بهذا الاسم.</div>`;
     $("#zones").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{orderZone=+b.dataset.z;draw()});};
   draw(); $("#o-q").oninput=draw;
-  $("#o-bld").onchange=e=>{$("#o-bld-o-f").hidden=e.target.value!=="other"};
+  wireAddr();
   $("#of").onsubmit=async e=>{e.preventDefault();const btn=$("#osub");
-    const b=$("#o-bld").value==="other"?$("#o-bld-o").value.trim():$("#o-bld").value, f=$("#o-flr").value, a=$("#o-apt").value.trim();
-    if(!b){$("#oe").textContent="اختار العمارة";return}
-    if(!f){$("#oe").textContent="اختار الطابق";return}
-    if(!a){$("#oe").textContent="اكتب رقم الشقة";return}
+    let ad; try{ad=readAddr()}catch(err){$("#oe").textContent=err.message;return}
+    const {b,f,a}=ad;
     const p={pickup:`عمارة ${b} · طابق ${f} · شقة ${a}`,zone_id:orderZone,note:$("#o-note").value};
     if(!orderZone){$("#oe").textContent="اختار المنطقة اللي رايح إلها";return}
     btn.disabled=true;$("#oe").textContent="";
     try{const r=await rpc("taxi_customer_order",{p_token:CS.tok,p});
       store.set("taxi_c_addr",JSON.stringify({b,f,a}));store.set("taxi_order",r.token);
+      rpc("taxi_customer_address",{p_token:CS.tok,p:{building:b,floor:f,apartment:a}}).catch(()=>{});
       orderStatus(r.token)}catch(err){if(custError(err))return;$("#oe").textContent=err.message;btn.disabled=false}};
 }
 const OS={requested:["⏳","طلبك وصل للمكتب","دنختارلك أقرب سائق، لحظات."],assigned:["📲","انرسل للسائق","بانتظار موافقته."],
@@ -699,8 +712,8 @@ async function renderCustomers(){
   $("#ccount").textContent=cs.length+" زبون";
   if(!cs.length){$("#clist").innerHTML=`<div class="empty card">ماكو زبائن مسجّلين بعد. الزبون يسوّي حساب من الصفحة الرئيسية.</div>`;return}
   const dt=ts=>ts?new Date(ts).toLocaleDateString("ar-IQ"):"—";
-  $("#clist").innerHTML=`<div class="tbl-wrap"><table style="min-width:640px"><thead><tr><th>الاسم</th><th>الموبايل</th><th>سفرات</th><th>ألغى</th><th>سجّل</th><th>آخر دخول</th><th></th></tr></thead><tbody>
-  ${cs.map(c=>`<tr><td><b>${esc(c.name)}</b>${c.blocked?` <span class="pill s-bad">موقوف</span>`:""}</td><td dir="ltr" style="text-align:right">${esc(c.phone)}</td><td class="num">${c.trips}</td><td class="num">${c.cancels?`<b style="color:var(--warn)">${c.cancels}</b>`:0}</td><td>${dt(c.created_at)}</td><td>${dt(c.last_login)}</td>
+  $("#clist").innerHTML=`<div class="tbl-wrap"><table style="min-width:640px"><thead><tr><th>الاسم</th><th>الموبايل</th><th>السكن</th><th>سفرات</th><th>ألغى</th><th>سجّل</th><th>آخر دخول</th><th></th></tr></thead><tbody>
+  ${cs.map(c=>`<tr><td><b>${esc(c.name)}</b>${c.blocked?` <span class="pill s-bad">موقوف</span>`:""}</td><td dir="ltr" style="text-align:right">${esc(c.phone)}</td><td>${c.building?`${esc(c.building)} · ط${esc(c.floor)} · ش${esc(c.apartment)}`:"—"}</td><td class="num">${c.trips}</td><td class="num">${c.cancels?`<b style="color:var(--warn)">${c.cancels}</b>`:0}</td><td>${dt(c.created_at)}</td><td>${dt(c.last_login)}</td>
    <td><button class="btn sm ${c.blocked?"":"danger"}" data-cb="${c.id}" data-on="${c.blocked?0:1}">${c.blocked?"إلغاء الإيقاف":"إيقاف"}</button></td></tr>`).join("")}</tbody></table></div>`;
   $("#clist").querySelectorAll("[data-cb]").forEach(b=>b.onclick=async()=>{try{await rpc("taxi_admin_customer_block",{p_pin:PIN,p_id:+b.dataset.cb,p_block:b.dataset.on==="1"});toast(b.dataset.on==="1"?"انوقف الحساب":"رجع الحساب");renderCustomers()}catch(e){toast(e.message)}});
 }
