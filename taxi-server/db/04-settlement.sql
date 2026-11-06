@@ -141,5 +141,6 @@ begin
     'today_trips', (select count(*) from taxi_trips where car_id=c.id and status='done' and ended_at >= date_trunc('day', now() at time zone 'Asia/Baghdad') at time zone 'Asia/Baghdad'),
     'today_fares', (select coalesce(sum(fare),0) from taxi_trips where car_id=c.id and status='done' and ended_at >= date_trunc('day', now() at time zone 'Asia/Baghdad') at time zone 'Asia/Baghdad'),
     'week_trips', wn, 'week_fares', wf, 'week_share', taxi_share(wn, wf),
-    'fare_base', taxi_setting_int('fare_base'));
+    'fare_base', taxi_setting_int('fare_base'),
+    'gps_state', c.gps_state, 'last_seen', c.last_seen);
 end $$;

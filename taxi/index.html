@@ -196,6 +196,10 @@ select.btn{font-weight:500}
   .rc-modal .sheet{width:100%!important;max-height:none;box-shadow:none;color:#000;background:#fff}
   .no-print{display:none!important}
 }
+.steps-sm{margin:0;padding-inline-start:20px;display:flex;flex-direction:column;gap:6px;color:var(--muted);line-height:1.7}
+.steps-sm b{color:var(--fg)} .steps-sm code{font-family:var(--mono);background:var(--bg);padding:1px 6px;border-radius:6px;color:var(--fg)}
+.chk{display:flex;gap:10px;align-items:center;font-weight:600}
+.chk input{width:20px;height:20px;accent-color:var(--ok)}
 /* ---------- Landing ---------- */
 .lp{min-height:100%;display:flex;flex-direction:column}
 .lp-in{width:100%;max-width:1120px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
@@ -275,7 +279,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611060339";
+const BUILD="202611060424";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -841,7 +845,7 @@ function renderSettings(){
 }
 
 /* ---------------- DRIVER ---------------- */
-let ON=store.get("taxi_on")==="1", CODE=store.get("taxi_driver_code"), watchId=null, lastFix=null, lastSent=0, sentCount=0, wake=null, hb=null, gpsBad=false, sirenT=null, actx=null, battery=null;
+let EXT=store.get("taxi_ext")==="1", ON=store.get("taxi_on")==="1", CODE=store.get("taxi_driver_code"), watchId=null, lastFix=null, lastSent=0, sentCount=0, wake=null, hb=null, gpsBad=false, sirenT=null, actx=null, battery=null;
 
 function driverApp(){ CODE?driverStart():driverGate(); }
 function driverGate(msg){
@@ -876,7 +880,10 @@ async function driverStart(){
   unlockAudio();
   try{if(navigator.getBattery){const b=await navigator.getBattery();battery=Math.round(b.level*100);b.addEventListener("levelchange",()=>battery=Math.round(b.level*100))}}catch{}
   $("#ring").onclick=()=>{unlockAudio();ON?confirmStop():goOn()};
-  if(ON) goOn();
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  if(ios||EXT) renderExtCard();
+  if(EXT){ON=false;store.set("taxi_on","0");setExt(true)}
+  else if(ON) goOn();
   setInterval(()=>{$("#st-sent")&&($("#st-sent").textContent=lastSent?ago(lastSent):"—")},1000);
   document.addEventListener("visibilitychange",()=>{
     if(!ON) return;
@@ -886,6 +893,39 @@ async function driverStart(){
   window.addEventListener("pagehide",()=>{if(ON)beacon("closed")});
   if(navigator.permissions&&navigator.permissions.query){try{const p=await navigator.permissions.query({name:"geolocation"});p.onchange=()=>{if(!ON)return;if(p.state==="denied")gpsError({code:1});else startWatch()}}catch{}}
 }
+/* ---------- iPhone: background tracking through the Traccar Client app ---------- */
+const TRACCAR_URL="https://xdyxcvyhoidojtfpoepk.supabase.co/functions/v1/traccar";
+function renderExtCard(){
+  const box=document.createElement("div");box.className="trip";box.id="extCard";
+  box.innerHTML=`<h3>📱 آيفون؟ خلي التتبع يشتغل بالخلفية</h3>
+   <p>الآيفون يوقف موقع المتصفح أول ما تطلع من الصفحة. الحل: تطبيق <b>Traccar Client</b> المجاني من الـ App Store، يرسل موقعك حتى والشاشة مقفولة.</p>
+   <ol class="steps-sm">
+     <li>نزّل <b>Traccar Client</b> من الـ App Store.</li>
+     <li>بالإعدادات: <b>Device identifier</b> اكتب رمزك: <code dir="ltr">${esc(CODE)}</code></li>
+     <li><b>Server URL</b> الصق هذا: <code dir="ltr" style="word-break:break-all">${TRACCAR_URL}</code> <button class="btn sm" id="cpu" type="button">نسخ</button></li>
+     <li><b>Location accuracy</b>: High. <b>Heartbeat</b>: 60. فعّل <b>Prevent suspend</b>.</li>
+     <li>اسمح للموقع <b>«Always / دائمًا»</b>، وشغّل التتبع من التطبيق.</li>
+   </ol>
+   <label class="chk"><input type="checkbox" id="extOn" ${EXT?"checked":""}> أستخدم Traccar للتتبع، وهاي الصفحة للسفرات بس</label>`;
+  $(".drv").insertBefore(box,$("#ring"));
+  $("#cpu").onclick=()=>copy(TRACCAR_URL);
+  $("#extOn").onchange=e=>setExt(e.target.checked);
+}
+let extT;
+function setExt(on){
+  EXT=on;store.set("taxi_ext",on?"1":"0");
+  $("#ring").hidden=on; $("#tips").hidden=on; document.querySelectorAll(".drv > .stats").forEach(x=>x.hidden=on);
+  clearInterval(extT); clearInterval(tripPoll);
+  if(on){
+    if(ON) goOff();
+    let st=$("#extStatus"); if(!st){st=document.createElement("div");st.id="extStatus";st.className="stat";$(".drv").insertBefore(st,$("#tripBox"))}
+    const upd=async()=>{try{const s=await rpc("taxi_driver_state",{p_code:CODE});const fresh=s.last_seen&&(Date.now()-new Date(s.last_seen))<180000&&["ok","background"].includes(s.gps_state);
+      st.innerHTML=`<small>التتبع عن طريق Traccar</small><b style="color:${fresh?"var(--ok)":"var(--bad)"}">${fresh?"✔ موقعك يوصل للإدارة":"⚠ ما دا يوصل موقع"}</b><small>آخر إشارة: ${ago(s.last_seen)}</small>`;
+      today={trips:s.today_trips,fares:s.today_fares,base:s.fare_base,share:s.week_share||0};showTrip(s.trip,true)}catch{}};
+    upd(); extT=setInterval(upd,8000);
+  }else{const st=$("#extStatus"); if(st) st.remove(); showTrip(null,true)}
+}
+
 /* ---------- Driver trips ---------- */
 let curTrip, tripPoll, lastOffer=null, today={trips:0,fares:0,base:null};
 async function refreshTrip(){
@@ -897,7 +937,7 @@ function showTrip(t,force){
   const key=JSON.stringify(t&&[t.id,t.status]);
   if(!force&&key===JSON.stringify(curTrip&&[curTrip.id,curTrip.status])) return;
   curTrip=t;
-  if(!ON){box.innerHTML="";return}
+  if(!ON&&!EXT){box.innerHTML="";return}
   const sum=`<div class="stats" style="margin-top:10px"><div class="stat"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)}</b></div><div class="stat"><small>حصتك هذا الأسبوع</small><b style="color:var(--ok)">${fmt(today.share)} د.ع</b></div></div><p class="note" style="margin:8px 0 0">حصتك تنحسب من السفرات المسجّلة بس.</p>`;
   if(!t){box.innerHTML=`<div class="trip"><h3>ماكو سفرة</h3><p>إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.</p>
       <div class="field"><label for="tr-to">إلى وين؟ (اختياري)</label><input id="tr-to"></div>
@@ -917,7 +957,7 @@ function showTrip(t,force){
   $("#tr-end").onclick=()=>tripAct("end",{fare:$("#tr-fare").value});
 }
 async function tripAct(a,p){
-  try{await rpc("taxi_driver_trip",{p_code:CODE,p_action:a,p:p||{}});toast(a==="end"?"انسجلت السفرة":a==="reject"?"انرفضت":"تم");await refreshTrip()}catch(e){toast(e.message)}
+  try{await rpc("taxi_driver_trip",{p_code:CODE,p_action:a,p:p||{}});toast(a==="end"?"انسجلت السفرة":a==="reject"?"انرفضت":"تم");if(EXT)setExt(true);else await refreshTrip()}catch(e){toast(e.message)}
 }
 function goOn(){
   ON=true;store.set("taxi_on","1");
