@@ -215,6 +215,10 @@ select.btn{font-weight:500}
 .reqbar{background:color-mix(in srgb,var(--amber) 22%,var(--panel));color:var(--fg);border-color:var(--amber)}
 .reqbar .btn{margin-inline-start:auto}
 tr.row-new td{background:color-mix(in srgb,var(--amber) 12%,transparent)}
+.addr{border:1px solid var(--line);border-radius:14px;padding:12px 14px 14px;margin:0;display:flex;flex-direction:column;gap:10px}
+.addr legend{font:600 14px var(--display);padding:0 6px;color:var(--fg)}
+.addr-row{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px}
+.addr-row select,.addr-row input{width:100%;min-width:0}
 /* ---------- Landing ---------- */
 .lp{min-height:100%;display:flex;flex-direction:column}
 .lp-in{width:100%;max-width:1120px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
@@ -294,7 +298,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611060658";
+const BUILD="202611060702";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -481,10 +485,19 @@ async function orderApp(){
 }
 async function orderForm(){
   const box=$("#ord");
-  const saved={pickup:store.get("taxi_c_pickup")||""};
+  let saved={b:"",f:"",a:""}; try{saved=Object.assign(saved,JSON.parse(store.get("taxi_c_addr")||"{}"))}catch{}
+  const towers=Array.from({length:22},(_,i)=>"T"+(i+1));
+  const isOther=saved.b&&!towers.includes(saved.b);
   box.innerHTML=`<form id="of" class="ocard" novalidate>
     <p class="note" style="margin:0">الطلب باسم <b>${esc(CS.name)}</b> · <span dir="ltr">${esc(CS.phone)}</span> &nbsp; <a href="#account">حسابي</a></p>
-    <div class="field"><label for="o-pick">وين تنتظر؟</label><input id="o-pick" value="${esc(saved.pickup)}" placeholder="مثال: عمارة T5، البوابة 2"></div>
+    <fieldset class="addr"><legend>وين تنتظر؟</legend>
+      <div class="addr-row">
+        <div class="field"><label for="o-bld">العمارة</label><select id="o-bld" class="btn" required><option value="">اختار</option>${towers.map(t=>`<option ${saved.b===t?"selected":""}>${t}</option>`).join("")}<option value="other" ${isOther?"selected":""}>غيرها</option></select></div>
+        <div class="field"><label for="o-flr">الطابق</label><select id="o-flr" class="btn" required><option value="">اختار</option><option value="أرضي" ${saved.f==="أرضي"?"selected":""}>أرضي</option>${Array.from({length:25},(_,i)=>`<option ${saved.f===String(i+1)?"selected":""}>${i+1}</option>`).join("")}</select></div>
+        <div class="field"><label for="o-apt">الشقة</label><input id="o-apt" inputmode="numeric" required value="${esc(saved.a)}" placeholder="رقم"></div>
+      </div>
+      <div class="field" id="o-bld-o-f" ${isOther?"":"hidden"}><label for="o-bld-o">اسم العمارة أو المكان</label><input id="o-bld-o" value="${isOther?esc(saved.b):""}" placeholder="مثال: البيوت، البوابة الرئيسية"></div>
+    </fieldset>
     <div class="field"><label for="o-q">وين رايح؟</label><input id="o-q" type="search" placeholder="ابحث عن المنطقة…" autocomplete="off"></div>
     <div class="zones" id="zones" role="radiogroup" aria-label="المنطقة"><div class="empty">جارٍ التحميل…</div></div>
     <div class="field"><label for="o-note">ملاحظة (اختياري)</label><input id="o-note" placeholder="مثال: عندي جنطة كبيرة"></div>
@@ -497,12 +510,17 @@ async function orderForm(){
     $("#zones").innerHTML=list.length?list.map(z=>`<button type="button" role="radio" aria-checked="${orderZone===z.id}" class="zchip${orderZone===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}</button>`).join(""):`<div class="empty">ماكو منطقة بهذا الاسم.</div>`;
     $("#zones").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{orderZone=+b.dataset.z;draw()});};
   draw(); $("#o-q").oninput=draw;
+  $("#o-bld").onchange=e=>{$("#o-bld-o-f").hidden=e.target.value!=="other"};
   $("#of").onsubmit=async e=>{e.preventDefault();const btn=$("#osub");
-    const p={pickup:$("#o-pick").value,zone_id:orderZone,note:$("#o-note").value};
+    const b=$("#o-bld").value==="other"?$("#o-bld-o").value.trim():$("#o-bld").value, f=$("#o-flr").value, a=$("#o-apt").value.trim();
+    if(!b){$("#oe").textContent="اختار العمارة";return}
+    if(!f){$("#oe").textContent="اختار الطابق";return}
+    if(!a){$("#oe").textContent="اكتب رقم الشقة";return}
+    const p={pickup:`عمارة ${b} · طابق ${f} · شقة ${a}`,zone_id:orderZone,note:$("#o-note").value};
     if(!orderZone){$("#oe").textContent="اختار المنطقة اللي رايح إلها";return}
     btn.disabled=true;$("#oe").textContent="";
     try{const r=await rpc("taxi_customer_order",{p_token:CS.tok,p});
-      store.set("taxi_c_pickup",p.pickup);store.set("taxi_order",r.token);
+      store.set("taxi_c_addr",JSON.stringify({b,f,a}));store.set("taxi_order",r.token);
       orderStatus(r.token)}catch(err){if(custError(err))return;$("#oe").textContent=err.message;btn.disabled=false}};
 }
 const OS={requested:["⏳","طلبك وصل للمكتب","دنختارلك أقرب سائق، لحظات."],assigned:["📲","انرسل للسائق","بانتظار موافقته."],
