@@ -298,7 +298,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611060706";
+const BUILD="202611060711";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -418,19 +418,22 @@ function landingApp(){
 
 
 /* ---------------- CUSTOMER ACCOUNTS ---------------- */
-const TOWERS=Array.from({length:22},(_,i)=>"T"+(i+1));
+// Compound buildings: B1–B7 have 11 floors, B8–B13 have 13 floors.
+const TOWERS=Array.from({length:13},(_,i)=>"B"+(i+1));
+const floorsOf=b=>{const n=+String(b).replace(/\D/g,"");return TOWERS.includes(b)?(n<=7?11:13):13};
+const floorOpts=(b,sel)=>`<option value="">اختار</option><option value="أرضي" ${sel==="أرضي"?"selected":""}>أرضي</option>${Array.from({length:floorsOf(b)},(_,i)=>`<option ${sel===String(i+1)?"selected":""}>${i+1}</option>`).join("")}`;
 function addrFields(saved,legend){
   saved=saved||{}; const isOther=saved.b&&!TOWERS.includes(saved.b);
   return `<fieldset class="addr"><legend>${legend}</legend>
       <div class="addr-row">
         <div class="field"><label for="o-bld">العمارة</label><select id="o-bld" class="btn" required><option value="">اختار</option>${TOWERS.map(t=>`<option ${saved.b===t?"selected":""}>${t}</option>`).join("")}<option value="other" ${isOther?"selected":""}>غيرها</option></select></div>
-        <div class="field"><label for="o-flr">الطابق</label><select id="o-flr" class="btn" required><option value="">اختار</option><option value="أرضي" ${saved.f==="أرضي"?"selected":""}>أرضي</option>${Array.from({length:25},(_,i)=>`<option ${saved.f===String(i+1)?"selected":""}>${i+1}</option>`).join("")}</select></div>
+        <div class="field"><label for="o-flr">الطابق</label><select id="o-flr" class="btn" required>${floorOpts(saved.b||"",saved.f)}</select></div>
         <div class="field"><label for="o-apt">الشقة</label><input id="o-apt" inputmode="numeric" required value="${esc(saved.a||"")}" placeholder="رقم"></div>
       </div>
-      <div class="field" id="o-bld-o-f" ${isOther?"":"hidden"}><label for="o-bld-o">اسم العمارة أو المكان</label><input id="o-bld-o" value="${isOther?esc(saved.b):""}" placeholder="مثال: البيوت، البوابة الرئيسية"></div>
+      <div class="field" id="o-bld-o-f" ${isOther?"":"hidden"}><label for="o-bld-o">اسم العمارة أو المكان</label><input id="o-bld-o" value="${isOther?esc(saved.b):""}" placeholder="مثال: البوابة الرئيسية"></div>
     </fieldset>`;
 }
-function wireAddr(){ $("#o-bld").onchange=e=>{$("#o-bld-o-f").hidden=e.target.value!=="other"} }
+function wireAddr(){ $("#o-bld").onchange=e=>{const v=e.target.value;$("#o-bld-o-f").hidden=v!=="other";const f=$("#o-flr").value;$("#o-flr").innerHTML=floorOpts(v==="other"?"":v,f)} }
 function readAddr(){
   const b=$("#o-bld").value==="other"?$("#o-bld-o").value.trim():$("#o-bld").value, f=$("#o-flr").value, a=$("#o-apt").value.trim();
   if(!b) throw new Error("اختار العمارة"); if(!f) throw new Error("اختار الطابق"); if(!a) throw new Error("اكتب رقم الشقة");
