@@ -274,6 +274,11 @@ select.btn{font-weight:500}
 const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk.supabase.co":location.origin;
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
+// Auto-update: if a newer version of this page is published, reload into it.
+const BUILD="202611060339";
+(function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
+  if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")){location.reload()}}).catch(()=>{});
+  setTimeout(chk,3000);setInterval(chk,120000);})();
 const APK_URL="https://github.com/ftyo979vfemail-code/mansour-city/releases/download/taxi-driver/taxi-driver.apk";
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
