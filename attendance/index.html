@@ -856,7 +856,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='22216c7005';
+const APP_BUILD='615b820bac';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -4217,7 +4217,7 @@ document.addEventListener('click',async e=>{
     case'fuelSend':fuelSendForm();break;
     case'gateGo':gateForm(v);break;
     case'tripScan':scanWork();break;
-    case'scanWork':scanWork();break;
+    case'scanWork':S.gMode=null;scanWork();break;case'gateScan':S.gMode=v;scanWork();break;
     case'workLog':workLogView();break;
     case'workPrint':workPrint();break;
     case'workRep':workRepView();break;
@@ -4917,13 +4917,18 @@ function cycLast(c){let l=null;STG.forEach(([k])=>{if(c?.stages?.[k])l=k});retur
 function cycTimeline(c,live){return`<div class="ctl">${STG.map(([k,t,ic],i)=>{if(k==='load_start'&&!c?.stages?.load_start)return'';if(k==='gate_in'&&!c?.stages?.gate_in&&c?.stages?.load_end)return'';const s=c?.stages?.[k];const prevK=STG.slice(0,i).map(x=>x[0]).reverse().find(x=>c?.stages?.[x]);const d=s&&prevK?s.at-c.stages[prevK].at:null;
   const cur=!s&&live&&c?.next===k;return`<div class="cst ${s?(s.skip?'skip':'done'):cur?'cur':''}"><span class="ci">${s?(s.skip?'↷':ic):cur?'…':'○'}</span><div><b>${k==='gate_in'&&c?.ret?'رجعت للمجمع':t}</b>${s?`<small><bdi>${new Date(s.at).toLocaleTimeString('ar-IQ-u-nu-latn',{hour:'2-digit',minute:'2-digit'})}</bdi> · ${esc(s.post||'')}${d!=null?` · <span style="color:var(--accent)">${dur(d)}</span>`:''}${s.skip?' · بدون تسجيل تحميل':''}</small>`:cur?`<small>هسه — صارلها ${dur(Date.now()-(c.stages[cycLast(c)]?.at||Date.now()))}</small>`:''}</div></div>`}).join('')}</div>`}
 function scanWork(){$('#fab')?.classList.remove('open');if(!myPost()){postForm(scanWork);return}
-  openScanner('مسح باركود الآلية',`<span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">📍 مكانك: <b>${esc(myPost())}</b> <button type="button" class="btn sm" data-a="postSwitch">تغيير مكاني</button></span>وجّه الكاميرا على باركود الآلية (الدعامية) أو باركود السائق`,async txt=>{const id=String(txt).replace(/^MCH:/,'').trim();
+  openScanner(S.gMode==='in'?'⬅ دخول — امسح باركود الآلية':S.gMode==='out'?'🚚 خروج — امسح باركود الآلية':'مسح باركود الآلية',`<span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">📍 مكانك: <b>${esc(myPost())}</b> <button type="button" class="btn sm" data-a="postSwitch">تغيير مكاني</button></span>وجّه الكاميرا على باركود الآلية (الدعامية) أو باركود السائق`,async txt=>{const id=String(txt).replace(/^MCH:/,'').trim();
     const lm=S.machines.find(x=>x.id===id||x.plate===id);
     if(LOAD_R.includes(S.me?.role)&&lm&&lm.cycle?.next!=='arrive'){loadForm(lm);return}
-    if(S.me?.role==='guard'){if(!lm){overlay('wres','❌ باركود غير معروف',`<div class="rcbox"><b>ما لكيت آلية بهذا الباركود</b><span class="muted num">${esc(id)}</span></div><div class="acts" style="justify-content:center"><button class="btn pri" data-a="scanWork">📷 مسح ثاني</button><button class="btn ghost" data-a="close">إغلاق</button></div>`);return}gateScanForm(lm);return}
+    if(S.me?.role==='guard'){const md=S.gMode;S.gMode=null;if(!lm){overlay('wres','❌ باركود غير معروف',`<div class="rcbox"><b>ما لكيت آلية بهذا الباركود</b><span class="muted num">${esc(id)}</span></div><div class="acts" style="justify-content:center"><button class="btn pri" data-a="scanWork">📷 مسح ثاني</button><button class="btn ghost" data-a="close">إغلاق</button></div>`);return}gateScanForm(lm,md);return}
     await doWorkScan(id,null)})}
 /* الأمنية: بعد مسح الباركود تطلع معلومات الآلية، وتسجّل السائق والمادة والكمية مع الدخول أو الخروج */
-function gateScanForm(m){const c=m.cycle,goOut=!!c&&['load_start','load_end','gate_out'].includes(c.next),back=!!c&&c.next==='arrive';
+function gateScanForm(m,mode){const c=m.cycle;let goOut=!!c&&['load_start','load_end','gate_out'].includes(c.next);const back=!!c&&c.next==='arrive';
+  /* الحركة الطبيعية حسب حالة الآلية، ومقارنتها بالزر الي ضغطه الأمنية */
+  let warn='',twoStep=false;
+  if(mode==='out'&&!c){twoStep=true;goOut=true;warn='⚠ هاي الآلية ما مسجّل دخولها للمجمع. راح ينسجل دخولها وخروجها هسه سوا.'}
+  else if(mode==='out'&&back)warn='⚠ هاي الآلية مسجّلة طالعة من قبل وما رجعت. إذا هي هسه داخلة سجّل رجوعها، وإذا طالعة فعلاً بلّغ مدير الآليات.';
+  else if(mode==='in'&&goOut)warn='⚠ هاي الآلية مسجّلة داخل المجمع (دخلت ومحمّلة/تنتظر). يعني هسه هي طالعة مو داخلة — الحركة تنسجل خروج.';
   const act=goOut?['🚚 تسجيل خروج','طالعة من البوابة']:back?['↩ تسجيل رجوع','راجعة للمجمع (بدون تسجيل وصول)']:['⬅ تسجيل دخول','داخلة من البوابة'];
   const crew=(typeof mCrew==='function'?mCrew(m):[]).map(p=>p.full_name).filter(Boolean);const drv=c?.driver||crew[0]||m.operator||'';
   const L=c?.loads||[],st=MST[m.status]||MST.idle,last=(m.cycles||[]).slice(-1)[0];
@@ -4933,7 +4938,7 @@ function gateScanForm(m){const c=m.cycle,goOut=!!c&&['load_start','load_end','ga
      ${crew.length?`<span class="muted">الكادر المسجّل عليها: ${crew.map(esc).join('، ')}</span>`:m.operator?`<span class="muted">المشغّل: ${esc(m.operator)}</span>`:''}
      ${L.length?`<span>محمّل عليها: ${L.map(l=>esc(l.item)+' <b class="num">'+(l.qty??'')+'</b> '+esc(l.unit||'')+(l.name?' <span class="muted">('+esc(l.name)+')</span>':'')).join('، ')}</span>`:''}
      ${last?`<span class="small muted">آخر رحلة: ${new Date(last.end||last.start).toLocaleString('ar-IQ-u-nu-latn',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}${(last.loads||[]).length?' · '+last.loads.map(l=>esc(l.item)).join('، '):''}</span>`:''}
-     <span style="font-size:16px">الحركة: <b>${act[1]}</b></span></div>
+     <span style="font-size:16px">الحركة: <b>${act[1]}</b></span></div>${warn?`<p class="note" style="background:var(--warn-soft);color:var(--warn);margin:8px 0;font-weight:600">${warn}</p>`:''}
    <form class="f" id="fGS"><label class="l">اسم السائق<input id="gsD" class="in" data-sug="drivers" autocomplete="off" required value="${esc(drv)}" placeholder="اكتب أو اختار من الأسماء السابقة"></label>
     <div class="fr"><label class="l">المادة <em>(إذا فارغة اتركها)</em><input id="gsI" class="in" data-sug="items" autocomplete="off" placeholder="مثال: حصو، رمل، إسمنت" value="${goOut&&L.length===1?esc(L[0].item):''}"></label>
     <label class="l">الكمية<input id="gsQ" class="in num" type="number" min="0" step="any" value="${goOut&&L.length===1&&L[0].qty!=null?L[0].qty:''}"></label><label class="l">الوحدة<input id="gsU" class="in" data-sug="units" autocomplete="off" value="${esc(goOut&&L.length===1&&L[0].unit?L[0].unit:'طن')}"></label></div>
@@ -4944,6 +4949,7 @@ function gateScanForm(m){const c=m.cycle,goOut=!!c&&['load_start','load_end','ga
     if(it&&q===''){$('#ldE').textContent='اكتب كمية المادة';return}
     const same=goOut&&L.length===1&&it===L[0].item&&String(q)===String(L[0].qty??'');
     const load={driver:$('#gsD').value.trim(),note:$('#gsN').value.trim()||undefined};if(it&&!same){load.item=it;load.qty=q;load.unit=$('#gsU').value.trim()}
+    if(twoStep){const {error}=await sb.rpc('machine_scan',{p_mid:m.id,p_post:myPost(),p_load:{driver:load.driver}});if(error){$('#ldE').textContent=error.message;return}}
     const r=await doWorkScan(m.id,load);if(r===false)return})}
 function loadForm(m){const c=m.cycle,added=c?.next==='gate_out';const drv=c?.driver||mCrew(m).map(p=>p.full_name)[0]||m.operator||'';
   overlay('wload',(added?'➕ إضافة مادة للحمولة':'📦 تحميل الآلية'),`<div class="rcbox" style="padding:10px"><b style="font-size:19px">${esc(m.name)}</b><span>${esc([m.type,m.model].filter(Boolean).join(' · ')||'')}</span>${m.plate?`<span class="num">${esc(m.plate)}</span>`:''}${c?`<span class="muted">${phaseOf(c)}</span>`:''}</div>
@@ -4980,7 +4986,7 @@ function workView(){const q=(S.gQ||'').trim();const mt=m=>!q||[m.name,m.plate,m.
   const avg=(f)=>{const v=today.map(f).filter(x=>x!=null);return v.length?dur(v.reduce((a,b)=>a+b,0)/v.length):'—'};
   const by=k=>live.filter(m=>m.cycle&&cycLast(m.cycle)===k);const rest=by('gate_in').filter(m=>m.cycle.ret),wait=by('gate_in').filter(m=>!m.cycle.ret);
   const away=S.machines.filter(m=>!m.cycle&&m.away&&mt(m));const lateN=by('load_end').filter(m=>Date.now()-m.cycle.stages.load_end.at>exitMin()*60000).length;
-  let h=`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">عمل الآليات</h3><p class="muted" style="margin:2px 0 0">كل مرحلة تنعرف من الشخص اللي يمسح: أهل التجهيز يسجّلون التحميل والمادة، الأمنية تسجّل الطلعة والرجعة، والوجهة تسجّل الوصول.</p></div><div class="acts"><button class="btn pri" data-a="scanWork" style="font-size:16px;padding:12px 18px">📷 مسح باركود الآلية</button></div></div>
+  let h=`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">عمل الآليات</h3><p class="muted" style="margin:2px 0 0">كل مرحلة تنعرف من الشخص اللي يمسح: أهل التجهيز يسجّلون التحميل والمادة، الأمنية تسجّل الطلعة والرجعة، والوجهة تسجّل الوصول.</p></div><div class="acts">${S.me?.role==='guard'?`<button class="btn ok" data-a="gateScan" data-v="in" style="font-size:17px;padding:14px 20px">⬅ تسجيل دخول آلية</button><button class="btn pri" data-a="gateScan" data-v="out" style="font-size:17px;padding:14px 20px">🚚 تسجيل خروج آلية</button>`:`<button class="btn pri" data-a="scanWork" style="font-size:16px;padding:12px 18px">📷 مسح باركود الآلية</button>`}</div></div>
    <p class="note" style="margin:6px 0">📍 مكانك: <b>${esc(myPost()||'غير محدد')}</b> — <a href="#" data-a="postChange">تغيير</a></p>
    <div class="stats"><div class="stat"><b>${rest.length}</b><span>🅿 استراحة</span></div><div class="stat"><b>${wait.length}</b><span>تنتظر التحميل</span></div><div class="stat ${lateN?'hot':''}"><b>${by('load_end').length}</b><span>محمّلة تنتظر الخروج${lateN?` · ${lateN} متأخرة`:''}</span></div><div class="stat"><b>${by('gate_out').length}</b><span>بالطريق</span></div><div class="stat"><b>${away.length}</b><span>وصلت وما رجعت</span></div><button type="button" class="stat" data-a="workLog"><b>${today.length}</b><span>رحلات اليوم</span></button></div>
    <div class="stats"><div class="stat"><b class="num" style="font-size:16px">${avg(c=>sd(c,'gate_in','load_end'))}</b><span>متوسط الانتظار للتحميل</span></div><div class="stat"><b class="num" style="font-size:16px">${avg(c=>sd(c,'load_end','gate_out'))}</b><span>متوسط من التحميل للخروج</span></div><div class="stat"><b class="num" style="font-size:16px">${avg(c=>sd(c,'gate_out','arrive'))}</b><span>متوسط الطريق</span></div><button type="button" class="stat" data-a="workRep"><b class="num" style="font-size:16px">${avg(c=>c.dur)}</b><span>متوسط الرحلة</span></button></div>
