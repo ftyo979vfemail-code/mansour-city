@@ -219,6 +219,13 @@ tr.row-new td{background:color-mix(in srgb,var(--amber) 12%,transparent)}
 .addr legend{font:600 14px var(--display);padding:0 6px;color:var(--fg)}
 .addr-row{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px}
 .addr-row select,.addr-row input{width:100%;min-width:0}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.fcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.fcard header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fcard header div{display:flex;flex-direction:column;margin-inline-end:auto}
+.fcard header small{color:var(--muted)}
+.fbig small{display:block;color:var(--muted);font-size:13px}
+.fbig b{font:700 28px var(--display);font-variant-numeric:tabular-nums}
 /* ---------- Landing ---------- */
 .lp{min-height:100%;display:flex;flex-direction:column}
 .lp-in{width:100%;max-width:1120px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
@@ -298,7 +305,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611070433";
+const BUILD="202611070437";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -593,6 +600,7 @@ function adminShell(){
      <div class="alert" id="alert" hidden></div>
      <nav class="tabs" role="tablist">
        <button role="tab" data-t="live">الخريطة الحيّة</button>
+       <button role="tab" data-t="files">ملفات السواق</button>
        <button role="tab" data-t="trips">السفرات</button>
        <button role="tab" data-t="week">التسوية الأسبوعية</button>
        <button role="tab" data-t="acc">الحسابات</button>
@@ -643,6 +651,7 @@ function renderTab(){
   if(tab==="acc") renderAccounts();
   if(tab==="week") renderWeek();
   if(tab==="cust") renderCustomers();
+  if(tab==="files") renderFiles();
 }
 function initMap(){
   if(typeof L==="undefined"){$("#map").innerHTML=`<div class="empty">تعذّر تحميل الخريطة. تأكد من الإنترنت.</div>`;return}
@@ -721,6 +730,74 @@ async function renderCustomers(){
   $("#clist").querySelectorAll("[data-cb]").forEach(b=>b.onclick=async()=>{try{await rpc("taxi_admin_customer_block",{p_pin:PIN,p_id:+b.dataset.cb,p_block:b.dataset.on==="1"});toast(b.dataset.on==="1"?"انوقف الحساب":"رجع الحساب");renderCustomers()}catch(e){toast(e.message)}});
 }
 
+
+/* ---------- Driver files: how much money each driver holds, and the grand total ---------- */
+async function renderFiles(){
+  $("#view").innerHTML=`<div class="wrap"><div class="bar"><h2>ملفات السواق</h2></div><div id="fkpi" class="kpis"></div>
+    <p class="note">«بذمّته» = أجرة كل سفراته المكتملة ناقص كل شي سلّمه. «حصّته المستحقة» = حصته من السفرات ناقص اللي انطيناه. «الصافي» = اللي لازم يسلّمه للشركة إذا تصفّى الحساب هسه.</p>
+    <div id="flist" class="fgrid"><div class="empty">جارٍ الحساب…</div></div></div>`;
+  let d; try{d=await rpc("taxi_admin_balances",{p_pin:PIN})}catch(e){$("#flist").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const T=d.totals;
+  $("#fkpi").innerHTML=`<div class="kpi kpi-warn"><small>المجموع الكلي بذمّة السواق</small><b>${dinar(T.in_hand)}</b></div>
+    <div class="kpi"><small>حصص مستحقة للسواق</small><b style="color:var(--ok)">${dinar(T.owed)}</b></div>
+    <div class="kpi"><small>الصافي للشركة</small><b>${dinar(T.net)}</b></div>
+    <div class="kpi"><small>كل الأجرة من البداية</small><b>${dinar(T.fares)}</b><small>المستلَم: ${dinar(T.collected)}</small></div>`;
+  if(!d.rows.length){$("#flist").innerHTML=`<div class="empty card">ماكو سواق.</div>`;return}
+  $("#flist").innerHTML=d.rows.map(r=>{const b=r.bal;const s=status(r);return `<article class="fcard">
+    <header>${plateHTML(r.plate)}<div><b>${esc(r.driver_name)}</b><small>${esc(r.model||"")}</small></div><span class="pill s-${s.k}">${s.t}</span></header>
+    <div class="fbig"><small>بذمّته هسه</small><b style="color:${b.in_hand>0?"var(--bad)":"var(--ok)"}">${dinar(b.in_hand)}</b></div>
+    <div class="calc">
+      <div><span>أجرة ${fmt(b.trips)} سفرة</span><b>${fmt(b.fares)}</b></div>
+      <div><span>سلّم للشركة</span><b>${fmt(b.collected)}</b></div>
+      <div><span>حصّته المستحقة</span><b style="color:var(--ok)">${fmt(b.owed_to_him)}</b></div>
+      <div class="tot"><span>${b.net>=0?"الصافي يسلّمه":"الصافي إله على الشركة"}</span><b>${dinar(Math.abs(b.net))}</b></div>
+    </div>
+    <div class="acts"><button class="btn sm primary" data-fc="${r.id}">استلام مبلغ</button><button class="btn sm" data-fo="${r.id}">فتح الملف</button></div>
+  </article>`}).join("");
+  $("#flist").querySelectorAll("[data-fo]").forEach(b=>b.onclick=()=>driverFile(b.dataset.fo));
+  $("#flist").querySelectorAll("[data-fc]").forEach(b=>b.onclick=()=>{const r=d.rows.find(x=>x.id===b.dataset.fc);fileCash(r.id,r.driver_name,r.bal.in_hand)});
+}
+function fileCash(id,name,inHand){
+  const m=modal(`<h3>استلام مبلغ من ${esc(name)}</h3><p style="margin:0">بذمّته هسه: <b>${dinar(inHand)}</b></p>
+   <form id="fcf" style="display:flex;flex-direction:column;gap:12px">
+    <div class="field"><label for="fcm">المبلغ (دينار)</label><input id="fcm" inputmode="numeric" required value="${inHand>0?inHand:""}"></div>
+    <div class="field"><label for="fcn">ملاحظة</label><input id="fcn" placeholder="اختياري"></div>
+    <div class="err" id="fce"></div><div class="row"><button type="button" class="btn" id="fcc">إلغاء</button><button class="btn primary">تسجيل الاستلام</button></div></form>`);
+  $("#fcc",m).onclick=()=>m.remove();
+  $("#fcf",m).onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p:{car_id:id,amount:$("#fcm",m).value,note:$("#fcn",m).value}});m.remove();toast("انسجل الاستلام");if(tab==="files")renderFiles()}catch(err){$("#fce",m).textContent=err.message}};
+}
+async function driverFile(id){
+  const m=modal(`<div id="df"><div class="empty">جارٍ التحميل…</div></div><div class="row"><button class="btn" id="dfc">سدّ</button></div>`);
+  m.querySelector(".sheet").style.width="min(760px,100%)"; $("#dfc",m).onclick=()=>m.remove();
+  let f; try{f=await rpc("taxi_admin_driver_file",{p_pin:PIN,p_car:id})}catch(e){$("#df",m).innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
+  const c=f.car,b=f.balance;
+  const dt=ts=>ts?new Date(ts).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+  const L={trip:["+","s-ok","سفرة"],cash:["−","s-warn","سلّم"],payout:["↩","s-idle","انطيناه حصته"]};
+  $("#df",m).innerHTML=`
+   <div class="rc-head" style="border-color:var(--line)">${plateHTML(c.plate,true)}<div><h3>${esc(c.driver_name)}</h3><small>${esc([c.model,c.year,c.color].filter(Boolean).join(" · "))}</small></div></div>
+   <div class="calc">
+     <div><span>الهاتف</span><b dir="ltr">${esc(c.driver_phone||"—")}</b></div>
+     <div><span>رمز الدخول</span><b class="code">${esc(c.driver_code)}</b></div>
+     <div><span>آخر إشارة</span><b>${ago(c.last_seen)}${c.battery!=null?` · بطارية ${c.battery}%`:""}</b></div>
+   </div>
+   <h4 class="h4">الحساب الكلي</h4>
+   <div class="kpis" style="margin:0">
+     <div class="kpi ${b.in_hand>0?"kpi-bad":""}"><small>بذمّته هسه</small><b>${dinar(b.in_hand)}</b><small>آخر تسليم: ${dt(b.last_collected_at)}</small></div>
+     <div class="kpi"><small>حصّته المستحقة</small><b style="color:var(--ok)">${dinar(b.owed_to_him)}</b><small>من ${dinar(b.share)}، انطيناه ${dinar(b.paid_out)}</small></div>
+     <div class="kpi"><small>${b.net>=0?"الصافي يسلّمه":"الصافي إله"}</small><b>${dinar(Math.abs(b.net))}</b></div>
+   </div>
+   <div class="calc">
+     <div><span>هذا الأسبوع</span><b>${fmt(f.week.trips)} سفرة · ${dinar(f.week.fares)}</b></div>
+     <div><span>هذا الشهر</span><b>${fmt(f.month.trips)} سفرة · ${dinar(f.month.fares)}</b></div>
+     <div><span>تحرّكات بدون سفرة (الشهر)</span><b style="color:${f.month_unlogged.n?"var(--bad)":"inherit"}">${f.month_unlogged.n} · ${f.month_unlogged.km} كم</b></div>
+     <div><span>انقطاعات الموقع (الشهر)</span><b style="color:${f.month_cutoffs?"var(--bad)":"inherit"}">${f.month_cutoffs}</b></div>
+     <div><span>سفرات رفضها (الشهر)</span><b style="color:${f.month_rejected?"var(--bad)":"inherit"}">${f.month_rejected}</b></div>
+   </div>
+   <div class="row" style="justify-content:flex-start"><button class="btn primary" id="dfcash">استلام مبلغ</button></div>
+   <h4 class="h4">كشف الحساب</h4>
+   ${f.ledger.length?`<ul class="log">${f.ledger.map(x=>{const l=L[x.type];return `<li><span class="pill ${l[1]}">${l[2]}</span><span>${dt(x.at)}${x.note?` · ${esc(x.note)}`:""}</span><b class="num">${l[0]} ${fmt(x.amount)}</b></li>`}).join("")}</ul>`:`<p class="note">ماكو حركات بعد.</p>`}`;
+  $("#dfcash",m).onclick=()=>{m.remove();fileCash(c.id,c.driver_name,b.in_hand)};
+}
 /* ---------- Trips (office dispatch) ---------- */
 let tripsDay=null, tripsCache=[];
 function todayStr(){const d=new Date(Date.now()+3*3600e3);return d.toISOString().slice(0,10)}
