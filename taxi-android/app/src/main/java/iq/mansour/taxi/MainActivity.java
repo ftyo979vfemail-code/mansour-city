@@ -302,6 +302,7 @@ public class MainActivity extends Activity {
             String where = "من: " + or(t.optString("pickup")) + "\nإلى: " + or(t.optString("dropoff"))
                     + (t.optString("customer_name").isEmpty() ? "" : "\nالزبون: " + t.optString("customer_name"))
                     + (t.optInt("zone_id", 0) > 0 && t.optInt("fare", 0) > 0 ? "\nالأجرة: " + String.format(java.util.Locale.US, "%,d", t.optInt("fare")) + " د.ع (ثابتة)" : "")
+                    + (t.optInt("points_used", 0) > 0 ? "\n⭐ الزبون دافع " + String.format(java.util.Locale.US, "%,d", t.optInt("points_used")) + " بالنقاط (حصتك محفوظة)" : "")
                     + (t.optString("note").isEmpty() ? "" : "\nملاحظة: " + t.optString("note"));
             if (status.equals("assigned")) {
                 card.addView(text("📣 سفرة جديدة من المكتب", 19, FG, true));
@@ -337,7 +338,9 @@ public class MainActivity extends Activity {
                 final boolean fixed = t.optInt("zone_id", 0) > 0 && t.optInt("fare", 0) > 0;
                 final EditText fare = input("الأجرة المستلمة (دينار)", InputType.TYPE_CLASS_NUMBER);
                 if (fixed) {
-                    TextView fx = text("استلم من الزبون: " + String.format(java.util.Locale.US, "%,d", t.optInt("fare")) + " د.ع", 20, FG, true);
+                    int collect = t.has("collect") ? t.optInt("collect") : t.optInt("fare");
+                    TextView fx = text(collect == 0 && t.optInt("points_used", 0) > 0 ? "الكروة مجانية بالنقاط، لا تستلم شي"
+                            : "استلم من الزبون: " + String.format(java.util.Locale.US, "%,d", collect) + " د.ع", 20, FG, true);
                     fx.setGravity(Gravity.CENTER);
                     fx.setBackground(box(0xFFFFF4DC, AMBER, 12));
                     fx.setPadding(dp(12), dp(12), dp(12), dp(12));
