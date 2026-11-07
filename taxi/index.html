@@ -68,7 +68,7 @@ a.btn{color:var(--fg);text-decoration:none;display:inline-block}
 .s-bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 13%,transparent)}
 .s-warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
 .s-idle{color:var(--idle);background:color-mix(in srgb,var(--idle) 14%,transparent)}
-.s-ok.live::before{animation:pulse 1.6s infinite}
+.s-ok.blink::before{animation:pulse 1.6s infinite}
 @keyframes pulse{50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 
@@ -330,9 +330,16 @@ tr.row-new td{background:color-mix(in srgb,var(--amber) 12%,transparent)}
   .steps{gap:22px}
 }
 .leaflet-container{font-family:var(--body)}
-.mk{background:var(--amber);color:var(--amber-ink);border:2px solid #1b1d22;border-radius:8px;font:600 11px/1 var(--mono);padding:4px 6px;white-space:nowrap;box-shadow:0 2px 6px rgb(0 0 0/.3);direction:ltr}
-.mk.off{background:var(--bad);color:#fff}
-.mk.stale{background:#9a9a9a;color:#fff}
+.dot{width:16px;height:16px;border-radius:50%;background:var(--ok);border:3px solid #fff;box-shadow:0 0 0 1.5px rgb(0 0 0/.45),0 2px 5px rgb(0 0 0/.35);position:relative;box-sizing:border-box}
+.dot::after{content:"";position:absolute;inset:-7px;border-radius:50%;border:2px solid var(--ok);opacity:0;animation:dotp 2s ease-out infinite}
+@keyframes dotp{0%{transform:scale(.4);opacity:.8}100%{transform:scale(1.4);opacity:0}}
+.dot.off{background:var(--bad)}.dot.off::after{border-color:var(--bad)}
+.dot.stale{background:#8a8f94}.dot.stale::after{display:none}
+.dot.dtrip{background:var(--amber)}.dot.dtrip::after{border-color:var(--amber)}
+.dot.sel{transform:scale(1.3)}
+.leaflet-tooltip.dotlbl{background:rgb(20 22 26/.78);color:#fff;border:0;border-radius:6px;padding:1px 5px;font:600 10px/1.4 var(--mono);box-shadow:none;direction:ltr}
+.leaflet-tooltip.dotlbl::before{display:none}
+@media (prefers-reduced-motion:reduce){.dot::after{animation:none}}
 </style>
 </head>
 <body>
@@ -344,7 +351,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611071442";
+const BUILD="202611071457";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -398,6 +405,7 @@ function telHref(n){return "tel:"+String(n).replace(/[^\d+]/g,"")}
 function waHref(n){let d=String(n).replace(/\D/g,"");if(d.startsWith("07"))d="964"+d.slice(1);return "https://wa.me/"+d}
 function landingApp(){
   const role=store.get("taxi_role");
+  if(role==="disp"&&store.get("taxi_disp")){location.replace("#disp");return}
   if(role==="driver"&&store.get("taxi_driver_code")){location.replace("#driver");return}
   if(role==="customer"&&store.get("taxi_cs")){location.replace("#order");return}
   if(!role&&store.get("taxi_driver_code")){store.set("taxi_role","driver");location.replace("#driver");return}
@@ -791,9 +799,86 @@ function navSave(){
 }
 /* ---------------- Router ---------------- */
 // the Android app opens the map as ?c=<driver code>#nav
-function route(){ try{const c=new URLSearchParams(location.search).get("c");if(c&&/^\d{4,8}$/.test(c)){store.set("taxi_driver_code",c);store.set("taxi_role","driver");CODE=c}}catch{}
-  const h=location.hash; (h==="#nav"?navApp:h==="#driver"?driverApp:h==="#admin"?adminApp:h==="#order"?orderApp:h==="#signup"?signupApp:h==="#login"?loginApp:h==="#account"?accountApp:landingApp)(); }
+function route(){ try{const q=new URLSearchParams(location.search),c=q.get("c"),d=q.get("d");if(c&&/^\d{4,8}$/.test(c)){store.set("taxi_driver_code",c);store.set("taxi_role","driver");CODE=c}
+    // dispatcher QR: ?d=<token> logs this phone in as a dispatcher
+    if(d&&/^[0-9a-f-]{36}$/i.test(d)){store.set("taxi_disp",d);store.set("taxi_role","disp");history.replaceState(null,"",location.pathname+"#disp");}}catch{}
+  const h=location.hash; (h==="#disp"?dispApp:h==="#nav"?navApp:h==="#driver"?driverApp:h==="#admin"?adminApp:h==="#order"?orderApp:h==="#signup"?signupApp:h==="#login"?loginApp:h==="#account"?accountApp:landingApp)(); }
 window.addEventListener("hashchange",()=>location.reload());
+
+/* ---------------- DISPATCHER (QR login, can only send customer requests to drivers) ---------------- */
+let DP={t:null,data:null,prev:[],init:false,open:null,actx:null};
+function dispApp(){
+  const tok=store.get("taxi_disp");
+  document.title="توزيع الطلبات · المنصور تاكسي";
+  if(!tok){$("#app").innerHTML=`<div class="gate"><div class="gate-card"><div class="brand"><div class="brand-mark">${ICON}</div><div><h1>توزيع الطلبات</h1><small>المنصور تاكسي</small></div></div><p style="margin:0">امسح الباركود اللي تنطيك إياه الإدارة بكاميرا التلفون حتى تدخل.</p><a class="btn" href="#">الصفحة الرئيسية</a></div></div>`;return}
+  $("#app").innerHTML=`<div class="lp"><header class="hero ord-hero"><div class="lp-in hero-top"><img src="img/wordmark-light.png" alt="المنصور تاكسي" width="120" height="64"><span id="dpn" style="color:#fff;font-weight:700"></span></div>
+    <div class="lp-in"><h1 class="ord-h1">توزيع الطلبات</h1></div></header>
+    <main class="lp-in ord"><div class="ocard" id="dpbox"><div class="empty">جارٍ التحميل…</div></div>
+    <p class="note" style="text-align:center">أول ما يوصل طلب زبون يرن التلفون. اضغط عليه واختار السائق.</p>
+    <button class="btn" id="dpout" style="align-self:center">خروج</button></main></div>`;
+  const unlock=()=>{try{DP.actx=DP.actx||new AudioContext();DP.actx.resume()}catch{}};
+  document.addEventListener("click",unlock);
+  $("#dpout").onclick=()=>confirmBox("تطلع من صفحة التوزيع؟ حتى ترجع تحتاج تمسح الباركود مرة ثانية.","خروج",async()=>{store.del("taxi_disp");store.del("taxi_role");clearInterval(DP.t);location.replace(location.pathname+"#")});
+  const ring=()=>{try{if(!DP.actx)return;[0,.45,.9].forEach(d=>{const o=DP.actx.createOscillator(),g=DP.actx.createGain();o.frequency.value=880;o.connect(g);g.connect(DP.actx.destination);g.gain.value=.25;o.start(DP.actx.currentTime+d);o.stop(DP.actx.currentTime+d+.3)})}catch{};try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch{}};
+  const load=async()=>{
+    let d; try{d=await rpc("taxi_disp_state",{p_token:tok})}catch(e){
+      if(/الباركود/.test(e.message)){clearInterval(DP.t);store.del("taxi_disp");$("#dpbox").innerHTML=`<div class="err">${esc(e.message)}</div>`}return}
+    DP.data=d; $("#dpn").textContent="👤 "+d.name;
+    const waiting=d.requests.filter(r=>r.status!=="assigned"), ids=waiting.map(r=>r.id);
+    if(DP.init&&ids.some(id=>!DP.prev.includes(id))) ring();
+    DP.prev=ids; DP.init=true;
+    if(document.querySelector(".modal")) return;
+    const ago2=ts=>{const m=Math.max(0,Math.round((Date.now()-new Date(ts))/60000));return m<1?"هسه":m+" د"};
+    $("#dpbox").innerHTML=d.requests.length?`<ul class="log" style="margin:0">${d.requests.map(r=>`<li style="cursor:pointer" data-r="${r.id}">
+      <span class="pill ${r.status==="assigned"?"s-warn":"s-bad"}">${r.status==="assigned"?"انرسل":r.status==="rejected"?"رفضه السائق":"جديد"}</span>
+      <span><b>${esc(r.customer_name||"زبون")}</b> ← <b>${esc(r.dropoff||"—")}</b><br><small style="color:var(--muted)">${esc(r.pickup||"")}${r.note?` · ${esc(r.note)}`:""}${r.status==="assigned"&&r.driver_name?` · عند ${esc(r.driver_name)} بانتظار قبوله`:""}</small></span>
+      <span class="btn sm ${r.status==="assigned"?"":"primary"}">${ago2(r.created_at)} · ${r.status==="assigned"?"تحويل":"أرسل"}</span></li>`).join("")}</ul>`
+      :`<div class="empty">✔ ماكو طلبات تنتظر هسه.</div>`;
+    $("#dpbox").querySelectorAll("[data-r]").forEach(li=>li.onclick=()=>dispPick(tok,d.requests.find(r=>r.id==li.dataset.r),load));
+  };
+  load(); clearInterval(DP.t); DP.t=setInterval(load,5000);
+}
+function dispPick(tok,r,done){
+  const D=DP.data, dist=r.dist||{};
+  const list=D.drivers.map(x=>({...x,d:dist[x.id]??null,rank:x.busy?3:x.online?0:2})).sort((a,b)=>a.rank-b.rank||(a.d??1e9)-(b.d??1e9));
+  const first=list.find(x=>!x.busy&&x.online);
+  const m=modal(`<h3>أرسل الطلب لسائق</h3>
+    <div class="reqcard"><b>${esc(r.customer_name||"زبون")}</b><span>من: ${esc(r.pickup||"—")}</span><span>إلى: <b>${esc(r.dropoff||"—")}</b></span>${r.note?`<small style="color:var(--muted)">${esc(r.note)}</small>`:""}</div>
+    <div class="dpick">${list.map(x=>`<button type="button" data-c="${x.id}" aria-pressed="${first&&first.id===x.id}" ${x.busy?"disabled":""}>${plateHTML(x.plate)}<span class="dn"><b>${esc(x.driver_name)}</b><small>${x.busy?"عنده سفرة":x.online?"متصل · فاضي":"غير متصل"}</small></span><span class="dk">${x.d!=null?(x.d<1?Math.round(x.d*1000)+" م":x.d+" كم"):""}</span></button>`).join("")}</div>
+    <div class="err" id="pe"></div><div class="row"><button class="btn" id="pc">رجوع</button><button class="btn primary" id="po">إرسال للسائق</button></div>`);
+  let sel=first?first.id:null;
+  m.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{sel=b.dataset.c;m.querySelectorAll("[data-c]").forEach(x=>x.setAttribute("aria-pressed",x===b))});
+  $("#pc",m).onclick=()=>m.remove();
+  $("#po",m).onclick=async()=>{if(!sel){$("#pe",m).textContent="اختار السائق";return}const b=$("#po",m);b.disabled=true;
+    try{await rpc("taxi_disp_send",{p_token:tok,p_trip:r.id,p_car:sel});m.remove();toast("انرسل للسائق");done()}catch(e){$("#pe",m).textContent=e.message;b.disabled=false}};
+}
+// QR codes are drawn by qrcode-generator, loaded only when needed
+let qrLib;
+function loadQR(){return qrLib||(qrLib=new Promise((ok,no)=>{const sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";sc.onload=ok;sc.onerror=()=>{qrLib=null;no(new Error("ما انحمّل الباركود، تأكد من الإنترنت"))};document.head.append(sc)}))}
+function dispLink(tok){return location.origin+location.pathname+"?d="+tok+"#disp"}
+async function showDispQR(name,tok){
+  const link=dispLink(tok);
+  const m=modal(`<h3>باركود دخول ${esc(name)}</h3><p style="margin:0">خلّي ${esc(name)} يمسح الباركود بكاميرا تلفونه، فتنفتح عنده صفحة توزيع الطلبات وتبقى محفوظة. يشوف الطلبات ويرسلها للسواق بس.</p>
+    <div id="qrb" style="background:#fff;border-radius:14px;padding:14px;align-self:center;line-height:0"><div class="empty">جارٍ التحميل…</div></div>
+    <p class="note" style="margin:0">⚠ الباركود مثل المفتاح، لا تنطيه لغير هذا الشخص. إذا ضاع اضغط «باركود جديد» فالقديم يبطل.</p>
+    <div class="row"><button class="btn" id="qcp">نسخ الرابط</button><button class="btn primary" id="qok">تم</button></div>`);
+  $("#qok",m).onclick=()=>m.remove(); $("#qcp",m).onclick=()=>copy(link);
+  try{await loadQR();const q=qrcode(0,"M");q.addData(link);q.make();$("#qrb",m).innerHTML=q.createSvgTag({cellSize:6,margin:2,scalable:true});const sv=$("#qrb svg",m);if(sv){sv.style.width="min(260px,70vw)";sv.style.height="auto"}}
+  catch(e){$("#qrb",m).innerHTML=`<div class="err">${esc(e.message)}</div>`}
+}
+async function renderDisps(){
+  const box=$("#dbox"); if(!box) return;
+  let list; try{list=await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:"list",p:{}})}catch(e){box.innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
+  const dt=ts=>ts?new Date(ts).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"}):"ما دخل بعد";
+  box.innerHTML=`${list.length?`<ul class="log">${list.map(x=>`<li><span class="pill ${x.active?"s-ok":"s-idle"}">${x.active?"فعّال":"موقوف"}</span><span><b>${esc(x.name)}</b><br><small style="color:var(--muted)">آخر دخول: ${dt(x.last_seen)} · أرسل ${x.sent} طلب</small></span>
+      <span class="acts"><button class="btn sm primary" data-da="qr" data-id="${x.id}">الباركود</button><button class="btn sm" data-da="newcode" data-id="${x.id}">باركود جديد</button><button class="btn sm" data-da="toggle" data-id="${x.id}">${x.active?"إيقاف":"تفعيل"}</button><button class="btn sm danger" data-da="delete" data-id="${x.id}">حذف</button></span></li>`).join("")}</ul>`:""}
+    <form id="dfm" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px"><div class="field" style="flex:1;min-width:180px"><label for="d-name">اسم الشخص</label><input id="d-name" required placeholder="مثال: حارس البوابة"></div><button class="btn primary">+ إضافة وإصدار باركود</button></form><div class="err" id="dfe"></div>`;
+  $("#dfm").onsubmit=async e=>{e.preventDefault();try{const r=await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:"add",p:{name:$("#d-name").value}});renderDisps();showDispQR(r.name,r.token)}catch(err){$("#dfe").textContent=err.message}};
+  box.querySelectorAll("[data-da]").forEach(b=>b.onclick=async()=>{const id=+b.dataset.id,a=b.dataset.da,x=list.find(y=>y.id===id);
+    if(a==="delete") return confirmBox(`حذف ${x.name}؟ الباركود مالته يبطل فورًا.`,"حذف",async()=>{await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:"delete",p:{id}});renderDisps()});
+    if(a==="newcode") return confirmBox(`إصدار باركود جديد لـ ${x.name}؟ القديم يبطل ويحتاج يمسح الجديد.`,"باركود جديد",async()=>{const r=await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:"newcode",p:{id}});renderDisps();showDispQR(r.name,r.token)});
+    try{const r=await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:a,p:{id}});if(a==="qr")showDispQR(r.name,r.token);else{toast(x.active?"انوقف":"رجع فعّال");renderDisps()}}catch(e){toast(e.message)}});
+}
 
 /* ---------------- ADMIN ---------------- */
 let pollN=0, prevReq=[], prevReqInit=false, zonesCache=null;
@@ -896,7 +981,7 @@ function renderLive(){
   if(!cars.length){list.innerHTML=`<div class="empty">لا توجد سيارات بعد.<br>اضغط «إضافة سيارة» لتسجيل أول تكسي وسائقه.</div>`;return}
   list.innerHTML=cars.map(c=>{const s=status(c);return `<button class="car${c.id===selId?" sel":""}" data-id="${c.id}">
     <div>${plateHTML(c.plate)} <span class="who">${esc(c.driver_name)}</span></div>
-    <span class="pill s-${s.k}${s.k==="ok"?" live":""}">${s.t}</span>
+    <span class="pill s-${s.k}${s.k==="ok"?" blink":""}">${s.t}</span>
     ${c.trip?`<div class="meta" style="color:var(--fg)">🚕 ${esc(c.trip.pickup||"—")} ← ${esc(c.trip.dropoff||"—")}${c.trip.customer_phone?` · <span dir="ltr">${esc(c.trip.customer_phone)}</span>`:""}</div>`:""}
     <div class="meta"><span>${esc([c.model,c.year].filter(Boolean).join(" "))||"—"}</span><span>آخر إشارة: ${ago(c.last_seen)}</span>${c.last_speed!=null?`<span>${Math.round((c.last_speed||0)*3.6)} كم/س</span>`:""}${c.battery!=null?`<span>بطارية ${c.battery}%</span>`:""}</div></button>`}).join("");
   list.querySelectorAll(".car").forEach(b=>b.onclick=()=>selectCar(b.dataset.id));
@@ -904,13 +989,13 @@ function renderLive(){
   const pts=[];
   cars.forEach(c=>{
     if(c.last_lat==null) return; const s=status(c);
-    const cls=s.k==="ok"?"":s.k==="bad"&&c.gps_state!=="ok"?"off":"stale";
-    const html=`<div class="mk ${cls}">${esc(c.plate)}</div>`;
-    const icon=L.divIcon({html,className:"",iconSize:null});
+    // a dot centred exactly on the car's position, so the street it's standing on stays visible
+    const cls=s.k==="ok"?(c.trip?"dtrip":""):s.k==="bad"&&c.gps_state!=="ok"?"off":"stale";
+    const icon=L.divIcon({html:`<div class="dot ${cls}${c.id===selId?" sel":""}"></div>`,className:"",iconSize:[16,16],iconAnchor:[8,8],popupAnchor:[0,-10]});
     const pos=[c.last_lat,c.last_lng]; pts.push(pos);
     const pop=`<b>${esc(c.driver_name)}</b><br>${esc(c.plate)} · ${esc(c.model)}<br>${s.t} · ${ago(c.last_seen)}${c.driver_phone?`<br><span dir="ltr">${esc(c.driver_phone)}</span>`:""}`;
-    if(markers[c.id]){markers[c.id].setLatLng(pos).setIcon(icon).setPopupContent(pop)}
-    else markers[c.id]=L.marker(pos,{icon}).addTo(map).bindPopup(pop);
+    if(markers[c.id]){markers[c.id].setLatLng(pos).setIcon(icon).setPopupContent(pop).setTooltipContent(esc(c.plate))}
+    else markers[c.id]=L.marker(pos,{icon}).addTo(map).bindPopup(pop).bindTooltip(esc(c.plate),{permanent:true,direction:"top",offset:[0,-9],className:"dotlbl"});
   });
   Object.keys(markers).forEach(id=>{if(!cars.find(c=>c.id===id&&c.last_lat!=null)){map.removeLayer(markers[id]);delete markers[id]}});
   if(!fitted&&pts.length){map.fitBounds(pts,{padding:[50,50],maxZoom:15});fitted=true}
@@ -1428,12 +1513,16 @@ function renderSettings(){
     <h3>👥 المسؤولين</h3>
     <p class="note" style="margin:0">كل مسؤول يدخل لوحة الإدارة برمزه الخاص، وعنده نفس صلاحياتك. بالسفرات يبيّن منو أرسل كل طلب. بس إنت (المدير الرئيسي) تگدر تضيف أو تشيل مسؤول.</p>
     <div id="abox"><div class="empty">جارٍ التحميل…</div></div></section>
+   <section class="gate-card" style="width:100%;margin-bottom:16px">
+    <h3>📲 موزّعين الطلبات (دخول بالباركود)</h3>
+    <p class="note" style="margin:0">شخص يدخل بمسح باركود، ويشوف طلبات الزبائن ويرسلها للسائق بس. ما يشوف الفلوس ولا الأسعار ولا الخريطة ولا أرقام الهواتف ولا الإعدادات.</p>
+    <div id="dbox"><div class="empty">جارٍ التحميل…</div></div></section>
    <form id="sp" class="gate-card" style="width:100%">
     <h3>تغيير رمزك</h3>
     <div class="field"><label for="np">الرمز الجديد (4 أرقام أو أكثر)</label><input id="np" class="code-input" inputmode="numeric" minlength="4" required></div>
     <div class="err" id="se"></div><button class="btn primary">حفظ الرمز</button></form></div>`;
   $("#fr").onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_fares",{p_pin:PIN,p:{fare_base:$("#f-base").value,fare_per_km:$("#f-km").value,driver_share_pct:$("#f-pct").value,driver_per_trip:$("#f-pt").value}});toast("انحفظت")}catch(err){$("#fre").textContent=err.message}};
-  renderZones(); renderAdmins();
+  renderZones(); renderAdmins(); renderDisps();
   const ptsSum=x=>{$("#p-trip").value=x.points_per_trip??"";$("#p-red").value=x.points_redeem??"";$("#p-wel").value=x.points_welcome??"";
     const n=x.points_per_trip?Math.ceil((x.points_redeem-(x.points_welcome||0))/x.points_per_trip):0;
     $("#p-sum").innerHTML=`${n?`الزبون الجديد يوصل للكروة المجانية بعد <b>${n}</b> سفرة. `:""}انطينا ${fmt(x.issued)} نقطة · انصرفت ${fmt(x.redeemed)} دينار كروات مجانية · بأرصدة الزبائن هسه ${fmt(x.outstanding)} نقطة.`};
