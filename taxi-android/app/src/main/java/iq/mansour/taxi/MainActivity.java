@@ -356,6 +356,17 @@ public class MainActivity extends Activity {
                 card.addView(end, full());
             }
         }
+        if (t != null && (status.equals("accepted") || status.equals("started"))) {
+            card.addView(space(8));
+            Button nav = button("🧭 الطريق على الخريطة", false);
+            nav.setOnClickListener(v -> {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
+                            "https://ftyo979vfemail-code.github.io/mansour-city/taxi/?c=" + Prefs.code(this) + "#nav")));
+                } catch (Exception ignored) {}
+            });
+            card.addView(nav, full());
+        }
         tripBox.addView(card, full());
         TextView sum = text("سفرات اليوم: " + st.optInt("today_trips") + " · " + String.format(java.util.Locale.US, "%,d", st.optLong("today_fares")) + " د.ع", 14, MUTED, true);
         sum.setPadding(dp(4), dp(8), dp(4), dp(2));

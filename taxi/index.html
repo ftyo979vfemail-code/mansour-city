@@ -231,6 +231,23 @@ tr.row-new td{background:color-mix(in srgb,var(--amber) 12%,transparent)}
 .fcard header small{color:var(--muted)}
 .fbig small{display:block;color:var(--muted);font-size:13px}
 .fbig b{font:700 28px var(--display);font-variant-numeric:tabular-nums}
+.nav{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg)}
+.nav-top{position:absolute;z-index:1000;top:calc(10px + env(safe-area-inset-top,0px));left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));display:flex;gap:8px;align-items:flex-start}
+.nav-top .btn{background:var(--panel);box-shadow:0 3px 10px rgb(0 0 0/.2)}
+.nav-search{flex:1;position:relative}
+.nav-search input{width:100%;border:0;border-radius:12px;padding:12px 14px;background:var(--panel);box-shadow:0 3px 10px rgb(0 0 0/.2);font-size:16px}
+.nsug{position:absolute;top:calc(100% + 6px);inset-inline:0;background:var(--panel);border-radius:12px;box-shadow:0 6px 20px rgb(0 0 0/.25);overflow:hidden;max-height:50vh;overflow-y:auto}
+.nsug button{display:block;width:100%;text-align:start;border:0;border-bottom:1px solid var(--line);background:none;padding:12px 14px;font-weight:600}
+.nsug small{color:var(--muted);font-weight:400}
+#nmap{flex:1}
+.nbanner{position:absolute;z-index:1000;top:calc(66px + env(safe-area-inset-top,0px));left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));background:#0b4f55;color:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 6px 18px rgb(0 0 0/.3)}
+.nbanner small{display:block;opacity:.8}.nbanner b{font:700 20px var(--display)}
+.nsheet{background:var(--panel);border-radius:18px 18px 0 0;box-shadow:0 -6px 20px rgb(0 0 0/.15);padding:14px max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:10px;max-height:46vh;overflow:auto}
+.nsum{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.nsum b{font:700 24px var(--display)}.nsum small{display:block;color:var(--muted)}
+.nalts{display:flex;gap:6px;flex-wrap:wrap}
+.nsteps{margin:6px 0 0;padding-inline-start:20px;display:flex;flex-direction:column;gap:6px}
+.nsteps small{color:var(--muted)}
 /* ---------- Landing ---------- */
 .lp{min-height:100%;display:flex;flex-direction:column}
 .lp-in{width:100%;max-width:1120px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
@@ -310,7 +327,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611070445";
+const BUILD="202611070454";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -577,8 +594,161 @@ async function orderStatus(tok){
   };
   await draw(); orderT=setInterval(draw,5000);
 }
+
+/* ---------------- DRIVER NAVIGATION ----------------
+   Area search -> fastest route that avoids congestion learned from our own taxis' GPS,
+   turn-by-turn in Arabic, and the chosen route saved on the driver's trip. */
+const OSRM="https://router.project-osrm.org/route/v1/driving/";
+const NV={map:null,me:null,meMk:null,dest:null,routes:[],best:null,layers:[],watch:null,follow:false,zones:[],off:0,lastCalc:0};
+function navApp(){
+  if(!CODE){location.replace("#driver");return}
+  document.title="الطريق · المنصور تاكسي";
+  $("#app").innerHTML=`<div class="nav">
+    <div class="nav-top">
+      <a class="btn sm" href="#driver" aria-label="رجوع">‹ رجوع</a>
+      <div class="nav-search"><input id="nq" type="search" placeholder="وين رايح؟ اكتب اسم المنطقة…" autocomplete="off"><div id="nsug" class="nsug" hidden></div></div>
+    </div>
+    <div id="nbanner" class="nbanner" hidden></div>
+    <div id="nmap"></div>
+    <div class="nsheet" id="nsheet"><p class="note" style="margin:0">اكتب اسم المنطقة فوق، أو اختار من القائمة. النظام يحسب أسرع طريق ويبعدك عن الزحمة اللي سجّلتها سياراتنا.</p></div>
+  </div>`;
+  if(typeof L==="undefined"){$("#nmap").innerHTML=`<div class="empty">تعذّر تحميل الخريطة، تأكد من الإنترنت.</div>`;return}
+  NV.map=L.map("nmap",{zoomControl:false}).setView([33.315,44.366],12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(NV.map);
+  L.control.zoom({position:"bottomleft"}).addTo(NV.map);
+  setTimeout(()=>NV.map.invalidateSize(),150);
+  if(NV.watch!==null) navigator.geolocation.clearWatch(NV.watch);
+  NV.watch=navigator.geolocation.watchPosition(p=>navPos(p.coords),()=>{if(!NV.me)toast("شغّل الموقع حتى نحسب الطريق من مكانك")},{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
+  rpc("taxi_nav_zones",{p_key:CODE}).then(z=>{NV.zones=z;
+    rpc("taxi_driver_state",{p_code:CODE}).then(st=>{const t=st.trip;if(t&&t.zone_id){const z2=NV.zones.find(x=>x.id===t.zone_id);if(z2&&z2.lat)navSetDest({name:z2.name,lat:z2.lat,lng:z2.lng})}}).catch(()=>{});
+  }).catch(e=>toast(e.message));
+  const q=$("#nq"), sug=$("#nsug"); let gT;
+  q.oninput=()=>{const v=q.value.trim(); if(!v){sug.hidden=true;return}
+    const hits=NV.zones.filter(z=>z.name.includes(v)).slice(0,8);
+    sug.innerHTML=hits.map(z=>`<button data-zid="${z.id}">📍 ${esc(z.name)}${z.lat?"":" <small>(بدون موقع)</small>"}</button>`).join("")+`<button data-geo="1">🔎 ابحث بالخريطة عن «${esc(v)}»</button>`;
+    sug.hidden=false;
+    sug.querySelectorAll("[data-zid]").forEach(b=>b.onclick=()=>{const z=NV.zones.find(x=>x.id==b.dataset.zid);sug.hidden=true;q.value=z.name;
+      if(z.lat) navSetDest({name:z.name,lat:z.lat,lng:z.lng}); else navGeocode(z.name)});
+    sug.querySelector("[data-geo]").onclick=()=>{sug.hidden=true;navGeocode(v)};
+  };
+  NV.map.on("click",e=>{ if(!NV.follow) navSetDest({name:"نقطة على الخريطة",lat:e.latlng.lat,lng:e.latlng.lng}) });
+}
+function cleanPlace(n){return n.replace(/\(.*?\)/g,"").replace(/^من\s+/,"").replace(/وما حولها/,"").trim()}
+async function navGeocode(name){
+  try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&accept-language=ar&limit=1&viewbox=44.0,33.65,44.75,32.95&bounded=1&q=${encodeURIComponent(cleanPlace(name)+"، بغداد")}`).then(r=>r.json());
+    if(!r.length) return toast("ما لگيت المكان، جرّب اسم ثاني أو اضغط على الخريطة");
+    navSetDest({name,lat:+r[0].lat,lng:+r[0].lon});
+  }catch{toast("تعذّر البحث، تأكد من الإنترنت")}
+}
+function navPos(c){
+  NV.me={lat:c.latitude,lng:c.longitude,hd:c.heading,spd:c.speed};
+  const ll=[NV.me.lat,NV.me.lng];
+  if(!NV.meMk){NV.meMk=L.circleMarker(ll,{radius:9,color:"#fff",weight:3,fillColor:"#1f6feb",fillOpacity:1}).addTo(NV.map);NV.map.setView(ll,15)}
+  else NV.meMk.setLatLng(ll);
+  if(NV.dest&&!NV.best&&Date.now()-NV.lastCalc>5000) navCalc();
+  if(NV.follow&&NV.best){NV.map.panTo(ll,{animate:true});navGuide()}
+}
+function navSetDest(d){
+  NV.dest=d; NV.follow=false; $("#nbanner").hidden=true;
+  if(NV.destMk) NV.map.removeLayer(NV.destMk);
+  NV.destMk=L.marker([d.lat,d.lng]).addTo(NV.map).bindTooltip(d.name,{permanent:true,direction:"top"});
+  if(!NV.me){$("#nsheet").innerHTML=`<p class="note" style="margin:0">ننتظر موقعك حتى نحسب الطريق إلى <b>${esc(d.name)}</b>…</p>`;return}
+  navCalc();
+}
+const kmOf=m=>(m/1000).toFixed(1), minOf=s=>Math.max(1,Math.round(s/60));
+function segLen(a,b){const R=6371000,toR=Math.PI/180,dl=(b[1]-a[1])*toR,dp=(b[0]-a[0])*toR,x=Math.sin(dp/2)**2+Math.cos(a[0]*toR)*Math.cos(b[0]*toR)*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+async function navCalc(){
+  if(!NV.me||!NV.dest) return; NV.lastCalc=Date.now();
+  $("#nsheet").innerHTML=`<div class="empty">نحسب أسرع طريق…</div>`;
+  let data; try{data=await fetch(`${OSRM}${NV.me.lng},${NV.me.lat};${NV.dest.lng},${NV.dest.lat}?alternatives=3&overview=full&geometries=geojson&steps=true`).then(r=>r.json())}
+  catch{ $("#nsheet").innerHTML=`<p class="err">تعذّر حساب الطريق. <a href="${gmaps()}" target="_blank" rel="noopener">افتح بخرائط Google</a></p>`;return }
+  if(!data.routes||!data.routes.length){$("#nsheet").innerHTML=`<p class="err">ما لگيت طريق لهذا المكان.</p>`;return}
+  const routes=data.routes.map(r=>({...r,coords:r.geometry.coordinates.map(c=>[c[1],c[0]])}));
+  // traffic cells from our fleet
+  let lats=[],lngs=[]; routes.forEach(r=>r.coords.forEach(c=>{lats.push(c[0]);lngs.push(c[1])}));
+  const pad=.01, bb=[Math.min(...lats)-pad,Math.min(...lngs)-pad,Math.max(...lats)+pad,Math.max(...lngs)+pad];
+  let cells={}; try{const t=await rpc("taxi_traffic",{p_key:CODE,minlat:bb[0],minlng:bb[1],maxlat:bb[2],maxlng:bb[3]});t.forEach(c=>cells[(+c[0]).toFixed(3)+","+(+c[1]).toFixed(3)]={v:+c[2],n:c[3],live:c[4]})}catch{}
+  const cellOf=(la,lo)=>cells[(Math.round(la/.002)*.002).toFixed(3)+","+(Math.round(lo/.002)*.002).toFixed(3)];
+  routes.forEach(r=>{
+    const free=r.distance/Math.max(r.duration,1); let extra=0; r.jam=[];
+    for(let i=1;i<r.coords.length;i++){const a=r.coords[i-1],b=r.coords[i],len=segLen(a,b),k=Math.max(1,Math.ceil(len/100));
+      for(let j=0;j<k;j++){const p0=[a[0]+(b[0]-a[0])*j/k,a[1]+(b[1]-a[1])*j/k],p1=[a[0]+(b[0]-a[0])*(j+1)/k,a[1]+(b[1]-a[1])*(j+1)/k],sl=len/k,c=cellOf((p0[0]+p1[0])/2,(p0[1]+p1[1])/2);
+        if(c&&c.v<15){const v=Math.max(c.v,4)/3.6; extra+=Math.max(0,sl/v-sl/free); r.jam.push([p0,p1])}}}
+    r.adj=r.duration+extra;
+  });
+  routes.sort((a,b)=>a.adj-b.adj);
+  NV.routes=routes; NV.best=routes[0]; NV.off=0;
+  navDraw(); navSheet();
+  navSave();
+}
+function navDraw(){
+  NV.layers.forEach(l=>NV.map.removeLayer(l)); NV.layers=[];
+  NV.routes.slice(1).forEach(r=>NV.layers.push(L.polyline(r.coords,{color:"#8a9294",weight:5,opacity:.6}).addTo(NV.map)));
+  const b=NV.best;
+  NV.layers.push(L.polyline(b.coords,{color:"#0b4f55",weight:9,opacity:.35}).addTo(NV.map));
+  NV.layers.push(L.polyline(b.coords,{color:"#1f6feb",weight:6}).addTo(NV.map));
+  NV.routes.forEach(r=>r.jam.forEach(s=>NV.layers.push(L.polyline(s,{color:"#d6332b",weight:r===b?7:4,opacity:.9}).addTo(NV.map))));
+  if(!NV.follow) NV.map.fitBounds(L.polyline(b.coords).getBounds(),{padding:[40,40]});
+}
+function navSheet(){
+  const b=NV.best, osrmFirst=NV.routes.reduce((m,r)=>r.duration<m.duration?r:m,NV.routes[0]);
+  const saved=Math.round((osrmFirst.adj-b.adj)/60);
+  $("#nsheet").innerHTML=`
+   <div class="nsum"><div><b>${minOf(b.adj)} دقيقة</b><small>${kmOf(b.distance)} كم · إلى ${esc(NV.dest.name)}</small></div>
+     ${b.jam.length?`<span class="pill s-warn">بيه زحمة خفيفة</span>`:`<span class="pill s-ok">طريق سالك</span>`}</div>
+   ${b!==osrmFirst&&saved>0?`<p class="note" style="margin:0;border-color:var(--ok)">✔ اخترنالك طريق يتجنّب الزحمة، يوفّر تقريبًا ${saved} دقيقة.</p>`:""}
+   ${NV.routes.length>1?`<div class="nalts">${NV.routes.map((r,i)=>`<button class="btn sm ${r===b?"primary":""}" data-ri="${i}">${i===0?"الأسرع":"بديل "+i} · ${minOf(r.adj)} د</button>`).join("")}</div>`:""}
+   <div class="row2"><button class="btn primary big" id="ngo">${NV.follow?"⏹ إيقاف":"▶ ابدأ"}</button><a class="btn big" href="${gmaps()}" target="_blank" rel="noopener" style="text-align:center">Google</a></div>
+   <details><summary>خطوات الطريق (${navSteps().length})</summary><ol class="nsteps">${navSteps().map(s=>`<li>${esc(s.txt)} <small>${s.dist}</small></li>`).join("")}</ol></details>
+   <p style="font-size:12px;color:var(--muted);margin:0">الأحمر = زحمة سجّلتها سياراتنا. المسار ينحفظ على السفرة.</p>`;
+  $("#nsheet").querySelectorAll("[data-ri]").forEach(x=>x.onclick=()=>{NV.best=NV.routes[+x.dataset.ri];navDraw();navSheet();navSave()});
+  $("#ngo").onclick=()=>{NV.follow=!NV.follow;$("#nbanner").hidden=!NV.follow;if(NV.follow&&NV.me){NV.map.setView([NV.me.lat,NV.me.lng],17);navGuide()}navSheet();keepAwake()};
+}
+const gmaps=()=>NV.dest?`https://www.google.com/maps/dir/?api=1&destination=${NV.dest.lat},${NV.dest.lng}&travelmode=driving`:"#";
+function stepText(st){
+  const m=st.maneuver||{},mod=m.modifier||"",road=st.name?` على ${st.name}`:"";
+  const dir={left:"يسار","slight left":"يسار خفيف","sharp left":"يسار حاد",right:"يمين","slight right":"يمين خفيف","sharp right":"يمين حاد",straight:"دغري",uturn:"ارجع"}[mod]||"";
+  switch(m.type){
+    case "depart": return `انطلق${road}`;
+    case "arrive": return "وصلت للمكان";
+    case "roundabout": case "rotary": return `بالفلكة اطلع المخرج ${m.exit||""}${road}`;
+    case "exit roundabout": case "exit rotary": return `اطلع من الفلكة${road}`;
+    case "merge": return `اندمج ${dir}${road}`;
+    case "on ramp": return `اطلع على المدخل ${dir}${road}`;
+    case "off ramp": return `انزل من المخرج ${dir}${road}`;
+    case "fork": return `بالتفرّع خذ ${dir}${road}`;
+    case "continue": case "new name": return `استمر ${dir}${road}`;
+    case "end of road": return `بنهاية الشارع لف ${dir}${road}`;
+    default: return mod==="uturn"?`ارجع${road}`:mod==="straight"?`استمر دغري${road}`:`لف ${dir}${road}`;
+  }
+}
+function navSteps(){
+  const out=[]; (NV.best.legs||[]).forEach(l=>l.steps.forEach(st=>out.push({txt:stepText(st),dist:st.distance>=1000?kmOf(st.distance)+" كم":Math.round(st.distance)+" م",loc:[st.maneuver.location[1],st.maneuver.location[0]]})));
+  return out;
+}
+function navGuide(){
+  if(!NV.me||!NV.best) return;
+  const me=[NV.me.lat,NV.me.lng];
+  // distance to the route: re-route when clearly off it
+  let dmin=1e9; for(let i=0;i<NV.best.coords.length;i+=2) dmin=Math.min(dmin,segLen(me,NV.best.coords[i]));
+  if(dmin>80){ if(++NV.off>=3&&Date.now()-NV.lastCalc>15000){NV.off=0;toast("طلعت عن الطريق، نحسب طريق جديد");NV.best=null;navCalc();return} } else NV.off=0;
+  const steps=navSteps(); let next=null,dn=1e9;
+  for(const s of steps){const d=segLen(me,s.loc); if(d>25&&d<dn&&!s.done){dn=d;next=s}}
+  const toDest=segLen(me,[NV.dest.lat,NV.dest.lng]);
+  const bn=$("#nbanner");
+  if(toDest<40){bn.innerHTML=`<b>🏁 وصلت إلى ${esc(NV.dest.name)}</b>`;return}
+  if(next) bn.innerHTML=`<small>بعد ${dn>=1000?kmOf(dn)+" كم":Math.round(dn/10)*10+" م"}</small><b>${esc(next.txt)}</b>`;
+}
+let navSavedFor=null;
+function navSave(){
+  if(!NV.best) return;
+  const pts=NV.best.coords.filter((_,i)=>i%3===0).map(c=>[+c[0].toFixed(5),+c[1].toFixed(5)]);
+  rpc("taxi_driver_route",{p_code:CODE,p:{route:pts,km:(NV.best.distance/1000).toFixed(2),min:(NV.best.adj/60).toFixed(1)}}).catch(()=>{});
+}
 /* ---------------- Router ---------------- */
-function route(){ const h=location.hash; (h==="#driver"?driverApp:h==="#admin"?adminApp:h==="#order"?orderApp:h==="#signup"?signupApp:h==="#login"?loginApp:h==="#account"?accountApp:landingApp)(); }
+// the Android app opens the map as ?c=<driver code>#nav
+function route(){ try{const c=new URLSearchParams(location.search).get("c");if(c&&/^\d{4,8}$/.test(c)){store.set("taxi_driver_code",c);store.set("taxi_role","driver");CODE=c}}catch{}
+  const h=location.hash; (h==="#nav"?navApp:h==="#driver"?driverApp:h==="#admin"?adminApp:h==="#order"?orderApp:h==="#signup"?signupApp:h==="#login"?loginApp:h==="#account"?accountApp:landingApp)(); }
 window.addEventListener("hashchange",()=>location.reload());
 
 /* ---------------- ADMIN ---------------- */
@@ -707,11 +877,22 @@ async function loadZones(force){if(!zonesCache||force){try{zonesCache=await rpc(
 async function renderZones(){
   const box=$("#zbox"); if(!box) return;
   const zs=await loadZones(true);
-  box.innerHTML=`<div class="tbl-wrap"><table style="min-width:520px"><thead><tr><th>المنطقة</th><th>السعر</th><th>سعر الازدحام</th><th>الازدحام</th><th></th></tr></thead><tbody>
+  box.innerHTML=`<div class="tbl-wrap"><table style="min-width:520px"><thead><tr><th>المنطقة</th><th>السعر</th><th>سعر الازدحام</th><th>الازدحام</th><th>على الخريطة</th><th></th></tr></thead><tbody>
    ${zs.map(z=>`<tr><td><b>${esc(z.name)}</b></td><td class="num">${fmt(z.price)}</td><td class="num">${z.rush_price?fmt(z.rush_price):"—"}</td>
    <td>${z.rush_price?`<label class="chk"><input type="checkbox" data-rush="${z.id}" ${z.rush_on?"checked":""}> ${z.rush_on?"<b style='color:var(--warn)'>مفعّل</b>":"لا"}</label>`:""}</td>
+   <td>${z.lat?`<a href="https://maps.google.com/?q=${z.lat},${z.lng}" target="_blank" rel="noopener">📍 محدد</a>`:`<span style="color:var(--warn)">غير محدد</span>`}</td>
    <td><div class="acts"><button class="btn sm" data-ze="${z.id}">تعديل</button><button class="btn sm danger" data-zd="${z.id}">حذف</button></div></td></tr>`).join("")}
-  </tbody></table></div><button class="btn primary" id="zadd" style="margin-top:12px">+ إضافة منطقة</button>`;
+  </tbody></table></div><div class="row" style="justify-content:flex-start;margin-top:12px"><button class="btn primary" id="zadd">+ إضافة منطقة</button><button class="btn" id="zgeo">📍 تحديد مواقع المناطق تلقائيًا</button></div><div id="zgeo-st" class="note" hidden></div>`;
+  $("#zgeo").onclick=async()=>{const todo=zs.filter(z=>!z.lat);const st=$("#zgeo-st");st.hidden=false;
+    if(!todo.length){st.textContent="كل المناطق محددة على الخريطة.";return}
+    let ok=0,miss=[];
+    for(const [i,z] of todo.entries()){st.textContent=`نحدد ${i+1} من ${todo.length}: ${z.name}…`;
+      try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&accept-language=ar&limit=1&viewbox=44.0,33.65,44.75,32.95&bounded=1&q=${encodeURIComponent(cleanPlace(z.name)+"، بغداد")}`).then(r=>r.json());
+        if(r.length){await rpc("taxi_admin_zone_geo",{p_pin:PIN,p_id:z.id,p_lat:+r[0].lat,p_lng:+r[0].lon});ok++}else miss.push(z.name)}catch{miss.push(z.name)}
+      await new Promise(r=>setTimeout(r,1200))}
+    st.innerHTML=`تحدد ${ok} منطقة.${miss.length?` ما لگينا: <b>${miss.map(esc).join("، ")}</b>. حددها يدويًا من «تعديل».`:""}`;
+    loadZones(true).then(()=>{const keep=st.innerHTML;renderZones().then(()=>{const s2=$("#zgeo-st");if(s2){s2.hidden=false;s2.innerHTML=keep}})});
+  };
   box.querySelectorAll("[data-rush]").forEach(c=>c.onchange=async()=>{try{await rpc("taxi_admin_zone_save",{p_pin:PIN,p:{action:"rush",id:+c.dataset.rush,on:c.checked}});toast(c.checked?"تفعّل سعر الازدحام":"رجع السعر العادي");renderZones()}catch(e){toast(e.message)}});
   box.querySelectorAll("[data-zd]").forEach(b=>b.onclick=()=>{const z=zs.find(x=>x.id==b.dataset.zd);confirmBox(`حذف منطقة ${z.name}؟`,"حذف",async()=>{await rpc("taxi_admin_zone_save",{p_pin:PIN,p:{action:"delete",id:z.id}});renderZones()})});
   box.querySelectorAll("[data-ze]").forEach(b=>b.onclick=()=>zoneForm(zs.find(x=>x.id==b.dataset.ze)));
@@ -723,9 +904,14 @@ function zoneForm(z){
     <div class="field"><label for="z-n">اسم المنطقة</label><input id="z-n" required value="${esc(z.name||"")}"></div>
     <div class="grid2"><div class="field"><label for="z-p">السعر (دينار)</label><input id="z-p" inputmode="numeric" required value="${z.price||""}"></div>
     <div class="field"><label for="z-r">سعر الازدحام (اختياري)</label><input id="z-r" inputmode="numeric" value="${z.rush_price||""}"></div></div>
+    <div class="field"><label for="z-ll">الموقع على الخريطة (اختياري)</label><input id="z-ll" dir="ltr" value="${z.lat?z.lat+", "+z.lng:""}" placeholder="33.3152, 44.3661"><small style="color:var(--muted)">من خرائط Google: اضغط مطوّل على المكان وانسخ الأرقام.</small></div>
     <div class="err" id="ze"></div><div class="row"><button type="button" class="btn" id="zc">إلغاء</button><button class="btn primary">حفظ</button></div></form>`);
   $("#zc",m).onclick=()=>m.remove();
-  $("#zf",m).onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_zone_save",{p_pin:PIN,p:{id:z.id,name:$("#z-n",m).value,price:$("#z-p",m).value,rush_price:$("#z-r",m).value}});m.remove();toast("انحفظت");renderZones()}catch(err){$("#ze",m).textContent=err.message}};
+  $("#zf",m).onsubmit=async e=>{e.preventDefault();try{
+    const ll=$("#z-ll",m).value.match(/(-?\d+(?:\.\d+)?)\s*[,،]\s*(-?\d+(?:\.\d+)?)/);
+    await rpc("taxi_admin_zone_save",{p_pin:PIN,p:{id:z.id,name:$("#z-n",m).value,price:$("#z-p",m).value,rush_price:$("#z-r",m).value}});
+    if(z.id&&ll) await rpc("taxi_admin_zone_geo",{p_pin:PIN,p_id:z.id,p_lat:+ll[1],p_lng:+ll[2]});
+    m.remove();toast("انحفظت");renderZones()}catch(err){$("#ze",m).textContent=err.message}};
 }
 
 async function renderCustomers(){
@@ -839,8 +1025,9 @@ async function loadTrips(quiet){
     <td>${t.source==="office"?"المكتب":t.source==="customer"?"الزبون (أونلاين)":"السائق"}</td>
     <td><span class="pill ${st[0]}">${st[1]}</span>${t.cancel_reason?`<br><small style="color:var(--muted)">${esc(t.cancel_reason)}</small>`:""}</td>
     <td style="font-variant-numeric:tabular-nums">${t.fare?fmt(t.fare):"—"}</td><td>${t.km!=null?t.km:"—"}</td>
-    <td><div class="acts">${t.status==="requested"?`<button class="btn sm primary" data-ta="re" data-id="${t.id}">إرسال لسائق</button>`:["assigned","rejected"].includes(t.status)?`<button class="btn sm" data-ta="re" data-id="${t.id}">تحويل لسائق</button>`:""}${openT?`<button class="btn sm danger" data-ta="cancel" data-id="${t.id}">إلغاء</button>`:""}</div></td></tr>`}).join("")}
+    <td><div class="acts">${t.car_id&&["accepted","started","done"].includes(t.status)?`<button class="btn sm" data-tp="${t.id}">🗺 المسار</button>`:""}${t.status==="requested"?`<button class="btn sm primary" data-ta="re" data-id="${t.id}">إرسال لسائق</button>`:["assigned","rejected"].includes(t.status)?`<button class="btn sm" data-ta="re" data-id="${t.id}">تحويل لسائق</button>`:""}${openT?`<button class="btn sm danger" data-ta="cancel" data-id="${t.id}">إلغاء</button>`:""}</div></td></tr>`}).join("")}
   </tbody></table></div>`;
+  box.querySelectorAll("[data-tp]").forEach(b=>b.onclick=()=>showTripPath(+b.dataset.tp));
   box.querySelectorAll("[data-ta]").forEach(b=>b.onclick=()=>{
     const id=+b.dataset.id;
     if(b.dataset.ta==="cancel") confirmBox("إلغاء هذي السفرة؟","إلغاء السفرة",async()=>{await rpc("taxi_admin_trip_action",{p_pin:PIN,p_id:id,p_action:"cancel"});toast("انلغت");loadTrips()});
@@ -947,6 +1134,18 @@ async function driverDetail(r){
    ${d.cash.length?`<ul class="log">${d.cash.map(k=>`<li><span class="pill s-ok">${fmt(k.amount)}</span><span>${dt(k.at)}${k.note?" · "+esc(k.note):""}</span>${(Date.now()-new Date(k.at))<48*3600e3?`<button class="btn sm danger" data-cdel="${k.id}">حذف</button>`:"<span></span>"}</li>`).join("")}</ul>`:`<p class="note">ما استلمت منه شي هذا الشهر.</p>`}`;
   $("#dd",m).querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{const v=d.moves[+b.dataset.mv];m.remove();showRange(r.id,v.started_at,v.ended_at)});
   $("#dd",m).querySelectorAll("[data-cdel]").forEach(b=>b.onclick=async()=>{try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"delete",p:{id:b.dataset.cdel}});m.remove();toast("انحذف");loadAccounts()}catch(e){toast(e.message)}});
+}
+async function showTripPath(id){
+  let d; try{d=await rpc("taxi_admin_trip_path",{p_pin:PIN,p_id:id})}catch(e){return toast(e.message)}
+  tab="live"; selId=d.car_id; renderTab();
+  if(!map) return;
+  if(trailLine) map.removeLayer(trailLine);
+  const g=L.layerGroup().addTo(map); trailLine=g; const all=[];
+  if(d.route&&d.route.length>1){L.polyline(d.route,{color:"#1f6feb",weight:5,dashArray:"8 8",opacity:.8}).addTo(g).bindTooltip("الطريق المخطط"+(d.route_km?` · ${d.route_km} كم`:""));all.push(...d.route)}
+  if(d.path.length>1){L.polyline(d.path,{color:"#16935a",weight:6}).addTo(g).bindTooltip("الطريق الفعلي"+(d.km?` · ${d.km} كم`:""));all.push(...d.path)}
+  if(!all.length) return toast("ماكو مسار مسجّل لهاي السفرة بعد");
+  fitted=true; map.fitBounds(all,{padding:[40,40]});
+  toast("الأزرق المتقطع: المخطط · الأخضر: اللي مشاه فعلًا");
 }
 async function showRange(carId,from,to){
   tab="live"; selId=carId; renderTab();
@@ -1280,7 +1479,8 @@ function showTrip(t,force){
     $("#tr-rej").onclick=()=>{siren(false);const m=modal(`<h3>رفض السفرة؟</h3><p style="margin:0">الرفض ينسجل عليك ويوصل للإدارة.</p><div class="field"><label for="rr">السبب</label><input id="rr" placeholder="مثال: بعيد، عندي عطل"></div><div class="row"><button class="btn" id="rn">رجوع</button><button class="btn primary" id="ry">رفض</button></div>`);$("#rn",m).onclick=()=>m.remove();$("#ry",m).onclick=()=>{m.remove();tripAct("reject",{reason:$("#rr",m).value})}};
     return}
   if(t.status==="accepted"){box.innerHTML=`<div class="trip"><h3>رايح للزبون</h3>${where}<button class="btn primary big" id="tr-go">وصلت، ابدأ السفرة</button></div>`;$("#tr-go").onclick=()=>tripAct("start");return}
-  box.innerHTML=`<div class="trip on"><h3>بسفرة من ${hm(t.started_at)}</h3>${where}
+  const navBtn=`<a class="btn big" href="#nav" style="text-align:center">🧭 الطريق على الخريطة</a>`;
+  box.innerHTML=`<div class="trip on"><h3>بسفرة من ${hm(t.started_at)}</h3>${where}${navBtn}
     ${t.zone_id&&t.fare?`<div class="calc"><div class="tot"><span>استلم من الزبون</span><b>${dinar(t.fare)}</b></div></div>`:`<div class="field"><label for="tr-fare">الأجرة المستلمة (دينار)</label><input id="tr-fare" inputmode="numeric" value="${today.base||""}" style="font:600 22px var(--mono);text-align:center"></div>`}
     <button class="btn primary big" id="tr-end">إنهاء السفرة</button></div>`;
   $("#tr-end").onclick=()=>tripAct("end",{fare:$("#tr-fare")?$("#tr-fare").value:""});
