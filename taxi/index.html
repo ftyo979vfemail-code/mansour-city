@@ -298,7 +298,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611060711";
+const BUILD="202611070433";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1107,6 +1107,15 @@ async function driverStart(){
   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
   if(ios&&store.get("taxi_ext")===null){EXT=true;store.set("taxi_ext","1")}
   if(ios||EXT) renderExtCard();
+  else if(/Android/i.test(navigator.userAgent)){
+    // On Android the browser stops GPS once the driver leaves the page; the app keeps it running.
+    const box=document.createElement("div");box.className="trip offer";
+    box.innerHTML=`<h3>⚠ الصفحة توقف الموقع أول ما تطلع منها</h3>
+      <p>حتى يبقى الـ GPS شغّال والشاشة مقفولة، نزّل <b>تطبيق المنصور تاكسي</b> وادخل بنفس رمزك <b dir="ltr">${esc(CODE)}</b>.</p>
+      <a class="btn primary big" href="${APK_URL}" style="text-align:center">تنزيل التطبيق للأندرويد</a>
+      <p style="font-size:13px">بعد التنزيل افتح الملف ووافق على «تثبيت من هذا المصدر». بالتطبيق وافق على كل الأذونات، واختار للموقع «السماح طوال الوقت».</p>`;
+    $(".drv").insertBefore(box,$("#ring"));
+  }
   if(EXT){ON=false;store.set("taxi_on","0");setExt(true)}
   else if(ON) goOn();
   setInterval(()=>{$("#st-sent")&&($("#st-sent").textContent=lastSent?ago(lastSent):"—")},1000);
