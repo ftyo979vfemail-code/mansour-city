@@ -317,3 +317,6 @@ language sql stable security definer set search_path = public as $$
     'points_welcome', taxi_setting_int('points_welcome'),
     'points_redeem', taxi_setting_int('points_redeem'));
 $$;
+
+-- dispatch: the office can cancel a customer request a driver rejected; admin trips list includes points_used
+-- and recent rejected customer requests (see migration taxi_admin_dispatch on Supabase)

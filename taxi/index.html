@@ -228,6 +228,14 @@ select.btn{font-weight:500}
 .back img{height:42px}
 .reqbar{background:color-mix(in srgb,var(--amber) 22%,var(--panel));color:var(--fg);border-color:var(--amber)}
 .reqbar .btn{margin-inline-start:auto}
+.dpick{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
+.dpick button{display:flex;align-items:center;gap:10px;text-align:start;border:2px solid var(--line);background:var(--panel);border-radius:14px;padding:10px 12px;color:var(--fg);font:inherit;cursor:pointer}
+.dpick button:hover:not(:disabled){border-color:var(--amber)}
+.dpick button[aria-pressed=true]{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--panel))}
+.dpick button:disabled{opacity:.5;cursor:not-allowed}
+.dpick .dn{flex:1;min-width:0}.dpick .dn b{display:block}.dpick .dn small{color:var(--muted)}
+.dpick .dk{font:600 14px var(--mono);white-space:nowrap}
+.reqcard{border:2px solid var(--amber);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px}
 tr.row-new td{background:color-mix(in srgb,var(--amber) 12%,transparent)}
 .addr{border:1px solid var(--line);border-radius:14px;padding:12px 14px 14px;margin:0;display:flex;flex-direction:column;gap:10px}
 .addr legend{font:600 14px var(--display);padding:0 6px;color:var(--fg)}
@@ -336,7 +344,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611071419";
+const BUILD="202611071435";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -788,7 +796,7 @@ function route(){ try{const c=new URLSearchParams(location.search).get("c");if(c
 window.addEventListener("hashchange",()=>location.reload());
 
 /* ---------------- ADMIN ---------------- */
-let pollN=0, prevReq=[], zonesCache=null;
+let pollN=0, prevReq=[], prevReqInit=false, zonesCache=null;
 let PIN=sess.get("taxi_pin"), cars=[], map, markers={}, trailLine=null, selId=null, tab="live", pollT, evT, prevBad=new Set(), audioCtx;
 
 function adminApp(){ PIN?adminShell():adminGate(); }
@@ -847,10 +855,14 @@ async function poll(){
   prevBad=nowBad;
   pollN=(pollN||0)+1;
   if(pollN%2===1) rpc("taxi_admin_trips",{p_pin:PIN}).then(ts=>{
-    const req=ts.filter(t=>t.status==="requested"); const rb=$("#reqbar"); if(!rb) return;
-    if(req.length){rb.hidden=false;rb.innerHTML=`🔔 ${req.length} طلب زبون جديد: ${req.slice(0,3).map(t=>`${esc(t.customer_name||"زبون")} ← ${esc(t.dropoff)}`).join("، ")} <button class="btn sm primary">وزّعها هسه</button>`;
-      rb.querySelector("button").onclick=()=>{tab="trips";renderTab()}}else rb.hidden=true;
-    const ids=req.map(t=>t.id); if(ids.some(id=>!prevReq.includes(id))){beep();setTimeout(beep,450);setTimeout(beep,900)} prevReq=ids;
+    const req=ts.filter(t=>t.status==="requested"||(t.status==="rejected"&&t.source==="customer")); const rb=$("#reqbar"); if(!rb) return;
+    if(req.length){rb.hidden=false;rb.innerHTML=`🔔 ${req.length} طلب زبون ينتظر سائق: ${req.slice(0,3).map(t=>`${esc(t.customer_name||"زبون")} ← ${esc(t.dropoff)}${t.status==="rejected"?" (رفضه السائق)":""}`).join("، ")} <button class="btn sm primary">أرسل لسائق</button>`;
+      rb.querySelector("button").onclick=()=>dispatchTrip([...req].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0])}else rb.hidden=true;
+    const ids=req.map(t=>t.id), fresh=req.filter(t=>!prevReq.includes(t.id));
+    if(fresh.length){beep();setTimeout(beep,450);setTimeout(beep,900);
+      // pop the new request straight up so the manager picks a driver in one step
+      if(prevReqInit&&!document.querySelector(".modal")) dispatchTrip([...fresh].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0])}
+    prevReq=ids; prevReqInit=true;
   }).catch(()=>{});
   if(tab==="live") renderLive(); else if(tab==="cars") renderCars(); else if(tab==="trips") loadTrips(true);
 }
@@ -1062,7 +1074,7 @@ async function loadTrips(quiet){
   $("#tsum").innerHTML=`<div class="kpi"><small>سفرات مكتملة</small><b>${done.length}</b></div><div class="kpi"><small>مجموع الأجرة</small><b>${dinar(done.reduce((a,t)=>a+(t.fare||0),0))}</b></div><div class="kpi"><small>مفتوحة هسه</small><b>${open.length}</b></div><div class="kpi"><small>مرفوضة</small><b>${tripsCache.filter(t=>t.status==="rejected").length}</b></div>`;
   if(!tripsCache.length){box.innerHTML=`<div class="empty card">ماكو سفرات بهذا اليوم. اضغط «حجز سفرة» لما يخابرك زبون، واختار السائق، فتوصله السفرة على تطبيقه.</div>`;return}
   box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>الوقت</th><th>السائق</th><th>من ← إلى</th><th>الزبون</th><th>المصدر</th><th>الحالة</th><th>الأجرة</th><th>كم</th><th></th></tr></thead><tbody>
-  ${tripsCache.map(t=>{const st=TS[t.status]||["s-idle",t.status];const openT=["requested","assigned","accepted","started"].includes(t.status);return `<tr${t.status==="requested"?' class="row-new"':""}>
+  ${tripsCache.map(t=>{const st=TS[t.status]||["s-idle",t.status];const openT=["requested","assigned","accepted","started"].includes(t.status)||(t.status==="rejected"&&t.source==="customer");return `<tr${t.status==="requested"?' class="row-new"':""}>
     <td style="font-variant-numeric:tabular-nums">${hm(t.created_at)}${t.ended_at?`<br><small style="color:var(--muted)">${hm(t.started_at)}–${hm(t.ended_at)}</small>`:""}</td>
     <td>${t.plate?plateHTML(t.plate):""} ${esc(t.driver_name||"—")}</td>
     <td>${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}${t.note?`<br><small style="color:var(--muted)">${esc(t.note)}</small>`:""}</td>
@@ -1076,17 +1088,33 @@ async function loadTrips(quiet){
   box.querySelectorAll("[data-ta]").forEach(b=>b.onclick=()=>{
     const id=+b.dataset.id;
     if(b.dataset.ta==="cancel") confirmBox("إلغاء هذي السفرة؟","إلغاء السفرة",async()=>{await rpc("taxi_admin_trip_action",{p_pin:PIN,p_id:id,p_action:"cancel"});toast("انلغت");loadTrips()});
-    else pickDriver("تحويل السفرة لسائق ثاني",async car=>{await rpc("taxi_admin_trip_action",{p_pin:PIN,p_id:id,p_action:"reassign",p_car:car});toast("انرسلت للسائق");loadTrips()});
+    else dispatchTrip(tripsCache.find(x=>x.id===id));
   });
 }
 function driverOptions(){
   const rank=c=>{const s=status(c);return c.trip?3:s.k==="ok"?0:s.k==="warn"?1:2};
   return [...cars].filter(c=>c.active).sort((a,b)=>rank(a)-rank(b)).map(c=>{const s=status(c);return `<option value="${c.id}" ${c.trip?"disabled":""}>${esc(c.driver_name)} · ${esc(c.plate)} — ${c.trip?"عنده سفرة":s.t}</option>`}).join("");
 }
-function pickDriver(title,fn){
-  const m=modal(`<h3>${esc(title)}</h3><div class="field"><label for="pd">السائق</label><select id="pd" class="btn" style="width:100%">${driverOptions()}</select></div><div class="err" id="pe"></div><div class="row"><button class="btn" id="pc">رجوع</button><button class="btn primary" id="po">إرسال</button></div>`);
+function kmBetween(a,b,c,d){const R=6371,r=x=>x*Math.PI/180,dl=r(c-a),dn=r(d-b);const h=Math.sin(dl/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+function pickDriver(title,fn,t){
+  // free + connected drivers first, nearest to the customer first
+  const ref=t&&t.pickup_lat?[t.pickup_lat,t.pickup_lng]:null;
+  const list=[...cars].filter(c=>c.active).map(c=>{const s=status(c);const d=ref&&c.last_lat!=null?kmBetween(ref[0],ref[1],c.last_lat,c.last_lng):null;
+    return {c,s,d,busy:!!c.trip&&(!t||c.id!==t.car_id),rank:(c.trip?3:s.k==="ok"?0:s.k==="warn"?1:2)}}).sort((a,b)=>a.rank-b.rank||(a.d??1e9)-(b.d??1e9));
+  const first=list.find(x=>!x.busy&&x.rank<2);
+  const m=modal(`<h3>${esc(title)}</h3>
+    ${t?`<div class="reqcard"><b>${esc(t.customer_name||"زبون")}${t.points_used?` <span class="pill s-ok">⭐ مجانية بالنقاط</span>`:""}</b><span>من: ${esc(t.pickup||"—")}${t.pickup_lat?` <a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍</a>`:""}</span><span>إلى: <b>${esc(t.dropoff||"—")}</b>${t.fare?` · ${dinar(t.fare)}`:""}</span>${t.note?`<small style="color:var(--muted)">${esc(t.note)}</small>`:""}</div>`:""}
+    <div class="dpick" role="radiogroup" aria-label="السائق">${list.length?list.map(x=>`<button type="button" role="radio" data-c="${x.c.id}" aria-pressed="${first&&first.c.id===x.c.id}" ${x.busy?"disabled":""}>
+      ${plateHTML(x.c.plate)}<span class="dn"><b>${esc(x.c.driver_name)}</b><small>${x.busy?"عنده سفرة هسه":x.s.t}</small></span>
+      <span class="dk">${x.d!=null?(x.d<1?Math.round(x.d*1000)+" م":x.d.toFixed(1)+" كم"):""}</span></button>`).join(""):`<div class="empty">ماكو سواق مفعّلين.</div>`}</div>
+    <div class="err" id="pe"></div><div class="row"><button class="btn" id="pc">رجوع</button><button class="btn primary" id="po">إرسال للسائق</button></div>`);
+  let sel=first?first.c.id:null;
+  m.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{sel=b.dataset.c;m.querySelectorAll("[data-c]").forEach(x=>x.setAttribute("aria-pressed",x===b))});
   $("#pc",m).onclick=()=>m.remove();
-  $("#po",m).onclick=async()=>{try{await fn($("#pd",m).value);m.remove()}catch(e){$("#pe",m).textContent=e.message}};
+  $("#po",m).onclick=async()=>{if(!sel){$("#pe",m).textContent="اختار السائق";return}const btn=$("#po",m);btn.disabled=true;try{await fn(sel);m.remove()}catch(e){$("#pe",m).textContent=e.message;btn.disabled=false}};
+}
+function dispatchTrip(t){
+  pickDriver(t.status==="requested"?"🔔 طلب زبون: اختار السائق":t.status==="rejected"?"رفضه السائق: أرسله لسائق ثاني":"تحويل السفرة لسائق ثاني",async car=>{await rpc("taxi_admin_trip_action",{p_pin:PIN,p_id:t.id,p_action:"reassign",p_car:car});toast("انرسل الطلب للسائق");if(tab==="trips")loadTrips()},t);
 }
 function tripForm(){
   if(!cars.filter(c=>c.active).length) return toast("أضف سيارة أولًا");
