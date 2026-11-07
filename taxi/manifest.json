@@ -1,0 +1,24 @@
+{
+ "name": "المنصور تاكسي",
+ "short_name": "المنصور تاكسي",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "dir": "rtl",
+ "lang": "ar",
+ "background_color": "#014e55",
+ "theme_color": "#014e55",
+ "icons": [
+  {
+   "src": "img/apple-touch-icon.png",
+   "sizes": "180x180",
+   "type": "image/png"
+  },
+  {
+   "src": "img/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  }
+ ]
+}

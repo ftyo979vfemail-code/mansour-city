@@ -12,6 +12,11 @@
 <meta property="og:type" content="website">
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="المنصور تاكسي">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -305,7 +310,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611070437";
+const BUILD="202611070440";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -358,6 +363,11 @@ const IC={
 function telHref(n){return "tel:"+String(n).replace(/[^\d+]/g,"")}
 function waHref(n){let d=String(n).replace(/\D/g,"");if(d.startsWith("07"))d="964"+d.slice(1);return "https://wa.me/"+d}
 function landingApp(){
+  const role=store.get("taxi_role");
+  if(role==="driver"&&store.get("taxi_driver_code")){location.replace("#driver");return}
+  if(role==="customer"&&store.get("taxi_cs")){location.replace("#order");return}
+  if(!role&&store.get("taxi_driver_code")){store.set("taxi_role","driver");location.replace("#driver");return}
+  if(!role&&store.get("taxi_cs")){store.set("taxi_role","customer");location.replace("#order");return}
   document.title="المنصور تاكسي";
   $("#app").innerHTML=`<div class="lp">
   <header class="hero">
@@ -447,8 +457,8 @@ function readAddr(){
   return {b,f,a};
 }
 const CS={get tok(){return store.get("taxi_cs")},get name(){return store.get("taxi_cs_name")||""},get phone(){return store.get("taxi_cs_phone")||""},
-  set(r){store.set("taxi_cs",r.token);store.set("taxi_cs_name",r.name);store.set("taxi_cs_phone",r.phone)},
-  clear(){store.del("taxi_cs");store.del("taxi_cs_name");store.del("taxi_cs_phone");store.del("taxi_order")}};
+  set(r){store.set("taxi_role","customer");store.set("taxi_cs",r.token);store.set("taxi_cs_name",r.name);store.set("taxi_cs_phone",r.phone)},
+  clear(){if(store.get("taxi_role")==="customer")store.del("taxi_role");store.del("taxi_cs");store.del("taxi_cs_name");store.del("taxi_cs_phone");store.del("taxi_order")}};
 function accountCtas(){
   return CS.tok
     ?`<div class="ctas"><a class="cta call" href="#order">🚕<span>اطلب تكسي هسه<small style="font-family:var(--body);direction:rtl">اختار منطقتك وتوصلك سيارة</small></span></a><a class="cta wa" href="#account">👤<span>حسابي<small style="font-family:var(--body);direction:rtl">${esc(CS.name)}</small></span></a></div>`
@@ -1156,11 +1166,11 @@ function driverGate(msg){
    <a class="btn" style="text-align:center;text-decoration:none" href="${APK_URL}">تحميل تطبيق المنصور تاكسي للأندرويد</a>
    <p class="note" style="margin:0">عند الدخول سيطلب الهاتف إذن الموقع. اختر «السماح دائمًا» أو «أثناء الاستخدام».</p></form></div>`;
   $("#dg").onsubmit=async e=>{e.preventDefault();const k=$("#dc").value.trim();
-    try{await rpc("taxi_driver_login",{p_code:k});CODE=k;store.set("taxi_driver_code",k);driverStart()}catch(err){$("#de").textContent=err.message}};
+    try{await rpc("taxi_driver_login",{p_code:k});CODE=k;store.set("taxi_driver_code",k);store.set("taxi_role","driver");driverStart()}catch(err){$("#de").textContent=err.message}};
 }
 async function driverStart(){
   let car;
-  try{car=await rpc("taxi_driver_login",{p_code:CODE})}catch(e){store.del("taxi_driver_code");CODE=null;return driverGate(e.message)}
+  try{car=await rpc("taxi_driver_login",{p_code:CODE})}catch(e){store.del("taxi_driver_code");if(store.get("taxi_role")==="driver")store.del("taxi_role");CODE=null;return driverGate(e.message)}
   $("#app").innerHTML=`<div class="drv">
     <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>${esc(car.driver_name)}</h1><small>${esc([car.model,car.year,car.color].filter(Boolean).join(" · "))}</small></div></div>
     <div style="align-self:center">${plateHTML(car.plate,true)}</div>
@@ -1323,7 +1333,7 @@ async function send(c){
     lastSent=Date.now();sentCount++;$("#st-n").textContent=sentCount;
     if(r) showTrip(r.trip);
   }catch(e){
-    if(/رمز/.test(e.message)){store.del("taxi_driver_code");CODE=null;location.reload()}
+    if(/رمز/.test(e.message)){store.del("taxi_driver_code");if(store.get("taxi_role")==="driver")store.del("taxi_role");CODE=null;location.reload()}
     $("#rsub").textContent="لا يوجد إنترنت، سيُعاد الإرسال تلقائيًا";
   }
 }
