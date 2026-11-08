@@ -339,6 +339,17 @@ tr.row-new td{background:color-mix(in srgb,var(--amber) 12%,transparent)}
 #nmap{flex:1}
 .nbanner{position:absolute;z-index:1000;top:calc(66px + env(safe-area-inset-top,0px));left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));background:#0b4f55;color:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 6px 18px rgb(0 0 0/.3)}
 .nbanner small{display:block;opacity:.8}.nbanner b{font:700 20px var(--display)}
+.nbanner{display:flex;align-items:center;gap:12px}
+.nturn{width:48px;height:48px;border-radius:12px;background:rgb(255 255 255/.14);display:grid;place-items:center;flex:none}
+#nmap{position:relative;min-height:0}
+.nfab{position:absolute;z-index:1000;left:max(12px,env(safe-area-inset-left,0px));top:calc(150px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:8px}
+.nfab-b{min-width:52px;height:48px;border-radius:14px;border:0;background:#fff;color:#0b4f55;font:700 15px var(--display);box-shadow:0 4px 14px rgb(0 0 0/.22);padding:0 12px}
+.nspeed{position:absolute;z-index:1000;right:max(12px,env(safe-area-inset-right,0px));top:calc(150px + env(safe-area-inset-top,0px));width:64px;height:64px;border-radius:50%;background:#fff;color:#0f2326;box-shadow:0 4px 14px rgb(0 0 0/.22);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.nspeed b{font:700 22px var(--mono)} .nspeed small{font-size:10px;color:#5d6f71}
+.navcar{width:46px;height:46px;filter:drop-shadow(0 3px 4px rgb(0 0 0/.35))}
+.navdest{display:flex;flex-direction:column;align-items:center}
+.navdest span{order:-1;background:#fff;color:#0f2326;border-radius:8px;padding:2px 8px;font:700 12px var(--body);box-shadow:0 2px 6px rgb(0 0 0/.2);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.maplibregl-ctrl-attrib{font-size:10px}
 .nsheet{background:var(--panel);border-radius:18px 18px 0 0;box-shadow:0 -6px 20px rgb(0 0 0/.15);padding:14px max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:10px;max-height:46vh;overflow:auto}
 .nsum{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .nsum b{font:700 24px var(--display)}.nsum small{display:block;color:var(--muted)}
@@ -431,7 +442,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081705";
+const BUILD="202611081712";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -818,8 +829,20 @@ async function orderStatus(tok){
    Area search -> fastest route that avoids congestion learned from our own taxis' GPS,
    turn-by-turn in Arabic, and the chosen route saved on the driver's trip. */
 const OSRM="https://router.project-osrm.org/route/v1/driving/";
-const NV={map:null,me:null,meMk:null,dest:null,routes:[],best:null,layers:[],watch:null,follow:false,zones:[],off:0,lastCalc:0};
-function navApp(){
+const NV={map:null,gl:false,me:null,meMk:null,dest:null,destMk:null,routes:[],best:null,layers:[],watch:null,follow:false,zones:[],off:0,lastCalc:0,brg:0,prev:null,userMoved:false};
+// MapLibre gives the live 3D "third-person" view (tilted, turning with the car); Leaflet is the fallback
+const GL_JS="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js", GL_CSS="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css";
+const GL_STYLE="https://tiles.openfreemap.org/styles/liberty", GL_RTL="https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.3.0/dist/mapbox-gl-rtl-text.js";
+function loadGL(){
+  if(window.maplibregl) return Promise.resolve(true);
+  return new Promise(ok=>{
+    try{const c=document.createElement("canvas");if(!(c.getContext("webgl2")||c.getContext("webgl"))) return ok(false)}catch{return ok(false)}
+    const l=document.createElement("link");l.rel="stylesheet";l.href=GL_CSS;document.head.append(l);
+    const sc=document.createElement("script");sc.src=GL_JS;sc.onload=()=>ok(!!window.maplibregl);sc.onerror=()=>ok(false);document.head.append(sc);
+    setTimeout(()=>ok(!!window.maplibregl),9000);
+  });
+}
+async function navApp(){
   if(!CODE){location.replace("#driver");return}
   document.title="الطريق · المنصور تاكسي";
   $("#app").innerHTML=`<div class="nav">
@@ -828,20 +851,48 @@ function navApp(){
       <div class="nav-search"><input id="nq" type="search" placeholder="وين رايح؟ اكتب اسم المنطقة…" autocomplete="off"><div id="nsug" class="nsug" hidden></div></div>
     </div>
     <div id="nbanner" class="nbanner" hidden></div>
-    <div id="nmap"></div>
+    <div id="nmap"><div class="empty" id="nload">جارٍ تحميل الخريطة…</div></div>
+    <div class="nfab"><button class="nfab-b" id="nrecenter" hidden aria-label="رجوع لتتبع السيارة">◎ تتبّع</button><button class="nfab-b" id="nview" aria-label="تبديل المنظر">3D</button></div>
+    <div id="nspeed" class="nspeed" hidden><b id="nsv">0</b><small>كم/س</small></div>
     <div class="nsheet" id="nsheet"><p class="note" style="margin:0">اكتب اسم المنطقة فوق، أو اختار من القائمة. النظام يحسب أسرع طريق ويبعدك عن الزحمة اللي سجّلتها سياراتنا.</p></div>
   </div>`;
-  if(typeof L==="undefined"){$("#nmap").innerHTML=`<div class="empty">تعذّر تحميل الخريطة، تأكد من الإنترنت.</div>`;return}
-  NV.map=L.map("nmap",{zoomControl:false}).setView([33.315,44.366],12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(NV.map);
-  L.control.zoom({position:"bottomleft"}).addTo(NV.map);
-  setTimeout(()=>NV.map.invalidateSize(),150);
+  NV.gl=await loadGL(); NV.me=null; NV.meMk=null; NV.destMk=null; NV.layers=[]; NV.follow=false; NV.userMoved=false;
+  if(NV.gl){
+    try{ if(maplibregl.getRTLTextPluginStatus&&maplibregl.getRTLTextPluginStatus()==="unavailable") maplibregl.setRTLTextPlugin(GL_RTL,true) }catch{}
+    $("#nmap").innerHTML="";
+    NV.map=new maplibregl.Map({container:"nmap",style:GL_STYLE,center:[44.366,33.315],zoom:11.5,pitch:0,attributionControl:{compact:true},maxPitch:70});
+    NV.map.on("load",()=>{
+      // Arabic names first on every label layer
+      (NV.map.getStyle().layers||[]).forEach(l=>{if(l.type==="symbol"&&l.layout&&l.layout["text-field"]){try{NV.map.setLayoutProperty(l.id,"text-field",["coalesce",["get","name:ar"],["get","name"]])}catch{}}});
+      const firstLabel=(NV.map.getStyle().layers||[]).find(l=>l.type==="symbol")?.id;
+      NV.map.addSource("alts",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
+      NV.map.addSource("best",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
+      NV.map.addSource("jam",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
+      NV.map.addLayer({id:"alts",type:"line",source:"alts",layout:{"line-join":"round","line-cap":"round"},paint:{"line-color":"#8a9294","line-width":6,"line-opacity":.7}},firstLabel);
+      NV.map.addLayer({id:"best-casing",type:"line",source:"best",layout:{"line-join":"round","line-cap":"round"},paint:{"line-color":"#0b3a8a","line-width":13}},firstLabel);
+      NV.map.addLayer({id:"best",type:"line",source:"best",layout:{"line-join":"round","line-cap":"round"},paint:{"line-color":"#2f7bff","line-width":9}},firstLabel);
+      NV.map.addLayer({id:"jam",type:"line",source:"jam",layout:{"line-join":"round","line-cap":"round"},paint:{"line-color":"#e5372f","line-width":9}},firstLabel);
+      NV.ready=true; if(NV.best) navDraw();
+    });
+    NV.map.on("error",e=>{if(!NV.ready&&e&&e.error&&/style|fetch|Failed/i.test(String(e.error.message||""))){navFallback()}});
+    NV.map.on("click",e=>{if(!NV.follow) navSetDest({name:"نقطة على الخريطة",lat:e.lngLat.lat,lng:e.lngLat.lng})});
+    // the driver dragging the map pauses following until he taps "تتبّع"
+    NV.map.on("dragstart",()=>{if(NV.follow){NV.userMoved=true;$("#nrecenter").hidden=false}});
+    setTimeout(()=>{if(!NV.ready) navFallback()},12000);
+  } else navFallback();
+  $("#nrecenter").onclick=()=>{NV.userMoved=false;$("#nrecenter").hidden=true;navCamera(true)};
+  $("#nview").onclick=()=>{if(!NV.gl||!NV.map)return;const flat=NV.map.getPitch()>5;NV.flat=flat;$("#nview").textContent=flat?"2D":"3D";
+    NV.map.easeTo({pitch:flat?0:(NV.follow?62:45),duration:600})};
   if(NV.watch!==null) navigator.geolocation.clearWatch(NV.watch);
-  NV.watch=navigator.geolocation.watchPosition(p=>navPos(p.coords),()=>{if(!NV.me)toast("شغّل الموقع حتى نحسب الطريق من مكانك")},{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
+  NV.watch=navigator.geolocation.watchPosition(p=>navPos(p.coords),()=>{if(!NV.me)toast("شغّل الموقع حتى نحسب الطريق من مكانك")},{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
   rpc("taxi_nav_zones",{p_key:CODE}).then(z=>{NV.zones=z;
-    rpc("taxi_driver_state",{p_code:CODE}).then(st=>{const t=st.trip;if(t&&t.zone_id){const z2=NV.zones.find(x=>x.id===t.zone_id);if(z2&&z2.lat)navSetDest({name:z2.name,lat:z2.lat,lng:z2.lng})}}).catch(()=>{});
+    rpc("taxi_driver_state",{p_code:CODE}).then(st=>{const t=st.trip;if(!t)return;
+      // before pickup: go to the customer; on the trip: go to the destination
+      if(t.status==="accepted"&&t.pickup_lat) return navSetDest({name:"الزبون: "+(t.pickup||""),lat:t.pickup_lat,lng:t.pickup_lng});
+      if(t.zone_lat) return navSetDest({name:t.zone||t.dropoff,lat:t.zone_lat,lng:t.zone_lng});
+      if(t.zone_id){const z2=NV.zones.find(x=>x.id===t.zone_id);if(z2&&z2.lat)navSetDest({name:z2.name,lat:z2.lat,lng:z2.lng});else if(t.zone)navGeocode(t.zone)}}).catch(()=>{});
   }).catch(e=>toast(e.message));
-  const q=$("#nq"), sug=$("#nsug"); let gT;
+  const q=$("#nq"), sug=$("#nsug");
   q.oninput=()=>{const v=q.value.trim(); if(!v){sug.hidden=true;return}
     const hits=NV.zones.filter(z=>z.name.includes(v)).slice(0,8);
     sug.innerHTML=hits.map(z=>`<button data-zid="${z.id}">📍 ${esc(z.name)}${z.lat?"":" <small>(بدون موقع)</small>"}</button>`).join("")+`<button data-geo="1">🔎 ابحث بالخريطة عن «${esc(v)}»</button>`;
@@ -850,27 +901,72 @@ function navApp(){
       if(z.lat) navSetDest({name:z.name,lat:z.lat,lng:z.lng}); else navGeocode(z.name)});
     sug.querySelector("[data-geo]").onclick=()=>{sug.hidden=true;navGeocode(v)};
   };
-  NV.map.on("click",e=>{ if(!NV.follow) navSetDest({name:"نقطة على الخريطة",lat:e.latlng.lat,lng:e.latlng.lng}) });
 }
-function cleanPlace(n){return n.replace(/\(.*?\)/g,"").replace(/^من\s+/,"").replace(/وما حولها/,"").trim()}
+function navFallback(){
+  if(NV.fellBack) return; NV.fellBack=true; NV.gl=false; NV.ready=false;
+  try{if(NV.map&&NV.map.remove)NV.map.remove()}catch{}
+  $("#nview").hidden=true;
+  if(typeof L==="undefined"){$("#nmap").innerHTML=`<div class="empty">تعذّر تحميل الخريطة، تأكد من الإنترنت.</div>`;return}
+  $("#nmap").innerHTML="";
+  NV.map=L.map("nmap",{zoomControl:false}).setView([33.315,44.366],12);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(NV.map);
+  L.control.zoom({position:"bottomleft"}).addTo(NV.map);
+  setTimeout(()=>NV.map.invalidateSize(),150);
+  NV.map.on("click",e=>{ if(!NV.follow) navSetDest({name:"نقطة على الخريطة",lat:e.latlng.lat,lng:e.latlng.lng}) });
+  NV.meMk=null; NV.destMk=null; NV.layers=[];
+  if(NV.dest) navSetDest(NV.dest); if(NV.me) navPos({latitude:NV.me.lat,longitude:NV.me.lng,heading:NV.me.hd,speed:NV.me.spd});
+}
+function cleanPlace(n){return n.replace(/\(.*?\)/g,"").replace(/^من\s+/,"").replace(/وما حولها/,"").replace(/^الزبون:\s*/,"").trim()}
 async function navGeocode(name){
   try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&accept-language=ar&limit=1&viewbox=44.0,33.65,44.75,32.95&bounded=1&q=${encodeURIComponent(cleanPlace(name)+"، بغداد")}`).then(r=>r.json());
     if(!r.length) return toast("ما لگيت المكان، جرّب اسم ثاني أو اضغط على الخريطة");
     navSetDest({name,lat:+r[0].lat,lng:+r[0].lon});
   }catch{toast("تعذّر البحث، تأكد من الإنترنت")}
 }
+function bearingOf(a,b){const t=Math.PI/180,y=Math.sin((b.lng-a.lng)*t)*Math.cos(b.lat*t),x=Math.cos(a.lat*t)*Math.sin(b.lat*t)-Math.sin(a.lat*t)*Math.cos(b.lat*t)*Math.cos((b.lng-a.lng)*t);return (Math.atan2(y,x)/t+360)%360}
+const CAR_SVG=`<svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="21" fill="#2f7bff" fill-opacity=".18"/><path d="M23 6 36 37 23 30 10 37Z" fill="#2f7bff" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg>`;
 function navPos(c){
-  NV.me={lat:c.latitude,lng:c.longitude,hd:c.heading,spd:c.speed};
-  const ll=[NV.me.lat,NV.me.lng];
-  if(!NV.meMk){NV.meMk=L.circleMarker(ll,{radius:9,color:"#fff",weight:3,fillColor:"#1f6feb",fillOpacity:1}).addTo(NV.map);NV.map.setView(ll,15)}
-  else NV.meMk.setLatLng(ll);
+  const now={lat:c.latitude,lng:c.longitude};
+  // heading: GPS when moving, else from the last two fixes (keeps the camera steady when stopped)
+  let hd=(c.heading!=null&&!isNaN(c.heading)&&(c.speed||0)>1.5)?c.heading:null;
+  if(hd==null&&NV.prev&&segLen([NV.prev.lat,NV.prev.lng],[now.lat,now.lng])>6) hd=bearingOf(NV.prev,now);
+  if(hd!=null) NV.brg=hd;
+  if(!NV.prev||segLen([NV.prev.lat,NV.prev.lng],[now.lat,now.lng])>6) NV.prev=now;
+  NV.me={lat:now.lat,lng:now.lng,hd:NV.brg,spd:c.speed};
+  const sp=$("#nspeed"); if(sp&&NV.follow){sp.hidden=false;$("#nsv").textContent=Math.round((c.speed||0)*3.6)}
+  if(NV.gl&&NV.map){
+    if(!NV.meMk){const el=document.createElement("div");el.className="navcar";el.innerHTML=CAR_SVG;
+      NV.meMk=new maplibregl.Marker({element:el,rotationAlignment:"map",pitchAlignment:"viewport"}).setLngLat([now.lng,now.lat]).addTo(NV.map);
+      if(!NV.dest) NV.map.easeTo({center:[now.lng,now.lat],zoom:15,duration:800})}
+    else NV.meMk.setLngLat([now.lng,now.lat]);
+    NV.meMk.setRotation(NV.brg);
+  } else if(NV.map){
+    const ll=[now.lat,now.lng];
+    if(!NV.meMk){NV.meMk=L.circleMarker(ll,{radius:9,color:"#fff",weight:3,fillColor:"#1f6feb",fillOpacity:1}).addTo(NV.map);NV.map.setView(ll,15)}
+    else NV.meMk.setLatLng(ll);
+  }
   if(NV.dest&&!NV.best&&Date.now()-NV.lastCalc>5000) navCalc();
-  if(NV.follow&&NV.best){NV.map.panTo(ll,{animate:true});navGuide()}
+  if(NV.follow&&NV.best){navCamera();navGuide()}
+}
+// third-person camera: behind the car, tilted, the road ahead filling the screen; zooms out a bit at speed
+function navCamera(jump){
+  if(!NV.me||!NV.map||NV.userMoved) return;
+  if(NV.gl){
+    const kmh=(NV.me.spd||0)*3.6, z=kmh>70?15.6:kmh>40?16.3:17.2, h=$("#nmap").clientHeight||600;
+    NV.map.easeTo({center:[NV.me.lng,NV.me.lat],bearing:NV.brg,pitch:NV.flat?0:62,zoom:z,padding:{top:Math.round(h*.5),bottom:Math.round(h*.04),left:0,right:0},duration:jump?700:1100,easing:t=>t});
+  } else NV.map.panTo([NV.me.lat,NV.me.lng],{animate:true});
 }
 function navSetDest(d){
-  NV.dest=d; NV.follow=false; $("#nbanner").hidden=true;
-  if(NV.destMk) NV.map.removeLayer(NV.destMk);
-  NV.destMk=L.marker([d.lat,d.lng]).addTo(NV.map).bindTooltip(d.name,{permanent:true,direction:"top"});
+  NV.dest=d; NV.follow=false; NV.best=null; $("#nbanner").hidden=true; $("#nspeed").hidden=true;
+  if(NV.gl&&NV.map){
+    if(NV.destMk) NV.destMk.remove();
+    const el=document.createElement("div");el.className="navdest";el.innerHTML=`<svg width="34" height="44" viewBox="0 0 34 44" aria-hidden="true"><path d="M17 43C17 43 3 26.5 3 16a14 14 0 0 1 28 0c0 10.5-14 27-14 27z" fill="#e5372f" stroke="#fff" stroke-width="2.5"/><circle cx="17" cy="16" r="6" fill="#fff"/></svg><span>${esc(d.name)}</span>`;
+    NV.destMk=new maplibregl.Marker({element:el,anchor:"bottom"}).setLngLat([d.lng,d.lat]).addTo(NV.map);
+    NV.map.easeTo({pitch:0,bearing:0,padding:{top:0,bottom:0,left:0,right:0},duration:500});
+  } else if(NV.map){
+    if(NV.destMk) NV.map.removeLayer(NV.destMk);
+    NV.destMk=L.marker([d.lat,d.lng]).addTo(NV.map).bindTooltip(d.name,{permanent:true,direction:"top"});
+  }
   if(!NV.me){$("#nsheet").innerHTML=`<p class="note" style="margin:0">ننتظر موقعك حتى نحسب الطريق إلى <b>${esc(d.name)}</b>…</p>`;return}
   navCalc();
 }
@@ -901,9 +997,19 @@ async function navCalc(){
   navSave();
 }
 function navDraw(){
+  const b=NV.best; if(!b||!NV.map) return;
+  if(NV.gl){
+    if(!NV.ready) return;
+    const ls=c=>({type:"Feature",properties:{},geometry:{type:"LineString",coordinates:c.map(p=>[p[1],p[0]])}});
+    NV.map.getSource("alts").setData({type:"FeatureCollection",features:NV.routes.filter(r=>r!==b).map(r=>ls(r.coords))});
+    NV.map.getSource("best").setData({type:"FeatureCollection",features:[ls(b.coords)]});
+    NV.map.getSource("jam").setData({type:"FeatureCollection",features:b.jam.map(s=>ls(s))});
+    if(!NV.follow){const bb=b.coords.reduce((m,c)=>[Math.min(m[0],c[1]),Math.min(m[1],c[0]),Math.max(m[2],c[1]),Math.max(m[3],c[0])],[180,90,-180,-90]);
+      NV.map.fitBounds([[bb[0],bb[1]],[bb[2],bb[3]]],{padding:{top:90,bottom:Math.round(($("#nsheet").offsetHeight||200)+30),left:40,right:40},pitch:0,bearing:0,duration:700})}
+    return;
+  }
   NV.layers.forEach(l=>NV.map.removeLayer(l)); NV.layers=[];
   NV.routes.slice(1).forEach(r=>NV.layers.push(L.polyline(r.coords,{color:"#8a9294",weight:5,opacity:.6}).addTo(NV.map)));
-  const b=NV.best;
   NV.layers.push(L.polyline(b.coords,{color:"#0b4f55",weight:9,opacity:.35}).addTo(NV.map));
   NV.layers.push(L.polyline(b.coords,{color:"#1f6feb",weight:6}).addTo(NV.map));
   NV.routes.forEach(r=>r.jam.forEach(s=>NV.layers.push(L.polyline(s,{color:"#d6332b",weight:r===b?7:4,opacity:.9}).addTo(NV.map))));
@@ -912,16 +1018,20 @@ function navDraw(){
 function navSheet(){
   const b=NV.best, osrmFirst=NV.routes.reduce((m,r)=>r.duration<m.duration?r:m,NV.routes[0]);
   const saved=Math.round((osrmFirst.adj-b.adj)/60);
+  const eta=new Date(Date.now()+b.adj*1000).toLocaleTimeString("ar-IQ",{hour:"numeric",minute:"2-digit"});
   $("#nsheet").innerHTML=`
-   <div class="nsum"><div><b>${minOf(b.adj)} دقيقة</b><small>${kmOf(b.distance)} كم · إلى ${esc(NV.dest.name)}</small></div>
+   <div class="nsum"><div><b>${minOf(b.adj)} دقيقة</b><small>${kmOf(b.distance)} كم · توصل ${eta} · إلى ${esc(NV.dest.name)}</small></div>
      ${b.jam.length?`<span class="pill s-warn">بيه زحمة خفيفة</span>`:`<span class="pill s-ok">طريق سالك</span>`}</div>
-   ${b!==osrmFirst&&saved>0?`<p class="note" style="margin:0;border-color:var(--ok)">✔ اخترنالك طريق يتجنّب الزحمة، يوفّر تقريبًا ${saved} دقيقة.</p>`:""}
-   ${NV.routes.length>1?`<div class="nalts">${NV.routes.map((r,i)=>`<button class="btn sm ${r===b?"primary":""}" data-ri="${i}">${i===0?"الأسرع":"بديل "+i} · ${minOf(r.adj)} د</button>`).join("")}</div>`:""}
+   ${NV.follow?"":`${b!==osrmFirst&&saved>0?`<p class="note" style="margin:0;border-color:var(--ok)">✔ اخترنالك طريق يتجنّب الزحمة، يوفّر تقريبًا ${saved} دقيقة.</p>`:""}
+   ${NV.routes.length>1?`<div class="nalts">${NV.routes.map((r,i)=>`<button class="btn sm ${r===b?"primary":""}" data-ri="${i}">${i===0?"الأسرع":"بديل "+i} · ${minOf(r.adj)} د</button>`).join("")}</div>`:""}`}
    <div class="row2"><button class="btn primary big" id="ngo">${NV.follow?"⏹ إيقاف":"▶ ابدأ"}</button><a class="btn big" href="${gmaps()}" target="_blank" rel="noopener" style="text-align:center">Google</a></div>
-   <details><summary>خطوات الطريق (${navSteps().length})</summary><ol class="nsteps">${navSteps().map(s=>`<li>${esc(s.txt)} <small>${s.dist}</small></li>`).join("")}</ol></details>
-   <p style="font-size:12px;color:var(--muted);margin:0">الأحمر = زحمة سجّلتها سياراتنا. المسار ينحفظ على السفرة.</p>`;
+   ${NV.follow?"":`<details><summary>خطوات الطريق (${navSteps().length})</summary><ol class="nsteps">${navSteps().map(s=>`<li>${esc(s.txt)} <small>${s.dist}</small></li>`).join("")}</ol></details>
+   <p style="font-size:12px;color:var(--muted);margin:0">الأحمر = زحمة سجّلتها سياراتنا. المسار ينحفظ على السفرة.</p>`}`;
   $("#nsheet").querySelectorAll("[data-ri]").forEach(x=>x.onclick=()=>{NV.best=NV.routes[+x.dataset.ri];navDraw();navSheet();navSave()});
-  $("#ngo").onclick=()=>{NV.follow=!NV.follow;$("#nbanner").hidden=!NV.follow;if(NV.follow&&NV.me){NV.map.setView([NV.me.lat,NV.me.lng],17);navGuide()}navSheet();keepAwake()};
+  $("#ngo").onclick=()=>{NV.follow=!NV.follow;NV.userMoved=false;$("#nrecenter").hidden=true;$("#nbanner").hidden=!NV.follow;$("#nspeed").hidden=!NV.follow;
+    if(NV.follow&&NV.me){navCamera(true);navGuide()}
+    else if(NV.gl&&NV.map){NV.map.easeTo({pitch:0,bearing:0,padding:{top:0,bottom:0,left:0,right:0},duration:600});setTimeout(navDraw,650)}
+    navSheet();keepAwake()};
 }
 const gmaps=()=>NV.dest?`https://www.google.com/maps/dir/?api=1&destination=${NV.dest.lat},${NV.dest.lng}&travelmode=driving`:"#";
 function stepText(st){
@@ -942,7 +1052,7 @@ function stepText(st){
   }
 }
 function navSteps(){
-  const out=[]; (NV.best.legs||[]).forEach(l=>l.steps.forEach(st=>out.push({txt:stepText(st),dist:st.distance>=1000?kmOf(st.distance)+" كم":Math.round(st.distance)+" م",loc:[st.maneuver.location[1],st.maneuver.location[0]]})));
+  const out=[]; (NV.best.legs||[]).forEach(l=>l.steps.forEach(st=>out.push({mod:(st.maneuver||{}).modifier||"",txt:stepText(st),dist:st.distance>=1000?kmOf(st.distance)+" كم":Math.round(st.distance)+" م",loc:[st.maneuver.location[1],st.maneuver.location[0]]})));
   return out;
 }
 function navGuide(){
@@ -956,7 +1066,11 @@ function navGuide(){
   const toDest=segLen(me,[NV.dest.lat,NV.dest.lng]);
   const bn=$("#nbanner");
   if(toDest<40){bn.innerHTML=`<b>🏁 وصلت إلى ${esc(NV.dest.name)}</b>`;return}
-  if(next) bn.innerHTML=`<small>بعد ${dn>=1000?kmOf(dn)+" كم":Math.round(dn/10)*10+" م"}</small><b>${esc(next.txt)}</b>`;
+  if(next) bn.innerHTML=`<span class="nturn">${turnIcon(next.mod)}</span><span><small>بعد ${dn>=1000?kmOf(dn)+" كم":Math.round(dn/10)*10+" م"}</small><b>${esc(next.txt)}</b></span>`;
+}
+function turnIcon(mod){
+  const r={left:-90,"slight left":-45,"sharp left":-135,right:90,"slight right":45,"sharp right":135,uturn:180}[mod]||0;
+  return `<svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(${r}deg)"><path d="M12 3 5 11h4.5v10h5V11H19z" fill="currentColor"/></svg>`;
 }
 let navSavedFor=null;
 function navSave(){
