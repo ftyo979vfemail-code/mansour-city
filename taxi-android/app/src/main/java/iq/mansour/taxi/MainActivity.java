@@ -360,6 +360,16 @@ public class MainActivity extends Activity {
             }
         }
         if (t != null && (status.equals("accepted") || status.equals("started"))) {
+            final String waze = wazeUrl(t, status);
+            if (waze != null) {
+                card.addView(space(8));
+                Button wz = button(status.equals("accepted") ? "🚗 ويز: روح للزبون"
+                        : "🚗 ويز: روح لـ " + or(t.optString("zone", t.optString("dropoff"))), true);
+                wz.setBackground(box(0xFF33CCFF, 0xFF33CCFF, 14));
+                wz.setTextColor(0xFF06283D);
+                wz.setOnClickListener(v -> openWaze(waze));
+                card.addView(wz, full());
+            }
             card.addView(space(8));
             Button nav = button("🧭 الطريق على الخريطة", false);
             nav.setOnClickListener(v -> {
@@ -622,5 +632,29 @@ public class MainActivity extends Activity {
         if (s < 60) return "قبل " + s + " ث";
         if (s < 3600) return "قبل " + (s / 60) + " د";
         return "قبل " + (s / 3600) + " س";
+    }
+    /** Waze deep link: to the customer before pickup, to the destination zone after the trip starts. */
+    static String wazeUrl(JSONObject t, String status) {
+        if (status.equals("accepted")) {
+            if (t.isNull("pickup_lat") || !t.has("pickup_lat")) return null;
+            return "https://waze.com/ul?ll=" + t.optDouble("pickup_lat") + "," + t.optDouble("pickup_lng") + "&navigate=yes";
+        }
+        if (t.has("zone_lat") && !t.isNull("zone_lat"))
+            return "https://waze.com/ul?ll=" + t.optDouble("zone_lat") + "," + t.optDouble("zone_lng") + "&navigate=yes";
+        String q = t.optString("zone", "");
+        if (q.isEmpty() || q.equals("null")) q = t.optString("dropoff", "");
+        if (q.isEmpty()) return null;
+        return "https://waze.com/ul?q=" + Uri.encode(q + " بغداد") + "&navigate=yes";
+    }
+
+    private void openWaze(String url) {
+        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        i.setPackage("com.waze");
+        try { startActivity(i); return; } catch (Exception ignored) {}
+        try {   // Waze not installed: offer it from the Play Store, else open the web link
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.waze")));
+        } catch (Exception e) {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); } catch (Exception ignored) {}
+        }
     }
 }

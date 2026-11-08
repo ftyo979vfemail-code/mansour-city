@@ -228,6 +228,8 @@ select.btn{font-weight:500}
 .back img{height:42px}
 .reqbar{background:color-mix(in srgb,var(--amber) 22%,var(--panel));color:var(--fg);border-color:var(--amber)}
 .reqbar .btn{margin-inline-start:auto}
+.btn.waze{background:#33ccff;color:#06283d;border-color:#33ccff;text-align:center;font-weight:700}
+.btn.waze:hover{filter:brightness(1.05)}
 .dpick{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
 .dpick button{display:flex;align-items:center;gap:10px;text-align:start;border:2px solid var(--line);background:var(--panel);border-radius:14px;padding:10px 12px;color:var(--fg);font:inherit;cursor:pointer}
 .dpick button:hover:not(:disabled){border-color:var(--amber)}
@@ -351,7 +353,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611071457";
+const BUILD="202611081605";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1670,6 +1672,15 @@ async function refreshTrip(){
   if(!CODE) return;
   try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,base:st.fare_base,share:st.week_share||0,zones:st.zones||[]};showTrip(st.trip,true)}catch{}
 }
+// Waze: to the customer before pickup, to the destination after the trip starts
+function wazeUrl(t){
+  if(!t) return null;
+  if(t.status==="accepted") return t.pickup_lat?`https://waze.com/ul?ll=${t.pickup_lat},${t.pickup_lng}&navigate=yes`:null;
+  if(t.zone_lat) return `https://waze.com/ul?ll=${t.zone_lat},${t.zone_lng}&navigate=yes`;
+  const q=t.zone||t.dropoff; return q?`https://waze.com/ul?q=${encodeURIComponent(q+" بغداد")}&navigate=yes`:null;
+}
+const WAZE_ICO=`<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-5px"><path d="M4 14a8 7 0 1 1 16 0c0 2-1.5 3.5-4 4H9c-2.5 0-5-1.5-5-4Z"/><circle cx="9" cy="19.5" r="1.6"/><circle cx="16" cy="19.5" r="1.6"/><path d="M9.5 10.5h.01M14.5 10.5h.01M9.5 13.5c1.4 1 3.6 1 5 0"/></svg>`;
+function wazeBtn(t,label){const u=wazeUrl(t);return u?`<a class="btn big waze" href="${u}" target="_blank" rel="noopener">${WAZE_ICO} ${label}</a>`:""}
 function showTrip(t,force){
   const box=$("#tripBox"); if(!box) return;
   const key=JSON.stringify(t&&[t.id,t.status]);
@@ -1690,9 +1701,9 @@ function showTrip(t,force){
     $("#tr-acc").onclick=()=>{siren(false);tripAct("accept")};
     $("#tr-rej").onclick=()=>{siren(false);const m=modal(`<h3>رفض السفرة؟</h3><p style="margin:0">الرفض ينسجل عليك ويوصل للإدارة.</p><div class="field"><label for="rr">السبب</label><input id="rr" placeholder="مثال: بعيد، عندي عطل"></div><div class="row"><button class="btn" id="rn">رجوع</button><button class="btn primary" id="ry">رفض</button></div>`);$("#rn",m).onclick=()=>m.remove();$("#ry",m).onclick=()=>{m.remove();tripAct("reject",{reason:$("#rr",m).value})}};
     return}
-  if(t.status==="accepted"){box.innerHTML=`<div class="trip"><h3>رايح للزبون</h3>${where}<button class="btn primary big" id="tr-go">وصلت، ابدأ السفرة</button></div>`;$("#tr-go").onclick=()=>tripAct("start");return}
+  if(t.status==="accepted"){box.innerHTML=`<div class="trip"><h3>رايح للزبون</h3>${where}${wazeBtn(t,"ويز: روح للزبون")}<button class="btn primary big" id="tr-go">وصلت، ابدأ السفرة</button></div>`;$("#tr-go").onclick=()=>tripAct("start");return}
   const navBtn=`<a class="btn big" href="#nav" style="text-align:center">🧭 الطريق على الخريطة</a>`;
-  box.innerHTML=`<div class="trip on"><h3>بسفرة من ${hm(t.started_at)}</h3>${where}${navBtn}
+  box.innerHTML=`<div class="trip on"><h3>بسفرة من ${hm(t.started_at)}</h3>${where}${wazeBtn(t,"ويز: روح لـ "+esc(t.zone||t.dropoff||"الوجهة"))}${navBtn}
     ${t.zone_id&&t.fare?`<div class="calc">${t.points_used?`<div><span>دفعها بالنقاط (حصتك محفوظة)</span><b>${dinar(t.points_used)}</b></div>`:""}<div class="tot"><span>استلم من الزبون</span><b>${t.collect===0&&t.points_used?"ولا شي، الكروة مجانية":dinar(t.collect??t.fare)}</b></div></div>`:`<div class="field"><label for="tr-fare">الأجرة المستلمة (دينار)</label><input id="tr-fare" inputmode="numeric" value="${today.base||""}" style="font:600 22px var(--mono);text-align:center"></div>`}
     <button class="btn primary big" id="tr-end">إنهاء السفرة</button></div>`;
   $("#tr-end").onclick=()=>tripAct("end",{fare:$("#tr-fare")?$("#tr-fare").value:""});
