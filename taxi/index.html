@@ -299,7 +299,9 @@ select.btn{font-weight:500}
 .money{border:2px solid var(--amber);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px;margin-top:10px;background:color-mix(in srgb,var(--amber) 8%,var(--panel))}
 .money-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:600}
 .money-top b{font:700 24px var(--mono)}
-.money small{color:var(--muted)} .money .money-last{color:var(--fg);font-weight:600}
+.money small{color:var(--muted)}
+.money-ok{background:color-mix(in srgb,var(--ok) 12%,var(--panel));color:var(--ok);border-radius:12px;padding:10px 12px;font-weight:700;text-align:center}
+.money-ok small{color:var(--muted);font-weight:500} .money .money-last{color:var(--fg);font-weight:600}
 .depbar{background:color-mix(in srgb,var(--ok) 14%,var(--panel));border-color:var(--ok)}
 .dpick{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
 .dpick button{display:flex;align-items:center;gap:10px;text-align:start;border:2px solid var(--line);background:var(--panel);border-radius:14px;padding:10px 12px;color:var(--fg);font:inherit;cursor:pointer}
@@ -424,7 +426,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081657";
+const BUILD="202611081659";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1972,19 +1974,19 @@ function moneyCard(){
   const m=today.money; if(!m) return "";
   const last=(m.deposits||[])[0], free=Math.max(0,(m.in_hand||0)-(m.pending||0));
   const lastLine=!last?"":last.status==="pending"?`⏳ إيداع ${dinar(last.amount)} بانتظار تأكيد الإدارة`
-    :last.status==="confirmed"?`✔ الإدارة استلمت ${dinar(last.received??last.amount)}${last.received!=null&&last.received!==last.amount?` (من ${dinar(last.amount)})`:""}`
+    :last.status==="confirmed"?`✔ الإدارة استلمت ${dinar(last.received??last.amount)}${last.received!=null&&last.received!==last.amount?` (من ${dinar(last.amount)})`:""}${last.decided_by&&/يدوي/.test(last.decided_by)?" (كانت مسجّلة عند الإدارة)":""}`
     :`✖ انرفض إيداع ${dinar(last.amount)}${last.reason?`: ${esc(last.reason)}`:""}`;
   return `<div class="money"><div class="money-top"><span>💵 المبلغ اللي بيدك للشركة</span><b>${dinar(m.in_hand||0)}</b></div>
     ${m.pending?`<small>منها ${dinar(m.pending)} بانتظار تأكيد الإدارة</small>`:""}
     ${m.owed_to_him?`<small>حصتك اللي بذمة الشركة: ${dinar(m.owed_to_him)}</small>`:""}
     ${lastLine?`<small class="money-last">${lastLine}</small>`:""}
-    ${free>0?"":`<small>ماكو مبلغ مسجّل عليك هسه. إذا سلّمت فلوس للإدارة سجّلها هنا، وتنحسب بعد تأكيدها.</small>`}
-    <button type="button" class="btn primary big" id="dep-btn">إيداع: سلّمت المبلغ للإدارة</button></div>`;
+    ${free>0?`<button type="button" class="btn primary big" id="dep-btn">إيداع: سلّمت المبلغ للإدارة</button>`
+      :`<div class="money-ok">✔ ما عليك شي للشركة هسه${m.pending?"، والإيداع بانتظار التأكيد":""}${m.last_collected&&!m.pending?`<br><small>آخر استلام سجّلته الإدارة: ${dinar(m.last_collected.amount)} · ${new Date(m.last_collected.at).toLocaleString("ar-IQ",{weekday:"short",hour:"2-digit",minute:"2-digit"})}</small>`:""}</div>`}</div>`;
 }
 function depositForm(){
   const m=today.money||{}, free=Math.max(0,(m.in_hand||0)-(m.pending||0));
-  const md=modal(`<h3>💵 إيداع للإدارة</h3><p style="margin:0">اكتب المبلغ اللي سلّمته للإدارة. ينحسب بعد ما الإدارة تأكد إنها استلمته.</p>
-    <div class="field"><label for="dp-a">المبلغ (دينار)</label><input id="dp-a" inputmode="numeric" value="${free||""}" placeholder="مثال: 25000" style="font:600 24px var(--mono);text-align:center"></div>
+  const md=modal(`<h3>💵 إيداع للإدارة</h3><p style="margin:0">اكتب المبلغ اللي سلّمته للإدارة (أكثر شي ${dinar(free)}). ينحسب بعد ما الإدارة تأكد إنها استلمته.</p>
+    <div class="field"><label for="dp-a">المبلغ (دينار)</label><input id="dp-a" inputmode="numeric" value="${free}" style="font:600 24px var(--mono);text-align:center"></div>
     <div class="field"><label for="dp-n">ملاحظة (اختياري)</label><input id="dp-n" placeholder="مثال: سلّمته لأبو علي"></div>
     <div class="err" id="dp-e"></div><div class="row"><button class="btn" id="dp-c">رجوع</button><button class="btn primary" id="dp-ok">إرسال الإيداع</button></div>`);
   $("#dp-c",md).onclick=()=>md.remove();

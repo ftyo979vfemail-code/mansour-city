@@ -526,11 +526,23 @@ public class MainActivity extends Activity {
             c.addView(text(line, 13, st.equals("rejected") ? 0xFFB42318 : FG, true));
         }
         c.addView(space(8));
-        if (free <= 0) c.addView(text("ماكو مبلغ مسجّل عليك هسه. إذا سلّمت فلوس للإدارة سجّلها هنا، وتنحسب بعد تأكيدها.", 12, MUTED, false));
+        if (free <= 0) {
+            TextView ok = text("✔ ما عليك شي للشركة هسه" + (pending > 0 ? "، والإيداع بانتظار التأكيد" : ""), 15, OK, true);
+            ok.setGravity(Gravity.CENTER);
+            ok.setBackground(box(0xFFE7F6EE, OK, 12));
+            ok.setPadding(dp(10), dp(10), dp(10), dp(10));
+            c.addView(ok, full());
+            JSONObject lc = m.optJSONObject("last_collected");
+            if (lc != null && pending == 0) c.addView(text("آخر استلام سجّلته الإدارة: " + String.format(L, "%,d", lc.optInt("amount")) + " د.ع", 12, MUTED, false));
+            LinearLayout.LayoutParams lp0 = full();
+            lp0.topMargin = dp(10);
+            tripBox.addView(c, lp0);
+            return;
+        }
         Button dep = button("إيداع: سلّمت المبلغ للإدارة", true);
         dep.setOnClickListener(v -> {
             final EditText amt = input("المبلغ (دينار)", InputType.TYPE_CLASS_NUMBER);
-            if (free > 0) amt.setText(String.valueOf(free));
+            amt.setText(String.valueOf(free));
             amt.setTextSize(22);
             amt.setGravity(Gravity.CENTER);
             final EditText note = input("ملاحظة (اختياري)", InputType.TYPE_CLASS_TEXT);

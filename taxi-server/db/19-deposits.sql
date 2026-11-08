@@ -2,3 +2,5 @@
 -- it counts (a taxi_cash row) only once a manager confirms it, with the amount actually received.
 -- RPCs: taxi_driver_deposit, taxi_admin_deposits, taxi_admin_deposit_decide; taxi_driver_state.money.
 -- Applied on Supabase as migration taxi_driver_deposits.
+-- taxi_deposits_no_double: a driver can deposit at most what he still holds (in_hand − pending);
+-- an office hand-over recorded by hand (taxi_cash) also closes the driver's waiting deposits it covers.
