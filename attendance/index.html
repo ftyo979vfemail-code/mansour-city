@@ -720,7 +720,7 @@ function canAct(r,role){if(role==='project'&&!['done','rejected'].includes(r.sta
 const invOf=role=>S.inventory.filter(i=>i.kind!=='fuel'&&(!isStoreRole(role)||(i.wh==='mach'?'mach':'main')===myWh(role)));
 const reqsFor=role=>isStoreRole(role)?S.requests.filter(r=>whOf(r)===myWh(role)):S.requests;
 function queueFor(role){if(role==='project')return S.requests.filter(r=>r.status==='proj');return S.requests.filter(r=>canAct(r,role))}
-function mine(role){const R=ROLES[role];if(role==='mstore'||role==='keeper')return S.requests.filter(r=>['mstore','keeper'].includes(r.by));if(R.crew)return S.requests.filter(r=>r.log?.[0]?.uid===S.me?.id);return S.requests.filter(r=>r.by===role||(R.dept&&r.dept===R.dept))}
+function mine(role){const R=ROLES[role];if(role==='site_eng')return S.requests.filter(r=>r.log?.[0]?.uid===S.me?.id||(r.by==='site_eng'&&!r.log?.[0]?.uid));if(role==='mstore'||role==='keeper')return S.requests.filter(r=>['mstore','keeper'].includes(r.by));if(R.crew)return S.requests.filter(r=>r.log?.[0]?.uid===S.me?.id);return S.requests.filter(r=>r.by===role||(R.dept&&r.dept===R.dept))}
 async function act(r,action,extra={}){
   const role=S.role||(isOwner()?'project':null),note=(extra.note||'').trim();const nr=clean(r);nr.log=nr.log||[];
   const push=a=>nr.log.push({t:Date.now(),role,uid:S.me?.id||null,a,note});
@@ -857,7 +857,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='c2bc42d79a';
+const APP_BUILD='caee5140a0';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -2288,7 +2288,7 @@ function roleHome(){
   const open=reqsFor(role).filter(r=>!['done','rejected'].includes(r.status));
   const crit=open.filter(r=>r.priority==='critical').length;
   const mq=queueFor(role).length;
-  const canNew=(['dept','project','store','crew'].includes(R.kind)||role==='admin1'||role==='admin2')&&role!=='fueler'&&role!=='supply'&&role!=='receiver'&&role!=='guard'&&role!=='driver'&&S.tab!=='att';
+  const canNew=(['dept','project','store','crew','eng'].includes(R.kind)||role==='admin1'||role==='admin2')&&role!=='fueler'&&role!=='supply'&&role!=='receiver'&&role!=='guard'&&role!=='driver'&&S.tab!=='att';
   let h=pushBanner()+gpsBanner()+fsBanner()+`<div class="head"><div><h2>${esc(R.name)}</h2><p>${roleDesc(role)}</p></div></div>`+(canNew?`<div class="fab" id="fab"><div class="fab-menu" role="menu"><button class="fab-item" role="menuitem" data-a="new"><span class="fi">＋</span>طلب مواد جديد</button><button class="fab-item" role="menuitem" data-a="paper"><span class="fi">📄</span>رفع ورقة طلبات</button>${role==='foreman'?'':`<button class="fab-item" role="menuitem" data-a="tripScan"><span class="fi">▦</span>مسح باركود آلية</button>`}</div><button class="fab-btn" data-a="fab" aria-label="طلب جديد" aria-expanded="false"><span class="fp">+</span><span class="fl">طلب جديد</span></button></div>${MACH_SCAN.includes(role)?`<div class="fab fab-l"><button class="fab-btn" data-a="tripScan" aria-label="مسح باركود آلية"><span class="fp" style="font-size:20px">▦</span><span class="fl">باركود</span></button></div>`:''}<div style="height:72px"></div>`:((R.kind==='admin'||R.kind==='acct'||R.kind==='sales'||R.kind==='hr'||R.kind==='att'||S.tab==='att'||ATT_ONLY||role==='driver'||role==='foreman')?'':`<div class="fab" id="fab"><button class="fab-btn" data-a="tripScan" aria-label="مسح باركود آلية"><span class="fp" style="font-size:20px">▦</span><span class="fl">باركود</span></button></div><div style="height:72px"></div>`));
   const spent=S.requests.reduce((s,r)=>s+(r.purchase?.total||0),0);
   if(R.kind!=='crew'&&R.kind!=='acct'&&R.kind!=='sales'&&R.kind!=='hr')h+=`<div class="stats">${(role==='admin1'||role==='admin2')?`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار موافقتك</span></button>`:''}${R.kind==='admin'?`<button type="button" class="stat " data-a="stat" data-v="recent"><b>${recent24()}</b><span>حركات آخر 24 ساعة</span></button>`:`<button type="button" class="stat ${mq?'hot':''}" data-a="stat" data-v="mine"><b>${mq}</b><span>بانتظار إجرائك</span></button>`}<button type="button" class="stat " data-a="stat" data-v="open"><b>${open.length}</b><span>طلبات مفتوحة</span></button><button type="button" class="stat ${crit?'hot':''}" data-a="stat" data-v="crit"><b>${crit}</b><span>طارئة - توقف إنتاج</span></button>${R.kind==='admin'||R.kind==='purchase'?`<button type="button" class="stat " data-a="stat" data-v="spent"><b class="num" style="font-size:18px">${money(spent)}</b><span>مجموع المشتريات</span></button>`:`<button type="button" class="stat " data-a="stat" data-v="low"><b>${invOf(role).filter(i=>+i.qty<=+i.min).length}</b><span>مواد تحت الحد الأدنى</span></button>`}</div>`;
@@ -2429,6 +2429,7 @@ function tabBody(role){
   if(t==='issue')return keeperIssueView();
   if(t==='mine'&&(role==='admin1'||role==='admin2'))return listView(mine(role),'ما طلبت شي بعد. اضغط «+ طلب مواد جديد» أو «رفع ورقة طلبات».');
   if(t==='mine'&&isStoreRole(role))return listView(mine(role),'ما طلبت شي بعد. اضغط «+ طلب مواد جديد» أو زر «اطلب» جنب المادة الناقصة بالمخزون.');
+  if(role==='site_eng'&&t==='mine')return listView(mine(role),'ما طلبت شي بعد. اضغط زر «+» تحت وطلب مواد لبنايتك — اكتب البناية بخانة «مكان العمل» مثل T5.');
   if(R.crew&&t==='mine')return listView(mine(role).filter(r=>!['done','rejected'].includes(r.status)),'لا توجد طلبات مفتوحة منك. اضغط "طلب مواد جديد".');
   if(R.crew&&t==='closed')return listView(mine(role).filter(r=>['done','rejected'].includes(r.status)),'لم يكتمل أي طلب بعد.',true);
   if(R.kind==='dept'){const m=mine(role);return t==='mine'?listView(m.filter(r=>!['done','rejected'].includes(r.status)),'لا توجد طلبات مفتوحة لقسمك. اضغط "طلب مواد جديد".'):listView(m.filter(r=>['done','rejected'].includes(r.status)),'لم يكتمل أي طلب بعد.',true)}
