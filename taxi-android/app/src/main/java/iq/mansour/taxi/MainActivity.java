@@ -50,6 +50,7 @@ public class MainActivity extends Activity {
     } };
 
     private void addDestChange(LinearLayout card, JSONObject t, JSONObject st, boolean waiting) {
+        java.util.Locale L = java.util.Locale.US;
         JSONObject dc = t.optJSONObject("dest_change");
         String status = dc == null ? "" : dc.optString("status");
         if (status.equals("pending") || status.equals("awaiting_customer")) {
