@@ -90,7 +90,12 @@ button{cursor:pointer}
 .cx-seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;background:#f3f1e6;border-radius:16px;padding:5px}
 .cx-seg button{border:0;background:transparent;border-radius:12px;padding:11px 8px;font:800 15px var(--body);color:#00383d;min-height:44px}
 .cx-seg button[aria-checked=true]{background:#00383d;color:#febd02}
-.cx-map{height:240px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#e9efed}
+.cx-sum{display:flex;align-items:center;gap:12px}.cx-sum b{flex:1;font:800 16px var(--body)}
+.cx-mapwrap{position:relative}
+.cx-locbtn{position:absolute;bottom:12px;left:12px;z-index:500;width:48px;height:48px;border-radius:50%;border:0;background:#00383d;color:#febd02;display:grid;place-items:center;box-shadow:0 6px 16px rgb(0 0 0/.25)}
+.cx-locbtn.busy svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.cx-map{height:300px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#e9efed}
 .cx-same{margin:0;background:#fff8e1;border-radius:12px;padding:10px 12px;font-weight:700;font-size:14px}
 h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
 
@@ -426,7 +431,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081659";
+const BUILD="202611081705";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -679,17 +684,22 @@ async function orderForm(){
   $("#cx-pickslot").innerHTML=`<button type="button" class="cx-pick" id="pickbtn" aria-expanded="${!(saved&&saved.b)}" aria-controls="addrbox">${PIN}<span id="picktxt">${esc(addrTxt(saved))}</span><u>تغيير</u></button>`;
   const th=pts?pts.redeem||5000:5000, bal=pts?pts.balance||0:0, pct=Math.min(100,Math.round(bal*100/th));
   box.innerHTML=`<form id="of" novalidate style="display:flex;flex-direction:column;gap:14px">
-    <div class="ocard" id="addrbox" ${saved&&saved.b?"hidden":""}>
+    <div class="ocard" id="addrbox">
       <h2 class="cx-h2" id="ph">منين ناخذك؟</h2>
       <div class="cx-seg" role="radiogroup" aria-labelledby="ph">
         <button type="button" role="radio" aria-checked="true" data-pm="home">عمارتي بالمجمّع</button>
         <button type="button" role="radio" aria-checked="false" data-pm="other">مكان ثاني</button>
       </div>
-      <div id="pm-home">${addrFields(saved||{},"وين تنتظر؟")}</div>
+      <div id="pm-home">
+        ${saved&&saved.b?`<div class="cx-sum" id="pm-sum"><span class="cx-ico">${PIN}</span><b id="pm-sumtxt">${esc(addrTxt(saved))}</b><button type="button" class="cx-note-t" id="pm-edit">تعديل</button></div>`:""}
+        <div id="pm-fields" ${saved&&saved.b?"hidden":""}>${addrFields(saved||{},"وين تنتظر؟")}</div>
+      </div>
       <div id="pm-other" hidden style="display:flex;flex-direction:column;gap:10px">
-        <button type="button" class="btn big" id="pm-gps">📍 استخدم موقعي الحالي</button>
-        <div id="pm-map" class="cx-map" role="application" aria-label="الخريطة: اضغط على مكان الانطلاق"></div>
-        <small class="note" id="pm-hint" style="margin:0">اضغط على الخريطة بالمكان اللي تنتظر بيه، أو اسحب الدبوس.</small>
+        <div class="cx-mapwrap">
+          <div id="pm-map" class="cx-map" role="application" aria-label="الخريطة: اضغط على مكان الانطلاق"></div>
+          <button type="button" class="cx-locbtn" id="pm-gps" aria-label="موقعي الحالي"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+        </div>
+        <small class="note" id="pm-hint" style="margin:0">اضغط على الخريطة بالمكان اللي تنتظر بيه، أو اسحب الدبوس. أي مكان ببغداد، حتى لو مو من مناطقنا.</small>
         <div class="field"><label for="pm-txt">وين بالضبط؟</label><input id="pm-txt" placeholder="مثال: باب مول المنصور الرئيسي" maxlength="100"></div>
         <p class="cx-same">الكروة نفسها: سعر المنطقة اللي رايح إلها ما يتغيّر.</p>
       </div>
@@ -708,7 +718,8 @@ async function orderForm(){
     ${pts?`<a class="cx-pts${bal>=th?" ready":""}" href="#account"><div class="cx-ring" style="background:conic-gradient(#febd02 0 ${pct}%,rgb(255 255 255/.15) ${pct}% 100%)"><span>${pct}%</span></div><div style="flex:1"><b>${fmt(bal)} نقطة</b><small>${bal>=th?"عندك كروة مجانية! فعّلها فوق":`${fmt(th)} نقطة = كروة مجانية`}</small></div></a>`:""}
     <div class="cx-cta"><button class="btn primary big" id="osub">اطلب هسه <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></button></div>
   </form>`;
-  $("#pickbtn").onclick=()=>{const ab=$("#addrbox");ab.hidden=!ab.hidden;$("#pickbtn").setAttribute("aria-expanded",!ab.hidden);if(!ab.hidden)ab.scrollIntoView({behavior:"smooth",block:"center"})};
+  $("#pickbtn").onclick=()=>$("#addrbox").scrollIntoView({behavior:"smooth",block:"center"});
+  const pe=$("#pm-edit"); if(pe) pe.onclick=()=>{$("#pm-fields").hidden=false;$("#pm-sum").hidden=true};
   $("#notet").onclick=()=>{$("#notef").hidden=false;$("#notet").hidden=true;$("#o-note").focus()};
   try{orderZones=await rpc("taxi_public_zones",{})}catch{orderZones=[]}
   // recent destinations first (from this customer's own trips), then everything when searching or "كل المناطق"
@@ -731,27 +742,39 @@ async function orderForm(){
   wireAddr();
   // pickup: the customer's building, or any other place (map pin / current location). The fare is the destination zone's either way.
   let pm="home", pin=null, pmap=null, pmark=null;
-  const pickTxt=()=>{if(pm==="home"){try{$("#picktxt").textContent=addrTxt(readAddr())}catch{$("#picktxt").textContent="حدّد عمارتك"}}
-    else $("#picktxt").textContent="📍 "+($("#pm-txt").value.trim()||(pin?"مكان على الخريطة":"حدّد مكان الانطلاق"))};
+  const pickTxt=()=>{if(pm==="home"){try{const t=addrTxt(readAddr());$("#picktxt").textContent=t;const st=$("#pm-sumtxt");if(st)st.textContent=t}catch{$("#picktxt").textContent="حدّد عمارتك"}}
+    else $("#picktxt").textContent=$("#pm-txt").value.trim()||(pin?"مكان على الخريطة":"حدّد مكان الانطلاق")};
   const setPin=(ll,zoom)=>{pin={lat:+ll.lat.toFixed(6),lng:+ll.lng.toFixed(6)};
     if(pmap){if(pmark)pmark.setLatLng(ll);else{pmark=L.marker(ll,{draggable:true,icon:L.divIcon({className:"",iconSize:[34,44],iconAnchor:[17,42],html:`<svg width="34" height="44" viewBox="0 0 34 44" aria-hidden="true"><path d="M17 43C17 43 3 26.5 3 16a14 14 0 0 1 28 0c0 10.5-14 27-14 27z" fill="#00383d" stroke="#fff" stroke-width="2.5"/><circle cx="17" cy="16" r="6" fill="#febd02"/></svg>`})}).addTo(pmap);pmark.on("dragend",()=>setPin(pmark.getLatLng()))}if(zoom)pmap.setView(ll,17)}
-    $("#pm-hint").textContent="✔ انحدّد مكان الانطلاق. تگدر تسحب الدبوس إذا تريد تعدّله.";pickTxt()};
+    $("#pm-hint").textContent="✔ انحدّد مكان الانطلاق. تگدر تسحب الدبوس إذا تريد تعدّله.";pickTxt();nameIt(pin)};
+  // fill "وين بالضبط؟" with the street / place name of the pin, unless the customer typed his own
+  let typed=false, nameSeq=0;
+  const nameIt=async ll=>{if(typed)return;const n=++nameSeq;
+    try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${ll.lat}&lon=${ll.lng}&zoom=18&accept-language=ar`);const j=await r.json();
+      if(n!==nameSeq||typed)return;const a=j.address||{};
+      const parts=[j.name&&j.name!==a.road?j.name:"",a.road,a.neighbourhood||a.suburb||a.quarter||a.city_district].filter(Boolean);
+      const t=[...new Set(parts)].slice(0,3).join("، ")||(j.display_name||"").split(",").slice(0,2).join("،");
+      if(t){$("#pm-txt").value=t;pickTxt()}}catch{}};
   const initPMap=()=>{if(pmap||typeof L==="undefined"){if(typeof L==="undefined")$("#pm-map").innerHTML=`<div class="empty">ما انحمّلت الخريطة، استخدم موقعك الحالي.</div>`;return}
-    pmap=L.map("pm-map").setView([33.315,44.366],12);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(pmap);
-    pmap.on("click",e=>setPin(e.latlng));setTimeout(()=>pmap&&pmap.invalidateSize(),150)};
+    pmap=L.map("pm-map",{zoomControl:true}).setView([33.315,44.366],12);
+    let fails=0;const tl=L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd",attribution:"© OpenStreetMap © CARTO"}).addTo(pmap);
+    tl.on("tileerror",()=>{if(++fails===4){pmap.removeLayer(tl);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(pmap)}});
+    pmap.on("click",e=>setPin(e.latlng));setTimeout(()=>pmap&&pmap.invalidateSize(),150);setTimeout(()=>pmap&&pmap.invalidateSize(),600);
+    if(!pin) locate(true)};
   const setMode=m=>{pm=m;$("#addrbox").querySelectorAll("[data-pm]").forEach(b=>b.setAttribute("aria-checked",b.dataset.pm===m));
     $("#pm-home").hidden=m!=="home";$("#pm-other").hidden=m!=="other";if(m==="other")initPMap();pickTxt()};
   $("#addrbox").querySelectorAll("[data-pm]").forEach(b=>b.onclick=()=>setMode(b.dataset.pm));
-  $("#pm-gps").onclick=()=>{if(!navigator.geolocation){toast("تلفونك ما يدعم تحديد الموقع");return}
-    const b=$("#pm-gps");b.disabled=true;b.textContent="جارٍ تحديد موقعك…";
-    navigator.geolocation.getCurrentPosition(p=>{b.disabled=false;b.textContent="📍 استخدم موقعي الحالي";setPin({lat:p.coords.latitude,lng:p.coords.longitude},true)},
-      ()=>{b.disabled=false;b.textContent="📍 استخدم موقعي الحالي";toast("ما گدرت أحدد موقعك، اسمح بالموقع أو اضغط على الخريطة")},{enableHighAccuracy:true,timeout:15000})};
-  $("#pm-txt").oninput=pickTxt;
+  function locate(quiet){if(!navigator.geolocation){if(!quiet)toast("تلفونك ما يدعم تحديد الموقع");return}
+    const b=$("#pm-gps");b.classList.add("busy");$("#pm-hint").textContent="جارٍ تحديد موقعك…";
+    navigator.geolocation.getCurrentPosition(p=>{b.classList.remove("busy");setPin({lat:p.coords.latitude,lng:p.coords.longitude},true)},
+      ()=>{b.classList.remove("busy");$("#pm-hint").textContent="اضغط على الخريطة بالمكان اللي تنتظر بيه. أي مكان ببغداد، حتى لو مو من مناطقنا.";if(!quiet)toast("ما گدرت أحدد موقعك، اسمح بالموقع أو اضغط على الخريطة")},{enableHighAccuracy:true,timeout:15000,maximumAge:60000})}
+  $("#pm-gps").onclick=()=>locate(false);
+  $("#pm-txt").oninput=()=>{typed=$("#pm-txt").value.trim()!=="";pickTxt()};
   $("#addrbox").addEventListener("change",pickTxt);
   $("#of").onsubmit=async e=>{e.preventDefault();const btn=$("#osub");
     const fail=(msg,el)=>{$("#addrbox").hidden=false;$("#oe").textContent=msg;(el||$("#addrbox")).scrollIntoView({behavior:"smooth",block:"center"})};
     let ad=null, p;
-    if(pm==="home"){try{ad=readAddr()}catch(err){return fail(err.message)}
+    if(pm==="home"){try{ad=readAddr()}catch(err){$("#pm-fields").hidden=false;const sm=$("#pm-sum");if(sm)sm.hidden=true;return fail(err.message)}
       p={pickup:`عمارة ${ad.b} · طابق ${ad.f} · شقة ${ad.a}`};}
     else{const t=$("#pm-txt").value.trim();if(!pin&&!t)return fail("حدّد مكان الانطلاق على الخريطة أو اكتب وين بالضبط");
       p={pickup:t||"مكان على الخريطة",lat:pin?pin.lat:null,lng:pin?pin.lng:null};}
