@@ -18,7 +18,7 @@
 <meta name="apple-mobile-web-app-title" content="المنصور تاكسي">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&family=Readex+Pro:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 /* Al-Mansour Taxi: the logo's deep teal towers + taxi-yellow road; landing page rides a dashed road line */
@@ -43,6 +43,50 @@ button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 [hidden]{display:none!important}
+/* ---- customer pages: "bold" look — Mansour yellow top, cream ground, deep teal ink (one deliberate light look) ---- */
+.cx{--bg:#fffbea;--panel:#ffffff;--line:#ece4c6;--fg:#00383d;--muted:#5e6650;--ok:#16935a;--bad:#c62d25;--body:Cairo,"IBM Plex Sans Arabic",system-ui,sans-serif;--display:Cairo,system-ui,sans-serif;
+  color-scheme:light;background:#fffbea;color:#00383d;font-family:var(--body);min-height:100vh;min-height:100dvh}
+.cx-top{background:#febd02;border-radius:0 0 36px 36px;padding:16px max(20px,env(safe-area-inset-right)) 74px max(20px,env(safe-area-inset-left))}
+.cx-in{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.cx-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.cx-brand{display:flex;align-items:baseline;gap:6px;line-height:1;color:#00383d;text-decoration:none}
+.cx-brand b{font:900 24px var(--body)}
+.cx-brand i{font:900 17px var(--body);font-style:normal;letter-spacing:.06em;background:#00383d;color:#febd02;padding:3px 8px;border-radius:6px}
+.cx-av{width:46px;height:46px;border-radius:50%;background:#00383d;color:#febd02;display:grid;place-items:center;font:900 18px var(--body);text-decoration:none;flex:none}
+.cx-h1{margin:4px 0 0;font:900 clamp(34px,10vw,42px)/1.12 var(--body);color:#00383d}
+.cx-sub{margin:0;font-weight:700;color:#3a4a2c;font-size:16px}
+.cx-pick{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;background:#00383d;color:#fff;border:0;border-radius:999px;padding:8px 14px;font:700 14px var(--body);max-width:100%}
+.cx-pick span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cx-pick u{color:#febd02;text-decoration:none;font-weight:700}
+.cx-main{max-width:560px;margin:-54px auto 0;padding:0 max(16px,env(safe-area-inset-right)) 130px max(16px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:14px;position:relative}
+.cx .ocard{border-radius:26px;border:0;box-shadow:0 14px 30px rgb(0 56 61/.14);padding:18px}
+.cx .btn{border-color:var(--line)}
+.cx .btn.primary{background:#00383d;border-color:#00383d;color:#febd02;font-weight:900}
+.cx h2.cx-h2{margin:0;font:900 20px var(--body)}
+.cx-search{display:flex;align-items:center;gap:12px;background:#f3f1e6;border-radius:16px;padding:0 16px;height:56px}
+.cx-search input{flex:1;min-width:0;border:0;background:transparent;outline:none;font:600 17px var(--body);color:#00383d;padding:0}
+.cx-search:focus-within{outline:2px solid #00383d}
+.cx-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;max-height:360px;overflow:auto}
+.cx-list button{width:100%;display:flex;align-items:center;gap:14px;padding:11px 8px;border:0;border-bottom:1px solid #f1ecd6;background:transparent;text-align:start;border-radius:14px;color:#00383d}
+.cx-list li:last-child button{border-bottom:0}
+.cx-list button:hover{background:#fffbea}
+.cx-list button[aria-checked=true]{background:#00383d;color:#fff}
+.cx-list button[aria-checked=true] small{color:#febd02}
+.cx-ico{width:42px;height:42px;border-radius:12px;background:#fff1c2;color:#8a6500;display:grid;place-items:center;flex:none}
+.cx-list button[aria-checked=true] .cx-ico{background:#febd02;color:#00383d}
+.cx-list b{display:block;font:800 16px var(--body)}
+.cx-list small{color:#6a6247;font-size:13px}
+.cx-list .tick{margin-inline-start:auto;opacity:0}.cx-list button[aria-checked=true] .tick{opacity:1}
+.cx-more{align-self:center;background:none;border:0;color:#00383d;font:700 14px var(--body);text-decoration:underline;padding:8px}
+.cx-pts{background:#00383d;color:#fff;border-radius:22px;padding:14px 16px;display:flex;align-items:center;gap:14px;text-decoration:none}
+.cx-ring{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;flex:none}
+.cx-ring span{width:44px;height:44px;border-radius:50%;background:#00383d;display:grid;place-items:center;font:900 13px var(--body);color:#febd02}
+.cx-pts b{display:block;font:900 18px var(--body)} .cx-pts small{color:#c8dcda;font-size:13px}
+.cx-pts.ready{box-shadow:0 0 0 3px #febd02}
+.cx-cta{position:fixed;left:0;right:0;bottom:0;padding:14px max(16px,env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:linear-gradient(to top,#fffbea 72%,rgb(255 251 234/0));z-index:5}
+.cx-cta .btn{max-width:560px;margin:0 auto;display:flex;width:100%;height:62px;border-radius:20px;font-size:21px;align-items:center;justify-content:center;gap:10px}
+.cx-note-t{background:none;border:0;color:#00383d;font:700 14px var(--body);padding:0;text-align:start;text-decoration:underline}
+.cx .waitbox{border-color:#febd02}
 h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
 
 .btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 14px;font-weight:600}
@@ -370,7 +414,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081628";
+const BUILD="202611081637";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -534,11 +578,15 @@ function accountCtas(){
     ?`<div class="ctas"><a class="cta call" href="#order">🚕<span>اطلب تكسي هسه<small style="font-family:var(--body);direction:rtl">اختار منطقتك وتوصلك سيارة</small></span></a><a class="cta wa" href="#account">👤<span>حسابي<small style="font-family:var(--body);direction:rtl">${esc(CS.name)}</small></span></a></div>`
     :`<div class="ctas"><a class="cta call" href="#signup">✨<span>إنشاء حساب<small style="font-family:var(--body);direction:rtl">باسم مستخدم وكلمة سر</small></span></a><a class="cta wa" href="#login">🔑<span>تسجيل الدخول</span></a></div>`;
 }
-function custShell(title){
-  $("#app").innerHTML=`<div class="lp">
-   <header class="hero ord-hero"><div class="lp-in hero-top"><a href="#" class="back" aria-label="الرئيسية"><img src="img/wordmark-light.png" alt="المنصور تاكسي" width="120" height="64"></a>${CS.tok?`<a href="#account">👤 ${esc(CS.name)}</a>`:""}</div>
-     <div class="lp-in"><h1 class="ord-h1">${title}</h1></div></header>
-   <main class="lp-in ord" id="ord"></main></div>`;
+function custShell(title,o){
+  o=o||{};
+  const ini=(CS.name||"").trim().charAt(0)||"؟";
+  $("#app").innerHTML=`<div class="cx">
+   <header class="cx-top"><div class="cx-in">
+     <div class="cx-head"><a href="#" class="cx-brand" aria-label="المنصور تاكسي، الرئيسية"><b>المنصور</b><i>TAXI</i></a>${CS.tok?`<a class="cx-av" href="#account" aria-label="حسابي: ${esc(CS.name)}">${esc(ini)}</a>`:""}</div>
+     <h1 class="cx-h1">${title}</h1>${o.sub?`<p class="cx-sub">${o.sub}</p>`:""}<div id="cx-pickslot"></div>
+   </div></header>
+   <main class="cx-main" id="ord"></main></div>`;
 }
 function custError(e){ if(/سجّل دخولك|موقوف/.test(e.message)){CS.clear();location.hash="#login";return true} return false }
 function ptsCard(p,compact){
@@ -608,34 +656,59 @@ async function orderApp(){
   tok?orderStatus(tok):orderForm();
 }
 async function orderForm(){
+  custShell("تكسي لباب<br>عمارتك",{sub:"سواق من المجمّع، سعر ثابت، ونقاط على كل سفرة"});
   const box=$("#ord");
   let saved=null; try{saved=JSON.parse(store.get("taxi_c_addr")||"null")}catch{}
-  let pts=null;
-  try{const me=await rpc("taxi_customer_me",{p_token:CS.tok});pts=me.points;if((!saved||!saved.b)&&me.building)saved={b:me.building,f:me.floor,a:me.apartment}}catch(e){if(custError(e))return}
+  let pts=null, recent=[];
+  try{const me=await rpc("taxi_customer_me",{p_token:CS.tok});pts=me.points;recent=me.trips||[];if((!saved||!saved.b)&&me.building)saved={b:me.building,f:me.floor,a:me.apartment}}catch(e){if(custError(e))return}
   const canFree=pts&&pts.balance>=pts.redeem;
-  box.innerHTML=`<form id="of" class="ocard" novalidate>
-    <p class="note" style="margin:0">الطلب باسم <b>${esc(CS.name)}</b> · <span dir="ltr">${esc(CS.user)}</span> &nbsp; <a href="#account">حسابي</a></p>
-    ${ptsCard(pts,true)}
-    ${addrFields(saved||{},"وين تنتظر؟")}
-    <div class="field"><label for="o-q">وين رايح؟</label><input id="o-q" type="search" placeholder="ابحث عن المنطقة…" autocomplete="off"></div>
-    <div class="zones" id="zones" role="radiogroup" aria-label="المنطقة"><div class="empty">جارٍ التحميل…</div></div>
-    <div class="field"><label for="o-note">ملاحظة (اختياري)</label><input id="o-note" placeholder="مثال: عندي جنطة كبيرة"></div>
-    ${canFree?`<label class="freeopt"><input type="checkbox" id="o-free"> <span>⭐ استخدم ${fmt(pts.redeem)} نقطة وخلّي هاي الكروة مجانية<br><small style="font-weight:400;color:var(--muted)">إذا الكروة أكثر من ${fmt(pts.redeem)} دينار تدفع الفرق بس.</small></span></label>`:""}
-    <div class="err" id="oe"></div>
-    <button class="btn primary big" id="osub">اطلب التكسي</button>
-    <p class="note" style="margin:0">السعر ثابت حسب المنطقة. يوصلك السائق ويستلم الأجرة. وكل سفرة تكملها تنضاف نقاط لحسابك.</p>
+  const addrTxt=a=>a&&a.b?`عمارة ${a.b} · طابق ${a.f} · شقة ${a.a}`:"حدّد عمارتك";
+  const PIN=`<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#febd02" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>`;
+  $("#cx-pickslot").innerHTML=`<button type="button" class="cx-pick" id="pickbtn" aria-expanded="${!(saved&&saved.b)}" aria-controls="addrbox">${PIN}<span id="picktxt">${esc(addrTxt(saved))}</span><u>تغيير</u></button>`;
+  const th=pts?pts.redeem||5000:5000, bal=pts?pts.balance||0:0, pct=Math.min(100,Math.round(bal*100/th));
+  box.innerHTML=`<form id="of" novalidate style="display:flex;flex-direction:column;gap:14px">
+    <div class="ocard" id="addrbox" ${saved&&saved.b?"hidden":""}>${addrFields(saved||{},"وين تنتظر؟")}</div>
+    <div class="ocard">
+      <h2 class="cx-h2" id="qh">وين رايح؟</h2>
+      <label class="cx-search"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00383d" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="o-q" type="search" placeholder="اكتب اسم المنطقة" autocomplete="off" aria-labelledby="qh"></label>
+      <ul class="cx-list" id="zones" role="radiogroup" aria-labelledby="qh"><li class="empty">جارٍ التحميل…</li></ul>
+      <button type="button" class="cx-more" id="zmore" hidden>كل المناطق</button>
+      <button type="button" class="cx-note-t" id="notet">+ إضافة ملاحظة للسائق</button>
+      <div class="field" id="notef" hidden><label for="o-note">ملاحظة (اختياري)</label><input id="o-note" placeholder="مثال: عندي جنطة كبيرة"></div>
+      ${canFree?`<label class="freeopt"><input type="checkbox" id="o-free"> <span>⭐ استخدم ${fmt(pts.redeem)} نقطة وخلّي هاي الكروة مجانية<br><small style="font-weight:400;color:var(--muted)">إذا الكروة أكثر من ${fmt(pts.redeem)} دينار تدفع الفرق بس.</small></span></label>`:""}
+      <div class="err" id="oe"></div>
+    </div>
+    ${pts?`<a class="cx-pts${bal>=th?" ready":""}" href="#account"><div class="cx-ring" style="background:conic-gradient(#febd02 0 ${pct}%,rgb(255 255 255/.15) ${pct}% 100%)"><span>${pct}%</span></div><div style="flex:1"><b>${fmt(bal)} نقطة</b><small>${bal>=th?"عندك كروة مجانية! فعّلها فوق":`${fmt(th)} نقطة = كروة مجانية`}</small></div></a>`:""}
+    <div class="cx-cta"><button class="btn primary big" id="osub">اطلب هسه <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></button></div>
   </form>`;
+  $("#pickbtn").onclick=()=>{const ab=$("#addrbox");ab.hidden=!ab.hidden;$("#pickbtn").setAttribute("aria-expanded",!ab.hidden);if(!ab.hidden)ab.scrollIntoView({behavior:"smooth",block:"center"})};
+  $("#notet").onclick=()=>{$("#notef").hidden=false;$("#notet").hidden=true;$("#o-note").focus()};
   try{orderZones=await rpc("taxi_public_zones",{})}catch{orderZones=[]}
-  const draw=()=>{const q=$("#o-q").value.trim();const list=orderZones.filter(z=>!q||z.name.includes(q));
-    $("#zones").innerHTML=list.length?list.map(z=>`<button type="button" role="radio" aria-checked="${orderZone===z.id}" class="zchip${orderZone===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}</button>`).join(""):`<div class="empty">ماكو منطقة بهذا الاسم.</div>`;
-    $("#zones").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{orderZone=+b.dataset.z;draw()});};
-  draw(); $("#o-q").oninput=draw;
+  // recent destinations first (from this customer's own trips), then everything when searching or "كل المناطق"
+  const seen={}, rec=[];
+  recent.forEach(t=>{if(!t.zone)return;const z=orderZones.find(x=>x.name===t.zone);if(!z)return;if(!seen[z.id]){seen[z.id]={n:0,at:t.created_at};rec.push(z)}seen[z.id].n++});
+  let showAll=rec.length===0;
+  const ICO_CLOCK=`<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
+  const ICO_PIN=`<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>`;
+  const ICO_PLANE=`<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>`;
+  const TICK=`<svg class="tick" aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#febd02" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>`;
+  const day=ts=>{const d=Math.floor((Date.now()-new Date(ts))/864e5);return d<1?"اليوم":d<2?"البارحة":new Date(ts).toLocaleDateString("ar-IQ",{weekday:"long"})};
+  const draw=()=>{const q=$("#o-q").value.trim();
+    const list=q?orderZones.filter(z=>z.name.includes(q)):showAll?[...rec,...orderZones.filter(z=>!seen[z.id])]:rec;
+    $("#zones").innerHTML=list.length?list.map(z=>{const r=seen[z.id],air=/مطار/.test(z.name);
+      return `<li><button type="button" role="radio" aria-checked="${orderZone===z.id}" data-z="${z.id}"><span class="cx-ico">${r?ICO_CLOCK:air?ICO_PLANE:ICO_PIN}</span><span><b>${esc(z.name)}</b><small>${r?(r.n>1?`رحت إلها ${r.n} مرات · آخر مرة ${day(r.at)}`:`آخر مرة ${day(r.at)}`):air?"ذهاب أو رجعة":"بغداد"}</small></span>${TICK}</button></li>`}).join("")
+      :`<li class="empty">ماكو منطقة بهذا الاسم.</li>`;
+    $("#zmore").hidden=!!q||showAll;
+    $("#zones").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{orderZone=+b.dataset.z;draw();$("#oe").textContent=""});};
+  draw(); $("#o-q").oninput=draw; $("#zmore").onclick=()=>{showAll=true;draw()};
   wireAddr();
+  $("#addrbox").addEventListener("change",()=>{try{const a=readAddr();$("#picktxt").textContent=addrTxt(a)}catch{}});
   $("#of").onsubmit=async e=>{e.preventDefault();const btn=$("#osub");
-    let ad; try{ad=readAddr()}catch(err){$("#oe").textContent=err.message;return}
+    let ad; try{ad=readAddr()}catch(err){$("#addrbox").hidden=false;$("#oe").textContent=err.message;$("#addrbox").scrollIntoView({behavior:"smooth",block:"center"});return}
     const {b,f,a}=ad;
     const p={pickup:`عمارة ${b} · طابق ${f} · شقة ${a}`,zone_id:orderZone,note:$("#o-note").value,use_points:!!($("#o-free")&&$("#o-free").checked)};
-    if(!orderZone){$("#oe").textContent="اختار المنطقة اللي رايح إلها";return}
+    if(!orderZone){$("#oe").textContent="اختار المنطقة اللي رايح إلها";$("#qh").scrollIntoView({behavior:"smooth",block:"start"});return}
     btn.disabled=true;$("#oe").textContent="";
     try{const r=await rpc("taxi_customer_order",{p_token:CS.tok,p});
       store.set("taxi_c_addr",JSON.stringify({b,f,a}));store.set("taxi_order",r.token);
@@ -647,6 +720,7 @@ const OS={requested:["⏳","طلبك وصل للمكتب","دنختارلك أق
   cancelled:["✖️","انلغى الطلب",""],rejected:["📲","دنحوّل طلبك لسائق ثاني","لحظات."]};
 async function orderStatus(tok){
   clearInterval(orderT);
+  custShell("طلبك");
   const box=$("#ord"); if(!box) return;
   const draw=async()=>{let s;try{s=await rpc("taxi_customer_status",{p_token:tok})}catch(e){store.del("taxi_order");clearInterval(orderT);return orderForm()}
     const o=(s.status==="started"&&s.waiting?OS.waiting:OS[s.status])||["•",s.status,""];
