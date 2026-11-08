@@ -1,0 +1,5 @@
+-- Round trip (مرجع) and waiting timer (وقت إضافي) on a running trip.
+-- taxi_trips: round_trip, wait_sec, wait_started_at, wait_count, base_fare, round_fee, wait_fee
+-- settings: round_trip_pct (default 100), wait_free_min (5), wait_per_min (250)
+-- taxi_driver_trip actions: round {on}, wait_start, wait_end; end = base + round fee + waiting fee.
+-- Applied on Supabase as migrations taxi_round_trip_wait and taxi_admin_round_wait_views.

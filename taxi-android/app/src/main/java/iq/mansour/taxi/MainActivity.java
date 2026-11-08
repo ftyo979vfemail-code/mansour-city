@@ -40,6 +40,43 @@ public class MainActivity extends Activity {
     private LinearLayout ringView;
     private LinearLayout tripBox;
     private String tripKey = "";
+    // live waiting timer / fare on the running trip card
+    private int waitBase; private long waitFrom; private boolean waitRunning; private JSONObject waitTrip;
+    private EditText waitFare; private TextView waitClock, waitNote, waitTotal;
+    private final Runnable waitTick = new Runnable() { @Override public void run() { updateWait(); if (waitRunning) h.postDelayed(this, 1000); } };
+
+    static String clock(int s) {
+        if (s < 0) s = 0;
+        int hh = s / 3600, m = s % 3600 / 60, x = s % 60;
+        return hh > 0 ? String.format(java.util.Locale.US, "%d:%02d:%02d", hh, m, x) : String.format(java.util.Locale.US, "%d:%02d", m, x);
+    }
+
+    private void updateWait() {
+        JSONObject t = waitTrip;
+        if (t == null || waitTotal == null) return;
+        int ws = waitBase + (waitRunning ? (int) ((System.currentTimeMillis() - waitFrom) / 1000) : 0);
+        int base;
+        if (waitFare == null) base = t.optInt("base_fare", t.optInt("fare"));
+        else { try { base = Integer.parseInt(waitFare.getText().toString().replaceAll("\\D", "")); } catch (Exception e) { base = 0; } }
+        int rf = t.optBoolean("round_trip") ? Math.round(base * t.optInt("round_trip_pct", 100) / 100f) : 0;
+        int free = t.optInt("wait_free_min", 0), per = t.optInt("wait_per_min", 0);
+        int wf = Math.max(0, (int) Math.ceil(ws / 60.0) - free) * per;
+        int tot = base + rf + wf, pts = t.optInt("points_used", 0), coll = Math.max(0, tot - pts);
+        java.util.Locale L = java.util.Locale.US;
+        StringBuilder b = new StringBuilder();
+        if (rf > 0 || wf > 0 || pts > 0) {
+            b.append("الأجرة ").append(String.format(L, "%,d", base));
+            if (rf > 0) b.append(" + مرجع ").append(String.format(L, "%,d", rf));
+            if (wf > 0) b.append(" + انتظار ").append(String.format(L, "%,d", wf));
+            if (pts > 0) b.append(" − نقاط ").append(String.format(L, "%,d", Math.min(pts, tot)));
+            b.append("\n");
+        }
+        b.append(coll == 0 && pts > 0 ? "الكروة مجانية بالنقاط، لا تستلم شي" : "استلم من الزبون: " + String.format(L, "%,d", coll) + " د.ع");
+        waitTotal.setText(b.toString());
+        if (waitClock != null) waitClock.setText(clock(ws));
+        if (waitNote != null) waitNote.setText(ws < free * 60 ? "مجاني لحد " + free + " دقايق · باقي " + clock(free * 60 - ws)
+                : "يتحسب " + String.format(L, "%,d", per) + " د.ع لكل دقيقة");
+    }
     private int tickN = 0;
 
     private final Runnable tick = new Runnable() {
@@ -254,9 +291,10 @@ public class MainActivity extends Activity {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
         JSONObject cxk = st.optJSONObject("cancelled");
-        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status")) + ":" + st.optLong("week_share");
+        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("round_trip")) + ":" + st.optLong("week_share");
         if (key.equals(tripKey)) return;
         tripKey = key;
+        h.removeCallbacks(waitTick);
         tripBox.removeAllViews();
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
@@ -341,29 +379,85 @@ public class MainActivity extends Activity {
                 go.setOnClickListener(v -> tripAction("start", null));
                 card.addView(go, full());
             } else {
-                card.addView(text("بسفرة من " + hm(t.optString("started_at")), 19, OK, true));
+                final boolean round = t.optBoolean("round_trip");
+                final boolean waiting = t.optBoolean("waiting");
+                card.addView(text("بسفرة من " + hm(t.optString("started_at")) + (round ? "  ↩ مرجع" : ""), 19, OK, true));
                 card.addView(text(where, 15, FG, false));
                 card.addView(space(10));
                 final boolean fixed = t.optInt("zone_id", 0) > 0 && t.optInt("fare", 0) > 0;
                 final EditText fare = input("الأجرة المستلمة (دينار)", InputType.TYPE_CLASS_NUMBER);
+                // waiting timer + round trip
+                waitBase = t.optInt("wait_sec", 0);
+                waitFrom = System.currentTimeMillis();
+                waitRunning = waiting;
+                waitTrip = t;
+                waitFare = fixed ? null : fare;
+                if (waiting) {
+                    LinearLayout wb = new LinearLayout(this);
+                    wb.setOrientation(LinearLayout.VERTICAL);
+                    wb.setGravity(Gravity.CENTER);
+                    wb.setPadding(dp(12), dp(12), dp(12), dp(12));
+                    wb.setBackground(box(0xFFFFF4DC, AMBER, 14));
+                    wb.addView(text("⏸ تنتظر الزبون", 14, MUTED, true));
+                    waitClock = text(clock(waitBase), 40, FG, true);
+                    waitClock.setGravity(Gravity.CENTER);
+                    waitClock.setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD);
+                    wb.addView(waitClock);
+                    waitNote = text("", 13, MUTED, false);
+                    waitNote.setGravity(Gravity.CENTER);
+                    wb.addView(waitNote);
+                    Button cont = button("▶ رجع الزبون، كمّل الرحلة", true);
+                    cont.setOnClickListener(v -> tripAction("wait_end", null));
+                    wb.addView(cont, full());
+                    card.addView(wb, full());
+                } else {
+                    waitClock = null; waitNote = null;
+                    LinearLayout r2 = row();
+                    Button wbtn = button("⏸ وقت إضافي (انتظار)", false);
+                    wbtn.setOnClickListener(v -> tripAction("wait_start", null));
+                    Button rbtn = button(round ? "↩ مرجع ✓" : "↩ خلّيها مرجع", false);
+                    if (round) rbtn.setBackground(box(0xFFFFF4DC, AMBER, 14));
+                    rbtn.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+                            .setTitle(round ? "تشيل المرجع؟" : "تخلّي السفرة مرجع؟")
+                            .setMessage(round ? "ترجع السفرة ذهاب بس." : "ذهاب ورجعة، وينضاف سعر الرجعة على الأجرة.")
+                            .setNegativeButton("رجوع", null)
+                            .setPositiveButton(round ? "شيل المرجع" : "نعم، مرجع", (d, w) -> tripAction("round", obj("on", round ? "false" : "true"))).show());
+                    r2.addView(wbtn, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 3));
+                    LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2);
+                    rl.setMarginStart(dp(8));
+                    r2.addView(rbtn, rl);
+                    card.addView(r2, full());
+                    if (waitBase > 0) card.addView(text("انتظرت لحد هسه: " + clock(waitBase), 13, MUTED, false));
+                }
+                card.addView(space(8));
                 if (fixed) {
-                    int collect = t.has("collect") ? t.optInt("collect") : t.optInt("fare");
-                    TextView fx = text(collect == 0 && t.optInt("points_used", 0) > 0 ? "الكروة مجانية بالنقاط، لا تستلم شي"
-                            : "استلم من الزبون: " + String.format(java.util.Locale.US, "%,d", collect) + " د.ع", 20, FG, true);
-                    fx.setGravity(Gravity.CENTER);
-                    fx.setBackground(box(0xFFFFF4DC, AMBER, 12));
-                    fx.setPadding(dp(12), dp(12), dp(12), dp(12));
-                    card.addView(fx, full());
+                    waitTotal = text("", 20, FG, true);
+                    waitTotal.setGravity(Gravity.CENTER);
+                    waitTotal.setBackground(box(0xFFFFF4DC, AMBER, 12));
+                    waitTotal.setPadding(dp(12), dp(12), dp(12), dp(12));
+                    card.addView(waitTotal, full());
                 } else {
                     int base = st.optInt("fare_base", 0);
                     if (base > 0) fare.setText(String.valueOf(base));
                     fare.setTextSize(22);
                     fare.setGravity(Gravity.CENTER);
-                    card.addView(text("الأجرة المستلمة (دينار)", 13, MUTED, true));
+                    card.addView(text("الأجرة (دينار)", 13, MUTED, true));
                     card.addView(fare, full());
+                    waitTotal = text("", 16, FG, true);
+                    waitTotal.setGravity(Gravity.CENTER);
+                    card.addView(waitTotal, full());
+                    fare.addTextChangedListener(new android.text.TextWatcher() {
+                        public void beforeTextChanged(CharSequence a, int b, int c, int d) {}
+                        public void onTextChanged(CharSequence a, int b, int c, int d) {}
+                        public void afterTextChanged(android.text.Editable e) { updateWait(); }
+                    });
                 }
+                updateWait();
+                if (waiting) h.postDelayed(waitTick, 1000);
                 card.addView(space(8));
                 Button end = button("إنهاء السفرة", true);
+                end.setEnabled(!waiting);
+                if (waiting) end.setAlpha(0.45f);
                 end.setOnClickListener(v -> tripAction("end", obj("fare", fare.getText().toString())));
                 card.addView(end, full());
             }
