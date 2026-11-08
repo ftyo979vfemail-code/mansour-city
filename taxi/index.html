@@ -419,7 +419,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081649";
+const BUILD="202611081653";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1936,12 +1936,13 @@ function moneyCard(){
     ${m.pending?`<small>منها ${dinar(m.pending)} بانتظار تأكيد الإدارة</small>`:""}
     ${m.owed_to_him?`<small>حصتك اللي بذمة الشركة: ${dinar(m.owed_to_him)}</small>`:""}
     ${lastLine?`<small class="money-last">${lastLine}</small>`:""}
-    <button class="btn primary big" id="dep-btn" ${free>0?"":"disabled"}>إيداع: سلّمت المبلغ للإدارة</button></div>`;
+    ${free>0?"":`<small>ماكو مبلغ مسجّل عليك هسه. إذا سلّمت فلوس للإدارة سجّلها هنا، وتنحسب بعد تأكيدها.</small>`}
+    <button type="button" class="btn primary big" id="dep-btn">إيداع: سلّمت المبلغ للإدارة</button></div>`;
 }
 function depositForm(){
   const m=today.money||{}, free=Math.max(0,(m.in_hand||0)-(m.pending||0));
   const md=modal(`<h3>💵 إيداع للإدارة</h3><p style="margin:0">اكتب المبلغ اللي سلّمته للإدارة. ينحسب بعد ما الإدارة تأكد إنها استلمته.</p>
-    <div class="field"><label for="dp-a">المبلغ (دينار)</label><input id="dp-a" inputmode="numeric" value="${free}" style="font:600 24px var(--mono);text-align:center"></div>
+    <div class="field"><label for="dp-a">المبلغ (دينار)</label><input id="dp-a" inputmode="numeric" value="${free||""}" placeholder="مثال: 25000" style="font:600 24px var(--mono);text-align:center"></div>
     <div class="field"><label for="dp-n">ملاحظة (اختياري)</label><input id="dp-n" placeholder="مثال: سلّمته لأبو علي"></div>
     <div class="err" id="dp-e"></div><div class="row"><button class="btn" id="dp-c">رجوع</button><button class="btn primary" id="dp-ok">إرسال الإيداع</button></div>`);
   $("#dp-c",md).onclick=()=>md.remove();

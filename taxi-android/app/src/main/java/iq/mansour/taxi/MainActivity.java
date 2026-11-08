@@ -526,12 +526,11 @@ public class MainActivity extends Activity {
             c.addView(text(line, 13, st.equals("rejected") ? 0xFFB42318 : FG, true));
         }
         c.addView(space(8));
+        if (free <= 0) c.addView(text("ماكو مبلغ مسجّل عليك هسه. إذا سلّمت فلوس للإدارة سجّلها هنا، وتنحسب بعد تأكيدها.", 12, MUTED, false));
         Button dep = button("إيداع: سلّمت المبلغ للإدارة", true);
-        dep.setEnabled(free > 0);
-        if (free <= 0) dep.setAlpha(0.45f);
         dep.setOnClickListener(v -> {
             final EditText amt = input("المبلغ (دينار)", InputType.TYPE_CLASS_NUMBER);
-            amt.setText(String.valueOf(free));
+            if (free > 0) amt.setText(String.valueOf(free));
             amt.setTextSize(22);
             amt.setGravity(Gravity.CENTER);
             final EditText note = input("ملاحظة (اختياري)", InputType.TYPE_CLASS_TEXT);
