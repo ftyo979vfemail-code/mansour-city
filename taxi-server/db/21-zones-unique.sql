@@ -1,0 +1,3 @@
+-- taxi_zones_no_duplicates: taxi_zone_key() normalises hamza/taa marbuta/alef maqsura/spaces;
+-- a unique index on active zones stops the same area twice; duplicates (البنوك، الصالحية، حي اور) removed;
+-- taxi_admin_zone_save refuses a duplicate and revives a deleted area instead of copying it.
