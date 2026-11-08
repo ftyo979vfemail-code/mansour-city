@@ -4,3 +4,6 @@
 -- Applied on Supabase as migration taxi_driver_deposits.
 -- taxi_deposits_no_double: a driver can deposit at most what he still holds (in_hand − pending);
 -- an office hand-over recorded by hand (taxi_cash) also closes the driver's waiting deposits it covers.
+-- taxi_trip_paid_tracking: taxi_trips.paid_at/paid_ref mark each trip whose cash reached the office.
+-- taxi_admin_deposit_settle(p_trips) / taxi_admin_cash(p.trips) mark the chosen trips; otherwise oldest-first.
+-- taxi_admin_unpaid lists a driver's unpaid trips with full times; unticked trips stay owed by the driver.

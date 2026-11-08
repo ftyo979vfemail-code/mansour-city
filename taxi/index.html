@@ -305,6 +305,15 @@ select.btn{font-weight:500}
 .money-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:600}
 .money-top b{font:700 24px var(--mono)}
 .money small{color:var(--muted)}
+.modal.wide .sheet{width:min(640px,100%);max-width:640px;max-height:92vh;overflow:auto}
+.tp-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.tp{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow:auto}
+.tp-row{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;background:var(--panel)}
+.tp-row:has(input:checked){border-color:var(--ok);background:color-mix(in srgb,var(--ok) 8%,var(--panel))}
+.tp-row input{width:22px;height:22px;margin-top:2px;accent-color:var(--ok);flex:none}
+.tp-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.tp-main small{color:var(--muted)}
+.tp-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}.tp-tags i{font-style:normal;font-size:11px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:0 7px}
+.tp-amt{font:600 15px var(--mono);white-space:nowrap}
 .money-ok{background:color-mix(in srgb,var(--ok) 12%,var(--panel));color:var(--ok);border-radius:12px;padding:10px 12px;font-weight:700;text-align:center}
 .money-ok small{color:var(--muted);font-weight:500} .money .money-last{color:var(--fg);font-weight:600}
 .depbar{background:color-mix(in srgb,var(--ok) 14%,var(--panel));border-color:var(--ok)}
@@ -442,7 +451,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081712";
+const BUILD="202611081718";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1246,17 +1255,51 @@ function pollDeposits(){
     const ids=ds.map(d=>d.id); if(prevDepInit&&ids.some(id=>!prevDep.includes(id))){beep();setTimeout(beep,400)} prevDep=ids; prevDepInit=true;
   }).catch(()=>{});
 }
+// the driver's unpaid trips with full date/time; the office ticks the ones it received, the rest stay owed by the driver
+function tripPicker(trips,preAmount){
+  let left=preAmount==null?Infinity:preAmount;
+  const pre=trips.map(t=>{const ok=t.cash<=left;if(ok)left-=t.cash;return ok});
+  const day=ts=>new Date(ts).toLocaleDateString("ar-IQ",{weekday:"long",day:"numeric",month:"numeric",year:"numeric"});
+  const tm=ts=>ts?new Date(ts).toLocaleTimeString("ar-IQ",{hour:"numeric",minute:"2-digit"}):"—";
+  const dur=t=>t.started_at&&t.ended_at?Math.max(1,Math.round((new Date(t.ended_at)-new Date(t.started_at))/60000)):null;
+  const html=trips.length?`<div class="tp-head"><b id="tp-sum"></b><button type="button" class="btn sm" id="tp-all">تحديد الكل</button></div>
+    <ul class="tp">${trips.map((t,i)=>`<li><label class="tp-row"><input type="checkbox" data-tp="${t.id}" data-cash="${t.cash}" ${pre[i]?"checked":""}>
+      <span class="tp-main"><b>${esc(t.zone||t.dropoff||"سفرة")}</b>${t.pickup?`<small>من: ${esc(t.pickup)}</small>`:""}
+        <small>${day(t.ended_at)} · ${tm(t.started_at)} ← ${tm(t.ended_at)}${dur(t)?` (${dur(t)} د)`:""}</small>
+        <span class="tp-tags">${t.source==="customer"?`<i>زبون${t.customer_name?": "+esc(t.customer_name):""}</i>`:`<i>سجّلها السائق</i>`}${t.round_trip?"<i>↩ مرجع</i>":""}${t.wait_sec>0?`<i>⏸ انتظار ${Math.ceil(t.wait_sec/60)} د</i>`:""}${t.points_used?`<i>⭐ نقاط ${fmt(t.points_used)}</i>`:""}</span></span>
+      <span class="tp-amt">${dinar(t.cash)}</span></label></li>`).join("")}</ul>`
+    :`<p class="note" style="margin:0">ماكو رحلات غير مسدّدة مسجّلة على هذا السائق.</p>`;
+  const wire=(root,onChange)=>{
+    const boxes=[...root.querySelectorAll("[data-tp]")];
+    const upd=()=>{const sel=boxes.filter(b=>b.checked),sum=sel.reduce((a,b)=>a+ +b.dataset.cash,0),tot=boxes.reduce((a,b)=>a+ +b.dataset.cash,0);
+      const h=root.querySelector("#tp-sum"); if(h) h.textContent=`${trips.length} رحلة غير مسدّدة · ${dinar(tot)} — المحدّد ${sel.length}: ${dinar(sum)}`;
+      const all=root.querySelector("#tp-all"); if(all) all.textContent=sel.length===boxes.length?"إلغاء التحديد":"تحديد الكل";
+      onChange&&onChange(sum,sel.map(b=>+b.dataset.tp))};
+    boxes.forEach(b=>b.onchange=upd);
+    const all=root.querySelector("#tp-all"); if(all) all.onclick=()=>{const on=!boxes.every(b=>b.checked);boxes.forEach(b=>b.checked=on);upd()};
+    upd();
+    return ()=>boxes.filter(b=>b.checked).map(b=>+b.dataset.tp);
+  };
+  return {html,wire};
+}
 function depositDecide(d){
-  const m=modal(`<h3>💵 إيداع من ${esc(d.driver_name)}</h3>
-    <div class="calc"><div><span>السيارة</span><b>${plateHTML(d.plate)}</b></div><div><span>يگول سلّم</span><b>${dinar(d.amount)}</b></div><div><span>بيده للشركة (قبل الإيداع)</span><b>${dinar(d.in_hand)}</b></div>${d.note?`<div><span>ملاحظته</span><b>${esc(d.note)}</b></div>`:""}</div>
+  const tp=tripPicker(d.trips||[],d.amount);
+  const m=modal(`<h3>💵 استلام مبلغ من ${esc(d.driver_name)}</h3>
+    <div class="calc"><div><span>السيارة</span><b>${plateHTML(d.plate)}</b></div><div><span>السائق يگول سلّم</span><b>${dinar(d.amount)}</b></div><div><span>بذمته للشركة</span><b>${dinar(d.in_hand)}</b></div>${d.note?`<div><span>ملاحظته</span><b>${esc(d.note)}</b></div>`:""}<div><span>وقت الإيداع</span><b>${new Date(d.created_at).toLocaleString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric",hour:"numeric",minute:"2-digit"})}</b></div></div>
+    <h4 style="margin:4px 0 0">تفاصيل الرحلات (علّم اللي استلمت فلوسها)</h4>
+    <div id="dd-tp">${tp.html}</div>
     <div class="field"><label for="dd-a">المبلغ اللي استلمته فعلًا (دينار)</label><input id="dd-a" inputmode="numeric" value="${d.amount}" style="font:600 22px var(--mono);text-align:center"></div>
-    <div class="field" id="dd-rf" hidden><label for="dd-r">سبب الرفض</label><input id="dd-r" placeholder="مثال: ما استلمت شي"></div>
+    <div class="field" id="dd-rf" hidden><label for="dd-r">ليش غير مستلم؟</label><input id="dd-r" placeholder="مثال: ما سلّم شي"></div>
     <div class="err" id="dd-e"></div>
-    <div class="row"><button class="btn danger" id="dd-no">رفض</button><button class="btn primary" id="dd-ok">✔ استلمت المبلغ</button></div>`);
-  $("#dd-ok",m).onclick=async()=>{const a=parseInt(($("#dd-a",m).value||"").replace(/\D/g,""),10);
-    try{await rpc("taxi_admin_deposit_decide",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:a||null,p_reason:""});m.remove();toast("انسجل الإيداع");pollDeposits();if(tab==="files")renderFiles()}catch(e){$("#dd-e",m).textContent=e.message}};
-  $("#dd-no",m).onclick=async()=>{const rf=$("#dd-rf",m);if(rf.hidden){rf.hidden=false;$("#dd-r",m).focus();$("#dd-no",m).textContent="تأكيد الرفض";return}
-    try{await rpc("taxi_admin_deposit_decide",{p_pin:PIN,p_id:d.id,p_ok:false,p_received:null,p_reason:$("#dd-r",m).value});m.remove();toast("انرفض");pollDeposits()}catch(e){$("#dd-e",m).textContent=e.message}};
+    <div class="row"><button class="btn danger" id="dd-no">✖ غير مستلم (يبقى بذمته)</button><button class="btn primary" id="dd-ok">✔ استلمت المبلغ</button></div>`);
+  m.classList.add("wide");
+  let typed=false; $("#dd-a",m).oninput=()=>typed=true;
+  const picked=tp.wire($("#dd-tp",m),(sum)=>{if(!typed&&(d.trips||[]).length)$("#dd-a",m).value=sum});
+  $("#dd-ok",m).onclick=async()=>{const a=parseInt(($("#dd-a",m).value||"").replace(/\D/g,""),10);const ids=(d.trips||[]).length?picked():null;
+    if(!a){$("#dd-e",m).textContent="اختار الرحلات المستلمة أو اكتب المبلغ";return}
+    try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:a,p_reason:"",p_trips:ids});m.remove();toast("انسجل الاستلام");pollDeposits();if(tab==="files")renderFiles()}catch(e){$("#dd-e",m).textContent=e.message}};
+  $("#dd-no",m).onclick=async()=>{const rf=$("#dd-rf",m);if(rf.hidden){rf.hidden=false;$("#dd-r",m).focus();$("#dd-no",m).textContent="تأكيد: غير مستلم";return}
+    try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:false,p_received:null,p_reason:$("#dd-r",m).value||"غير مستلم",p_trips:null});m.remove();toast("انسجل غير مستلم، المبلغ باقي بذمة السائق");pollDeposits()}catch(e){$("#dd-e",m).textContent=e.message}};
 }
 function beep(){try{if(!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(.2,audioCtx.currentTime);o.start();o.stop(audioCtx.currentTime+.35)}catch{}}
 function renderTab(){
@@ -1403,14 +1446,23 @@ async function renderFiles(){
   $("#flist").querySelectorAll("[data-fo]").forEach(b=>b.onclick=()=>driverFile(b.dataset.fo));
   $("#flist").querySelectorAll("[data-fc]").forEach(b=>b.onclick=()=>{const r=d.rows.find(x=>x.id===b.dataset.fc);fileCash(r.id,r.driver_name,r.bal.in_hand)});
 }
-function fileCash(id,name,inHand){
-  const m=modal(`<h3>استلام مبلغ من ${esc(name)}</h3><p style="margin:0">بذمّته هسه: <b>${dinar(inHand)}</b></p>
-   <form id="fcf" style="display:flex;flex-direction:column;gap:12px">
-    <div class="field"><label for="fcm">المبلغ (دينار)</label><input id="fcm" inputmode="numeric" required value="${inHand>0?inHand:""}"></div>
+async function fileCash(id,name,inHand){
+  const m=modal(`<h3>💵 استلام مبلغ من ${esc(name)}</h3><div id="fc-body"><div class="empty">جارٍ التحميل…</div></div>`);
+  m.classList.add("wide");
+  let u; try{u=await rpc("taxi_admin_unpaid",{p_pin:PIN,p_car:id})}catch(e){$("#fc-body",m).innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
+  const tp=tripPicker(u.trips,null);
+  $("#fc-body",m).innerHTML=`<div class="calc"><div><span>بذمّته هسه</span><b>${dinar(u.money.in_hand)}</b></div>${u.money.pending?`<div><span>إيداع بانتظار تأكيدك</span><b>${dinar(u.money.pending)}</b></div>`:""}</div>
+    <h4 style="margin:4px 0 0">تفاصيل الرحلات (علّم اللي استلمت فلوسها)</h4>
+    <div id="fc-tp">${tp.html}</div>
+    <form id="fcf" style="display:flex;flex-direction:column;gap:12px">
+    <div class="field"><label for="fcm">المبلغ المستلم (دينار)</label><input id="fcm" inputmode="numeric" required value="${inHand>0?inHand:""}" style="font:600 22px var(--mono);text-align:center"></div>
     <div class="field"><label for="fcn">ملاحظة</label><input id="fcn" placeholder="اختياري"></div>
-    <div class="err" id="fce"></div><div class="row"><button type="button" class="btn" id="fcc">إلغاء</button><button class="btn primary">تسجيل الاستلام</button></div></form>`);
-  $("#fcc",m).onclick=()=>m.remove();
-  $("#fcf",m).onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p:{car_id:id,amount:$("#fcm",m).value,note:$("#fcn",m).value}});m.remove();toast("انسجل الاستلام");if(tab==="files")renderFiles()}catch(err){$("#fce",m).textContent=err.message}};
+    <div class="err" id="fce"></div><div class="row"><button type="button" class="btn danger" id="fcc">✖ غير مستلم (يبقى بذمته)</button><button class="btn primary">✔ تسجيل الاستلام</button></div></form>`;
+  let typed=false; $("#fcm",m).oninput=()=>typed=true;
+  const picked=tp.wire($("#fc-tp",m),sum=>{if(!typed&&u.trips.length)$("#fcm",m).value=sum||""});
+  $("#fcc",m).onclick=()=>{m.remove();toast("ما انسجل شي، المبلغ باقي بذمة السائق")};
+  $("#fcf",m).onsubmit=async e=>{e.preventDefault();const p={car_id:id,amount:$("#fcm",m).value,note:$("#fcn",m).value};if(u.trips.length)p.trips=picked();
+    try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p});m.remove();toast("انسجل الاستلام");if(tab==="files")renderFiles()}catch(err){$("#fce",m).textContent=err.message}};
 }
 async function driverFile(id){
   const m=modal(`<div id="df"><div class="empty">جارٍ التحميل…</div></div><div class="row"><button class="btn" id="dfc">سدّ</button></div>`);
