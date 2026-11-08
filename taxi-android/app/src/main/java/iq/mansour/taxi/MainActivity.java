@@ -253,7 +253,8 @@ public class MainActivity extends Activity {
     private void renderTrip(JSONObject st) {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
-        String key = (t == null ? "none:" + st.optInt("today_trips") : t.optLong("id") + ":" + t.optString("status")) + ":" + st.optLong("week_share");
+        JSONObject cxk = st.optJSONObject("cancelled");
+        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status")) + ":" + st.optLong("week_share");
         if (key.equals(tripKey)) return;
         tripKey = key;
         tripBox.removeAllViews();
@@ -264,6 +265,14 @@ public class MainActivity extends Activity {
         card.setBackground(box(status.equals("assigned") ? 0xFFFFF4DC : CARD,
                 status.equals("assigned") ? AMBER : status.equals("started") ? OK : LINE, 16));
         if (t == null) {
+            JSONObject cx = st.optJSONObject("cancelled");
+            if (cx != null) {
+                TextView cv = text("✖ الزبون ألغى طلبه" + (cx.optString("dropoff").isEmpty() ? "" : " لـ " + cx.optString("dropoff")), 16, 0xFFB42318, true);
+                cv.setBackground(box(0xFFFDECEA, 0xFFB42318, 12));
+                cv.setPadding(dp(12), dp(10), dp(12), dp(10));
+                card.addView(cv, full());
+                card.addView(space(8));
+            }
             card.addView(text("ماكو سفرة", 19, FG, true));
             card.addView(text("إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.", 14, MUTED, false));
             card.addView(space(8));

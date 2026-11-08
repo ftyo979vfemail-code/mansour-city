@@ -188,6 +188,11 @@ public class TrackService extends Service implements LocationListener {
                     Prefs.of(this).edit().putLong("offer_seen", trip.optLong("id")).apply();
                     notifyOffer(trip);
                 }
+                org.json.JSONObject cx = r.optJSONObject("cancelled");
+                if (cx != null && Prefs.of(this).getLong("cancel_seen", 0) != cx.optLong("id")) {
+                    Prefs.of(this).edit().putLong("cancel_seen", cx.optLong("id")).apply();
+                    notifyCancelled(cx);
+                }
                 Prefs.of(this).edit()
                         .putLong("sentAt", System.currentTimeMillis())
                         .putFloat("acc", acc == null ? -1f : acc)
@@ -230,6 +235,23 @@ public class TrackService extends Service implements LocationListener {
                 .setAutoCancel(true)
                 .setContentIntent(open)
                 .setFullScreenIntent(open, true)
+                .build());
+    }
+
+    private void notifyCancelled(org.json.JSONObject c) {
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        NotificationChannel ch = new NotificationChannel(CH_OFFER, "سفرات المكتب", NotificationManager.IMPORTANCE_HIGH);
+        nm.createNotificationChannel(ch);
+        nm.cancel(3); // drop a pending offer notification for the cancelled trip
+        PendingIntent open = PendingIntent.getActivity(this, 4, new Intent(this, MainActivity.class),
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        String to = c.optString("dropoff");
+        nm.notify(4, new Notification.Builder(this, CH_OFFER)
+                .setSmallIcon(R.drawable.ic_car)
+                .setContentTitle("✖ الزبون ألغى الطلب")
+                .setContentText((to.isEmpty() || to.equals("null") ? "" : "طلب " + to + " انلغى. ") + "انتظر طلب جديد من المكتب")
+                .setAutoCancel(true)
+                .setContentIntent(open)
                 .build());
     }
 
