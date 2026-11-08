@@ -1214,7 +1214,7 @@ function fuelForm(m){overlay('mfuel','تعبئة وقود — '+esc(m.name),`<fo
 
 /* ---------- crew ---------- */
 const ALLCREW=['foreman','receiver','keeper','operator','driver','mechanic','fueler','supply','guard','elec_tech','mech_tech','buyer','clerk','timekeeper'];
-const CREW_OF={machines:['operator','driver','mechanic','fueler','supply','guard'],mstore:['keeper'],store:['receiver'],elec:['elec_tech'],mech:['mech_tech'],admin1:['clerk'],admin2:['clerk'],sales:['sales_staff'],hr:ALLCREW,project:ALLCREW,owner:[...ALLCREW,'sales_staff']};
+const CREW_OF={machines:['operator','driver','mechanic','fueler','supply','guard'],mstore:['keeper'],store:['receiver'],elec:['elec_tech'],mech:['mech_tech'],admin1:['clerk'],admin2:['clerk'],sales:['sales_staff'],hr:ALLCREW,project:ALLCREW,owner:[...ALLCREW,'sales_staff','payer','cpayer','site_eng']};
 const crewRoles=()=>CREW_OF[S.me?.role]||[];
 function myCrew(){const rs=CREW_OF[S.role]||crewRoles();return S.staff.filter(p=>rs.includes(p.role)&&!p.hidden)}
 function teamView(){
