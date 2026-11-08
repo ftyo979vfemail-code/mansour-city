@@ -1,0 +1,3 @@
+-- Permanent store of every completed trip's driven road (taxi_trip_paths), filled by a trigger when a trip ends,
+-- plus admin views: taxi_admin_routes (per destination: trips, average, fastest), taxi_admin_zone_routes, taxi_admin_routes_export.
+-- Applied on Supabase as migrations taxi_trip_paths and taxi_admin_routes_min_km.

@@ -232,6 +232,17 @@ select.btn{font-weight:500}
 .reqbar .btn{margin-inline-start:auto}
 .btn.waze{background:#33ccff;color:#06283d;border-color:#33ccff;text-align:center;font-weight:700}
 .btn.waze:hover{filter:brightness(1.05)}
+.rt-wrap{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:0;height:100%;min-height:0}
+.rt-list{overflow:auto;border-inline-start:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.rt-list button.rz{display:flex;flex-direction:column;gap:2px;text-align:start;border:2px solid var(--line);background:var(--panel);border-radius:12px;padding:10px 12px;color:var(--fg);font:inherit;cursor:pointer}
+.rt-list button.rz[aria-pressed=true]{border-color:var(--amber)}
+.rt-list button.rz small{color:var(--muted)}
+.rt-trips{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.rt-trips button{display:flex;justify-content:space-between;gap:8px;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;color:var(--fg);font:inherit;cursor:pointer;text-align:start}
+.rt-trips button.best{border:2px solid var(--ok)}
+.rt-trips button[aria-pressed=true]{outline:2px solid var(--amber)}
+#rmap{min-height:300px}
+@media (max-width:760px){.rt-wrap{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 55vh}.rt-list{max-height:none;border:0}}
 .dpick{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
 .dpick button{display:flex;align-items:center;gap:10px;text-align:start;border:2px solid var(--line);background:var(--panel);border-radius:14px;padding:10px 12px;color:var(--fg);font:inherit;cursor:pointer}
 .dpick button:hover:not(:disabled){border-color:var(--amber)}
@@ -355,7 +366,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081616";
+const BUILD="202611081621";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -918,6 +929,7 @@ function adminShell(){
        <button role="tab" data-t="live">الخريطة الحيّة</button>
        <button role="tab" data-t="files">ملفات السواق</button>
        <button role="tab" data-t="trips">السفرات</button>
+       <button role="tab" data-t="routes">الطرق</button>
        <button role="tab" data-t="week">التسوية الأسبوعية</button>
        <button role="tab" data-t="acc">الحسابات</button>
        <button role="tab" data-t="cars">السيارات والسائقين</button>
@@ -972,6 +984,7 @@ function renderTab(){
   if(tab==="week") renderWeek();
   if(tab==="cust") renderCustomers();
   if(tab==="files") renderFiles();
+  if(tab==="routes") renderRoutes();
 }
 function initMap(){
   if(typeof L==="undefined"){$("#map").innerHTML=`<div class="empty">تعذّر تحميل الخريطة. تأكد من الإنترنت.</div>`;return}
@@ -1566,6 +1579,57 @@ async function renderAdmins(){
       $("#rc",m).onclick=()=>m.remove();$("#rf",m).onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_admin_save",{p_pin:PIN,p_action:"reset",p:{id,pin:$("#rp",m).value.trim()}});m.remove();toast("تغيّر رمزه")}catch(err){$("#re",m).textContent=err.message}};return}
     if(act==="delete") return confirmBox(`حذف المسؤول ${a.name}؟ ما يگدر يدخل بعد.`,"حذف",async()=>{await rpc("taxi_admin_admin_save",{p_pin:PIN,p_action:"delete",p:{id}});toast("انحذف");renderAdmins()});
     rpc("taxi_admin_admin_save",{p_pin:PIN,p_action:"toggle",p:{id}}).then(()=>{toast(a.active?"انوقف":"رجع فعّال");renderAdmins()}).catch(e=>toast(e.message))});
+}
+
+/* ---------- Routes: every road driven, fastest per destination ---------- */
+let RT={map:null,layers:[],zone:undefined,data:null};
+async function renderRoutes(){
+  const v=$("#view");
+  v.innerHTML=`<div class="rt-wrap"><div class="rt-list" id="rlist"><div class="empty">جارٍ التحميل…</div></div><div id="rmap"></div></div>`;
+  RT.layers=[];
+  if(typeof L!=="undefined"){RT.map=L.map("rmap").setView([33.315,44.366],12);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(RT.map);setTimeout(()=>RT.map&&RT.map.invalidateSize(),100)}
+  let d; try{d=await rpc("taxi_admin_routes",{p_pin:PIN})}catch(e){$("#rlist").innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
+  RT.data=d;
+  const mins=x=>x==null?"—":x<1?Math.round(x*60)+" ث":x+" د";
+  $("#rlist").innerHTML=`<div class="bar" style="margin:0"><h2 style="margin:0">الطرق</h2><button class="btn sm" id="rexp">⬇ تنزيل البيانات</button></div>
+    <p class="note" style="margin:0">كل سفرة تنتهي ينحفظ طريقها الحقيقي من GPS السائق للأبد: <b>${fmt(d.total)}</b> طريق · <b>${d.total_km}</b> كم. اختار منطقة تشوف كل الطرق اللي انمشت إلها، والأسرع بالأخضر.</p>
+    ${d.zones.length?d.zones.map(z=>`<button class="rz" data-z="${z.zone_id??""}" aria-pressed="false"><b>${esc(z.name)}</b><small>${z.trips} سفرة · الأسرع ${mins(z.best_min)} · المعدل ${mins(z.avg_min)}${z.avg_km?` · ${z.avg_km} كم`:""}</small></button>`).join("")
+      :`<div class="empty">ماكو طرق محفوظة بعد. أول ما تنتهي سفرة، طريقها ينحفظ هنا.</div>`}
+    <div id="rtrips"></div>`;
+  $("#rexp").onclick=exportRoutes;
+  $("#rlist").querySelectorAll(".rz").forEach(b=>b.onclick=()=>{$("#rlist").querySelectorAll(".rz").forEach(x=>x.setAttribute("aria-pressed",x===b));showZoneRoutes(b.dataset.z===""?null:+b.dataset.z,b)});
+}
+async function showZoneRoutes(zone,btn){
+  let rs; try{rs=await rpc("taxi_admin_zone_routes",{p_pin:PIN,p_zone:zone})}catch(e){toast(e.message);return}
+  if(RT.map){RT.layers.forEach(l=>RT.map.removeLayer(l));RT.layers=[]}
+  const best=rs.find(r=>!r.short);
+  const box=document.createElement("div");box.className="rt-trips";
+  const t2=s=>{const m=Math.floor(s/60),x=s%60;return m?`${m} د${x?` ${x} ث`:""}`:`${x} ث`};
+  const dt=ts=>new Date(ts).toLocaleString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"});
+  box.innerHTML=rs.map(r=>`<button data-tr="${r.trip_id}" class="${best&&r.trip_id===best.trip_id?"best":""}" aria-pressed="false"><span>${best&&r.trip_id===best.trip_id?"🏆 ":""}<b>${t2(r.drive_sec)}</b> · ${r.km} كم${r.avg_kmh?` · ${r.avg_kmh} كم/س`:""}${r.short?` <small>(قصيرة)</small>`:""}<br><small>${esc(r.driver_name||"")} · ${dt(r.started_at)}</small></span></button>`).join("");
+  document.querySelectorAll("#rlist .rt-trips").forEach(x=>x.remove());
+  btn.after(box);
+  const lines={};
+  if(RT.map&&typeof L!=="undefined"){
+    rs.slice().reverse().forEach(r=>{if(!r.path||r.path.length<2)return;const isB=best&&r.trip_id===best.trip_id;
+      const l=L.polyline(r.path,{color:isB?"#1a9e5a":"#5b7c80",weight:isB?7:3,opacity:isB?.95:.5}).addTo(RT.map).bindTooltip(`${t2(r.drive_sec)} · ${esc(r.driver_name||"")}`);
+      RT.layers.push(l);lines[r.trip_id]=l;
+      if(isB&&r.path.length){const s=L.circleMarker(r.path[0],{radius:7,color:"#fff",weight:2,fillColor:"#1a9e5a",fillOpacity:1}).addTo(RT.map).bindTooltip("البداية");const e=L.circleMarker(r.path[r.path.length-1],{radius:7,color:"#fff",weight:2,fillColor:"#d6332b",fillOpacity:1}).addTo(RT.map).bindTooltip("الوصول");RT.layers.push(s,e)}});
+    if(best&&lines[best.trip_id]) lines[best.trip_id].bringToFront();
+    const all=RT.layers.filter(l=>l.getBounds);if(all.length){const g=L.featureGroup(all);RT.map.fitBounds(g.getBounds(),{padding:[30,30]})}
+  }
+  box.querySelectorAll("[data-tr]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-tr]").forEach(x=>x.setAttribute("aria-pressed",x===b));
+    const l=lines[b.dataset.tr];if(!l||!RT.map)return;Object.values(lines).forEach(x=>x.setStyle({opacity:.25}));l.setStyle({opacity:1}).bringToFront();RT.map.fitBounds(l.getBounds(),{padding:[30,30]})});
+}
+async function exportRoutes(){
+  let rs; try{rs=await rpc("taxi_admin_routes_export",{p_pin:PIN})}catch(e){toast(e.message);return}
+  // GeoJSON: opens in Google Earth, QGIS, geojson.io, Kepler…; coordinates are [lng, lat]
+  const gj={type:"FeatureCollection",features:rs.filter(r=>r.points&&r.points.length>1).map(r=>({type:"Feature",
+    properties:{trip_id:r.trip_id,zone:r.zone,driver:r.driver,plate:r.plate,started_at:r.started_at,ended_at:r.ended_at,drive_sec:r.drive_sec,km:Number(r.km),avg_kmh:r.avg_kmh==null?null:Number(r.avg_kmh),times_sec:r.points.map(p=>p[2])},
+    geometry:{type:"LineString",coordinates:r.points.map(p=>[p[1],p[0]])}}))};
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(gj)],{type:"application/geo+json"}));
+  a.download=`mansour-taxi-routes-${new Date().toISOString().slice(0,10)}.geojson`;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+  toast(`نزل ${gj.features.length} طريق`);
 }
 
 /* ---------------- DRIVER ---------------- */
