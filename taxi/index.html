@@ -291,6 +291,11 @@ select.btn{font-weight:500}
 .waitbox b{font:700 46px/1.1 var(--mono);direction:ltr;font-variant-numeric:tabular-nums}
 .waitbox small{color:var(--muted)}
 .btn.on-round{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 18%,var(--panel));font-weight:700}
+.money{border:2px solid var(--amber);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px;margin-top:10px;background:color-mix(in srgb,var(--amber) 8%,var(--panel))}
+.money-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:600}
+.money-top b{font:700 24px var(--mono)}
+.money small{color:var(--muted)} .money .money-last{color:var(--fg);font-weight:600}
+.depbar{background:color-mix(in srgb,var(--ok) 14%,var(--panel));border-color:var(--ok)}
 .dpick{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
 .dpick button{display:flex;align-items:center;gap:10px;text-align:start;border:2px solid var(--line);background:var(--panel);border-radius:14px;padding:10px 12px;color:var(--fg);font:inherit;cursor:pointer}
 .dpick button:hover:not(:disabled){border-color:var(--amber)}
@@ -414,7 +419,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081637";
+const BUILD="202611081649";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -451,7 +456,7 @@ function status(c){
 const TS={requested:["s-bad","طلب زبون جديد"],assigned:["s-warn","بانتظار قبول السائق"],accepted:["s-ok","رايح للزبون"],started:["s-ok","بسفرة"],done:["s-idle","انتهت"],cancelled:["s-idle","ملغية"],rejected:["s-bad","رفضها السائق"]};
 const fmt=n=>Number(n||0).toLocaleString("en-US");
 const dinar=n=>fmt(n)+" د.ع";
-const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],cust_cancel:["s-idle","الزبون ألغى طلبه"],round:["s-warn","مرجع"]};
+const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],deposit:["s-ok","طلب إيداع من سائق"],cust_cancel:["s-idle","الزبون ألغى طلبه"],round:["s-warn","مرجع"]};
 const ICON=`<img class="logo-light" src="img/mark.png" alt=""><img class="logo-dark" src="img/mark-light.png" alt="">`;
 const ICON_OLD=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M4 13l2-6a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l2 6v4H4z"/><path d="M10 4h4"/><circle cx="7.5" cy="13.5" r="1"/><circle cx="16.5" cy="13.5" r="1"/></svg>`;
 
@@ -1004,6 +1009,7 @@ function adminShell(){
    </header>
    <div>
      <div class="alert reqbar" id="reqbar" hidden></div>
+     <div class="alert reqbar depbar" id="depbar" hidden></div>
      <div class="alert" id="alert" hidden></div>
      <nav class="tabs" role="tablist">
        <button role="tab" data-t="live">الخريطة الحيّة</button>
@@ -1048,7 +1054,28 @@ async function poll(){
       if(prevReqInit&&!document.querySelector(".modal")) dispatchTrip([...fresh].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0])}
     prevReq=ids; prevReqInit=true;
   }).catch(()=>{});
+  pollDeposits();
   if(tab==="live") renderLive(); else if(tab==="cars") renderCars(); else if(tab==="trips") loadTrips(true);
+}
+let prevDep=[], prevDepInit=false;
+function pollDeposits(){
+  rpc("taxi_admin_deposits",{p_pin:PIN}).then(ds=>{const bar=$("#depbar"); if(!bar) return;
+    if(ds.length){bar.hidden=false;bar.innerHTML=`💵 ${ds.length} إيداع ينتظر تأكيدك: ${ds.slice(0,3).map(d=>`${esc(d.driver_name)} ${dinar(d.amount)}`).join("، ")} <button class="btn sm primary">تأكيد الاستلام</button>`;
+      bar.querySelector("button").onclick=()=>depositDecide(ds[0])}else bar.hidden=true;
+    const ids=ds.map(d=>d.id); if(prevDepInit&&ids.some(id=>!prevDep.includes(id))){beep();setTimeout(beep,400)} prevDep=ids; prevDepInit=true;
+  }).catch(()=>{});
+}
+function depositDecide(d){
+  const m=modal(`<h3>💵 إيداع من ${esc(d.driver_name)}</h3>
+    <div class="calc"><div><span>السيارة</span><b>${plateHTML(d.plate)}</b></div><div><span>يگول سلّم</span><b>${dinar(d.amount)}</b></div><div><span>بيده للشركة (قبل الإيداع)</span><b>${dinar(d.in_hand)}</b></div>${d.note?`<div><span>ملاحظته</span><b>${esc(d.note)}</b></div>`:""}</div>
+    <div class="field"><label for="dd-a">المبلغ اللي استلمته فعلًا (دينار)</label><input id="dd-a" inputmode="numeric" value="${d.amount}" style="font:600 22px var(--mono);text-align:center"></div>
+    <div class="field" id="dd-rf" hidden><label for="dd-r">سبب الرفض</label><input id="dd-r" placeholder="مثال: ما استلمت شي"></div>
+    <div class="err" id="dd-e"></div>
+    <div class="row"><button class="btn danger" id="dd-no">رفض</button><button class="btn primary" id="dd-ok">✔ استلمت المبلغ</button></div>`);
+  $("#dd-ok",m).onclick=async()=>{const a=parseInt(($("#dd-a",m).value||"").replace(/\D/g,""),10);
+    try{await rpc("taxi_admin_deposit_decide",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:a||null,p_reason:""});m.remove();toast("انسجل الإيداع");pollDeposits();if(tab==="files")renderFiles()}catch(e){$("#dd-e",m).textContent=e.message}};
+  $("#dd-no",m).onclick=async()=>{const rf=$("#dd-rf",m);if(rf.hidden){rf.hidden=false;$("#dd-r",m).focus();$("#dd-no",m).textContent="تأكيد الرفض";return}
+    try{await rpc("taxi_admin_deposit_decide",{p_pin:PIN,p_id:d.id,p_ok:false,p_received:null,p_reason:$("#dd-r",m).value});m.remove();toast("انرفض");pollDeposits()}catch(e){$("#dd-e",m).textContent=e.message}};
 }
 function beep(){try{if(!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(.2,audioCtx.currentTime);o.start();o.stop(audioCtx.currentTime+.35)}catch{}}
 function renderTab(){
@@ -1812,7 +1839,7 @@ function setExt(on){
     let st=$("#extStatus"); if(!st){st=document.createElement("div");st.id="extStatus";st.className="stat";$(".drv").insertBefore(st,$("#tripBox"))}
     const upd=async()=>{try{const s=await rpc("taxi_driver_state",{p_code:CODE});const fresh=s.last_seen&&(Date.now()-new Date(s.last_seen))<180000&&["ok","background"].includes(s.gps_state);
       st.innerHTML=`<small>التتبع عن طريق Traccar</small><b style="color:${fresh?"var(--ok)":"var(--bad)"}">${fresh?"✔ موقعك يوصل للإدارة":"⚠ ما دا يوصل موقع"}</b><small>آخر إشارة: ${ago(s.last_seen)}</small>`;
-      today={trips:s.today_trips,fares:s.today_fares,base:s.fare_base,share:s.week_share||0,zones:s.zones||[]};showTrip(s.trip,true);noteCancel(s.cancelled)}catch{}};
+      today={trips:s.today_trips,fares:s.today_fares,base:s.fare_base,share:s.week_share||0,zones:s.zones||[],money:s.money};showTrip(s.trip,true);noteCancel(s.cancelled)}catch{}};
     upd(); extT=setInterval(upd,8000);
   }else{const st=$("#extStatus"); if(st) st.remove(); showTrip(null,true)}
 }
@@ -1821,7 +1848,7 @@ function setExt(on){
 let curTrip, tripPoll, lastOffer=null, today={trips:0,fares:0,base:null};
 async function refreshTrip(){
   if(!CODE) return;
-  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,base:st.fare_base,share:st.week_share||0,zones:st.zones||[]};showTrip(st.trip,true);noteCancel(st.cancelled)}catch{}
+  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,base:st.fare_base,share:st.week_share||0,zones:st.zones||[],money:st.money};showTrip(st.trip,true);noteCancel(st.cancelled)}catch{}
 }
 // Waze: to the customer before pickup, to the destination after the trip starts
 function wazeUrl(t){
@@ -1848,13 +1875,14 @@ function showTrip(t,force){
   if(same&&(!force||(t&&t.status==="started"&&$("#tr-end")))) return;
   curTrip=t;
   if(!ON&&!EXT){box.innerHTML="";return}
-  const sum=`<div class="stats" style="margin-top:10px"><div class="stat"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)}</b></div><div class="stat"><small>حصتك هذا الأسبوع</small><b style="color:var(--ok)">${fmt(today.share)} د.ع</b></div></div><p class="note" style="margin:8px 0 0">حصتك تنحسب من السفرات المسجّلة بس.</p>`;
+  const sum=`<div class="stats" style="margin-top:10px"><div class="stat"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)}</b></div><div class="stat"><small>حصتك هذا الأسبوع</small><b style="color:var(--ok)">${fmt(today.share)} د.ع</b></div></div><p class="note" style="margin:8px 0 0">حصتك تنحسب من السفرات المسجّلة بس.</p>`+moneyCard();
   if(!t){box.innerHTML=`<div class="trip"><h3>ماكو سفرة</h3><p>إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.</p>
       <div class="field"><label for="tr-zone">إلى وين؟</label><select id="tr-zone" class="btn" style="width:100%">${(today.zones||[]).map(z=>`<option value="${z.id}">${esc(z.name)} — ${fmt(z.price)}</option>`).join("")}<option value="">منطقة أخرى</option></select></div>
       <div class="field" id="tr-to-f" hidden><label for="tr-to">اسم المكان</label><input id="tr-to"></div>
       <button class="btn primary big" id="tr-start">بدء سفرة</button></div>${sum}`;
     $("#tr-zone").onchange=e=>{$("#tr-to-f").hidden=!!e.target.value};$("#tr-to-f").hidden=!!$("#tr-zone").value;
-    $("#tr-start").onclick=()=>tripAct("start",{zone_id:$("#tr-zone").value,dropoff:$("#tr-to").value});return}
+    $("#tr-start").onclick=()=>tripAct("start",{zone_id:$("#tr-zone").value,dropoff:$("#tr-to").value});
+    const db=$("#dep-btn"); if(db) db.onclick=depositForm; return}
   const where=`<p><b>من:</b> ${esc(t.pickup||"—")}${t.pickup_lat?` <a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍 الخريطة</a>`:""}<br><b>إلى:</b> ${esc(t.dropoff||"—")}${t.customer_name?`<br><b>الزبون:</b> ${esc(t.customer_name)}`:""}${t.note?`<br><b>ملاحظة:</b> ${esc(t.note)}`:""}${t.zone_id&&t.fare?`<br><b>الأجرة:</b> ${fmt(t.fare)} د.ع (ثابتة)`:""}${t.points_used?`<br><b style="color:var(--ok)">⭐ الزبون دافع ${fmt(t.points_used)} بالنقاط، استلم منه ${fmt(t.collect)} بس</b>`:""}</p>`;
   if(t.status==="assigned"){
     if(lastOffer!==t.id){lastOffer=t.id;try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch{};siren(true);setTimeout(()=>siren(false),3000)}
@@ -1897,6 +1925,31 @@ function showTrip(t,force){
   $("#tr-end").onclick=()=>tripAct("end",{fare:$("#tr-fare")?$("#tr-fare").value:""});
 }
 let waitT;
+// driver's cash: what he holds for the company, and the "إيداع" (hand over to the office) button
+function moneyCard(){
+  const m=today.money; if(!m) return "";
+  const last=(m.deposits||[])[0], free=Math.max(0,(m.in_hand||0)-(m.pending||0));
+  const lastLine=!last?"":last.status==="pending"?`⏳ إيداع ${dinar(last.amount)} بانتظار تأكيد الإدارة`
+    :last.status==="confirmed"?`✔ الإدارة استلمت ${dinar(last.received??last.amount)}${last.received!=null&&last.received!==last.amount?` (من ${dinar(last.amount)})`:""}`
+    :`✖ انرفض إيداع ${dinar(last.amount)}${last.reason?`: ${esc(last.reason)}`:""}`;
+  return `<div class="money"><div class="money-top"><span>💵 المبلغ اللي بيدك للشركة</span><b>${dinar(m.in_hand||0)}</b></div>
+    ${m.pending?`<small>منها ${dinar(m.pending)} بانتظار تأكيد الإدارة</small>`:""}
+    ${m.owed_to_him?`<small>حصتك اللي بذمة الشركة: ${dinar(m.owed_to_him)}</small>`:""}
+    ${lastLine?`<small class="money-last">${lastLine}</small>`:""}
+    <button class="btn primary big" id="dep-btn" ${free>0?"":"disabled"}>إيداع: سلّمت المبلغ للإدارة</button></div>`;
+}
+function depositForm(){
+  const m=today.money||{}, free=Math.max(0,(m.in_hand||0)-(m.pending||0));
+  const md=modal(`<h3>💵 إيداع للإدارة</h3><p style="margin:0">اكتب المبلغ اللي سلّمته للإدارة. ينحسب بعد ما الإدارة تأكد إنها استلمته.</p>
+    <div class="field"><label for="dp-a">المبلغ (دينار)</label><input id="dp-a" inputmode="numeric" value="${free}" style="font:600 24px var(--mono);text-align:center"></div>
+    <div class="field"><label for="dp-n">ملاحظة (اختياري)</label><input id="dp-n" placeholder="مثال: سلّمته لأبو علي"></div>
+    <div class="err" id="dp-e"></div><div class="row"><button class="btn" id="dp-c">رجوع</button><button class="btn primary" id="dp-ok">إرسال الإيداع</button></div>`);
+  $("#dp-c",md).onclick=()=>md.remove();
+  $("#dp-ok",md).onclick=async()=>{const a=parseInt(($("#dp-a",md).value||"").replace(/\D/g,""),10);const b=$("#dp-ok",md);
+    if(!a){$("#dp-e",md).textContent="اكتب المبلغ";return}
+    b.disabled=true;try{const r=await rpc("taxi_driver_deposit",{p_code:CODE,p_amount:a,p_note:$("#dp-n",md).value});today.money=r;md.remove();toast("انرسل الإيداع، بانتظار تأكيد الإدارة");curTrip=undefined;showTrip(null,true)}
+    catch(e){$("#dp-e",md).textContent=e.message;b.disabled=false}};
+}
 function clock(s){s=Math.max(0,s|0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(x).padStart(2,"0")}
 async function tripAct(a,p){
   try{await rpc("taxi_driver_trip",{p_code:CODE,p_action:a,p:p||{}});toast(a==="end"?"انسجلت السفرة":a==="reject"?"انرفضت":"تم");if(EXT)setExt(true);else await refreshTrip()}catch(e){toast(e.message)}

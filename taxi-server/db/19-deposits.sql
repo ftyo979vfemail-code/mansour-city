@@ -1,0 +1,4 @@
+-- Driver "إيداع": the driver reports cash handed to the office (taxi_deposits, pending);
+-- it counts (a taxi_cash row) only once a manager confirms it, with the amount actually received.
+-- RPCs: taxi_driver_deposit, taxi_admin_deposits, taxi_admin_deposit_decide; taxi_driver_state.money.
+-- Applied on Supabase as migration taxi_driver_deposits.

@@ -105,6 +105,8 @@ public class MonitorService extends Service {
             case "unlogged": title = "⚠ يتحرك بدون سفرة مسجّلة"; alarm = true; break;
             case "request": title = "🔔 طلب زبون جديد"; alarm = true; who = e.optString("plate"); break;
             case "rejected": title = "⚠ رفض سفرة من المكتب"; alarm = true; break;
+            case "deposit": title = "💵 إيداع من سائق ينتظر تأكيدك"; alarm = false; break;
+            case "cust_cancel": title = "الزبون ألغى طلبه"; alarm = false; who = e.optString("plate"); break;
             case "started": title = "شغّل التتبع"; alarm = false; break;
             case "gps_on":  title = "رجع الإرسال"; alarm = false; break;
             default: return; // "background" is normal for the app

@@ -291,7 +291,7 @@ public class MainActivity extends Activity {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
         JSONObject cxk = st.optJSONObject("cancelled");
-        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("round_trip")) + ":" + st.optLong("week_share");
+        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("round_trip")) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money"));
         if (key.equals(tripKey)) return;
         tripKey = key;
         h.removeCallbacks(waitTick);
@@ -493,6 +493,82 @@ public class MainActivity extends Activity {
         TextView hint = text("الحصة تنحسب من السفرات المسجّلة بس.", 12, MUTED, false);
         hint.setPadding(dp(4), 0, dp(4), dp(4));
         tripBox.addView(hint);
+        addMoney(st.optJSONObject("money"));
+    }
+
+    private static String moneyKey(JSONObject m) {
+        if (m == null) return "";
+        JSONObject last = m.optJSONArray("deposits") != null && m.optJSONArray("deposits").length() > 0 ? m.optJSONArray("deposits").optJSONObject(0) : null;
+        return m.optInt("in_hand") + "/" + m.optInt("pending") + "/" + (last == null ? "" : last.optLong("id") + last.optString("status"));
+    }
+
+    /** What the driver holds for the company, and the "إيداع" button (counts once the office confirms). */
+    private void addMoney(JSONObject m) {
+        if (m == null) return;
+        java.util.Locale L = java.util.Locale.US;
+        final int inHand = m.optInt("in_hand"), pending = m.optInt("pending");
+        final int free = Math.max(0, inHand - pending);
+        LinearLayout c = new LinearLayout(this);
+        c.setOrientation(LinearLayout.VERTICAL);
+        c.setPadding(dp(16), dp(14), dp(16), dp(14));
+        c.setBackground(box(0xFFFFF8E1, AMBER, 16));
+        c.addView(text("💵 المبلغ اللي بيدك للشركة", 14, MUTED, true));
+        c.addView(text(String.format(L, "%,d", inHand) + " د.ع", 26, FG, true));
+        if (pending > 0) c.addView(text("منها " + String.format(L, "%,d", pending) + " بانتظار تأكيد الإدارة", 13, MUTED, false));
+        if (m.optInt("owed_to_him") > 0) c.addView(text("حصتك اللي بذمة الشركة: " + String.format(L, "%,d", m.optInt("owed_to_him")) + " د.ع", 13, OK, true));
+        org.json.JSONArray ds = m.optJSONArray("deposits");
+        JSONObject last = ds != null && ds.length() > 0 ? ds.optJSONObject(0) : null;
+        if (last != null) {
+            String st = last.optString("status");
+            String line = st.equals("pending") ? "⏳ إيداع " + String.format(L, "%,d", last.optInt("amount")) + " بانتظار تأكيد الإدارة"
+                    : st.equals("confirmed") ? "✔ الإدارة استلمت " + String.format(L, "%,d", last.isNull("received") ? last.optInt("amount") : last.optInt("received"))
+                    : "✖ انرفض إيداع " + String.format(L, "%,d", last.optInt("amount")) + (last.optString("reason").isEmpty() || last.isNull("reason") ? "" : ": " + last.optString("reason"));
+            c.addView(text(line, 13, st.equals("rejected") ? 0xFFB42318 : FG, true));
+        }
+        c.addView(space(8));
+        Button dep = button("إيداع: سلّمت المبلغ للإدارة", true);
+        dep.setEnabled(free > 0);
+        if (free <= 0) dep.setAlpha(0.45f);
+        dep.setOnClickListener(v -> {
+            final EditText amt = input("المبلغ (دينار)", InputType.TYPE_CLASS_NUMBER);
+            amt.setText(String.valueOf(free));
+            amt.setTextSize(22);
+            amt.setGravity(Gravity.CENTER);
+            final EditText note = input("ملاحظة (اختياري)", InputType.TYPE_CLASS_TEXT);
+            LinearLayout f = new LinearLayout(this);
+            f.setOrientation(LinearLayout.VERTICAL);
+            f.setPadding(dp(20), dp(8), dp(20), 0);
+            f.addView(amt, full());
+            f.addView(note, full());
+            new android.app.AlertDialog.Builder(this).setTitle("💵 إيداع للإدارة")
+                    .setMessage("اكتب المبلغ اللي سلّمته. ينحسب بعد ما الإدارة تأكد إنها استلمته.")
+                    .setView(f)
+                    .setNegativeButton("رجوع", null)
+                    .setPositiveButton("إرسال", (d, w) -> sendDeposit(amt.getText().toString(), note.getText().toString())).show();
+        });
+        c.addView(dep, full());
+        LinearLayout.LayoutParams lp = full();
+        lp.topMargin = dp(10);
+        tripBox.addView(c, lp);
+    }
+
+    private void sendDeposit(String amount, String note) {
+        final String code = Prefs.code(this);
+        int a;
+        try { a = Integer.parseInt(amount.replaceAll("\\D", "")); } catch (Exception e) { a = 0; }
+        if (code == null || a <= 0) { android.widget.Toast.makeText(this, "اكتب المبلغ", android.widget.Toast.LENGTH_SHORT).show(); return; }
+        final int amt = a;
+        new Thread(() -> {
+            try {
+                Api.call("taxi_driver_deposit", new JSONObject().put("p_code", code).put("p_amount", amt).put("p_note", note));
+                h.post(() -> {
+                    android.widget.Toast.makeText(this, "انرسل الإيداع، بانتظار تأكيد الإدارة", android.widget.Toast.LENGTH_LONG).show();
+                    tripKey = ""; loadTrip();
+                });
+            } catch (Exception e) {
+                h.post(() -> android.widget.Toast.makeText(this, e instanceof Api.ApiError ? e.getMessage() : "ماكو إنترنت", android.widget.Toast.LENGTH_LONG).show());
+            }
+        }).start();
     }
 
     private void tripAction(String action, JSONObject p) {
