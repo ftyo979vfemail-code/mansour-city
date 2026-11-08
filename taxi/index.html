@@ -87,6 +87,19 @@ button{cursor:pointer}
 .cx-cta .btn{max-width:560px;margin:0 auto;display:flex;width:100%;height:62px;border-radius:20px;font-size:21px;align-items:center;justify-content:center;gap:10px}
 .cx-note-t{background:none;border:0;color:#00383d;font:700 14px var(--body);padding:0;text-align:start;text-decoration:underline}
 .cx .waitbox{border-color:#febd02}
+.stars{display:flex;gap:4px;justify-content:center}
+.stars button{font-size:38px;line-height:1;background:none;border:0;cursor:pointer;color:#d9d3bb;padding:2px 4px;min-width:44px;min-height:44px}
+.stars button.on{color:#febd02;text-shadow:0 1px 0 #b88600}
+.stars button:focus-visible{outline:2px solid #00383d;border-radius:8px}
+.rate-mini{display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;border:2px solid #febd02;border-radius:16px;padding:12px}
+.rate-done{margin:0;text-align:center;font-weight:700}
+.rate-lbl{margin:0;text-align:center;font-weight:700;min-height:1.4em}
+.cx-inst{display:flex;align-items:center;gap:10px;background:#00383d;color:#fff;border-radius:18px;padding:10px 12px}
+.cx-inst-ico img{border-radius:12px;display:block}
+.cx-inst-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.cx-inst-t small{color:#c8dcda}
+.cx-inst .btn.primary{background:#febd02;color:#00383d;border-color:#febd02}
+.cx-inst-x{background:none;border:0;color:#c8dcda;font-size:18px;cursor:pointer;min-width:36px;min-height:36px}
 .cx-confirm{border:2px solid #d97706;background:#fff4e0;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
 .cx-confirm small{color:#6a5320}
 .cx-seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;background:#f3f1e6;border-radius:16px;padding:5px}
@@ -221,6 +234,20 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
   .grid2{grid-template-columns:1fr}
 }
 
+.tbadge{display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:var(--bad);color:#fff;font-size:12px;line-height:20px;text-align:center}
+.cps{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-direction:column;gap:10px}
+.cp{border:1px solid var(--line);border-inline-start:4px solid var(--bad);border-radius:12px;padding:12px;background:var(--panel);display:flex;flex-direction:column;gap:6px}
+.cp.closed{border-inline-start-color:var(--ok);opacity:.85}
+.cp-h{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.cp-h time{margin-inline-start:auto;color:var(--muted);font-size:12px}
+.cp p{margin:0;white-space:pre-wrap}
+.st5{color:#e0a800;letter-spacing:1px}.st5 i{font-style:normal;color:var(--line)}
+.hbars{display:flex;flex-direction:column;gap:4px}
+.hb{display:grid;grid-template-columns:52px 1fr 32px;gap:8px;align-items:center;font-size:13px}
+.hb i{display:block;height:12px;border-radius:6px;background:var(--amber);min-width:4px}
+.kpi.warn{border-color:var(--amber)}
+.wtiers{display:flex;flex-direction:column;gap:8px}
+.wt-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.wt-row input{width:90px;text-align:center;font:600 16px var(--mono)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
 .kpi small{color:var(--muted);font-size:13px}
@@ -464,7 +491,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081753";
+const BUILD="202611081813";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -501,7 +528,7 @@ function status(c){
 const TS={requested:["s-bad","طلب زبون جديد"],assigned:["s-warn","بانتظار قبول السائق"],accepted:["s-ok","رايح للزبون"],started:["s-ok","بسفرة"],done:["s-idle","انتهت"],cancelled:["s-idle","ملغية"],rejected:["s-bad","رفضها السائق"]};
 const fmt=n=>Number(n||0).toLocaleString("en-US");
 const dinar=n=>fmt(n)+" د.ع";
-const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],deposit:["s-ok","طلب إيداع من سائق"],route_change:["s-warn","الزبون غيّر مساره"],route_refused:["s-idle","الزبون رفض تغيير الوجهة"],route_suspect:["s-bad","⚠ تغيير وجهة مشكوك بيه"],cust_cancel:["s-idle","الزبون ألغى طلبه"],round:["s-warn","مرجع"]};
+const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],deposit:["s-ok","طلب إيداع من سائق"],route_change:["s-warn","الزبون غيّر مساره"],route_refused:["s-idle","الزبون رفض تغيير الوجهة"],route_suspect:["s-bad","⚠ تغيير وجهة مشكوك بيه"],cust_cancel:["s-idle","الزبون ألغى طلبه"],low_rating:["s-bad","⭐ تقييم واطي"],complaint:["s-bad","📣 شكوى زبون"],round:["s-warn","مرجع"]};
 const ICON=`<img class="logo-light" src="img/mark.png" alt=""><img class="logo-dark" src="img/mark-light.png" alt="">`;
 const ICON_OLD=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M4 13l2-6a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l2 6v4H4z"/><path d="M10 4h4"/><circle cx="7.5" cy="13.5" r="1"/><circle cx="16.5" cy="13.5" r="1"/></svg>`;
 
@@ -691,11 +718,59 @@ async function accountApp(){
     ${ptsCard(me.points)}
     ${me.open?`<a class="btn primary big" href="#order" style="text-align:center">عندك طلب مفتوح: تابعه أو ألغِه</a>`:`<a class="btn primary big" href="#order" style="text-align:center">🚕 اطلب تكسي</a>`}
     <h3 class="h4">طلباتي</h3>
-    ${me.trips.length?`<ul class="log">${me.trips.map(t=>{const o=OS[t.status]||["",t.status];return `<li><span>${o[0]}</span><span>${esc(t.zone||"—")}${t.free?` <span class="pill s-ok">مجانية ⭐</span>`:""}<br><small style="color:var(--muted)">${dt(t.created_at)}${t.earned?` · +${fmt(t.earned)} نقطة`:""}</small></span><span class="pill ${t.status==="done"?"s-ok":t.status==="cancelled"?"s-idle":"s-warn"}">${o[1]}</span></li>`}).join("")}</ul>`:`<p class="note" style="margin:0">ما عندك طلبات بعد.</p>`}
+    ${me.trips.length?`<ul class="log">${me.trips.map(t=>{const o=OS[t.status]||["",t.status];return `<li><span>${o[0]}</span><span>${esc(t.zone||"—")}${t.free?` <span class="pill s-ok">مجانية ⭐</span>`:""}<br><small style="color:var(--muted)">${dt(t.created_at)}${t.earned?` · +${fmt(t.earned)} نقطة`:""}${t.stars?` · ${"⭐".repeat(t.stars)}`:""}</small></span><span class="pill ${t.status==="done"?"s-ok":t.status==="cancelled"?"s-idle":"s-warn"}">${o[1]}</span></li>`}).join("")}</ul>`:`<p class="note" style="margin:0">ما عندك طلبات بعد.</p>`}
     ${me.points&&me.points.history.length?`<h3 class="h4">حركة النقاط</h3><ul class="log">${me.points.history.map(h=>`<li><span class="pill ${h.delta>0?"s-ok":"s-warn"}">${PR[h.reason]||h.reason}</span><span>${esc(h.zone||h.note||"")}<br><small style="color:var(--muted)">${dt(h.at)}</small></span><b class="num" dir="ltr">${h.delta>0?"+":""}${fmt(h.delta)}</b></li>`).join("")}</ul>`:""}
+    ${installCard()}
+    <button class="btn big" id="acmp">📣 عندي شكوى أو ملاحظة</button>
     <button class="btn big" id="out">تسجيل خروج</button></div>`;
+  bindInstall(); $("#acmp").onclick=()=>complainForm(null,()=>{});
   $("#out").onclick=async()=>{try{await rpc("taxi_customer_logout",{p_token:CS.tok})}catch{} CS.clear(); location.hash="#"};
 }
+/* ---------- rating, complaints ---------- */
+function starsHTML(v,id){return `<div class="stars" id="${id}-stars" role="radiogroup" aria-label="التقييم من 5">${[1,2,3,4,5].map(n=>`<button type="button" role="radio" aria-checked="${v===n}" aria-label="${n} من 5" data-n="${n}" class="${n<=v?"on":""}">★</button>`).join("")}</div>`}
+function bindStars(id,fn){const w=$(`#${id}-stars`);if(!w)return;w.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>fn(+b.dataset.n))}
+const STAR_TXT=["","سيئة كلش","مو زينة","عادية","زينة","ممتازة"];
+function rateForm(trip,n,drv,done){
+  const m=modal(`<h3>قيّم السائق${drv?` ${esc(drv)}`:""}</h3>${starsHTML(n,"rf")}<p class="rate-lbl" id="rf-l">${STAR_TXT[n]}</p>
+    <div class="field"><label for="rf-c">ملاحظة (اختياري)</label><textarea id="rf-c" rows="3" maxlength="300" placeholder="${n<=2?"شنو اللي ما عجبك؟":"شي تحب تكوله؟"}"></textarea></div>
+    <div class="err" id="rf-e"></div><div class="row"><button class="btn" id="rf-x">رجوع</button><button class="btn primary" id="rf-ok">إرسال التقييم</button></div>`);
+  const pick=v=>{n=v;$("#rf-stars",m).querySelectorAll("[data-n]").forEach(b=>{const on=+b.dataset.n<=n;b.classList.toggle("on",on);b.setAttribute("aria-checked",+b.dataset.n===n)});$("#rf-l",m).textContent=STAR_TXT[n]};
+  $("#rf-stars",m).querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>pick(+b.dataset.n));
+  $("#rf-x",m).onclick=()=>m.remove();
+  $("#rf-ok",m).onclick=async()=>{const b=$("#rf-ok",m);b.disabled=true;
+    try{await rpc("taxi_customer_rate",{p_token:CS.tok,p_trip:trip,p_stars:n,p_comment:$("#rf-c",m).value});m.remove();toast("شكرًا، انحفظ تقييمك");done&&done(n)}catch(e){if(custError(e))return;$("#rf-e",m).textContent=e.message;b.disabled=false}};
+}
+function complainForm(trip,done){
+  const m=modal(`<h3>📣 شكوى للإدارة</h3><p style="margin:0">اكتب شنو صار${trip?" بهاي السفرة":""}. الشكوى توصل للإدارة بس، والسائق ما يشوفها.</p>
+    <div class="field"><label for="cp-t">الشكوى</label><textarea id="cp-t" rows="4" maxlength="1000" placeholder="مثال: السائق تأخر نص ساعة، أو السيارة مو نظيفة"></textarea></div>
+    <div class="err" id="cp-e"></div><div class="row"><button class="btn" id="cp-x">رجوع</button><button class="btn primary" id="cp-ok">إرسال</button></div>`);
+  $("#cp-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#cp-t",m).focus(),50);
+  $("#cp-ok",m).onclick=async()=>{const b=$("#cp-ok",m);b.disabled=true;
+    try{await rpc("taxi_customer_complain",{p_token:CS.tok,p_trip:trip,p_body:$("#cp-t",m).value});m.remove();toast("وصلت شكواك للإدارة");done&&done()}catch(e){if(custError(e))return;$("#cp-e",m).textContent=e.message;b.disabled=false}};
+}
+/* ---------- install the customer app (PWA) ---------- */
+let installEvt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;const b=$("#inst-card");if(b)b.hidden=false});
+window.addEventListener("appinstalled",()=>{installEvt=null;try{store.set("taxi_installed","1")}catch{};const b=$("#inst-card");if(b)b.remove()});
+const isStandalone=()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch{return false}};
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function installCard(){
+  if(isStandalone()) return "";
+  let hide=false; try{hide=store.get("taxi_installed")==="1"||Number(store.get("taxi_inst_x")||0)>Date.now()}catch{}
+  if(hide) return "";
+  return `<div class="cx-inst" id="inst-card" ${installEvt||isIOS()?"":"hidden"}><span class="cx-inst-ico" aria-hidden="true"><img src="img/apple-touch-icon.png" alt="" width="44" height="44"></span>
+    <span class="cx-inst-t"><b>ثبّت المنصور تاكسي على تلفونك</b><small>يصير عندك أيقونة وتطلب بضغطة وحدة</small></span>
+    <button type="button" class="btn primary sm" id="inst-go">تثبيت</button><button type="button" class="cx-inst-x" id="inst-x" aria-label="مو هسه">✕</button></div>`;
+}
+function bindInstall(){
+  const go=$("#inst-go"), x=$("#inst-x"); if(!go) return;
+  x.onclick=()=>{try{store.set("taxi_inst_x",String(Date.now()+7*864e5))}catch{};$("#inst-card").remove()};
+  go.onclick=async()=>{
+    if(installEvt){installEvt.prompt();try{const r=await installEvt.userChoice;if(r.outcome==="accepted"){$("#inst-card").remove();try{store.set("taxi_installed","1")}catch{}}}catch{}installEvt=null;return}
+    const m=modal(`<h3>ثبّت التطبيق على الآيفون</h3><ol class="steps-sm"><li>اضغط زر المشاركة <b>⬆︎</b> جوّه الشاشة بسفاري.</li><li>انزل واختار <b>«إضافة إلى الشاشة الرئيسية»</b>.</li><li>اضغط <b>«إضافة»</b> فوق، وتطلع أيقونة المنصور تاكسي ويا تطبيقاتك.</li></ol><div class="row"><button class="btn primary" id="ios-ok">تمام</button></div>`);
+    $("#ios-ok",m).onclick=()=>m.remove()};
+}
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
 /* ---------------- CUSTOMER ORDER ---------------- */
 let orderZones=[], orderZone=null, orderT=null;
 async function orderApp(){
@@ -709,14 +784,16 @@ async function orderForm(){
   custShell("تكسي لباب<br>عمارتك",{sub:"سواق من المجمّع، سعر ثابت، ونقاط على كل سفرة"});
   const box=$("#ord");
   let saved=null; try{saved=JSON.parse(store.get("taxi_c_addr")||"null")}catch{}
-  let pts=null, recent=[];
-  try{const me=await rpc("taxi_customer_me",{p_token:CS.tok});pts=me.points;recent=me.trips||[];if((!saved||!saved.b)&&me.building)saved={b:me.building,f:me.floor,a:me.apartment}}catch(e){if(custError(e))return}
+  let pts=null, recent=[], unrated=null;
+  try{const me=await rpc("taxi_customer_me",{p_token:CS.tok});pts=me.points;recent=me.trips||[];unrated=me.unrated;if((!saved||!saved.b)&&me.building)saved={b:me.building,f:me.floor,a:me.apartment}}catch(e){if(custError(e))return}
   const canFree=pts&&pts.balance>=pts.redeem;
   const addrTxt=a=>a&&a.b?`عمارة ${a.b} · طابق ${a.f} · شقة ${a.a}`:"حدّد عمارتك";
   const PIN=`<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#febd02" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>`;
   $("#cx-pickslot").innerHTML=`<button type="button" class="cx-pick" id="pickbtn" aria-expanded="${!(saved&&saved.b)}" aria-controls="addrbox">${PIN}<span id="picktxt">${esc(addrTxt(saved))}</span><u>تغيير</u></button>`;
   const th=pts?pts.redeem||5000:5000, bal=pts?pts.balance||0:0, pct=Math.min(100,Math.round(bal*100/th));
   box.innerHTML=`<form id="of" novalidate style="display:flex;flex-direction:column;gap:14px">
+    ${installCard()}
+    ${unrated?`<div class="ocard rate-mini" id="ur-card"><b>⭐ شلون كانت سفرتك${unrated.zone?` لـ ${esc(unrated.zone)}`:""}${unrated.driver_name?` ويا ${esc(unrated.driver_name)}`:""}؟</b>${starsHTML(0,"ur")}<small style="color:#6a6247">اضغط على النجوم وقيّم السائق</small></div>`:""}
     <div class="ocard" id="addrbox">
       <h2 class="cx-h2" id="ph">منين ناخذك؟</h2>
       <div class="cx-seg" role="radiogroup" aria-labelledby="ph">
@@ -762,6 +839,8 @@ async function orderForm(){
     <div class="cx-cta"><button class="btn primary big" id="osub">اطلب هسه <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></button></div>
   </form>`;
   $("#pickbtn").onclick=()=>$("#addrbox").scrollIntoView({behavior:"smooth",block:"center"});
+  bindInstall();
+  if(unrated) bindStars("ur",n=>rateForm(unrated.id,n,unrated.driver_name,()=>{const c=$("#ur-card");if(c)c.innerHTML=`<b>شكرًا على تقييمك ${"⭐".repeat(n)}</b>`}));
   const pe=$("#pm-edit"); if(pe) pe.onclick=()=>{$("#pm-fields").hidden=false;$("#pm-sum").hidden=true};
   $("#notet").onclick=()=>{$("#notef").hidden=false;$("#notet").hidden=true;$("#o-note").focus()};
   try{orderZones=await rpc("taxi_public_zones",{})}catch{orderZones=[]}
@@ -893,7 +972,7 @@ async function orderForm(){
         rpc("taxi_customer_address",{p_token:CS.tok,p:{building:b,floor:f,apartment:a}}).catch(()=>{})}
       orderStatus(r.token)}catch(err){if(custError(err))return;$("#oe").textContent=err.message;btn.disabled=false}};
 }
-const OS={requested:["⏳","طلبك وصل للمكتب","دنختارلك أقرب سائق، لحظات."],assigned:["📲","انرسل للسائق","بانتظار موافقته."],
+const OS={arrived:["📍","السائق وصل وينتظرك","انزل للسيارة، ووقت تركب السائق ينطلق."],requested:["⏳","طلبك وصل للمكتب","دنختارلك أقرب سائق، لحظات."],assigned:["📲","انرسل للسائق","بانتظار موافقته."],
   accepted:["🚕","السائق جاي إلك","انتظر بمكانك."],started:["🛣️","بالطريق","توصل بالسلامة."],waiting:["⏸","السائق ينتظرك","ارجع للسيارة وقت تخلص، والسائق يكمّل الرحلة."],done:["✅","وصلت","شكرًا لاختيارك المنصور تاكسي."],
   cancelled:["✖️","انلغى الطلب",""],rejected:["📲","دنحوّل طلبك لسائق ثاني","لحظات."]};
 async function orderStatus(tok){
@@ -901,27 +980,31 @@ async function orderStatus(tok){
   custShell("طلبك");
   const box=$("#ord"); if(!box) return;
   const draw=async()=>{let s;try{s=await rpc("taxi_customer_status",{p_token:tok})}catch(e){store.del("taxi_order");clearInterval(orderT);return orderForm()}
-    const o=(s.status==="started"&&s.waiting?OS.waiting:OS[s.status])||["•",s.status,""];
+    const o=(s.status==="started"&&s.waiting?OS.waiting:s.status==="accepted"&&s.pickup_waiting?OS.arrived:OS[s.status])||["•",s.status,""];
     box.innerHTML=`<div class="ocard ost">
       <div class="ost-ico">${o[0]}</div><h2>${o[1]}</h2><p>${o[2]}</p>
       <div class="calc"><div><span>رايح إلى</span><b>${esc(s.zone||"—")}</b></div>${s.pickup?`<div><span>تنتظر عند</span><b>${esc(s.pickup)}</b></div>`:""}${s.free?`<div><span>الكروة</span><b style="color:var(--ok)">⭐ مجانية بالنقاط</b></div>`:""}${s.round_trip?`<div><span>نوع السفرة</span><b>↩ مرجع (ذهاب ورجعة)</b></div>`:""}${s.wait_sec>0&&s.status!=="started"||s.wait_sec>0&&!s.waiting?`<div><span>وقت الانتظار</span><b>${clock(s.wait_sec)}</b></div>`:""}</div>
       ${s.dest_change&&s.dest_change.status==="awaiting_customer"?`<div class="cx-confirm"><b>🔀 السائق سجّل إن وجهتك تغيّرت إلى ${esc(s.dest_change.to)}</b><small>صح؟ قد تتغيّر الأجرة حسب المسافة اللي انمشت.</small>
         <div class="row"><button class="btn" id="dc-no">لا، مو صحيح</button><button class="btn primary" id="dc-yes">نعم، صح</button></div></div>`
        :s.dest_change&&["confirmed","applied","auto"].includes(s.dest_change.status)?`<p class="note" style="margin:0">🔀 وجهتك تغيّرت إلى <b>${esc(s.dest_change.to)}</b>.</p>`:""}
-      ${s.status==="started"&&s.waiting?`<div class="waitbox"><small>السائق ينتظرك من</small><b id="cwclock">${clock(s.wait_sec)}</b><small>${s.wait_free_min?`أول ${s.wait_free_min} دقايق انتظار مجانية`:""}</small></div>`:""}
+      ${s.status==="started"&&s.waiting||s.status==="accepted"&&s.pickup_waiting?`<div class="waitbox"><small>السائق ينتظرك من</small><b id="cwclock">${clock(s.status==="accepted"?s.pickup_wait_sec:s.wait_sec)}</b></div>`:""}
       ${s.status==="done"&&s.earned?`<div class="pts"><div class="pts-top"><span>🎉 +${fmt(s.earned)} نقطة</span><b>${fmt(s.balance)}</b></div><small>رصيد نقاطك هسه</small></div>`:""}
       ${s.status==="cancelled"&&s.free?`<p class="note" style="margin:0">رجعت نقاطك لحسابك.</p>`:""}
+      ${s.status==="done"&&CS.tok?(s.stars?`<p class="rate-done">شكرًا على تقييمك ${"⭐".repeat(s.stars)}</p>`:`<div class="rate-mini" id="st-rate"><b>قيّم السائق${s.driver_name?` ${esc(s.driver_name)}`:""}</b>${starsHTML(0,"st")}</div>`):""}
       ${s.driver_name?`<div class="drvcard"><div><small>السائق</small><b>${esc(s.driver_name)}</b><small>${esc([s.model,s.color].filter(Boolean).join(" · "))}</small></div>${plateHTML(s.plate,true)}</div>`:""}
       ${["requested","assigned","accepted","rejected"].includes(s.status)?`<button class="btn big cancel-btn" id="ocn">✖ إلغاء الطلب</button>`:""}
       ${["done","cancelled"].includes(s.status)?`<button class="btn primary big" id="onew">طلب جديد</button>`:""}
+      ${CS.tok&&s.trip_id&&["accepted","started","done","cancelled"].includes(s.status)?(s.complained?`<p class="note" style="margin:0;text-align:center">📣 وصلت شكواك للإدارة، راح يتابعوها.</p>`:`<button type="button" class="cx-note-t" id="ocmp" style="align-self:center">عندك شكوى؟ اكتبلنا</button>`):""}
     </div>`;
     const cn=$("#ocn"); if(cn) cn.onclick=()=>confirmBox(s.status==="accepted"?"السائق بالطريق إلك. متأكد تريد تلغي الطلب؟":"تريد تلغي طلب التكسي؟","نعم، ألغِ الطلب",async()=>{try{await rpc("taxi_customer_cancel",{p_token:tok});toast("انلغى طلبك")}catch(e){toast(e.message)}draw()},"لا، خلّي الطلب");
     const dy=$("#dc-yes"),dn=$("#dc-no");
     if(dy) dy.onclick=async()=>{try{await rpc("taxi_customer_route_answer",{p_token:tok,p_ok:true});toast("تمام، تغيّرت وجهتك")}catch(e){toast(e.message)}draw()};
     if(dn) dn.onclick=async()=>{try{await rpc("taxi_customer_route_answer",{p_token:tok,p_ok:false});toast("انرفض التغيير، وجهتك بقت مثل ما هي")}catch(e){toast(e.message)}draw()};
     const nw=$("#onew"); if(nw) nw.onclick=()=>{store.del("taxi_order");clearInterval(orderT);orderZone=null;orderForm()};
+    if($("#st-rate")) bindStars("st",n=>rateForm(s.trip_id,n,s.driver_name,draw));
+    const cm=$("#ocmp"); if(cm) cm.onclick=()=>complainForm(s.trip_id,draw);
     if(["done","cancelled"].includes(s.status)) clearInterval(orderT);
-    clearInterval(waitT); if(s.status==="started"&&s.waiting){const t0=Date.now(),w0=s.wait_sec;waitT=setInterval(()=>{const c=$("#cwclock");if(!c)return clearInterval(waitT);c.textContent=clock(w0+Math.floor((Date.now()-t0)/1000))},1000)}
+    clearInterval(waitT); if(s.status==="started"&&s.waiting||s.status==="accepted"&&s.pickup_waiting){const t0=Date.now(),w0=s.status==="accepted"?s.pickup_wait_sec:s.wait_sec;waitT=setInterval(()=>{const c=$("#cwclock");if(!c)return clearInterval(waitT);c.textContent=clock(w0+Math.floor((Date.now()-t0)/1000))},1000)}
   };
   await draw(); orderT=setInterval(draw,5000);
 }
@@ -1293,12 +1376,15 @@ function adminShell(){
      <div class="alert reqbar" id="reqbar" hidden></div>
      <div class="alert reqbar depbar" id="depbar" hidden></div>
      <div class="alert reqbar rcbar" id="rcbar" hidden></div>
+     <div class="alert reqbar cpbar" id="cpbar" hidden></div>
      <div class="alert" id="alert" hidden></div>
      <nav class="tabs" role="tablist">
        <button role="tab" data-t="live">الخريطة الحيّة</button>
        <button role="tab" data-t="files">ملفات السواق</button>
        <button role="tab" data-t="trips">السفرات</button>
        <button role="tab" data-t="routes">الطرق</button>
+       <button role="tab" data-t="daily">التقرير اليومي</button>
+       <button role="tab" data-t="fb">التقييم والشكاوي <span class="tbadge" id="fb-n" hidden></span></button>
        <button role="tab" data-t="week">التسوية الأسبوعية</button>
        <button role="tab" data-t="acc">الحسابات</button>
        <button role="tab" data-t="cars">السيارات والسائقين</button>
@@ -1337,7 +1423,7 @@ async function poll(){
       if(prevReqInit&&!document.querySelector(".modal")) dispatchTrip([...fresh].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0])}
     prevReq=ids; prevReqInit=true;
   }).catch(()=>{});
-  pollDeposits(); pollRouteChanges();
+  pollDeposits(); pollRouteChanges(); if(pollN%6===1) pollComplaints();
   if(tab==="live") renderLive(); else if(tab==="cars") renderCars(); else if(tab==="trips") loadTrips(true);
 }
 let prevRc=[], prevRcInit=false, rcT;
@@ -1427,6 +1513,8 @@ function renderTab(){
   if(tab==="cust") renderCustomers();
   if(tab==="files") renderFiles();
   if(tab==="routes") renderRoutes();
+  if(tab==="daily") renderDaily();
+  if(tab==="fb") renderFeedback();
 }
 function initMap(){
   if(typeof L==="undefined"){$("#map").innerHTML=`<div class="empty">تعذّر تحميل الخريطة. تأكد من الإنترنت.</div>`;return}
@@ -1632,7 +1720,7 @@ async function loadTrips(quiet){
     <td>${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}${t.note?`<br><small style="color:var(--muted)">${esc(t.note)}</small>`:""}</td>
     <td>${t.customer_name?esc(t.customer_name)+"<br>":""}<span dir="ltr">${esc(t.customer_phone||"—")}</span>${t.pickup_lat?`<br><a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍 موقعه</a>`:""}</td>
     <td>${t.source==="office"?"المكتب":t.source==="customer"?"الزبون (أونلاين)":"السائق"}</td>
-    <td><span class="pill ${st[0]}">${st[1]}</span>${t.round_trip?` <span class="pill s-warn">↩ مرجع${t.round_fee?" +"+fmt(t.round_fee):""}</span>`:""}${t.wait_sec>0?` <span class="pill ${t.waiting?"s-warn":"s-idle"}">⏸ ${t.waiting?"ينتظر ":""}${Math.ceil(t.wait_sec/60)} د${t.wait_fee?" +"+fmt(t.wait_fee):""}</span>`:""}${t.dispatched_by?`<br><small style="color:var(--muted)">أرسلها: ${esc(t.dispatched_by)}</small>`:""}${t.cancel_reason?`<br><small style="color:var(--muted)">${esc(t.cancel_reason)}</small>`:""}</td>
+    <td><span class="pill ${st[0]}">${st[1]}</span>${t.round_trip?` <span class="pill s-warn">↩ مرجع${t.round_fee?" +"+fmt(t.round_fee):""}</span>`:""}${t.pickup_wait_sec>0?` <span class="pill ${t.pickup_waiting?"s-warn":"s-idle"}">🕓 ${t.pickup_waiting?"وصل وينتظر ":"انتظر بالاستلام "}${Math.ceil(t.pickup_wait_sec/60)} د</span>`:""}${t.wait_sec>0?` <span class="pill ${t.waiting?"s-warn":"s-idle"}">⏱ عدّاد ${t.waiting?"شغّال ":""}${Math.ceil(t.wait_sec/60)} د${t.wait_fee?" +"+fmt(t.wait_fee):""}</span>`:""}${t.stars?` <span class="pill ${t.stars<=2?"s-bad":"s-ok"}">${"★".repeat(t.stars)}</span>`:""}${t.dispatched_by?`<br><small style="color:var(--muted)">أرسلها: ${esc(t.dispatched_by)}</small>`:""}${t.cancel_reason?`<br><small style="color:var(--muted)">${esc(t.cancel_reason)}</small>`:""}</td>
     <td style="font-variant-numeric:tabular-nums">${t.fare?fmt(t.fare):"—"}</td><td>${t.km!=null?t.km:"—"}</td>
     <td><div class="acts">${t.car_id&&["accepted","started","done"].includes(t.status)?`<button class="btn sm" data-tp="${t.id}">🗺 المسار</button>`:""}${t.status==="requested"?`<button class="btn sm primary" data-ta="re" data-id="${t.id}">إرسال لسائق</button>`:["assigned","rejected"].includes(t.status)?`<button class="btn sm" data-ta="re" data-id="${t.id}">تحويل لسائق</button>`:""}${openT?`<button class="btn sm danger" data-ta="cancel" data-id="${t.id}">إلغاء</button>`:""}</div></td></tr>`}).join("")}
   </tbody></table></div>`;
@@ -1790,6 +1878,86 @@ async function showRange(carId,from,to){
 let weekDay=null, weekData=null;
 const dmy=d=>{const [y,m,dd]=String(d).split("-");return `${+dd}/${+m}`};
 function shiftWeek(n){const d=new Date((weekDay||todayStr())+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+7*n);weekDay=d.toISOString().slice(0,10);loadWeek()}
+/* ---------- complaints bar, ratings & complaints tab ---------- */
+let prevCp=[], prevCpInit=false;
+function pollComplaints(){
+  rpc("taxi_admin_feedback",{p_pin:PIN}).then(f=>{const open=f.complaints.filter(k=>k.status==="open");
+    const n=$("#fb-n"); if(n){n.hidden=!open.length;n.textContent=open.length}
+    const bar=$("#cpbar"); if(!bar) return;
+    if(open.length&&tab!=="fb"){bar.hidden=false;bar.innerHTML=`📣 ${open.length} شكوى زبون مفتوحة: ${open.slice(0,2).map(k=>`${esc(k.customer_name)}${k.driver_name?" على "+esc(k.driver_name):""}`).join("، ")} <button class="btn sm primary">افتح الشكاوي</button>`;
+      bar.querySelector("button").onclick=()=>{tab="fb";renderTab()}}else bar.hidden=true;
+    const ids=open.map(k=>k.id); if(prevCpInit&&ids.some(id=>!prevCp.includes(id))){beep();setTimeout(beep,400)} prevCp=ids; prevCpInit=true;
+    if(tab==="fb"&&$("#fbv")&&!document.querySelector(".modal")) drawFeedback(f);
+  }).catch(()=>{});
+}
+async function renderFeedback(){
+  const bar=$("#cpbar"); if(bar) bar.hidden=true;
+  $("#view").innerHTML=`<div class="wrap" id="fbv"><div class="bar"><h2>التقييم والشكاوي</h2></div><div class="empty">جارٍ التحميل…</div></div>`;
+  try{drawFeedback(await rpc("taxi_admin_feedback",{p_pin:PIN}))}catch(e){$("#fbv").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+const stars5=v=>v==null?"—":`<span class="st5" aria-label="${v} من 5">${"★".repeat(Math.round(v))}<i>${"★".repeat(5-Math.round(v))}</i></span>`;
+function drawFeedback(f){
+  const v=$("#fbv"); if(!v) return;
+  const open=f.complaints.filter(k=>k.status==="open"), closed=f.complaints.filter(k=>k.status!=="open");
+  const rated=f.drivers.filter(d=>d.count>0), all=f.drivers;
+  const avgAll=rated.length?(rated.reduce((a,d)=>a+d.avg*d.count,0)/rated.reduce((a,d)=>a+d.count,0)).toFixed(1):null;
+  const dt=ts=>new Date(ts).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"});
+  const kc=k=>`<li class="cp ${k.status}"><div class="cp-h"><b>${esc(k.customer_name)}</b> <small dir="ltr">${esc(k.customer_user||"")}</small>${k.driver_name?` <span>على ${plateHTML(k.plate)} ${esc(k.driver_name)}</span>`:""}<time>${dt(k.created_at)}</time></div>
+      <p>${esc(k.body)}</p>${k.zone?`<small style="color:var(--muted)">السفرة: ${esc(k.zone)}${k.trip_at?" · "+dt(k.trip_at):""}</small>`:""}
+      ${k.status==="open"?`<div class="row" style="justify-content:flex-start"><button class="btn sm primary" data-cp="${k.id}">✔ تمت المعالجة</button></div>`:`<small style="color:var(--muted)">✔ سكّرها ${esc(k.closed_by||"")} ${k.closed_at?dt(k.closed_at):""}${k.admin_note?` — ${esc(k.admin_note)}`:""}</small>`}</li>`;
+  v.innerHTML=`<div class="bar"><h2>التقييم والشكاوي</h2></div>
+    <div class="kpis"><div class="kpi"><small>معدّل تقييم السواق</small><b>${avgAll?`⭐ ${avgAll}`:"—"}</b><small>${rated.reduce((a,d)=>a+d.count,0)} تقييم</small></div>
+      <div class="kpi ${open.length?"warn":""}"><small>شكاوي مفتوحة</small><b>${open.length}</b><small>${closed.length} مسكّرة (آخر شهرين)</small></div></div>
+    <h3>📣 الشكاوي</h3>
+    ${open.length?`<ul class="cps">${open.map(kc).join("")}</ul>`:`<p class="note">ماكو شكاوي مفتوحة. 👍</p>`}
+    <h3>⭐ تقييم كل سائق</h3>
+    <div class="tbl-wrap"><table><thead><tr><th>السائق</th><th>المعدّل</th><th>عدد التقييمات</th><th>نجمة أو نجمتين</th><th>الشكاوي</th></tr></thead><tbody>
+      ${all.map(d=>`<tr><td>${plateHTML(d.plate)} ${esc(d.driver_name)}</td><td>${d.avg!=null?`${stars5(d.avg)} <b class="num">${d.avg}</b>`:"<small style='color:var(--muted)'>ماكو تقييم</small>"}</td><td class="num">${d.count}</td><td class="num">${d.low?`<span class="pill s-bad">${d.low}</span>`:"0"}</td><td class="num">${d.complaints}${d.open_complaints?` <span class="pill s-bad">${d.open_complaints} مفتوحة</span>`:""}</td></tr>`).join("")}
+    </tbody></table></div>
+    <h3>آخر التقييمات</h3>
+    ${f.ratings.length?`<ul class="log">${f.ratings.map(r=>`<li><span>${stars5(r.stars)}</span><span>${plateHTML(r.plate)} ${esc(r.driver_name||"")} · ${esc(r.customer_name)}${r.zone?` · ${esc(r.zone)}`:""}${r.comment?`<br><small>«${esc(r.comment)}»</small>`:""}</span><time>${dt(r.created_at)}</time></li>`).join("")}</ul>`:`<p class="note">لسه ماكو تقييمات. الزبون يقيّم من صفحته بعد ما يوصل.</p>`}
+    ${closed.length?`<details><summary>الشكاوي المسكّرة (${closed.length})</summary><ul class="cps">${closed.map(kc).join("")}</ul></details>`:""}`;
+  v.querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>{
+    const m=modal(`<h3>تسكير الشكوى</h3><div class="field"><label for="cp-n">شنو سويتوا؟ (اختياري)</label><input id="cp-n" maxlength="300" placeholder="مثال: كلمنا السائق ونبّهناه"></div><div class="err" id="cp-e"></div><div class="row"><button class="btn" id="cp-x">رجوع</button><button class="btn primary" id="cp-ok">تسكير</button></div>`);
+    $("#cp-x",m).onclick=()=>m.remove();
+    $("#cp-ok",m).onclick=async()=>{try{await rpc("taxi_admin_complaint_close",{p_pin:PIN,p_id:+b.dataset.cp,p_note:$("#cp-n",m).value});m.remove();toast("تسكّرت الشكوى");renderFeedback();pollComplaints()}catch(e){$("#cp-e",m).textContent=e.message}}});
+}
+/* ---------- daily report ---------- */
+let dailyDay=null, dailyData=null;
+async function renderDaily(){
+  const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10); dailyDay=dailyDay||today;
+  $("#view").innerHTML=`<div class="wrap" id="dv"><div class="bar"><h2>التقرير اليومي</h2><div class="row" style="gap:8px"><button class="btn sm" id="d-prev">‹ اليوم السابق</button><input type="date" id="d-day" value="${dailyDay}" max="${today}" class="btn sm"><button class="btn sm" id="d-next" ${dailyDay>=today?"disabled":""}>اليوم الجاي ›</button><button class="btn sm" id="d-copy">📋 نسخ التقرير</button></div></div><div id="dbody"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  const go=d=>{dailyDay=d;renderDaily()};
+  const shift=n=>{const d=new Date(dailyDay+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+  $("#d-prev").onclick=()=>go(shift(-1)); $("#d-next").onclick=()=>go(shift(1)); $("#d-day").onchange=e=>e.target.value&&go(e.target.value);
+  $("#d-copy").onclick=()=>dailyData&&copy(dailyText(dailyData));
+  let r; try{r=await rpc("taxi_admin_daily",{p_pin:PIN,p_day:dailyDay})}catch(e){$("#dbody").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  dailyData=r; const T=r.totals, dl=new Date(r.day+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"long",day:"numeric",month:"long"});
+  const hm2=ts=>ts?new Date(ts).toLocaleTimeString("ar-IQ",{hour:"2-digit",minute:"2-digit"}):"—";
+  const maxH=Math.max(1,...r.hours.map(h=>h.n));
+  $("#dbody").innerHTML=`<p class="note" style="margin-top:0">${dl}</p>
+    <div class="kpis">
+      <div class="kpi"><small>سفرات خلصت</small><b>${T.done}</b><small>${T.requests} طلب أونلاين · ${T.cancelled} ملغية · ${T.rejected} مرفوضة</small></div>
+      <div class="kpi"><small>مجموع الأجرة</small><b>${dinar(T.fares)}</b><small>كاش بيد السواق: ${dinar(T.cash)}${T.points?` · بالنقاط: ${fmt(T.points)}`:""}</small></div>
+      <div class="kpi"><small>استلمت الإدارة اليوم</small><b>${dinar(r.received)}</b></div>
+      <div class="kpi"><small>إضافات</small><b>${dinar(T.wait_fees+T.round_fees)}</b><small>عدّاد انتظار ${fmt(T.wait_fees)} · مرجع ${fmt(T.round_fees)} (${T.round_trips})</small></div>
+      <div class="kpi"><small>الكيلومترات</small><b>${T.km} كم</b><small>${T.avg_pickup_min!=null?`معدّل وصول السائق للزبون ${T.avg_pickup_min} د`:""}</small></div>
+      <div class="kpi ${r.complaints.new||r.ratings.low?"warn":""}"><small>رضا الزباين</small><b>${r.ratings.avg?`⭐ ${r.ratings.avg}`:"—"}</b><small>${r.ratings.count} تقييم${r.ratings.low?` · ${r.ratings.low} واطي`:""} · ${r.complaints.new} شكوى جديدة · ${r.new_customers} زبون جديد</small></div>
+    </div>
+    <h3>كل سائق</h3>
+    <div class="tbl-wrap"><table><thead><tr><th>السائق</th><th>سفرات</th><th>الأجرة</th><th>كاش بيده</th><th>استلمنا منه</th><th>كم</th><th>رفض</th><th>انقطاع</th><th>تقييم</th><th>أول/آخر نشاط</th></tr></thead><tbody>
+      ${r.drivers.map(d=>`<tr><td>${plateHTML(d.plate)} ${esc(d.driver_name)}</td><td class="num">${d.done}</td><td class="num">${fmt(d.fares)}</td><td class="num">${fmt(d.cash)}</td><td class="num">${fmt(d.received)}</td><td class="num">${d.km}</td><td class="num">${d.rejected?`<span class="pill s-bad">${d.rejected}</span>`:0}</td><td class="num">${d.lost?`<span class="pill s-warn">${d.lost}</span>`:0}</td><td>${d.stars?`⭐ ${d.stars}`:"—"}</td><td class="num"><small>${d.span&&d.span.first?`${hm2(d.span.first)} – ${hm2(d.span.last)}`:"—"}</small></td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="grid2" style="margin-top:16px">
+      <div><h3>الطلب حسب الساعة</h3>${r.hours.length?`<div class="hbars">${r.hours.map(h=>`<div class="hb"><span class="num">${h.h}:00</span><i style="width:${Math.round(h.n*100/maxH)}%"></i><b class="num">${h.n}</b></div>`).join("")}</div>`:`<p class="note">ماكو طلبات.</p>`}</div>
+      <div><h3>أكثر المناطق</h3>${r.zones.length?`<ul class="log">${r.zones.map(z=>`<li><span>${esc(z.name)}</span><b class="num">${z.n}</b></li>`).join("")}</ul>`:`<p class="note">ماكو سفرات.</p>`}
+        <h3>التنبيهات</h3><p class="note" style="margin:0">انقطاع إرسال: ${r.alerts.lost} · GPS مطفي/تطبيق مسكّر: ${r.alerts.off} · حركة بدون سفرة: ${r.alerts.unlogged} · رفض سفرات: ${r.alerts.rejected}</p></div>
+    </div>`;
+}
+function dailyText(r){const T=r.totals;return [`📊 تقرير المنصور تاكسي ليوم ${r.day}`,`سفرات خلصت: ${T.done} (طلبات أونلاين ${T.requests}، ملغية ${T.cancelled}، مرفوضة ${T.rejected})`,
+  `مجموع الأجرة: ${fmt(T.fares)} د.ع · كاش بيد السواق: ${fmt(T.cash)} د.ع`,`استلمت الإدارة: ${fmt(r.received)} د.ع`,
+  `عدّاد انتظار: ${fmt(T.wait_fees)} · مرجع: ${fmt(T.round_fees)}`,`تقييم: ${r.ratings.avg??"—"} (${r.ratings.count}) · شكاوي جديدة: ${r.complaints.new} · زباين جدد: ${r.new_customers}`,
+  "",...r.drivers.filter(d=>d.done||d.received).map(d=>`• ${d.driver_name} (${d.plate}): ${d.done} سفرة، ${fmt(d.fares)} د.ع${d.received?`، استلمنا ${fmt(d.received)}`:""}${d.stars?`، ⭐ ${d.stars}`:""}`)].join("\n")}
 function renderWeek(){
   weekDay=weekDay||todayStr();
   $("#view").innerHTML=`<div class="wrap">
@@ -1895,6 +2063,16 @@ async function carAction(a,id){
   if(a==="code") return confirmBox(`إصدار رمز جديد للسائق ${c.driver_name}؟ الرمز القديم سيتوقف فورًا.`,"إصدار رمز",async()=>{const k=await rpc("taxi_admin_newcode",{p_pin:PIN,p_id:id});toast("الرمز الجديد: "+k);poll()});
   if(a==="tog"){await rpc("taxi_admin_save",{p_pin:PIN,p:{...c,active:!c.active}});poll()}
 }
+// waiting-meter tiers editor: rows "after N minutes -> amount"
+function wtDraw(T){const w=$("#f-wt");if(!w)return;
+  w.innerHTML=T.map((x,i)=>`<div class="wt-row"><label>بعد <input inputmode="numeric" class="wt-m" value="${x.m}" aria-label="الدقائق ${i+1}"> دقيقة</label><label>= <input inputmode="numeric" class="wt-f" value="${x.f}" aria-label="المبلغ ${i+1}"> دينار</label>${T.length>2?`<button type="button" class="btn sm wt-del" data-i="${i}" aria-label="احذف السطر">✕</button>`:""}</div>`).join("")+`<button type="button" class="btn sm" id="wt-add">+ سطر</button>`;
+  w.querySelectorAll(".wt-del").forEach(b=>b.onclick=()=>{const t=wtRows();t.splice(+b.dataset.i,1);wtDraw(t)});
+  $("#wt-add").onclick=()=>{const t=wtRows(),l=t[t.length-1]||{m:0,f:0};t.push({m:l.m+15,f:l.f});wtDraw(t)};
+  w.querySelectorAll("input").forEach(i=>i.oninput=wtEx); wtEx()}
+function wtRows(){return [...document.querySelectorAll("#f-wt .wt-row")].map(r=>({m:parseInt(r.querySelector(".wt-m").value.replace(/\D/g,""))||0,f:parseInt(r.querySelector(".wt-f").value.replace(/\D/g,""))||0})).filter(x=>x.m>0)}
+function wtRead(){return wtRows().map(x=>x.m+":"+x.f).join(",")}
+function wtEx(){const e=$("#f-wt-ex");if(!e)return;const T=wtRows();if(!T.length){e.textContent="";return}
+  e.textContent="أمثلة: "+[5,10,20,45,60,75,130].map(m=>`${m} د = ${fmt(waitFee(m*60,T))}`).join(" · ")}
 function modal(html){const m=document.createElement("div");m.className="modal";m.innerHTML=`<div class="sheet">${html}</div>`;m.onclick=e=>{if(e.target===m)m.remove()};document.body.append(m);return m}
 function confirmBox(msg,label,fn,back){const m=modal(`<h3>تأكيد</h3><p style="margin:0">${esc(msg)}</p><div class="err" id="ce"></div><div class="row"><button class="btn" id="cn">${esc(back||"إلغاء")}</button><button class="btn primary" id="cy">${esc(label)}</button></div>`);
   $("#cn",m).onclick=()=>m.remove(); $("#cy",m).onclick=async()=>{try{await fn();m.remove()}catch(e){$("#ce",m).textContent=e.message}}}
@@ -1947,11 +2125,12 @@ function renderSettings(){
     <div class="grid2"><div class="field"><label for="f-base">أجرة السفرة (دينار)</label><input id="f-base" inputmode="numeric" placeholder="مثال: 3000"></div>
     <div class="field"><label for="f-km">إضافة لكل كيلومتر (اختياري)</label><input id="f-km" inputmode="numeric" placeholder="مثال: 500"></div></div>
 
-    <h4 style="margin:6px 0 0">↩ المرجع و⏸ وقت الانتظار</h4>
-    <p class="note" style="margin:0">السائق يگدر يخلّي السفرة «مرجع» (ذهاب ورجعة)، ويشغّل عدّاد انتظار إذا الزبون نزل وراح يرجع. المبلغ ينضاف وحده على الأجرة الثابتة.</p>
-    <div class="grid2"><div class="field"><label for="f-rt">المرجع: نسبة من سعر المنطقة (%)</label><input id="f-rt" inputmode="numeric" placeholder="100 = نفس سعر الذهاب"></div>
-    <div class="field"><label for="f-wf">دقائق انتظار مجانية</label><input id="f-wf" inputmode="numeric" placeholder="5"></div>
-    <div class="field"><label for="f-wm">سعر كل دقيقة بعدها (دينار)</label><input id="f-wm" inputmode="numeric" placeholder="250"></div></div>
+    <h4 style="margin:6px 0 0">↩ المرجع</h4>
+    <div class="grid2"><div class="field"><label for="f-rt">المرجع: نسبة من سعر المنطقة (%)</label><input id="f-rt" inputmode="numeric" placeholder="100 = نفس سعر الذهاب"></div></div>
+    <h4 style="margin:6px 0 0">⏱ عدّاد الانتظار</h4>
+    <p class="note" style="margin:0">انتظار السائق للزبون قبل لا يركب: يتحسب وقت بس، بدون فلوس، وينلغي من يدوس «انطلاق». العدّاد بفلوس بس إذا الزبون وصل وكال «انتظرني هنا». آخر سطر هو الدورة: كل دورة كاملة تنحسب بسعرها، والباقي حسب الجدول.</p>
+    <div class="wtiers" id="f-wt"></div>
+    <p class="note" id="f-wt-ex" style="margin:0"></p>
     <div class="err" id="fre"></div><button class="btn primary">حفظ الأجرة</button></form>
    <form id="pf" class="gate-card" style="width:100%;margin-bottom:16px">
     <h3>⭐ نقاط الزبائن</h3>
@@ -1981,14 +2160,14 @@ function renderSettings(){
     <h3>تغيير رمزك</h3>
     <div class="field"><label for="np">الرمز الجديد (4 أرقام أو أكثر)</label><input id="np" class="code-input" inputmode="numeric" minlength="4" required></div>
     <div class="err" id="se"></div><button class="btn primary">حفظ الرمز</button></form></div>`;
-  $("#fr").onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_fares",{p_pin:PIN,p:{fare_base:$("#f-base").value,fare_per_km:$("#f-km").value,round_trip_pct:$("#f-rt").value,wait_free_min:$("#f-wf").value,wait_per_min:$("#f-wm").value}});toast("انحفظت")}catch(err){$("#fre").textContent=err.message}};
+  $("#fr").onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_fares",{p_pin:PIN,p:{fare_base:$("#f-base").value,fare_per_km:$("#f-km").value,round_trip_pct:$("#f-rt").value,wait_tiers:wtRead()}});toast("انحفظت")}catch(err){$("#fre").textContent=err.message}};
   renderZones(); renderAdmins(); renderDisps();
   const ptsSum=x=>{$("#p-trip").value=x.points_per_trip??"";$("#p-red").value=x.points_redeem??"";$("#p-wel").value=x.points_welcome??"";
     const n=x.points_per_trip?Math.ceil((x.points_redeem-(x.points_welcome||0))/x.points_per_trip):0;
     $("#p-sum").innerHTML=`${n?`الزبون الجديد يوصل للكروة المجانية بعد <b>${n}</b> سفرة. `:""}انطينا ${fmt(x.issued)} نقطة · انصرفت ${fmt(x.redeemed)} دينار كروات مجانية · بأرصدة الزبائن هسه ${fmt(x.outstanding)} نقطة.`};
   rpc("taxi_admin_points_settings",{p_pin:PIN,p:{}}).then(ptsSum).catch(()=>{});
   $("#pf").onsubmit=async e=>{e.preventDefault();try{ptsSum(await rpc("taxi_admin_points_settings",{p_pin:PIN,p:{points_per_trip:$("#p-trip").value,points_redeem:$("#p-red").value,points_welcome:$("#p-wel").value}}));toast("انحفظت النقاط")}catch(err){$("#pfe").textContent=err.message}};
-  rpc("taxi_admin_shares",{p_pin:PIN}).then(x=>{$("#f-rt").value=x.round_trip_pct??"";$("#f-wf").value=x.wait_free_min??"";$("#f-wm").value=x.wait_per_min??""}).catch(()=>{});
+  wtDraw(WT_DEF); rpc("taxi_admin_shares",{p_pin:PIN}).then(x=>{$("#f-rt").value=x.round_trip_pct??"";if(x.wait_tiers&&x.wait_tiers.length)wtDraw(x.wait_tiers)}).catch(()=>{});
   rpc("taxi_public_info",{}).then(i=>{$("#f-base").value=i.fare_base||"";$("#f-km").value=i.fare_per_km||"";$("#c-phone").value=i.phone||"";$("#c-wa").value=i.whatsapp||"";$("#c-hours").value=i.hours||""}).catch(()=>{});
   $("#ct").onsubmit=async e=>{e.preventDefault();
     try{await rpc("taxi_admin_contact",{p_pin:PIN,p:{contact_phone:$("#c-phone").value,contact_whatsapp:$("#c-wa").value,contact_hours:$("#c-hours").value}});toast("انحفظت أرقام الحجز")}catch(err){$("#ce2").textContent=err.message}};
@@ -2170,7 +2349,7 @@ function setExt(on){
     let st=$("#extStatus"); if(!st){st=document.createElement("div");st.id="extStatus";st.className="stat";$(".drv").insertBefore(st,$("#tripBox"))}
     const upd=async()=>{try{const s=await rpc("taxi_driver_state",{p_code:CODE});const fresh=s.last_seen&&(Date.now()-new Date(s.last_seen))<180000&&["ok","background"].includes(s.gps_state);
       st.innerHTML=`<small>التتبع عن طريق Traccar</small><b style="color:${fresh?"var(--ok)":"var(--bad)"}">${fresh?"✔ موقعك يوصل للإدارة":"⚠ ما دا يوصل موقع"}</b><small>آخر إشارة: ${ago(s.last_seen)}</small>`;
-      today={trips:s.today_trips,fares:s.today_fares,base:s.fare_base,wk:s.week_trips||0,zones:s.zones||[],money:s.money};showTrip(s.trip,true);noteCancel(s.cancelled)}catch{}};
+      today={trips:s.today_trips,fares:s.today_fares,base:s.fare_base,wk:s.week_trips||0,zones:s.zones||[],money:s.money,rating:s.rating};showTrip(s.trip,true);noteCancel(s.cancelled)}catch{}};
     upd(); extT=setInterval(upd,8000);
   }else{const st=$("#extStatus"); if(st) st.remove(); showTrip(null,true)}
 }
@@ -2179,7 +2358,7 @@ function setExt(on){
 let curTrip, tripPoll, lastOffer=null, today={trips:0,fares:0,base:null};
 async function refreshTrip(){
   if(!CODE) return;
-  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,base:st.fare_base,wk:st.week_trips||0,zones:st.zones||[],money:st.money};showTrip(st.trip,true);noteCancel(st.cancelled)}catch{}
+  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,base:st.fare_base,wk:st.week_trips||0,zones:st.zones||[],money:st.money,rating:st.rating};showTrip(st.trip,true);noteCancel(st.cancelled)}catch{}
 }
 // Waze: to the customer before pickup, to the destination after the trip starts
 function wazeUrl(t){
@@ -2200,14 +2379,14 @@ function noteCancel(c){
 }
 function showTrip(t,force){
   const box=$("#tripBox"); if(!box) return;
-  const ck=x=>x&&[x.id,x.status,x.waiting,x.round_trip,x.zone_id,x.fare,x.dest_change&&x.dest_change.id,x.dest_change&&x.dest_change.status];
+  const ck=x=>x&&[x.id,x.status,x.waiting,x.pickup_waiting,x.round_trip,x.zone_id,x.fare,x.dest_change&&x.dest_change.id,x.dest_change&&x.dest_change.status];
   const key=JSON.stringify(ck(t));
   const same=key===JSON.stringify(ck(curTrip));
   // a running trip card keeps its own live timer and the typed fare; redraw it only when something changes
   if(same&&(!force||(t&&t.status==="started"&&$("#tr-end")))) return;
   curTrip=t;
   if(!ON&&!EXT){box.innerHTML="";return}
-  const sum=`<div class="stats" style="margin-top:10px"><div class="stat"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)}</b></div><div class="stat"><small>هذا الأسبوع</small><b>${today.wk||0} سفرة</b></div></div>`+moneyCard();
+  const sum=`<div class="stats" style="margin-top:10px"><div class="stat"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)}</b></div><div class="stat"><small>هذا الأسبوع</small><b>${today.wk||0} سفرة</b></div>${today.rating&&today.rating.count?`<div class="stat"><small>تقييم الزباين</small><b>⭐ ${today.rating.avg} <small>(${today.rating.count})</small></b></div>`:""}</div>`+moneyCard();
   if(!t){box.innerHTML=`<div class="trip"><h3>ماكو سفرة</h3><p>إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.</p>
       <div class="field"><label for="tr-zone">إلى وين؟</label><select id="tr-zone" class="btn" style="width:100%">${(today.zones||[]).map(z=>`<option value="${z.id}">${esc(z.name)} — ${fmt(z.price)}</option>`).join("")}<option value="">منطقة أخرى</option></select></div>
       <div class="field" id="tr-to-f" hidden><label for="tr-to">اسم المكان</label><input id="tr-to"></div>
@@ -2222,14 +2401,23 @@ function showTrip(t,force){
     $("#tr-acc").onclick=()=>{siren(false);tripAct("accept")};
     $("#tr-rej").onclick=()=>{siren(false);const m=modal(`<h3>رفض السفرة؟</h3><p style="margin:0">الرفض ينسجل عليك ويوصل للإدارة.</p><div class="field"><label for="rr">السبب</label><input id="rr" placeholder="مثال: بعيد، عندي عطل"></div><div class="row"><button class="btn" id="rn">رجوع</button><button class="btn primary" id="ry">رفض</button></div>`);$("#rn",m).onclick=()=>m.remove();$("#ry",m).onclick=()=>{m.remove();tripAct("reject",{reason:$("#rr",m).value})}};
     return}
-  if(t.status==="accepted"){box.innerHTML=`<div class="trip"><h3>رايح للزبون</h3>${where}${wazeBtn(t,"ويز: روح للزبون")}<button class="btn primary big" id="tr-go">وصلت، ابدأ السفرة</button></div>`;$("#tr-go").onclick=()=>tripAct("start");return}
+  if(t.status==="accepted"){
+    clearInterval(waitT);
+    box.innerHTML=`<div class="trip"><h3>${t.pickup_waiting?"وصلت للزبون":"رايح للزبون"}</h3>${where}
+      ${t.pickup_waiting?`<div class="waitbox" role="timer" aria-live="off"><small>🕓 تنتظر الزبون ينزل</small><b id="pwclock">${clock(t.pickup_wait_sec)}</b><small>هذا الوقت ما ينحسب بفلوس</small></div>`
+        :`${wazeBtn(t,"ويز: روح للزبون")}<button class="btn big" id="tr-arr">📍 وصلت، دا أنتظر الزبون</button>${t.pickup_wait_sec>0?`<p class="note" style="margin:0">انتظرت: <b>${clock(t.pickup_wait_sec)}</b></p>`:""}`}
+      <button class="btn primary big" id="tr-go">🚕 انطلاق (ركب الزبون)</button></div>`;
+    $("#tr-go").onclick=()=>tripAct("start");
+    const ar=$("#tr-arr"); if(ar) ar.onclick=()=>tripAct("wait_start");
+    if(t.pickup_waiting){const t0=Date.now(),w0=t.pickup_wait_sec||0;waitT=setInterval(()=>{const c=$("#pwclock");if(!c)return clearInterval(waitT);c.textContent=clock(w0+Math.floor((Date.now()-t0)/1000))},1000)}
+    return}
   const navBtn=`<a class="btn big" href="#nav" style="text-align:center">🧭 الطريق على الخريطة</a>`;
   const fixed=t.zone_id&&t.fare;
   box.innerHTML=`<div class="trip on"><h3>بسفرة من ${hm(t.started_at)}${t.round_trip?` <span class="pill s-warn">↩ مرجع</span>`:""}</h3>${where}
-    ${t.waiting?`<div class="waitbox" role="timer" aria-live="off"><small>⏸ تنتظر الزبون</small><b id="wclock">${clock(t.wait_sec)}</b><small id="wnote"></small>
-      <button class="btn primary big" id="tr-wend">▶ رجع الزبون، كمّل الرحلة</button></div>`
-     :`<div class="row2"><button class="btn big" id="tr-wait">⏸ وقت إضافي (انتظار)</button><button class="btn big ${t.round_trip?"on-round":""}" id="tr-round" aria-pressed="${!!t.round_trip}">↩ ${t.round_trip?"مرجع ✓":"خلّيها مرجع"}</button></div>
-       ${t.wait_sec>0?`<p class="note" style="margin:0">انتظرت لحد هسه: <b>${clock(t.wait_sec)}</b> (${t.wait_count} مرة)</p>`:""}`}
+    ${t.waiting?`<div class="waitbox" role="timer" aria-live="off"><small>⏱ عدّاد الانتظار شغّال</small><b id="wclock">${clock(t.wait_sec)}</b><small id="wnote"></small>
+      <button class="btn primary big" id="tr-wend">▶ رجع الزبون، طفّي العدّاد</button></div>`
+     :`<div class="row2"><button class="btn big" id="tr-wait">⏱ انتظرني هنا (شغّل العدّاد)</button><button class="btn big ${t.round_trip?"on-round":""}" id="tr-round" aria-pressed="${!!t.round_trip}">↩ ${t.round_trip?"مرجع ✓":"خلّيها مرجع"}</button></div>
+       ${t.wait_sec>0?`<p class="note" style="margin:0">العدّاد لحد هسه: <b>${clock(t.wait_sec)}</b> = ${dinar(waitFee(t.wait_sec,t.wait_tiers))}</p>`:`<p class="note" style="margin:0">العدّاد بس إذا الزبون وصل وكال «انتظرني هنا».</p>`}`}
     ${destChangeBox(t)}
     ${t.waiting?"":wazeBtn(t,(t.round_trip?"ويز: روح لـ ":"ويز: روح لـ ")+esc(t.zone||t.dropoff||"الوجهة"))+navBtn}
     <div class="calc" id="tr-calc"></div>
@@ -2241,14 +2429,14 @@ function showTrip(t,force){
     const ws=t.waiting?w0+Math.floor((Date.now()-t0)/1000):w0;
     const base=fixed?(t.base_fare||t.fare):(parseInt(($("#tr-fare")||{}).value||"0",10)||0);
     const rf=t.round_trip?Math.round(base*(t.round_trip_pct??100)/100):0;
-    const wm=Math.max(0,Math.ceil(ws/60)-(t.wait_free_min||0)), wf=wm*(t.wait_per_min||0);
+    const wf=waitFee(ws,t.wait_tiers);
     const tot=base+rf+wf, coll=Math.max(0,tot-(t.points_used||0));
     const c=$("#tr-calc"); if(!c) return clearInterval(waitT);
     c.innerHTML=`${base?`<div><span>أجرة ${esc(t.zone||"السفرة")}</span><b>${dinar(base)}</b></div>`:""}${rf?`<div><span>↩ المرجع</span><b>+ ${dinar(rf)}</b></div>`:""}
-      ${ws?`<div><span>⏸ انتظار ${clock(ws)}${t.wait_free_min?` (أول ${t.wait_free_min} د مجانية)`:""}</span><b>${wf?"+ "+dinar(wf):"مجاني"}</b></div>`:""}
+      ${ws?`<div><span>⏱ عدّاد الانتظار ${clock(ws)}</span><b>${wf?"+ "+dinar(wf):"لسه ما بدأ يحسب"}</b></div>`:""}
       ${t.points_used?`<div><span>دفعها بالنقاط</span><b>− ${dinar(Math.min(t.points_used,tot))}</b></div>`:""}
       <div class="tot"><span>استلم من الزبون</span><b>${coll===0&&t.points_used?"ولا شي، الكروة مجانية":dinar(coll)}</b></div>`;
-    const wc=$("#wclock"); if(wc){wc.textContent=clock(ws);const free=(t.wait_free_min||0)*60;$("#wnote").textContent=ws<free?`مجاني لحد ${t.wait_free_min} دقايق · باقي ${clock(free-ws)}`:`يتحسب ${dinar(t.wait_per_min||0)} لكل دقيقة`}
+    const wc=$("#wclock"); if(wc){wc.textContent=clock(ws);const nx=waitNext(ws,t.wait_tiers);$("#wnote").textContent=`هسه ${dinar(wf)}`+(nx?` · بعد ${clock(nx.in)} يصير ${dinar(nx.f)}`:"")}
   };
   clearInterval(waitT); calc(); if(t.waiting) waitT=setInterval(calc,1000);
   const fi=$("#tr-fare"); if(fi) fi.oninput=calc;
@@ -2263,6 +2451,10 @@ function showTrip(t,force){
       el.textContent="0:"+String(left).padStart(2,"0");if(left<=0){clearInterval(chgT);setTimeout(()=>{curTrip=undefined;if(EXT)setExt(true);else refreshTrip()},1500)}},1000)}
 }
 let waitT, chgT;
+// paid waiting meter: tiers [{m,f}] per cycle (the last tier is the cycle, e.g. an hour = 5000)
+const WT_DEF=[{m:10,f:250},{m:15,f:1500},{m:30,f:2500},{m:60,f:5000}];
+function waitFee(sec,tiers){const T=(tiers&&tiers.length?tiers:WT_DEF),cyc=T[T.length-1].m,mins=Math.floor(Math.max(0,sec||0)/60),r=mins%cyc;let f=0;T.forEach(x=>{if(x.m<=r)f=x.f});return Math.floor(mins/cyc)*T[T.length-1].f+f}
+function waitNext(sec,tiers){const T=(tiers&&tiers.length?tiers:WT_DEF),cyc=T[T.length-1].m,mins=Math.floor(Math.max(0,sec||0)/60),base=mins-mins%cyc,r=mins%cyc;const n=T.find(x=>x.m>r);if(!n)return null;return {in:(base+n.m)*60-sec,f:waitFee((base+n.m)*60,T)}}
 // the customer changed his mind mid-trip: the office has 30 s; no answer = two fares
 function destChangeBox(t){
   const dc=t.dest_change, waitingC=dc&&(dc.status==="awaiting_customer"||dc.status==="pending");

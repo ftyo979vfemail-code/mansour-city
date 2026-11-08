@@ -1,7 +1,7 @@
 {
  "name": "المنصور تاكسي",
  "short_name": "المنصور تاكسي",
- "start_url": "./",
+ "start_url": "./#order",
  "scope": "./",
  "display": "standalone",
  "dir": "rtl",
@@ -20,5 +20,7 @@
    "type": "image/png",
    "purpose": "any"
   }
- ]
+ ],
+ "id": "./#order",
+ "description": "اطلب تكسي المنصور لباب عمارتك"
 }

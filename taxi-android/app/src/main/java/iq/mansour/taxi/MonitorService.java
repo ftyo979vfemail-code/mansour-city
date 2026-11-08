@@ -109,6 +109,8 @@ public class MonitorService extends Service {
             case "route_change": title = "🔀 تغيير وجهة سفرة (راجعه خلال دقيقتين)"; alarm = false; break;
             case "route_suspect": title = "⚠ تغيير وجهة مشكوك بيه"; alarm = true; break;
             case "cust_cancel": title = "الزبون ألغى طلبه"; alarm = false; who = e.optString("plate"); break;
+            case "complaint": title = "📣 شكوى زبون جديدة"; alarm = false; break;
+            case "low_rating": title = "⭐ تقييم واطي من زبون"; alarm = false; break;
             case "started": title = "شغّل التتبع"; alarm = false; break;
             case "gps_on":  title = "رجع الإرسال"; alarm = false; break;
             default: return; // "background" is normal for the app
