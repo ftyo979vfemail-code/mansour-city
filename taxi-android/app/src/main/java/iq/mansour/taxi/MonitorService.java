@@ -106,7 +106,8 @@ public class MonitorService extends Service {
             case "request": title = "🔔 طلب زبون جديد"; alarm = true; who = e.optString("plate"); break;
             case "rejected": title = "⚠ رفض سفرة من المكتب"; alarm = true; break;
             case "deposit": title = "💵 إيداع من سائق ينتظر تأكيدك"; alarm = false; break;
-            case "route_change": title = "🔀 الزبون غيّر مساره، عندك 30 ثانية"; alarm = true; break;
+            case "route_change": title = "🔀 تغيير وجهة سفرة (راجعه خلال دقيقتين)"; alarm = false; break;
+            case "route_suspect": title = "⚠ تغيير وجهة مشكوك بيه"; alarm = true; break;
             case "cust_cancel": title = "الزبون ألغى طلبه"; alarm = false; who = e.optString("plate"); break;
             case "started": title = "شغّل التتبع"; alarm = false; break;
             case "gps_on":  title = "رجع الإرسال"; alarm = false; break;

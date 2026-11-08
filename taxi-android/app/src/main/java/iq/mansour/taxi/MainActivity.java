@@ -50,30 +50,31 @@ public class MainActivity extends Activity {
     } };
 
     private void addDestChange(LinearLayout card, JSONObject t, JSONObject st, boolean waiting) {
-        java.util.Locale L = java.util.Locale.US;
         JSONObject dc = t.optJSONObject("dest_change");
-        if (dc != null && dc.optString("status").equals("pending")) {
+        String status = dc == null ? "" : dc.optString("status");
+        if (status.equals("pending") || status.equals("awaiting_customer")) {
             LinearLayout b = new LinearLayout(this);
             b.setOrientation(LinearLayout.VERTICAL);
             b.setPadding(dp(12), dp(10), dp(12), dp(10));
             b.setBackground(box(0xFFFFF1DE, 0xFFD97706, 12));
-            b.addView(text("🔀 طلب تغيير الوجهة إلى " + dc.optString("to"), 16, FG, true));
+            b.addView(text(dc.optString("title"), 16, FG, true));
+            b.addView(text(dc.optString("msg"), 13, MUTED, false));
             chgLeft = text("", 22, FG, true);
             chgLeft.setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD);
-            b.addView(text("بانتظار موافقة الإدارة", 13, MUTED, false));
+            b.addView(text(status.equals("awaiting_customer") ? "إذا ما ردّ الزبون خلال دقيقة يتغيّر وحده" : "جارٍ التغيير", 12, MUTED, false));
             b.addView(chgLeft);
-            b.addView(text("إذا ما ردّت خلال 30 ثانية تتغيّر وحدها وتنحسب كروتين.", 12, MUTED, false));
             card.addView(space(8));
             card.addView(b, full());
-            chgUntil = System.currentTimeMillis() + dc.optInt("seconds_left", 30) * 1000L;
+            chgUntil = System.currentTimeMillis() + dc.optInt("seconds_left", 60) * 1000L;
             h.post(chgTick);
             return;
         }
         chgLeft = null;
         if (dc != null) {
-            String how = dc.optString("status").equals("single") ? "وافقت الإدارة: كروة وحدة " : dc.optString("status").equals("double") ? "الإدارة حسبتها كروتين: " : "ما ردّت الإدارة، انحسبت كروتين: ";
-            TextView done = text("✔ تغيّرت الوجهة إلى " + dc.optString("to") + "\n" + how + String.format(L, "%,d", dc.optInt("final_fare")) + " د.ع", 14, OK, true);
-            done.setBackground(box(0xFFE7F6EE, OK, 12));
+            boolean bad = status.equals("customer_refused") || status.equals("reverted");
+            String m = dc.optString("msg");
+            TextView done = text(dc.optString("title") + (m.isEmpty() ? "" : "\n" + m), 14, bad ? 0xFFB42318 : OK, true);
+            done.setBackground(box(bad ? 0xFFFDECEA : 0xFFE7F6EE, bad ? 0xFFB42318 : OK, 12));
             done.setPadding(dp(12), dp(10), dp(12), dp(10));
             card.addView(space(8));
             card.addView(done, full());
@@ -95,7 +96,7 @@ public class MainActivity extends Activity {
             new android.app.AlertDialog.Builder(this).setTitle("🔀 وين يريد يروح هسه؟")
                     .setItems(labels.toArray(new String[0]), (d, w) -> new android.app.AlertDialog.Builder(this)
                             .setTitle("تغيير الوجهة إلى " + labels.get(w).split(" — ")[0] + "؟")
-                            .setMessage("ينرسل طلب للإدارة. إذا ما ردّت خلال 30 ثانية تتغيّر الوجهة وحدها وتنحسب كروتين (القديمة + الجديدة).")
+                            .setMessage("الأجرة تنحسب حسب شكد مشيت من الطريق:\n• قبل الثلث: سعر المنطقة الجديدة بس\n• بالنص: نص الكروة القديمة + الجديدة\n• بعد الثلثين: كروتين\nإذا الزبون عنده حساب يأكّد من تلفونه.")
                             .setNegativeButton("رجوع", null)
                             .setPositiveButton("إرسال", (d2, w2) -> changeDest(ids.get(w))).show())
                     .setNegativeButton("رجوع", null).show();
@@ -109,7 +110,7 @@ public class MainActivity extends Activity {
         new Thread(() -> {
             try {
                 Api.call("taxi_driver_change_dest", new JSONObject().put("p_code", code).put("p_zone", zone));
-                h.post(() -> { android.widget.Toast.makeText(this, "انرسل للإدارة", android.widget.Toast.LENGTH_SHORT).show(); tripKey = ""; loadTrip(); });
+                h.post(() -> { android.widget.Toast.makeText(this, "انسجل التغيير", android.widget.Toast.LENGTH_SHORT).show(); tripKey = ""; loadTrip(); });
             } catch (Exception e) {
                 h.post(() -> android.widget.Toast.makeText(this, e instanceof Api.ApiError ? e.getMessage() : "ماكو إنترنت", android.widget.Toast.LENGTH_LONG).show());
             }

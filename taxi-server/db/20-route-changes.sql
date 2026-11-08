@@ -2,3 +2,9 @@
 -- approve = new area's fare; "كروتين" or no answer within 30 s = old fare + new fare (auto, cron + every poll).
 -- RPCs: taxi_driver_change_dest, taxi_admin_route_changes, taxi_admin_route_decide. Applied as migrations
 -- taxi_route_changes and taxi_driver_state_resolve_changes.
+-- taxi_route_change_fair_rule (replaces the 30-second office approval):
+--   fare from the registered area prices by how far the car got toward the old destination:
+--   < 1/3 → new price; 1/3–2/3 → half old + new; ≥ 2/3 → old + new. Unknown progress → new price, office reviews.
+--   App customers confirm on their phone (taxi_customer_route_answer); no answer in 60 s → applied.
+--   The office reviews for 2 minutes (taxi_admin_route_review: ok / amount / revert); a trip that ends next to
+--   the original destination raises 'route_suspect'.
