@@ -427,7 +427,7 @@ public class MainActivity extends Activity {
             String where = "من: " + or(t.optString("pickup")) + "\nإلى: " + or(t.optString("dropoff"))
                     + (t.optString("customer_name").isEmpty() ? "" : "\nالزبون: " + t.optString("customer_name"))
                     + (t.optInt("zone_id", 0) > 0 && t.optInt("fare", 0) > 0 ? "\nالأجرة: " + String.format(java.util.Locale.US, "%,d", t.optInt("fare")) + " د.ع (ثابتة)" : "")
-                    + (t.optInt("points_used", 0) > 0 ? "\n⭐ الزبون دافع " + String.format(java.util.Locale.US, "%,d", t.optInt("points_used")) + " بالنقاط (حصتك محفوظة)" : "")
+                    + (t.optInt("points_used", 0) > 0 ? "\n⭐ الزبون دافع " + String.format(java.util.Locale.US, "%,d", t.optInt("points_used")) + " بالنقاط" : "")
                     + (t.optString("note").isEmpty() ? "" : "\nملاحظة: " + t.optString("note"));
             if (status.equals("assigned")) {
                 card.addView(text("📣 سفرة جديدة من المكتب", 19, FG, true));
@@ -566,12 +566,9 @@ public class MainActivity extends Activity {
         TextView sum = text("سفرات اليوم: " + st.optInt("today_trips") + " · " + String.format(java.util.Locale.US, "%,d", st.optLong("today_fares")) + " د.ع", 14, MUTED, true);
         sum.setPadding(dp(4), dp(8), dp(4), dp(2));
         tripBox.addView(sum);
-        TextView wk = text("حصتك هذا الأسبوع: " + String.format(java.util.Locale.US, "%,d", st.optLong("week_share")) + " د.ع  (" + st.optInt("week_trips") + " سفرة)", 16, OK, true);
-        wk.setPadding(dp(4), dp(2), dp(4), dp(2));
+        TextView wk = text("هذا الأسبوع: " + st.optInt("week_trips") + " سفرة", 15, FG, true);
+        wk.setPadding(dp(4), dp(2), dp(4), dp(4));
         tripBox.addView(wk);
-        TextView hint = text("الحصة تنحسب من السفرات المسجّلة بس.", 12, MUTED, false);
-        hint.setPadding(dp(4), 0, dp(4), dp(4));
-        tripBox.addView(hint);
         addMoney(st.optJSONObject("money"));
     }
 
@@ -594,7 +591,6 @@ public class MainActivity extends Activity {
         c.addView(text("💵 المبلغ اللي بيدك للشركة", 14, MUTED, true));
         c.addView(text(String.format(L, "%,d", inHand) + " د.ع", 26, FG, true));
         if (pending > 0) c.addView(text("منها " + String.format(L, "%,d", pending) + " بانتظار تأكيد الإدارة", 13, MUTED, false));
-        if (m.optInt("owed_to_him") > 0) c.addView(text("حصتك اللي بذمة الشركة: " + String.format(L, "%,d", m.optInt("owed_to_him")) + " د.ع", 13, OK, true));
         org.json.JSONArray ds = m.optJSONArray("deposits");
         JSONObject last = ds != null && ds.length() > 0 ? ds.optJSONObject(0) : null;
         if (last != null) {
