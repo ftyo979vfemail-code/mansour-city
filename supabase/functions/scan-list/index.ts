@@ -41,6 +41,17 @@ const VERIFY_PROMPT = (kind: string) => `أنت مدقق فواتير. أمام�
 - items: كل مادة سطر. price سعر الوحدة بالدينار كرقم كامل (إذا مكتوب 13 أو 190 بمعنى الآلاف حسب المجموع اكتبه 13000 أو 190000). qty الكمية المحاسب عليها (مثلاً الأمتار إذا السعر بالمتر). unit: قطعة، متر، م²، كيس، علبة، كارتون، لتر، كغم، طن.
 - تأكد أن qty × price يساوي مبلغ السطر، وأن مجموع الأسطر + delivery = total.`;
 
+const CT_PROMPT = (hint: string) => `أمامك سجل مقاولين من نظام قديم لشركة مقاولات بناء (Excel أو PDF أو صورة، عربي أو إنكليزي، مطبوع أو بخط اليد). ${hint}
+الملف ممكن يكون أي شكل: كل ورقة/صفحة لمقاول واسمه بالعنوان أو اسم الورقة، أو جدول واحد لكل المقاولين، أو كشف حساب (مدين/دائن/رصيد)، أو مستخلصات وذرعات.
+استخرج كل حركة مالية بالملف بدون استثناء، سطراً سطراً:
+- name: اسم المقاول (إذا مكتوب بالعنوان أو اسم الورقة طبّقه على كل أسطرها).
+- kind: "pay" إذا مبلغ مدفوع/مصروف/سلفة/دفعة/صرف للمقاول، "bill" إذا قيمة عمل منجز/مستخلص/ذرعة/استحقاق للمقاول. بكشف الحساب: المدفوع للمقاول = pay، المستحق له = bill.
+- amount: المبلغ رقم فقط بدون فواصل. cur: "IQD" أو "USD" ($ أو دولار).
+- day: التاريخ YYYY-MM-DD إذا موجود.
+- building, work (وصف الشغل، الطوابق، الكمية، سعر الوحدة)، engineer، trade (اختصاص المقاول)، note.
+لا تحسب أسطر المجموع أو الرصيد أو المدور كحركات. إذا الكمية × سعر الوحدة بدون مبلغ، احسب المبلغ. اختصر: لا تكتب أي حقل فارغ، واكتب JSON مضغوط بدون مسافات.
+أجب بـ JSON فقط: {"entries":[{"name":"","kind":"pay","amount":0,"cur":"IQD","day":"","building":"","work":"","engineer":"","trade":"","note":""}],"notes":[]}`;
+
 const TABLE_PROMPT = `أمامك ملف أو صورة فيها جدول بيانات (قوائم مشترين أو مستأجرين أو حجوزات أو عقود أو وحدات سكنية) من نظام قديم. قد يكون بالعربي أو الإنكليزي، مطبوع أو بخط اليد.
 انقل الجدول كما هو حرفياً: سطر العناوين ثم كل سطر بيانات. لا تترجم ولا تغيّر الأسماء أو الأرقام، ولا تحذف أي سطر بيانات، ولا تضف أسطر المجاميع.
 إذا الجدول ممتد على عدة صفحات اجمعها كلها بنفس الأعمدة. إذا خلية فارغة اكتب "".
@@ -140,6 +151,31 @@ Deno.serve(async (req) => {
         lines: (Array.isArray(fj.lines) ? fj.lines : []).slice(0, 3000).map((x: Record<string, unknown>) => ({ date: str(x.date, 20), liters: num(x.liters), price: num(x.price), amount: num(x.amount), ref: str(x.ref, 40), vehicle: str(x.vehicle, 80), fuel: str(x.fuel, 20), note: str(x.note, 160), fixed: Array.isArray(x._fixed) ? x._fixed : undefined, added: x._added ? true : undefined })).filter((x: { liters: number | null; amount: number | null }) => x.liters || x.amount),
         payments: (Array.isArray(fj.payments) ? fj.payments : []).slice(0, 200).map((x: Record<string, unknown>) => ({ date: str(x.date, 20), amount: num(x.amount), note: str(x.note, 120) })),
         total_liters: num(fj.total_liters), total_amount: num(fj.total_amount), balance: num(fj.balance) });
+    }
+    if (mode === "contractors") {
+      const isPdfC = mime === "application/pdf";
+      let block: Record<string, unknown>;
+      if (typeof srcText === "string" && srcText.trim().length > 5) block = { type: "text", text: "محتوى الملف (منسوخ من Excel، كل ورقة باسمها):\n" + srcText.slice(0, 120_000) };
+      else if (typeof image === "string" && image.length >= 200 && image.length <= (isPdfC ? 30_000_000 : 7_000_000)) block = isPdfC ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } } : { type: "image", source: { type: "base64", media_type: ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mime) ? mime : "image/jpeg", data: image } };
+      else return json({ code: "bad_image" }, 400);
+      const rc = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 16000, messages: [{ role: "user", content: [block, { type: "text", text: CT_PROMPT(String(dept || "")) }] }] }),
+      });
+      if (rc.status === 429) return json({ code: "rate_limited" }, 429);
+      if (!rc.ok) return json({ code: "upstream", detail: (await rc.text()).slice(0, 300) }, 502);
+      const o = await rc.json();
+      let tx: string = (o.content || []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("");
+      let cj: Record<string, unknown> = {};
+      const mm = tx.match(/\{[\s\S]*\}/);
+      try { cj = JSON.parse(mm ? mm[0] : "{}"); } catch {
+        const cut = tx.lastIndexOf("},"); if (cut > 0) { try { cj = JSON.parse(tx.slice(tx.indexOf("{"), cut + 1) + "]}"); } catch { cj = {}; } }
+      }
+      const num = (x: unknown) => { const n = Number(String(x ?? "").replace(/[^\d.]/g, "")); return isFinite(n) && n > 0 ? n : 0; };
+      const st = (x: unknown, n: number) => String(x ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+      const entries = (Array.isArray(cj.entries) ? cj.entries : []).slice(0, 4000).map((e: Record<string, unknown>) => ({ name: st(e.name, 120), kind: e.kind === "bill" ? "bill" : "pay", amount: num(e.amount), cur: /usd|\$|دولار/i.test(String(e.cur || "")) ? "USD" : "IQD", day: /^\d{4}-\d{2}-\d{2}$/.test(String(e.day || "")) ? String(e.day) : "", building: st(e.building, 60), work: st(e.work, 400), engineer: st(e.engineer, 80), trade: st(e.trade, 60), note: st(e.note, 300) })).filter((e: { name: string; amount: number }) => e.name && e.amount > 0);
+      return json({ entries, notes: (Array.isArray(cj.notes) ? cj.notes : []).slice(0, 20).map((x: unknown) => st(x, 300)), truncated: o.stop_reason === "max_tokens" });
     }
     const isPdf = mime === "application/pdf";
     if (typeof image !== "string" || image.length < 200 || image.length > (isPdf ? 30_000_000 : 7_000_000)) return json({ code: "bad_image" }, 400);
