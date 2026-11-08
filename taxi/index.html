@@ -314,6 +314,10 @@ select.btn{font-weight:500}
 .tp-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.tp-main small{color:var(--muted)}
 .tp-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}.tp-tags i{font-style:normal;font-size:11px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:0 7px}
 .tp-amt{font:600 15px var(--mono);white-space:nowrap}
+.chgbox{border:2px solid var(--warn);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:2px;background:color-mix(in srgb,var(--warn) 10%,var(--panel))}
+.chgbox small{color:var(--muted)} .chgbox #chg-left{font:700 18px var(--mono);color:var(--fg)}
+.chgbox.done{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--panel))}
+.rcbar{background:color-mix(in srgb,var(--warn) 16%,var(--panel));border-color:var(--warn)}
 .money-ok{background:color-mix(in srgb,var(--ok) 12%,var(--panel));color:var(--ok);border-radius:12px;padding:10px 12px;font-weight:700;text-align:center}
 .money-ok small{color:var(--muted);font-weight:500} .money .money-last{color:var(--fg);font-weight:600}
 .depbar{background:color-mix(in srgb,var(--ok) 14%,var(--panel));border-color:var(--ok)}
@@ -451,7 +455,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081718";
+const BUILD="202611081726";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -488,7 +492,7 @@ function status(c){
 const TS={requested:["s-bad","طلب زبون جديد"],assigned:["s-warn","بانتظار قبول السائق"],accepted:["s-ok","رايح للزبون"],started:["s-ok","بسفرة"],done:["s-idle","انتهت"],cancelled:["s-idle","ملغية"],rejected:["s-bad","رفضها السائق"]};
 const fmt=n=>Number(n||0).toLocaleString("en-US");
 const dinar=n=>fmt(n)+" د.ع";
-const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],deposit:["s-ok","طلب إيداع من سائق"],cust_cancel:["s-idle","الزبون ألغى طلبه"],round:["s-warn","مرجع"]};
+const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],deposit:["s-ok","طلب إيداع من سائق"],route_change:["s-warn","الزبون غيّر مساره"],cust_cancel:["s-idle","الزبون ألغى طلبه"],round:["s-warn","مرجع"]};
 const ICON=`<img class="logo-light" src="img/mark.png" alt=""><img class="logo-dark" src="img/mark-light.png" alt="">`;
 const ICON_OLD=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M4 13l2-6a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l2 6v4H4z"/><path d="M10 4h4"/><circle cx="7.5" cy="13.5" r="1"/><circle cx="16.5" cy="13.5" r="1"/></svg>`;
 
@@ -1200,6 +1204,7 @@ function adminShell(){
    <div>
      <div class="alert reqbar" id="reqbar" hidden></div>
      <div class="alert reqbar depbar" id="depbar" hidden></div>
+     <div class="alert reqbar rcbar" id="rcbar" hidden></div>
      <div class="alert" id="alert" hidden></div>
      <nav class="tabs" role="tablist">
        <button role="tab" data-t="live">الخريطة الحيّة</button>
@@ -1244,8 +1249,21 @@ async function poll(){
       if(prevReqInit&&!document.querySelector(".modal")) dispatchTrip([...fresh].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0])}
     prevReq=ids; prevReqInit=true;
   }).catch(()=>{});
-  pollDeposits();
+  pollDeposits(); pollRouteChanges();
   if(tab==="live") renderLive(); else if(tab==="cars") renderCars(); else if(tab==="trips") loadTrips(true);
+}
+let prevRc=[], prevRcInit=false, rcT;
+function pollRouteChanges(){
+  rpc("taxi_admin_route_changes",{p_pin:PIN}).then(rs=>{const bar=$("#rcbar"); if(!bar) return;
+    clearInterval(rcT);
+    if(!rs.length){bar.hidden=true;prevRc=[];prevRcInit=true;return}
+    const r=rs[0]; bar.hidden=false;
+    bar.innerHTML=`🔀 <b>${esc(r.driver_name)}</b>: الزبون${r.customer_name?" "+esc(r.customer_name):""} يريد يغيّر من <b>${esc(r.from||"—")}</b> إلى <b>${esc(r.to)}</b> · <span dir="ltr" id="rc-left">0:${String(r.seconds_left).padStart(2,"0")}</span>
+      <button class="btn sm primary" data-rm="single">✔ موافق · ${dinar(r.new_price)}</button><button class="btn sm" data-rm="double">كروتين · ${dinar(r.double)}</button>`;
+    bar.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{try{await rpc("taxi_admin_route_decide",{p_pin:PIN,p_id:r.id,p_mode:b.dataset.rm});toast(b.dataset.rm==="single"?"وافقت: تغيّرت الوجهة":"انحسبت كروتين")}catch(e){toast(e.message)}pollRouteChanges()});
+    const t0=Date.now(),s0=r.seconds_left; rcT=setInterval(()=>{const el=$("#rc-left");if(!el)return clearInterval(rcT);const left=Math.max(0,s0-Math.floor((Date.now()-t0)/1000));el.textContent="0:"+String(left).padStart(2,"0");if(!left){clearInterval(rcT);setTimeout(pollRouteChanges,1200)}},1000);
+    const ids=rs.map(x=>x.id); if(prevRcInit&&ids.some(id=>!prevRc.includes(id))){beep();setTimeout(beep,300);setTimeout(beep,600);setTimeout(beep,900)} prevRc=ids; prevRcInit=true;
+  }).catch(()=>{});
 }
 let prevDep=[], prevDepInit=false;
 function pollDeposits(){
@@ -2102,8 +2120,9 @@ function noteCancel(c){
 }
 function showTrip(t,force){
   const box=$("#tripBox"); if(!box) return;
-  const key=JSON.stringify(t&&[t.id,t.status,t.waiting,t.round_trip]);
-  const same=key===JSON.stringify(curTrip&&[curTrip.id,curTrip.status,curTrip.waiting,curTrip.round_trip]);
+  const ck=x=>x&&[x.id,x.status,x.waiting,x.round_trip,x.zone_id,x.fare,x.dest_change&&x.dest_change.id,x.dest_change&&x.dest_change.status];
+  const key=JSON.stringify(ck(t));
+  const same=key===JSON.stringify(ck(curTrip));
   // a running trip card keeps its own live timer and the typed fare; redraw it only when something changes
   if(same&&(!force||(t&&t.status==="started"&&$("#tr-end")))) return;
   curTrip=t;
@@ -2131,6 +2150,7 @@ function showTrip(t,force){
       <button class="btn primary big" id="tr-wend">▶ رجع الزبون، كمّل الرحلة</button></div>`
      :`<div class="row2"><button class="btn big" id="tr-wait">⏸ وقت إضافي (انتظار)</button><button class="btn big ${t.round_trip?"on-round":""}" id="tr-round" aria-pressed="${!!t.round_trip}">↩ ${t.round_trip?"مرجع ✓":"خلّيها مرجع"}</button></div>
        ${t.wait_sec>0?`<p class="note" style="margin:0">انتظرت لحد هسه: <b>${clock(t.wait_sec)}</b> (${t.wait_count} مرة)</p>`:""}`}
+    ${destChangeBox(t)}
     ${t.waiting?"":wazeBtn(t,(t.round_trip?"ويز: روح لـ ":"ويز: روح لـ ")+esc(t.zone||t.dropoff||"الوجهة"))+navBtn}
     <div class="calc" id="tr-calc"></div>
     ${fixed?"":`<div class="field"><label for="tr-fare">الأجرة (دينار)</label><input id="tr-fare" inputmode="numeric" value="${today.base||""}" style="font:600 22px var(--mono);text-align:center"></div>`}
@@ -2156,8 +2176,33 @@ function showTrip(t,force){
   const we=$("#tr-wend"); if(we) we.onclick=()=>tripAct("wait_end");
   const rb=$("#tr-round"); if(rb) rb.onclick=()=>confirmBox(t.round_trip?"تشيل المرجع من السفرة؟":"تخلّي السفرة مرجع (ذهاب ورجعة)؟ ينضاف سعر الرجعة على الأجرة.",t.round_trip?"شيل المرجع":"نعم، مرجع",()=>tripAct("round",{on:!t.round_trip}),"رجوع");
   $("#tr-end").onclick=()=>tripAct("end",{fare:$("#tr-fare")?$("#tr-fare").value:""});
+  const cb=$("#tr-chg"); if(cb) cb.onclick=()=>destChangeForm(t);
+  clearInterval(chgT); const dc=t.dest_change;
+  if(dc&&dc.status==="pending"){const t0=Date.now(),s0=dc.seconds_left;
+    chgT=setInterval(()=>{const left=Math.max(0,s0-Math.floor((Date.now()-t0)/1000)),el=$("#chg-left");if(!el)return clearInterval(chgT);
+      el.textContent="0:"+String(left).padStart(2,"0");if(left<=0){clearInterval(chgT);setTimeout(()=>{curTrip=undefined;if(EXT)setExt(true);else refreshTrip()},1500)}},1000)}
 }
-let waitT;
+let waitT, chgT;
+// the customer changed his mind mid-trip: the office has 30 s; no answer = two fares
+function destChangeBox(t){
+  const dc=t.dest_change;
+  if(dc&&dc.status==="pending") return `<div class="chgbox"><b>🔀 طلب تغيير الوجهة إلى ${esc(dc.to)}</b><small>بانتظار موافقة الإدارة · <span id="chg-left" dir="ltr">0:${String(dc.seconds_left).padStart(2,"0")}</span></small><small>إذا ما ردّت خلال 30 ثانية تتغيّر وحدها وتنحسب كروتين.</small></div>`;
+  const note=dc?`<div class="chgbox done"><b>✔ تغيّرت الوجهة إلى ${esc(dc.to)}</b><small>${dc.status==="single"?`وافقت الإدارة: كروة وحدة ${dinar(dc.final_fare)}`:dc.status==="double"?`الإدارة حسبتها كروتين: ${dinar(dc.final_fare)}`:`ما ردّت الإدارة، انحسبت كروتين: ${dinar(dc.final_fare)}`}</small></div>`:"";
+  return note+(t.waiting?"":`<button type="button" class="btn big" id="tr-chg">🔀 الزبون غيّر مساره</button>`);
+}
+function destChangeForm(t){
+  const zs=(today.zones||[]).filter(z=>z.id!==t.zone_id);
+  const m=modal(`<h3>🔀 الزبون غيّر مساره</h3><p style="margin:0">وين يريد يروح هسه؟ ينرسل طلب للإدارة. إذا ما ردّت خلال 30 ثانية تتغيّر الوجهة وحدها وتنحسب <b>كروتين</b> (القديمة + الجديدة).</p>
+    <div class="field"><label for="chg-q">المنطقة الجديدة</label><input id="chg-q" type="search" placeholder="ابحث…" autocomplete="off"></div>
+    <div class="zones" id="chg-z" role="radiogroup" aria-label="المنطقة الجديدة"></div>
+    <div class="err" id="chg-e"></div><div class="row"><button class="btn" id="chg-c">رجوع</button><button class="btn primary" id="chg-ok">إرسال للإدارة</button></div>`);
+  let sel=null;
+  const draw=()=>{const q=$("#chg-q",m).value.trim();$("#chg-z",m).innerHTML=zs.filter(z=>!q||z.name.includes(q)).map(z=>`<button type="button" role="radio" aria-checked="${sel===z.id}" class="zchip${sel===z.id?" on":""}" data-z="${z.id}">${esc(z.name)} — ${fmt(z.price)}</button>`).join("")||`<div class="empty">ماكو منطقة بهذا الاسم.</div>`;
+    $("#chg-z",m).querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{sel=+b.dataset.z;draw()})};
+  draw();$("#chg-q",m).oninput=draw;$("#chg-c",m).onclick=()=>m.remove();
+  $("#chg-ok",m).onclick=async()=>{if(!sel){$("#chg-e",m).textContent="اختار المنطقة الجديدة";return}const b=$("#chg-ok",m);b.disabled=true;
+    try{await rpc("taxi_driver_change_dest",{p_code:CODE,p_zone:sel});m.remove();toast("انرسل للإدارة");curTrip=undefined;if(EXT)setExt(true);else await refreshTrip()}catch(e){$("#chg-e",m).textContent=e.message;b.disabled=false}};
+}
 // driver's cash: what he holds for the company, and the "إيداع" (hand over to the office) button
 function moneyCard(){
   const m=today.money; if(!m) return "";

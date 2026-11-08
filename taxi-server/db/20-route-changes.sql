@@ -1,0 +1,4 @@
+-- Mid-trip destination change (الزبون غيّر مساره): taxi_route_changes; the office has 30 seconds.
+-- approve = new area's fare; "كروتين" or no answer within 30 s = old fare + new fare (auto, cron + every poll).
+-- RPCs: taxi_driver_change_dest, taxi_admin_route_changes, taxi_admin_route_decide. Applied as migrations
+-- taxi_route_changes and taxi_driver_state_resolve_changes.

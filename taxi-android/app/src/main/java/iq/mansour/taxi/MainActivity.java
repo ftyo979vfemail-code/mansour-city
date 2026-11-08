@@ -40,6 +40,81 @@ public class MainActivity extends Activity {
     private LinearLayout ringView;
     private LinearLayout tripBox;
     private String tripKey = "";
+    // "the customer changed his mind": 30 s for the office, else two fares
+    private TextView chgLeft; private long chgUntil;
+    private final Runnable chgTick = new Runnable() { @Override public void run() {
+        if (chgLeft == null) return;
+        long left = Math.max(0, (chgUntil - System.currentTimeMillis()) / 1000);
+        chgLeft.setText(String.format(java.util.Locale.US, "0:%02d", left));
+        if (left > 0) h.postDelayed(this, 1000); else h.postDelayed(() -> { tripKey = ""; loadTrip(); }, 1500);
+    } };
+
+    private void addDestChange(LinearLayout card, JSONObject t, JSONObject st, boolean waiting) {
+        java.util.Locale L = java.util.Locale.US;
+        JSONObject dc = t.optJSONObject("dest_change");
+        if (dc != null && dc.optString("status").equals("pending")) {
+            LinearLayout b = new LinearLayout(this);
+            b.setOrientation(LinearLayout.VERTICAL);
+            b.setPadding(dp(12), dp(10), dp(12), dp(10));
+            b.setBackground(box(0xFFFFF1DE, 0xFFD97706, 12));
+            b.addView(text("🔀 طلب تغيير الوجهة إلى " + dc.optString("to"), 16, FG, true));
+            chgLeft = text("", 22, FG, true);
+            chgLeft.setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD);
+            b.addView(text("بانتظار موافقة الإدارة", 13, MUTED, false));
+            b.addView(chgLeft);
+            b.addView(text("إذا ما ردّت خلال 30 ثانية تتغيّر وحدها وتنحسب كروتين.", 12, MUTED, false));
+            card.addView(space(8));
+            card.addView(b, full());
+            chgUntil = System.currentTimeMillis() + dc.optInt("seconds_left", 30) * 1000L;
+            h.post(chgTick);
+            return;
+        }
+        chgLeft = null;
+        if (dc != null) {
+            String how = dc.optString("status").equals("single") ? "وافقت الإدارة: كروة وحدة " : dc.optString("status").equals("double") ? "الإدارة حسبتها كروتين: " : "ما ردّت الإدارة، انحسبت كروتين: ";
+            TextView done = text("✔ تغيّرت الوجهة إلى " + dc.optString("to") + "\n" + how + String.format(L, "%,d", dc.optInt("final_fare")) + " د.ع", 14, OK, true);
+            done.setBackground(box(0xFFE7F6EE, OK, 12));
+            done.setPadding(dp(12), dp(10), dp(12), dp(10));
+            card.addView(space(8));
+            card.addView(done, full());
+        }
+        if (waiting) return;
+        final org.json.JSONArray zones = st.optJSONArray("zones");
+        if (zones == null) return;
+        card.addView(space(8));
+        Button chg = button("🔀 الزبون غيّر مساره", false);
+        chg.setOnClickListener(v -> {
+            final java.util.List<String> labels = new java.util.ArrayList<>();
+            final java.util.List<Integer> ids = new java.util.ArrayList<>();
+            for (int i = 0; i < zones.length(); i++) {
+                JSONObject z = zones.optJSONObject(i);
+                if (z.optInt("id") == t.optInt("zone_id", -1)) continue;
+                labels.add(z.optString("name") + " — " + String.format(L, "%,d", z.optInt("price")));
+                ids.add(z.optInt("id"));
+            }
+            new android.app.AlertDialog.Builder(this).setTitle("🔀 وين يريد يروح هسه؟")
+                    .setItems(labels.toArray(new String[0]), (d, w) -> new android.app.AlertDialog.Builder(this)
+                            .setTitle("تغيير الوجهة إلى " + labels.get(w).split(" — ")[0] + "؟")
+                            .setMessage("ينرسل طلب للإدارة. إذا ما ردّت خلال 30 ثانية تتغيّر الوجهة وحدها وتنحسب كروتين (القديمة + الجديدة).")
+                            .setNegativeButton("رجوع", null)
+                            .setPositiveButton("إرسال", (d2, w2) -> changeDest(ids.get(w))).show())
+                    .setNegativeButton("رجوع", null).show();
+        });
+        card.addView(chg, full());
+    }
+
+    private void changeDest(int zone) {
+        final String code = Prefs.code(this);
+        if (code == null) return;
+        new Thread(() -> {
+            try {
+                Api.call("taxi_driver_change_dest", new JSONObject().put("p_code", code).put("p_zone", zone));
+                h.post(() -> { android.widget.Toast.makeText(this, "انرسل للإدارة", android.widget.Toast.LENGTH_SHORT).show(); tripKey = ""; loadTrip(); });
+            } catch (Exception e) {
+                h.post(() -> android.widget.Toast.makeText(this, e instanceof Api.ApiError ? e.getMessage() : "ماكو إنترنت", android.widget.Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
     // live waiting timer / fare on the running trip card
     private int waitBase; private long waitFrom; private boolean waitRunning; private JSONObject waitTrip;
     private EditText waitFare; private TextView waitClock, waitNote, waitTotal;
@@ -291,10 +366,11 @@ public class MainActivity extends Activity {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
         JSONObject cxk = st.optJSONObject("cancelled");
-        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("round_trip")) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money"));
+        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money"));
         if (key.equals(tripKey)) return;
         tripKey = key;
         h.removeCallbacks(waitTick);
+        h.removeCallbacks(chgTick);
         tripBox.removeAllViews();
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
@@ -429,6 +505,7 @@ public class MainActivity extends Activity {
                     card.addView(r2, full());
                     if (waitBase > 0) card.addView(text("انتظرت لحد هسه: " + clock(waitBase), 13, MUTED, false));
                 }
+                addDestChange(card, t, st, waiting);
                 card.addView(space(8));
                 if (fixed) {
                     waitTotal = text("", 20, FG, true);
