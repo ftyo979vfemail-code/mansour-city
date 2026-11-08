@@ -245,6 +245,12 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 .hb{display:grid;grid-template-columns:52px 1fr 32px;gap:8px;align-items:center;font-size:13px}
 .hb i{display:block;height:12px;border-radius:6px;background:var(--amber);min-width:4px}
 .kpi.warn{border-color:var(--amber)}
+.spbar{flex-direction:column;align-items:stretch}
+.sp-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.spbox{display:flex;flex-direction:column;gap:4px;border-radius:14px;padding:12px;border:2px solid var(--amber);background:color-mix(in srgb,var(--amber) 12%,var(--panel))}
+.spbox.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--panel))}
+.spbox.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.spbox small{color:var(--muted)}
 .wtiers{display:flex;flex-direction:column;gap:8px}
 .wt-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .wt-row input{width:90px;text-align:center;font:600 16px var(--mono)}
@@ -362,6 +368,7 @@ select.btn{font-weight:500}
 .dpick button:hover:not(:disabled){border-color:var(--amber)}
 .dpick button[aria-pressed=true]{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--panel))}
 .dpick button:disabled{opacity:.5;cursor:not-allowed}
+.btn:disabled{opacity:.45;cursor:not-allowed}
 .dpick .dn{flex:1;min-width:0}.dpick .dn b{display:block}.dpick .dn small{color:var(--muted)}
 .dpick .dk{font:600 14px var(--mono);white-space:nowrap}
 .reqcard{border:2px solid var(--amber);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px}
@@ -491,7 +498,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081813";
+const BUILD="202611081825";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -528,7 +535,7 @@ function status(c){
 const TS={requested:["s-bad","طلب زبون جديد"],assigned:["s-warn","بانتظار قبول السائق"],accepted:["s-ok","رايح للزبون"],started:["s-ok","بسفرة"],done:["s-idle","انتهت"],cancelled:["s-idle","ملغية"],rejected:["s-bad","رفضها السائق"]};
 const fmt=n=>Number(n||0).toLocaleString("en-US");
 const dinar=n=>fmt(n)+" د.ع";
-const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],deposit:["s-ok","طلب إيداع من سائق"],route_change:["s-warn","الزبون غيّر مساره"],route_refused:["s-idle","الزبون رفض تغيير الوجهة"],route_suspect:["s-bad","⚠ تغيير وجهة مشكوك بيه"],cust_cancel:["s-idle","الزبون ألغى طلبه"],low_rating:["s-bad","⭐ تقييم واطي"],complaint:["s-bad","📣 شكوى زبون"],round:["s-warn","مرجع"]};
+const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],deposit:["s-ok","طلب إيداع من سائق"],route_change:["s-warn","الزبون غيّر مساره"],route_refused:["s-idle","الزبون رفض تغيير الوجهة"],route_suspect:["s-bad","⚠ تغيير وجهة مشكوك بيه"],cust_cancel:["s-idle","الزبون ألغى طلبه"],low_rating:["s-bad","⭐ تقييم واطي"],special:["s-warn","⭐ زبون خاص ينتظر موافقة"],complaint:["s-bad","📣 شكوى زبون"],round:["s-warn","مرجع"]};
 const ICON=`<img class="logo-light" src="img/mark.png" alt=""><img class="logo-dark" src="img/mark-light.png" alt="">`;
 const ICON_OLD=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M4 13l2-6a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l2 6v4H4z"/><path d="M10 4h4"/><circle cx="7.5" cy="13.5" r="1"/><circle cx="16.5" cy="13.5" r="1"/></svg>`;
 
@@ -1377,6 +1384,7 @@ function adminShell(){
      <div class="alert reqbar depbar" id="depbar" hidden></div>
      <div class="alert reqbar rcbar" id="rcbar" hidden></div>
      <div class="alert reqbar cpbar" id="cpbar" hidden></div>
+     <div class="alert reqbar spbar" id="spbar" hidden></div>
      <div class="alert" id="alert" hidden></div>
      <nav class="tabs" role="tablist">
        <button role="tab" data-t="live">الخريطة الحيّة</button>
@@ -1422,9 +1430,21 @@ async function poll(){
       // pop the new request straight up so the manager picks a driver in one step
       if(prevReqInit&&!document.querySelector(".modal")) dispatchTrip([...fresh].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0])}
     prevReq=ids; prevReqInit=true;
+    specialBar(ts.filter(t=>t.special_status==="pending"&&["accepted","started"].includes(t.status)));
   }).catch(()=>{});
   pollDeposits(); pollRouteChanges(); if(pollN%6===1) pollComplaints();
   if(tab==="live") renderLive(); else if(tab==="cars") renderCars(); else if(tab==="trips") loadTrips(true);
+}
+let prevSp=[], prevSpInit=false;
+function specialBar(sp){const bar=$("#spbar"); if(!bar) return;
+  if(!sp.length){bar.hidden=true;prevSp=[];prevSpInit=true;return}
+  bar.hidden=false;
+  bar.innerHTML=sp.map(t=>`<div class="sp-row"><span>⭐ <b>زبون خاص (بدون كروة)</b>: ${plateHTML(t.plate)} ${esc(t.driver_name||"")} يكول: «${esc(t.special_note||"")}»${t.dropoff?` ← ${esc(t.dropoff)}`:""}</span><span class="acts"><button class="btn sm primary" data-spok="${t.id}">✔ موافق</button><button class="btn sm" data-spno="${t.id}">✖ رفض</button></span></div>`).join("");
+  bar.querySelectorAll("[data-spok]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await rpc("taxi_admin_special",{p_pin:PIN,p_id:+b.dataset.spok,p_ok:true});toast("وافقت: السفرة بدون كروة");pollN=0;poll()}catch(e){toast(e.message);b.disabled=false}});
+  bar.querySelectorAll("[data-spno]").forEach(b=>b.onclick=()=>{const m=modal(`<h3>رفض الزبون الخاص؟</h3><p style="margin:0">السفرة تكمّل بكروة عادية.</p><div class="field"><label for="spr">السبب (يشوفه السائق)</label><input id="spr" maxlength="200"></div><div class="err" id="spr-e"></div><div class="row"><button class="btn" id="spr-x">رجوع</button><button class="btn primary" id="spr-ok">رفض</button></div>`);
+    $("#spr-x",m).onclick=()=>m.remove();
+    $("#spr-ok",m).onclick=async()=>{try{await rpc("taxi_admin_special",{p_pin:PIN,p_id:+b.dataset.spno,p_ok:false,p_reason:$("#spr",m).value});m.remove();toast("انرفض، السفرة بكروة");pollN=0;poll()}catch(e){$("#spr-e",m).textContent=e.message}}});
+  const ids=sp.map(t=>t.id); if(prevSpInit&&ids.some(id=>!prevSp.includes(id))){beep();setTimeout(beep,300);setTimeout(beep,600)} prevSp=ids; prevSpInit=true;
 }
 let prevRc=[], prevRcInit=false, rcT;
 function pollRouteChanges(){
@@ -1720,7 +1740,7 @@ async function loadTrips(quiet){
     <td>${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}${t.note?`<br><small style="color:var(--muted)">${esc(t.note)}</small>`:""}</td>
     <td>${t.customer_name?esc(t.customer_name)+"<br>":""}<span dir="ltr">${esc(t.customer_phone||"—")}</span>${t.pickup_lat?`<br><a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍 موقعه</a>`:""}</td>
     <td>${t.source==="office"?"المكتب":t.source==="customer"?"الزبون (أونلاين)":"السائق"}</td>
-    <td><span class="pill ${st[0]}">${st[1]}</span>${t.round_trip?` <span class="pill s-warn">↩ مرجع${t.round_fee?" +"+fmt(t.round_fee):""}</span>`:""}${t.pickup_wait_sec>0?` <span class="pill ${t.pickup_waiting?"s-warn":"s-idle"}">🕓 ${t.pickup_waiting?"وصل وينتظر ":"انتظر بالاستلام "}${Math.ceil(t.pickup_wait_sec/60)} د</span>`:""}${t.wait_sec>0?` <span class="pill ${t.waiting?"s-warn":"s-idle"}">⏱ عدّاد ${t.waiting?"شغّال ":""}${Math.ceil(t.wait_sec/60)} د${t.wait_fee?" +"+fmt(t.wait_fee):""}</span>`:""}${t.stars?` <span class="pill ${t.stars<=2?"s-bad":"s-ok"}">${"★".repeat(t.stars)}</span>`:""}${t.dispatched_by?`<br><small style="color:var(--muted)">أرسلها: ${esc(t.dispatched_by)}</small>`:""}${t.cancel_reason?`<br><small style="color:var(--muted)">${esc(t.cancel_reason)}</small>`:""}</td>
+    <td><span class="pill ${st[0]}">${st[1]}</span>${t.round_trip?` <span class="pill s-warn">↩ مرجع${t.round_fee?" +"+fmt(t.round_fee):""}</span>`:""}${t.pickup_wait_sec>0?` <span class="pill ${t.pickup_waiting?"s-warn":"s-idle"}">🕓 ${t.pickup_waiting?"وصل وينتظر ":"انتظر بالاستلام "}${Math.ceil(t.pickup_wait_sec/60)} د</span>`:""}${t.wait_sec>0?` <span class="pill ${t.waiting?"s-warn":"s-idle"}">⏱ عدّاد ${t.waiting?"شغّال ":""}${Math.ceil(t.wait_sec/60)} د${t.wait_fee?" +"+fmt(t.wait_fee):""}</span>`:""}${t.stars?` <span class="pill ${t.stars<=2?"s-bad":"s-ok"}">${"★".repeat(t.stars)}</span>`:""}${t.special_status?`<br><span class="pill ${t.special_status==="approved"?"s-ok":t.special_status==="pending"?"s-warn":"s-idle"}">⭐ زبون خاص${t.special_status==="approved"?" بدون كروة":t.special_status==="pending"?": ينتظر موافقة":": انرفض"}</span> <small style="color:var(--muted)">${esc(t.special_note||"")}${t.special_by?` · ${esc(t.special_by)}`:""}</small>`:""}${t.dispatched_by?`<br><small style="color:var(--muted)">أرسلها: ${esc(t.dispatched_by)}</small>`:""}${t.cancel_reason?`<br><small style="color:var(--muted)">${esc(t.cancel_reason)}</small>`:""}</td>
     <td style="font-variant-numeric:tabular-nums">${t.fare?fmt(t.fare):"—"}</td><td>${t.km!=null?t.km:"—"}</td>
     <td><div class="acts">${t.car_id&&["accepted","started","done"].includes(t.status)?`<button class="btn sm" data-tp="${t.id}">🗺 المسار</button>`:""}${t.status==="requested"?`<button class="btn sm primary" data-ta="re" data-id="${t.id}">إرسال لسائق</button>`:["assigned","rejected"].includes(t.status)?`<button class="btn sm" data-ta="re" data-id="${t.id}">تحويل لسائق</button>`:""}${openT?`<button class="btn sm danger" data-ta="cancel" data-id="${t.id}">إلغاء</button>`:""}</div></td></tr>`}).join("")}
   </tbody></table></div>`;
@@ -1940,7 +1960,7 @@ async function renderDaily(){
       <div class="kpi"><small>سفرات خلصت</small><b>${T.done}</b><small>${T.requests} طلب أونلاين · ${T.cancelled} ملغية · ${T.rejected} مرفوضة</small></div>
       <div class="kpi"><small>مجموع الأجرة</small><b>${dinar(T.fares)}</b><small>كاش بيد السواق: ${dinar(T.cash)}${T.points?` · بالنقاط: ${fmt(T.points)}`:""}</small></div>
       <div class="kpi"><small>استلمت الإدارة اليوم</small><b>${dinar(r.received)}</b></div>
-      <div class="kpi"><small>إضافات</small><b>${dinar(T.wait_fees+T.round_fees)}</b><small>عدّاد انتظار ${fmt(T.wait_fees)} · مرجع ${fmt(T.round_fees)} (${T.round_trips})</small></div>
+      <div class="kpi"><small>إضافات</small><b>${dinar(T.wait_fees+T.round_fees)}</b><small>عدّاد انتظار ${fmt(T.wait_fees)} · مرجع ${fmt(T.round_fees)} (${T.round_trips})${T.special?` · ⭐ زبون خاص بدون كروة: ${T.special}`:""}</small></div>
       <div class="kpi"><small>الكيلومترات</small><b>${T.km} كم</b><small>${T.avg_pickup_min!=null?`معدّل وصول السائق للزبون ${T.avg_pickup_min} د`:""}</small></div>
       <div class="kpi ${r.complaints.new||r.ratings.low?"warn":""}"><small>رضا الزباين</small><b>${r.ratings.avg?`⭐ ${r.ratings.avg}`:"—"}</b><small>${r.ratings.count} تقييم${r.ratings.low?` · ${r.ratings.low} واطي`:""} · ${r.complaints.new} شكوى جديدة · ${r.new_customers} زبون جديد</small></div>
     </div>
@@ -1956,7 +1976,7 @@ async function renderDaily(){
 }
 function dailyText(r){const T=r.totals;return [`📊 تقرير المنصور تاكسي ليوم ${r.day}`,`سفرات خلصت: ${T.done} (طلبات أونلاين ${T.requests}، ملغية ${T.cancelled}، مرفوضة ${T.rejected})`,
   `مجموع الأجرة: ${fmt(T.fares)} د.ع · كاش بيد السواق: ${fmt(T.cash)} د.ع`,`استلمت الإدارة: ${fmt(r.received)} د.ع`,
-  `عدّاد انتظار: ${fmt(T.wait_fees)} · مرجع: ${fmt(T.round_fees)}`,`تقييم: ${r.ratings.avg??"—"} (${r.ratings.count}) · شكاوي جديدة: ${r.complaints.new} · زباين جدد: ${r.new_customers}`,
+  `عدّاد انتظار: ${fmt(T.wait_fees)} · مرجع: ${fmt(T.round_fees)}${T.special?` · زبون خاص بدون كروة: ${T.special}`:""}`,`تقييم: ${r.ratings.avg??"—"} (${r.ratings.count}) · شكاوي جديدة: ${r.complaints.new} · زباين جدد: ${r.new_customers}`,
   "",...r.drivers.filter(d=>d.done||d.received).map(d=>`• ${d.driver_name} (${d.plate}): ${d.done} سفرة، ${fmt(d.fares)} د.ع${d.received?`، استلمنا ${fmt(d.received)}`:""}${d.stars?`، ⭐ ${d.stars}`:""}`)].join("\n")}
 function renderWeek(){
   weekDay=weekDay||todayStr();
@@ -2379,7 +2399,7 @@ function noteCancel(c){
 }
 function showTrip(t,force){
   const box=$("#tripBox"); if(!box) return;
-  const ck=x=>x&&[x.id,x.status,x.waiting,x.pickup_waiting,x.round_trip,x.zone_id,x.fare,x.dest_change&&x.dest_change.id,x.dest_change&&x.dest_change.status];
+  const ck=x=>x&&[x.id,x.status,x.waiting,x.pickup_waiting,x.special_status,x.round_trip,x.zone_id,x.fare,x.dest_change&&x.dest_change.id,x.dest_change&&x.dest_change.status];
   const key=JSON.stringify(ck(t));
   const same=key===JSON.stringify(ck(curTrip));
   // a running trip card keeps its own live timer and the typed fare; redraw it only when something changes
@@ -2390,9 +2410,11 @@ function showTrip(t,force){
   if(!t){box.innerHTML=`<div class="trip"><h3>ماكو سفرة</h3><p>إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.</p>
       <div class="field"><label for="tr-zone">إلى وين؟</label><select id="tr-zone" class="btn" style="width:100%">${(today.zones||[]).map(z=>`<option value="${z.id}">${esc(z.name)} — ${fmt(z.price)}</option>`).join("")}<option value="">منطقة أخرى</option></select></div>
       <div class="field" id="tr-to-f" hidden><label for="tr-to">اسم المكان</label><input id="tr-to"></div>
-      <button class="btn primary big" id="tr-start">بدء سفرة</button></div>${sum}`;
+      <button class="btn primary big" id="tr-start">بدء سفرة</button>
+      <button class="btn big" id="tr-sp">⭐ زبون خاص (بدون كروة)</button></div>${sum}`;
     $("#tr-zone").onchange=e=>{$("#tr-to-f").hidden=!!e.target.value};$("#tr-to-f").hidden=!!$("#tr-zone").value;
     $("#tr-start").onclick=()=>tripAct("start",{zone_id:$("#tr-zone").value,dropoff:$("#tr-to").value});
+    $("#tr-sp").onclick=()=>specialForm(null);
     const db=$("#dep-btn"); if(db) db.onclick=depositForm; return}
   const where=`<p><b>من:</b> ${esc(t.pickup||"—")}${t.pickup_lat?` <a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍 الخريطة</a>`:""}<br><b>إلى:</b> ${esc(t.dropoff||"—")}${t.dropoff_note?` <small>(${esc(t.dropoff_note)})</small>`:""}${t.customer_name?`<br><b>الزبون:</b> ${esc(t.customer_name)}`:""}${t.note?`<br><b>ملاحظة:</b> ${esc(t.note)}`:""}${t.zone_id&&t.fare?`<br><b>الأجرة:</b> ${fmt(t.fare)} د.ع (ثابتة)`:""}${t.points_used?`<br><b style="color:var(--ok)">⭐ الزبون دافع ${fmt(t.points_used)} بالنقاط، استلم منه ${fmt(t.collect)} بس</b>`:""}</p>`;
   if(t.status==="assigned"){
@@ -2403,17 +2425,20 @@ function showTrip(t,force){
     return}
   if(t.status==="accepted"){
     clearInterval(waitT);
-    box.innerHTML=`<div class="trip"><h3>${t.pickup_waiting?"وصلت للزبون":"رايح للزبون"}</h3>${where}
+    const spP=t.special_status==="pending";
+    box.innerHTML=`<div class="trip"><h3>${t.pickup_waiting?"وصلت للزبون":"رايح للزبون"}</h3>${where}${specialBox(t)}
       ${t.pickup_waiting?`<div class="waitbox" role="timer" aria-live="off"><small>🕓 تنتظر الزبون ينزل</small><b id="pwclock">${clock(t.pickup_wait_sec)}</b><small>هذا الوقت ما ينحسب بفلوس</small></div>`
         :`${wazeBtn(t,"ويز: روح للزبون")}<button class="btn big" id="tr-arr">📍 وصلت، دا أنتظر الزبون</button>${t.pickup_wait_sec>0?`<p class="note" style="margin:0">انتظرت: <b>${clock(t.pickup_wait_sec)}</b></p>`:""}`}
-      <button class="btn primary big" id="tr-go">🚕 انطلاق (ركب الزبون)</button></div>`;
+      <button class="btn primary big" id="tr-go" ${spP?"disabled":""}>🚕 انطلاق (ركب الزبون)</button></div>`;
     $("#tr-go").onclick=()=>tripAct("start");
+    const sp=$("#tr-sp"); if(sp) sp.onclick=()=>specialForm(t);
     const ar=$("#tr-arr"); if(ar) ar.onclick=()=>tripAct("wait_start");
     if(t.pickup_waiting){const t0=Date.now(),w0=t.pickup_wait_sec||0;waitT=setInterval(()=>{const c=$("#pwclock");if(!c)return clearInterval(waitT);c.textContent=clock(w0+Math.floor((Date.now()-t0)/1000))},1000)}
     return}
   const navBtn=`<a class="btn big" href="#nav" style="text-align:center">🧭 الطريق على الخريطة</a>`;
   const fixed=t.zone_id&&t.fare;
-  box.innerHTML=`<div class="trip on"><h3>بسفرة من ${hm(t.started_at)}${t.round_trip?` <span class="pill s-warn">↩ مرجع</span>`:""}</h3>${where}
+  const spFree=t.special_status==="approved", spWait=t.special_status==="pending";
+  box.innerHTML=`<div class="trip on"><h3>بسفرة من ${hm(t.started_at)}${t.round_trip?` <span class="pill s-warn">↩ مرجع</span>`:""}</h3>${where}${specialBox(t)}
     ${t.waiting?`<div class="waitbox" role="timer" aria-live="off"><small>⏱ عدّاد الانتظار شغّال</small><b id="wclock">${clock(t.wait_sec)}</b><small id="wnote"></small>
       <button class="btn primary big" id="tr-wend">▶ رجع الزبون، طفّي العدّاد</button></div>`
      :`<div class="row2"><button class="btn big" id="tr-wait">⏱ انتظرني هنا (شغّل العدّاد)</button><button class="btn big ${t.round_trip?"on-round":""}" id="tr-round" aria-pressed="${!!t.round_trip}">↩ ${t.round_trip?"مرجع ✓":"خلّيها مرجع"}</button></div>
@@ -2421,8 +2446,8 @@ function showTrip(t,force){
     ${destChangeBox(t)}
     ${t.waiting?"":wazeBtn(t,(t.round_trip?"ويز: روح لـ ":"ويز: روح لـ ")+esc(t.zone||t.dropoff||"الوجهة"))+navBtn}
     <div class="calc" id="tr-calc"></div>
-    ${fixed?"":`<div class="field"><label for="tr-fare">الأجرة (دينار)</label><input id="tr-fare" inputmode="numeric" value="${today.base||""}" style="font:600 22px var(--mono);text-align:center"></div>`}
-    <button class="btn primary big" id="tr-end" ${t.waiting?"disabled":""}>إنهاء السفرة</button></div>`;
+    ${fixed||spFree?"":`<div class="field"><label for="tr-fare">الأجرة (دينار)</label><input id="tr-fare" inputmode="numeric" value="${today.base||""}" style="font:600 22px var(--mono);text-align:center"></div>`}
+    <button class="btn primary big" id="tr-end" ${t.waiting||spWait?"disabled":""}>إنهاء السفرة</button></div>`;
   // live fare: base + round trip + waiting beyond the free minutes
   const t0=Date.now(), w0=t.wait_sec||0;
   const calc=()=>{
@@ -2432,6 +2457,7 @@ function showTrip(t,force){
     const wf=waitFee(ws,t.wait_tiers);
     const tot=base+rf+wf, coll=Math.max(0,tot-(t.points_used||0));
     const c=$("#tr-calc"); if(!c) return clearInterval(waitT);
+    if(spFree){c.innerHTML=`<div class="tot"><span>استلم من الزبون</span><b>ولا شي، زبون خاص</b></div>`;const wc=$("#wclock");if(wc)wc.textContent=clock(ws);return}
     c.innerHTML=`${base?`<div><span>أجرة ${esc(t.zone||"السفرة")}</span><b>${dinar(base)}</b></div>`:""}${rf?`<div><span>↩ المرجع</span><b>+ ${dinar(rf)}</b></div>`:""}
       ${ws?`<div><span>⏱ عدّاد الانتظار ${clock(ws)}</span><b>${wf?"+ "+dinar(wf):"لسه ما بدأ يحسب"}</b></div>`:""}
       ${t.points_used?`<div><span>دفعها بالنقاط</span><b>− ${dinar(Math.min(t.points_used,tot))}</b></div>`:""}
@@ -2445,12 +2471,33 @@ function showTrip(t,force){
   const rb=$("#tr-round"); if(rb) rb.onclick=()=>confirmBox(t.round_trip?"تشيل المرجع من السفرة؟":"تخلّي السفرة مرجع (ذهاب ورجعة)؟ ينضاف سعر الرجعة على الأجرة.",t.round_trip?"شيل المرجع":"نعم، مرجع",()=>tripAct("round",{on:!t.round_trip}),"رجوع");
   $("#tr-end").onclick=()=>tripAct("end",{fare:$("#tr-fare")?$("#tr-fare").value:""});
   const cb=$("#tr-chg"); if(cb) cb.onclick=()=>destChangeForm(t);
+  const spb=$("#tr-sp"); if(spb) spb.onclick=()=>specialForm(t);
   clearInterval(chgT); const dc=t.dest_change;
   if(dc&&(dc.status==="pending"||dc.status==="awaiting_customer")){const t0=Date.now(),s0=dc.seconds_left;
     chgT=setInterval(()=>{const left=Math.max(0,s0-Math.floor((Date.now()-t0)/1000)),el=$("#chg-left");if(!el)return clearInterval(chgT);
       el.textContent="0:"+String(left).padStart(2,"0");if(left<=0){clearInterval(chgT);setTimeout(()=>{curTrip=undefined;if(EXT)setExt(true);else refreshTrip()},1500)}},1000)}
 }
 let waitT, chgT;
+// "زبون خاص": a free ride the office approves; the driver writes who exactly it is
+function specialBox(t){
+  const st=t.special_status;
+  if(st==="pending") return `<div class="spbox wait"><b>⏳ زبون خاص: بانتظار موافقة الإدارة</b><small>${esc(t.special_note||"")}</small><small>ما تكدر تبدي أو تنهي السفرة لحد ما ترد الإدارة.</small></div>`;
+  if(st==="approved") return `<div class="spbox ok"><b>⭐ زبون خاص: بدون كروة</b><small>${esc(t.special_note||"")}${t.special_by?` · وافق ${esc(t.special_by)}`:""}</small></div>`;
+  const rej=st==="rejected"?`<div class="spbox bad"><b>✖ الإدارة رفضت الزبون الخاص: السفرة بكروة عادية</b>${t.special_reason?`<small>${esc(t.special_reason)}</small>`:""}</div>`:"";
+  return rej+(t.waiting?"":`<button type="button" class="btn big" id="tr-sp">⭐ زبون خاص (بدون كروة)</button>`);
+}
+function specialForm(t){
+  const zs=today.zones||[];
+  const m=modal(`<h3>⭐ زبون خاص</h3><p style="margin:0">سفرة بدون كروة. اكتب منو الزبون بالضبط، والطلب يروح للإدارة توافق عليه، وبعدها تكمّل السفرة.</p>
+    <div class="field"><label for="sp-n">منو الزبون بالضبط؟</label><textarea id="sp-n" rows="3" maxlength="200" placeholder="مثال: أبو علي، مدير المجمّع، عمارة B3"></textarea></div>
+    ${t?"":`<div class="field"><label for="sp-z">إلى وين؟</label><select id="sp-z" class="btn" style="width:100%"><option value="">ما أعرف بعد</option>${zs.map(z=>`<option value="${z.id}">${esc(z.name)}</option>`).join("")}</select></div>`}
+    <div class="err" id="sp-e"></div><div class="row"><button class="btn" id="sp-x">رجوع</button><button class="btn primary" id="sp-ok">إرسال للإدارة</button></div>`);
+  $("#sp-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#sp-n",m).focus(),50);
+  $("#sp-ok",m).onclick=async()=>{const n=$("#sp-n",m).value.trim();if(n.length<3){$("#sp-e",m).textContent="اكتب منو الزبون بالضبط";return}
+    const b=$("#sp-ok",m);b.disabled=true;
+    try{await rpc("taxi_driver_trip",{p_code:CODE,p_action:"special",p:{note:n,zone_id:t?"":$("#sp-z",m).value}});m.remove();toast("انرسل للإدارة، انتظر الموافقة");curTrip=undefined;if(EXT)setExt(true);else await refreshTrip()}
+    catch(e){$("#sp-e",m).textContent=e.message;b.disabled=false}};
+}
 // paid waiting meter: tiers [{m,f}] per cycle (the last tier is the cycle, e.g. an hour = 5000)
 const WT_DEF=[{m:10,f:250},{m:15,f:1500},{m:30,f:2500},{m:60,f:5000}];
 function waitFee(sec,tiers){const T=(tiers&&tiers.length?tiers:WT_DEF),cyc=T[T.length-1].m,mins=Math.floor(Math.max(0,sec||0)/60),r=mins%cyc;let f=0;T.forEach(x=>{if(x.m<=r)f=x.f});return Math.floor(mins/cyc)*T[T.length-1].f+f}

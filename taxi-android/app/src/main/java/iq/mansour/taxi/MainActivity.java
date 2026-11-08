@@ -152,6 +152,12 @@ public class MainActivity extends Activity {
         JSONObject t = waitTrip;
         if (t == null || waitTotal == null) return;
         int ws = waitBase + (waitRunning ? (int) ((System.currentTimeMillis() - waitFrom) / 1000) : 0);
+        if ("approved".equals(t.optString("special_status"))) {
+            waitTotal.setText("⭐ زبون خاص: لا تستلم شي");
+            if (waitClock != null) waitClock.setText(clock(ws));
+            if (waitNote != null) waitNote.setText("زبون خاص، العدّاد ما ينحسب");
+            return;
+        }
         int base;
         if (waitFare == null) base = t.optInt("base_fare", t.optInt("fare"));
         else { try { base = Integer.parseInt(waitFare.getText().toString().replaceAll("\\D", "")); } catch (Exception e) { base = 0; } }
@@ -392,7 +398,7 @@ public class MainActivity extends Activity {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
         JSONObject cxk = st.optJSONObject("cancelled");
-        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money"));
+        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money"));
         if (key.equals(tripKey)) return;
         tripKey = key;
         h.removeCallbacks(waitTick);
@@ -448,6 +454,10 @@ public class MainActivity extends Activity {
                 tripAction("start", p);
             });
             card.addView(go, full());
+            card.addView(space(8));
+            Button spb = button("⭐ زبون خاص (بدون كروة)", false);
+            spb.setOnClickListener(v -> specialDialog(ids.get(Math.max(0, zone.getSelectedItemPosition()))));
+            card.addView(spb, full());
         } else {
             String where = "من: " + or(t.optString("pickup")) + "\nإلى: " + or(t.optString("dropoff"))
                     + (t.optString("customer_name").isEmpty() ? "" : "\nالزبون: " + t.optString("customer_name"))
@@ -479,6 +489,7 @@ public class MainActivity extends Activity {
                 card.addView(text(pw ? "وصلت للزبون" : "رايح للزبون", 19, FG, true));
                 card.addView(text(where, 15, FG, false));
                 card.addView(space(10));
+                final boolean spPending = addSpecial(card, t);
                 pwBase = t.optInt("pickup_wait_sec", 0);
                 pwFrom = System.currentTimeMillis();
                 if (pw) {
@@ -506,6 +517,7 @@ public class MainActivity extends Activity {
                 card.addView(space(8));
                 Button go = button("🚕 انطلاق (ركب الزبون)", true);
                 go.setOnClickListener(v -> tripAction("start", null));
+                if (spPending) { go.setEnabled(false); go.setAlpha(0.45f); }
                 card.addView(go, full());
             } else {
                 final boolean round = t.optBoolean("round_trip");
@@ -513,7 +525,9 @@ public class MainActivity extends Activity {
                 card.addView(text("بسفرة من " + hm(t.optString("started_at")) + (round ? "  ↩ مرجع" : ""), 19, OK, true));
                 card.addView(text(where, 15, FG, false));
                 card.addView(space(10));
-                final boolean fixed = t.optInt("zone_id", 0) > 0 && t.optInt("fare", 0) > 0;
+                final boolean spPending = waiting ? "pending".equals(t.optString("special_status")) : addSpecial(card, t);
+                final boolean spFree = "approved".equals(t.optString("special_status"));
+                final boolean fixed = spFree || t.optInt("zone_id", 0) > 0 && t.optInt("fare", 0) > 0;
                 final EditText fare = input("الأجرة المستلمة (دينار)", InputType.TYPE_CLASS_NUMBER);
                 // waiting timer + round trip
                 waitBase = t.optInt("wait_sec", 0);
@@ -587,8 +601,8 @@ public class MainActivity extends Activity {
                 if (waiting) h.postDelayed(waitTick, 1000);
                 card.addView(space(8));
                 Button end = button("إنهاء السفرة", true);
-                end.setEnabled(!waiting);
-                if (waiting) end.setAlpha(0.45f);
+                end.setEnabled(!waiting && !spPending);
+                if (waiting || spPending) end.setAlpha(0.45f);
                 end.setOnClickListener(v -> tripAction("end", obj("fare", fare.getText().toString())));
                 card.addView(end, full());
             }
@@ -733,6 +747,45 @@ public class MainActivity extends Activity {
         e.setBackground(box(CARD, LINE, 10));
         e.setPadding(dp(12), dp(10), dp(12), dp(10));
         return e;
+    }
+
+    // "زبون خاص": free ride; the office approves what the driver wrote. Returns true while it waits for the office.
+    private boolean addSpecial(LinearLayout card, JSONObject t) {
+        String st = t.optString("special_status");
+        java.util.Locale L = java.util.Locale.US;
+        if (st.equals("pending") || st.equals("approved") || st.equals("rejected")) {
+            int fg = st.equals("approved") ? OK : st.equals("rejected") ? 0xFFB42318 : 0xFF8A5A00;
+            String title = st.equals("pending") ? "⏳ زبون خاص: بانتظار موافقة الإدارة" : st.equals("approved") ? "⭐ زبون خاص: بدون كروة" : "✖ الإدارة رفضت الزبون الخاص: السفرة بكروة عادية";
+            String sub = st.equals("rejected") ? t.optString("special_reason") : t.optString("special_note") + (st.equals("approved") && !t.optString("special_by").isEmpty() ? " · وافق " + t.optString("special_by") : "");
+            if (st.equals("pending")) sub += "\nما تكدر تبدي أو تنهي السفرة لحد ما ترد الإدارة.";
+            TextView v = text(title + (sub.trim().isEmpty() ? "" : "\n" + sub.trim()), 14, fg, true);
+            v.setBackground(box(st.equals("approved") ? 0xFFE7F6EE : st.equals("rejected") ? 0xFFFDECEA : 0xFFFFF4DC, fg, 12));
+            v.setPadding(dp(12), dp(10), dp(12), dp(10));
+            card.addView(v, full());
+            card.addView(space(8));
+        }
+        if (!st.equals("pending") && !st.equals("approved")) {
+            Button b = button("⭐ زبون خاص (بدون كروة)", false);
+            b.setOnClickListener(x -> specialDialog(0));
+            card.addView(b, full());
+            card.addView(space(8));
+        }
+        return st.equals("pending");
+    }
+
+    private void specialDialog(int zoneId) {
+        final EditText who = input("منو الزبون بالضبط؟ مثال: أبو علي، مدير المجمّع", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        new android.app.AlertDialog.Builder(this).setTitle("⭐ زبون خاص")
+                .setMessage("سفرة بدون كروة. اكتب منو الزبون بالضبط، والطلب يروح للإدارة توافق عليه، وبعدها تكمّل السفرة.")
+                .setView(who)
+                .setNegativeButton("رجوع", null)
+                .setPositiveButton("إرسال للإدارة", (d, w) -> {
+                    String n = who.getText().toString().trim();
+                    if (n.length() < 3) { android.widget.Toast.makeText(this, "اكتب منو الزبون بالضبط", android.widget.Toast.LENGTH_LONG).show(); return; }
+                    JSONObject p = obj("note", n);
+                    try { if (zoneId > 0) p.put("zone_id", zoneId); } catch (Exception ignored) {}
+                    tripAction("special", p);
+                }).show();
     }
 
     private static JSONObject obj(String k, String v) {
