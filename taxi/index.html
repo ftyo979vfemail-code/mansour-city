@@ -96,6 +96,7 @@ button{cursor:pointer}
 .cx-mapwrap{position:relative;isolation:isolate;z-index:0;border-radius:16px;overflow:hidden}
 .cx-mapmsg{position:absolute;inset:0;display:grid;place-items:center;color:#5e6650;font-weight:700}
 .cx-psearch{position:relative}
+.cx-dsthead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}.cx-dsthead small{color:#16935a;font-weight:700}
 .cx-psug{position:absolute;top:60px;left:0;right:0;z-index:20;background:#fff;border-radius:16px;box-shadow:0 12px 28px rgb(0 56 61/.18);padding:6px;max-height:300px}
 .cx-map .leaflet-control-zoom a{width:40px;height:40px;line-height:40px;font-size:20px}
 .cx-locbtn{position:absolute;bottom:12px;left:12px;z-index:500;width:48px;height:48px;border-radius:50%;border:0;background:#00383d;color:#febd02;display:grid;place-items:center;box-shadow:0 6px 16px rgb(0 0 0/.25)}
@@ -463,7 +464,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081738";
+const BUILD="202611081743";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -745,6 +746,13 @@ async function orderForm(){
         <input id="o-q" type="search" placeholder="اكتب اسم المنطقة" autocomplete="off" aria-labelledby="qh"></label>
       <ul class="cx-list" id="zones" role="radiogroup" aria-labelledby="qh"><li class="empty">جارٍ التحميل…</li></ul>
       <button type="button" class="cx-more" id="zmore" hidden>كل المناطق</button>
+      <button type="button" class="btn big" id="dst-open">📍 حدّد الوجهة على الخريطة</button>
+      <div id="dst-box" hidden style="display:flex;flex-direction:column;gap:10px">
+        <div class="cx-dsthead"><b id="dst-zone">وين بالضبط؟</b><small id="dst-auto" hidden>النظام اختار المنطقة من الخريطة</small></div>
+        <div class="cx-mapwrap"><div id="dst-map" class="cx-map" role="application" aria-label="خريطة الوجهة: اضغط على المكان اللي رايح إله"></div></div>
+        <small class="note" id="dst-hint" style="margin:0">اضغط على الخريطة أو اسحب الدبوس للمكان اللي رايح إله بالضبط، والنظام يختار المنطقة وحده.</small>
+        <div class="field"><label for="dst-txt">وين بالضبط؟ (اختياري)</label><input id="dst-txt" placeholder="مثال: باب مستشفى اليرموك" maxlength="100"></div>
+      </div>
       <button type="button" class="cx-note-t" id="notet">+ إضافة ملاحظة للسائق</button>
       <div class="field" id="notef" hidden><label for="o-note">ملاحظة (اختياري)</label><input id="o-note" placeholder="مثال: عندي جنطة كبيرة"></div>
       ${canFree?`<label class="freeopt"><input type="checkbox" id="o-free"> <span>⭐ استخدم ${fmt(pts.redeem)} نقطة وخلّي هاي الكروة مجانية<br><small style="font-weight:400;color:var(--muted)">إذا الكروة أكثر من ${fmt(pts.redeem)} دينار تدفع الفرق بس.</small></span></label>`:""}
@@ -771,9 +779,57 @@ async function orderForm(){
     $("#zones").innerHTML=list.length?list.map(z=>{const r=seen[z.id],air=/مطار/.test(z.name);
       return `<li><button type="button" role="radio" aria-checked="${orderZone===z.id}" data-z="${z.id}"><span class="cx-ico">${r?ICO_CLOCK:air?ICO_PLANE:ICO_PIN}</span><span><b>${esc(z.name)}</b><small>${r?(r.n>1?`رحت إلها ${r.n} مرات · آخر مرة ${day(r.at)}`:`آخر مرة ${day(r.at)}`):air?"ذهاب أو رجعة":"بغداد"}</small></span>${TICK}</button></li>`}).join("")
       :`<li class="empty">ماكو منطقة بهذا الاسم.</li>`;
+    if(q) $("#zones").insertAdjacentHTML("beforeend",`<li><button type="button" id="z-geo"><span class="cx-ico">🔎</span><span><b>دوّر على «${esc(q)}» بالخريطة</b><small>مكان، شارع، مول… والنظام يختار المنطقة</small></span></button></li>`);
+    const zg=$("#z-geo"); if(zg) zg.onclick=()=>destSearch(q);
     $("#zmore").hidden=!!q||showAll;
-    $("#zones").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{orderZone=+b.dataset.z;draw();$("#oe").textContent=""});};
+    $("#zones").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{orderZone=+b.dataset.z;draw();$("#oe").textContent="";destForZone(orderZones.find(z=>z.id===orderZone))});};
   draw(); $("#o-q").oninput=draw; $("#zmore").onclick=()=>{showAll=true;draw()};
+  // ---- destination: exact point on a map; the pin picks the area by itself
+  let dmap=null, dmark=null, dpin=null, dExact=false, dTyped=false, dSeq=0;
+  const nk=x=>(x||"").toLowerCase().replace(/[أإآٱ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/ـ/g,"").replace(/\(.*?\)/g,"").replace(/^(حي|منطقة|مدينة)\s+/,"").replace(/^ال/,"").replace(/\s+/g,"");
+  const zoneFromNames=names=>{const ks=names.filter(Boolean).map(nk).filter(k=>k.length>=3);
+    for(const k of ks){const z=orderZones.find(z=>{const zk=nk(z.name);return zk.length>=3&&(zk===k||k.includes(zk)||zk.includes(k))});if(z)return z}return null};
+  const nearestZone=ll=>{let best=null,bd=3500;orderZones.forEach(z=>{if(z.lat==null)return;const d=segLen([ll.lat,ll.lng],[z.lat,z.lng]);if(d<bd){bd=d;best=z}});return best};
+  const dIcon=()=>L.divIcon({className:"",iconSize:[34,44],iconAnchor:[17,42],html:`<svg width="34" height="44" viewBox="0 0 34 44" aria-hidden="true"><path d="M17 43C17 43 3 26.5 3 16a14 14 0 0 1 28 0c0 10.5-14 27-14 27z" fill="#d6332b" stroke="#fff" stroke-width="2.5"/><circle cx="17" cy="16" r="6" fill="#fff"/></svg>`});
+  const initDMap=()=>{if(dmap)return true;if(typeof L==="undefined"){$("#dst-hint").textContent="الخريطة ما تحمّلت. اختار المنطقة من القائمة.";return false}
+    dmap=L.map("dst-map",{zoomControl:true}).setView([33.315,44.366],12);
+    let fails=0,loaded=false;const osm=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(dmap);
+    osm.on("tileload",()=>{loaded=true});osm.on("tileerror",()=>{if(++fails===4&&!loaded){dmap.removeLayer(osm);L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd",attribution:"© OpenStreetMap © CARTO"}).addTo(dmap)}});
+    dmap.on("click",e=>setDPin(e.latlng,true,false));setTimeout(()=>dmap&&dmap.invalidateSize(),150);setTimeout(()=>dmap&&dmap.invalidateSize(),600);return true};
+  const openD=()=>{$("#dst-box").hidden=false;$("#dst-open").hidden=true;return initDMap()};
+  async function setDPin(ll,exact,zoom){dpin={lat:+(+ll.lat).toFixed(6),lng:+(+ll.lng).toFixed(6)};if(exact)dExact=true;
+    if(dmap){if(dmark)dmark.setLatLng([dpin.lat,dpin.lng]);else{dmark=L.marker([dpin.lat,dpin.lng],{draggable:true,icon:dIcon()}).addTo(dmap);dmark.on("dragend",()=>setDPin(dmark.getLatLng(),true,false))}if(zoom)dmap.setView([dpin.lat,dpin.lng],zoom)}
+    if(!exact) return;
+    $("#dst-hint").textContent="✔ انحدّدت الوجهة. تگدر تسحب الدبوس إذا تريد تعدّله.";
+    const n=++dSeq;let names=[],label="";
+    try{const j=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${dpin.lat}&lon=${dpin.lng}&zoom=18&accept-language=ar`).then(r=>r.json());
+      if(n!==dSeq)return;const a=j.address||{};
+      names=[a.neighbourhood,a.suburb,a.quarter,a.city_district,a.residential,a.town,a.village,...(j.display_name||"").split(",")];
+      label=[j.name&&j.name!==a.road?j.name:"",a.road].filter(Boolean).join("، ");}catch{}
+    if(label&&!dTyped) $("#dst-txt").value=label.slice(0,100);
+    // the system picks the area: by name first, else the nearest known area
+    const z=zoneFromNames(names)||nearestZone(dpin);
+    if(z&&z.id!==orderZone){orderZone=z.id;$("#o-q").value="";draw();$("#dst-auto").hidden=false;$("#dst-zone").textContent="المنطقة: "+z.name;toast("النظام اختار المنطقة: "+z.name)}
+    else if(z){$("#dst-zone").textContent="المنطقة: "+z.name}
+    else if(!orderZone){$("#dst-zone").textContent="ما عرفنا المنطقة";$("#dst-hint").textContent="ما عرفنا المنطقة من الخريطة، اختارها من القائمة فوق (السعر حسب المنطقة)."}}
+  async function geoZone(z){
+    if(z.lat!=null) return {lat:z.lat,lng:z.lng};
+    try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&accept-language=ar&limit=1&viewbox=44.0,33.65,44.75,32.95&bounded=1&q=${encodeURIComponent(z.name.replace(/\(.*?\)/g,"").replace(/^من\s+/,"").replace(/وما حولها/,"").trim()+"، بغداد")}`).then(r=>r.json());
+      if(r.length) return {lat:+r[0].lat,lng:+r[0].lon}}catch{}
+    return null}
+  async function destForZone(z){if(!z)return;if(!openD())return;$("#dst-auto").hidden=true;$("#dst-zone").textContent="المنطقة: "+z.name;
+    if(dExact&&dpin&&nearestZone(dpin)===z) return;
+    dExact=false;const c=await geoZone(z);
+    if(c){setDPin(c,false,15);$("#dst-hint").textContent="الدبوس على "+z.name+". حرّكه للمكان اللي رايح إله بالضبط (اختياري).";}
+    else $("#dst-hint").textContent="اضغط على الخريطة بالمكان اللي رايح إله بالضبط (اختياري)."}
+  async function destSearch(q){if(!openD())return;$("#dst-hint").textContent="جارٍ البحث…";
+    try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=ar&limit=1&viewbox=44.0,33.65,44.75,32.95&bounded=1&q=${encodeURIComponent(q)}`).then(r=>r.json());
+      if(!r.length){$("#dst-hint").textContent="ما لگيت «"+q+"». جرّب اسم ثاني أو اضغط على الخريطة.";return}
+      dTyped=true;$("#dst-txt").value=(r[0].name||q).slice(0,100);setDPin({lat:+r[0].lat,lng:+r[0].lon},true,16)}
+    catch{$("#dst-hint").textContent="البحث ما اشتغل، تأكد من الإنترنت."}}
+  $("#dst-open").onclick=()=>{if(!openD())return;const z=orderZones.find(z=>z.id===orderZone);if(z)destForZone(z);else $("#dst-hint").textContent="اضغط على الخريطة بالمكان اللي رايح إله، والنظام يختار المنطقة وحده."};
+  $("#dst-txt").oninput=()=>{dTyped=$("#dst-txt").value.trim()!==""};
+  window.addEventListener("resize",()=>dmap&&dmap.invalidateSize());
   wireAddr();
   // pickup: the customer's building, or any other place (map pin / current location). The fare is the destination zone's either way.
   let pm="home", pin=null, pmap=null, pmark=null;
@@ -827,7 +883,8 @@ async function orderForm(){
       p={pickup:`عمارة ${ad.b} · طابق ${ad.f} · شقة ${ad.a}`};}
     else{const t=$("#pm-txt").value.trim();if(!pin&&!t)return fail("حدّد مكان الانطلاق على الخريطة أو اكتب وين بالضبط");
       p={pickup:t||"مكان على الخريطة",lat:pin?pin.lat:null,lng:pin?pin.lng:null};}
-    Object.assign(p,{zone_id:orderZone,note:$("#o-note").value,use_points:!!($("#o-free")&&$("#o-free").checked)});
+    Object.assign(p,{zone_id:orderZone,note:$("#o-note").value,use_points:!!($("#o-free")&&$("#o-free").checked),
+      dest_lat:dExact&&dpin?dpin.lat:null,dest_lng:dExact&&dpin?dpin.lng:null,dest_note:$("#dst-txt").value.trim()});
     if(!orderZone){$("#oe").textContent="اختار المنطقة اللي رايح إلها";$("#qh").scrollIntoView({behavior:"smooth",block:"start"});return}
     btn.disabled=true;$("#oe").textContent="";
     try{const r=await rpc("taxi_customer_order",{p_token:CS.tok,p});
@@ -1602,7 +1659,7 @@ function pickDriver(title,fn,t){
     return {c,s,d,busy:!!c.trip&&(!t||c.id!==t.car_id),rank:(c.trip?3:s.k==="ok"?0:s.k==="warn"?1:2)}}).sort((a,b)=>a.rank-b.rank||(a.d??1e9)-(b.d??1e9));
   const first=list.find(x=>!x.busy&&x.rank<2);
   const m=modal(`<h3>${esc(title)}</h3>
-    ${t?`<div class="reqcard"><b>${esc(t.customer_name||"زبون")}${t.points_used?` <span class="pill s-ok">⭐ مجانية بالنقاط</span>`:""}</b><span>من: ${esc(t.pickup||"—")}${t.pickup_lat?` <a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍</a>`:""}</span><span>إلى: <b>${esc(t.dropoff||"—")}</b>${t.fare?` · ${dinar(t.fare)}`:""}</span>${t.note?`<small style="color:var(--muted)">${esc(t.note)}</small>`:""}</div>`:""}
+    ${t?`<div class="reqcard"><b>${esc(t.customer_name||"زبون")}${t.points_used?` <span class="pill s-ok">⭐ مجانية بالنقاط</span>`:""}</b><span>من: ${esc(t.pickup||"—")}${t.pickup_lat?` <a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍</a>`:""}</span><span>إلى: <b>${esc(t.dropoff||"—")}</b>${t.dropoff_note?` (${esc(t.dropoff_note)})`:""}${t.fare?` · ${dinar(t.fare)}`:""}</span>${t.note?`<small style="color:var(--muted)">${esc(t.note)}</small>`:""}</div>`:""}
     <div class="dpick" role="radiogroup" aria-label="السائق">${list.length?list.map(x=>`<button type="button" role="radio" data-c="${x.c.id}" aria-pressed="${first&&first.c.id===x.c.id}" ${x.busy?"disabled":""}>
       ${plateHTML(x.c.plate)}<span class="dn"><b>${esc(x.c.driver_name)}</b><small>${x.busy?"عنده سفرة هسه":x.s.t}</small></span>
       <span class="dk">${x.d!=null?(x.d<1?Math.round(x.d*1000)+" م":x.d.toFixed(1)+" كم"):""}</span></button>`).join(""):`<div class="empty">ماكو سواق مفعّلين.</div>`}</div>
@@ -2171,7 +2228,7 @@ function showTrip(t,force){
     $("#tr-zone").onchange=e=>{$("#tr-to-f").hidden=!!e.target.value};$("#tr-to-f").hidden=!!$("#tr-zone").value;
     $("#tr-start").onclick=()=>tripAct("start",{zone_id:$("#tr-zone").value,dropoff:$("#tr-to").value});
     const db=$("#dep-btn"); if(db) db.onclick=depositForm; return}
-  const where=`<p><b>من:</b> ${esc(t.pickup||"—")}${t.pickup_lat?` <a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍 الخريطة</a>`:""}<br><b>إلى:</b> ${esc(t.dropoff||"—")}${t.customer_name?`<br><b>الزبون:</b> ${esc(t.customer_name)}`:""}${t.note?`<br><b>ملاحظة:</b> ${esc(t.note)}`:""}${t.zone_id&&t.fare?`<br><b>الأجرة:</b> ${fmt(t.fare)} د.ع (ثابتة)`:""}${t.points_used?`<br><b style="color:var(--ok)">⭐ الزبون دافع ${fmt(t.points_used)} بالنقاط، استلم منه ${fmt(t.collect)} بس</b>`:""}</p>`;
+  const where=`<p><b>من:</b> ${esc(t.pickup||"—")}${t.pickup_lat?` <a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍 الخريطة</a>`:""}<br><b>إلى:</b> ${esc(t.dropoff||"—")}${t.dropoff_note?` <small>(${esc(t.dropoff_note)})</small>`:""}${t.customer_name?`<br><b>الزبون:</b> ${esc(t.customer_name)}`:""}${t.note?`<br><b>ملاحظة:</b> ${esc(t.note)}`:""}${t.zone_id&&t.fare?`<br><b>الأجرة:</b> ${fmt(t.fare)} د.ع (ثابتة)`:""}${t.points_used?`<br><b style="color:var(--ok)">⭐ الزبون دافع ${fmt(t.points_used)} بالنقاط، استلم منه ${fmt(t.collect)} بس</b>`:""}</p>`;
   if(t.status==="assigned"){
     if(lastOffer!==t.id){lastOffer=t.id;try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch{};siren(true);setTimeout(()=>siren(false),3000)}
     box.innerHTML=`<div class="trip offer"><h3>📣 سفرة جديدة من المكتب</h3>${where}<div class="row2"><button class="btn primary big" id="tr-acc">قبول</button><button class="btn big" id="tr-rej">رفض</button></div></div>`;

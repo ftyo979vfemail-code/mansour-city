@@ -1,0 +1,2 @@
+-- taxi_dropoff_point: trips keep the customer's exact destination (dropoff_lat/lng/note); taxi_trip_json's zone_lat/lng
+-- point there so Waze/navigation go to the exact spot; areas without a map point learn it from where trips to them end.
