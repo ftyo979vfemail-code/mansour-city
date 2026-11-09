@@ -37,3 +37,6 @@ begin
   return json_build_object('month', d0, 'rows', rows, 'days', days);
 end $$;
 grant execute on function public.taxi_admin_inventory(text,date) to anon, authenticated;
+
+-- update (migration taxi_inventory_periods): taxi_admin_inventory(pin, p_day, p_period 'day'|'week'|'month')
+-- returns {period, from, to, rows, days}; the week starts on Saturday (taxi_week_start).
