@@ -278,6 +278,8 @@ tr.dd-bad td{background:color-mix(in srgb,var(--bad) 8%,transparent)}td .pill{wh
 .ent-g input.saved{border-color:var(--ok);box-shadow:0 0 0 2px color-mix(in srgb,var(--ok) 25%,transparent)}.ent-g input.err-in{border-color:var(--bad)}.ent-v{color:var(--ok);font-weight:700;min-height:1em}
 .ent-lg{list-style:none;margin:0;padding:0;font-size:13px;display:flex;flex-direction:column;gap:2px}.ent-tot{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line);text-align:center}
 .ent-foot{position:sticky;bottom:0;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 0;padding-bottom:max(10px,env(safe-area-inset-bottom,0px));background:var(--bg);margin-top:10px}#en-st{font-weight:700}#en-st.ok{color:var(--ok)}
+.ms-t th[scope=row]{white-space:nowrap;text-align:start}.ms-t tbody tr{cursor:pointer}.ms-t tbody tr:hover td,.ms-t tbody tr:hover th{background:color-mix(in srgb,var(--accent,#f5b400) 10%,transparent)}
+.ms-c span{display:block;line-height:1.3}.ms-k{color:var(--ok);font-size:12px}.ms-x{color:var(--warn);font-size:12px}.ms-e{color:var(--muted);text-align:center}.ms-empty{opacity:.5}.ms-today th,.ms-today td{background:color-mix(in srgb,var(--warn) 10%,transparent)}.ms-cum{font-size:13px}
 .rc-day{margin:0 0 18px}.rc-dh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px;margin:0 0 8px;padding:8px 12px;border-radius:10px;background:var(--panel2,var(--panel));border:1px solid var(--line);font-size:16px}.rc-dh small{font-weight:400;font-size:13px}
 .rcpt{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px;overflow:hidden}
 .rcpt summary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
@@ -568,7 +570,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091308";
+const BUILD="202611091314";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2460,13 +2462,14 @@ async function driverLedger(x){
   load();
 }
 /* ---------- day-by-day accounts entry: pick a date, fill it, move to the next one ---------- */
-let entDay=null, entPending=null;
+let entDay=null, entPending=null, entMode="day", entMonth=null;
 const entNum=v=>{let n=parseInt(String(v||"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/\D/g,""),10)||0;if(n>0&&n<=100)n*=1000;return n};
 async function renderEntry(){
   const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10); entDay=entDay||today;
+  if(entMode==="month") return renderMonthSheet();
   const shift=n=>{const d=new Date(entDay+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
   const dl=new Date(entDay+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  $("#view").innerHTML=`<div class="wrap" id="ev"><div class="bar"><h2>📝 تسجيل الحسابات</h2></div>
+  $("#view").innerHTML=`<div class="wrap" id="ev"><div class="bar"><h2>📝 تسجيل الحسابات</h2>${entModeSeg()}</div>
     <div class="ent-nav"><button class="btn" id="en-p" aria-label="اليوم السابق">‹ ${dLbl(shift(-1))}</button>
       <label class="ent-day"><input type="date" id="en-d" value="${entDay}" max="${today}"><b>${dl}</b></label>
       <button class="btn" id="en-n" ${entDay>=today?"disabled":""} aria-label="اليوم الجاي">${entDay>=today?"اليوم":dLbl(shift(1))+" ›"}</button></div>
@@ -2474,6 +2477,7 @@ async function renderEntry(){
     <div id="enb"><div class="empty">جارٍ التحميل…</div></div>
     <div class="ent-foot"><span id="en-st" aria-live="polite"></span>${entDay<today?`<button class="btn primary" id="en-next">✓ خلصت هذا اليوم، روح لـ ${dLbl(shift(1))} ›</button>`:""}</div></div>`;
   const go=async d=>{if(entPending)await entPending; entDay=d; renderEntry()};
+  bindEntMode();
   $("#en-p").onclick=()=>go(shift(-1)); $("#en-n").onclick=()=>entDay<today&&go(shift(1));
   $("#en-d").onchange=e=>e.target.value&&go(e.target.value>today?today:e.target.value);
   if($("#en-next"))$("#en-next").onclick=()=>go(shift(1));
@@ -2522,6 +2526,43 @@ async function renderEntry(){
       try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{car_id:car,person_id:per,kind,amount:$("#eq-a",f).value,day:entDay,note:$("#eq-n",f).value,from_cash:s?s.value==="1":false}});f.remove();toast("انحفظ");go(entDay)}
       catch(er){btn.disabled=false;$("#eq-e",f).textContent=er.message}}});
   tot();
+}
+const entModeSeg=()=>`<div class="seg" role="radiogroup" aria-label="العرض">${[["day","📝 يوم بيوم"],["month","📅 سجل الشهر"]].map(([k,t])=>`<button type="button" role="radio" aria-checked="${entMode===k}" class="btn sm${entMode===k?" primary":""}" data-em="${k}">${t}</button>`).join("")}</div>`;
+const bindEntMode=()=>document.querySelectorAll("[data-em]").forEach(b=>b.onclick=async()=>{if(entPending)await entPending;entMode=b.dataset.em;renderEntry()});
+// the month, day by day: every day's accounts land on that day automatically (app trips, receipts, expenses) plus what was typed in
+async function renderMonthSheet(){
+  const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10); entMonth=entMonth||today.slice(0,7);
+  const mShift=n=>{const [y,mo]=entMonth.split("-").map(Number);return new Date(Date.UTC(y,mo-1+n,1)).toISOString().slice(0,7)};
+  const ml=new Date(entMonth+"-15T12:00:00Z").toLocaleDateString("ar-IQ",{month:"long",year:"numeric"});
+  $("#view").innerHTML=`<div class="wrap" id="ev"><div class="bar"><h2>📝 تسجيل الحسابات</h2>${entModeSeg()}</div>
+    <div class="ent-nav"><button class="btn" id="ms-p">‹ الشهر السابق</button><b style="text-align:center">${ml}</b><button class="btn" id="ms-n" ${entMonth>=today.slice(0,7)?"disabled":""}>الشهر الجاي ›</button></div>
+    <p class="note" style="margin:0 0 10px">كل يوم تنضاف حساباته عليه وحده بنهاية الشغل: سفرات التطبيق، والاستلامات، والمصاريف، واللي كتبته بإيدك. اضغط أي يوم حتى تفتحه وتضيف أو تعدّل.</p>
+    <div id="msb"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  bindEntMode();
+  $("#ms-p").onclick=()=>{entMonth=mShift(-1);renderMonthSheet()}; $("#ms-n").onclick=()=>{entMonth=mShift(1);renderMonthSheet()};
+  let r; try{r=await rpc("taxi_admin_month_days",{p_pin:PIN,p_month:entMonth+"-01"})}catch(e){$("#msb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const [y,mo]=entMonth.split("-").map(Number), nd=new Date(Date.UTC(y,mo,0)).getUTCDate();
+  const days=[];for(let d=1;d<=nd;d++){const k=entMonth+"-"+String(d).padStart(2,"0");if(k<=today)days.push(k)}
+  const cell={}; r.rows.forEach(x=>cell[x.d+"|"+x.car_id]=x);
+  const st={}; r.staff.forEach(x=>{(st[x.d]=st[x.d]||[]).push(x)});
+  const C=r.cars, tot={}; C.forEach(c=>tot[c.id]={f:0,k:0,e:0,a:0});
+  let cumF=0,cumK=0,cumE=0;
+  const rowsH=days.map(d=>{let f=0,k=0,e=0,a=0;
+    const cells=C.map(c=>{const x=cell[d+"|"+c.id];if(!x)return `<td class="ms-e">—</td>`;f+=x.fares;k+=x.received;e+=x.expenses;a+=x.advances;
+      const T=tot[c.id];T.f+=x.fares;T.k+=x.received;T.e+=x.expenses;T.a+=x.advances;
+      return `<td class="num ms-c"><span title="جاب">${x.fares?fmt(x.fares):"·"}</span><span class="ms-k" title="استلمت">${x.received?"💵 "+fmt(x.received):""}</span>${x.expenses||x.advances?`<span class="ms-x">${x.expenses?"💸"+fmt(x.expenses):""}${x.advances?" 🤝"+fmt(x.advances):""}</span>`:""}</td>`}).join("");
+    const sx=(st[d]||[]); sx.forEach(z=>{if(z.kind==="expense")e+=z.amount;else a+=z.amount});
+    cumF+=f;cumK+=k;cumE+=e;
+    const empty=!f&&!k&&!e&&!a, dl=new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
+    return `<tr class="${empty?"ms-empty":""}${d===today?" ms-today":""}" data-day="${d}" tabindex="0"><th scope="row">${dl}${d===today?` <small class="pill s-warn">اليوم</small>`:""}</th>${cells}
+      <td class="num"><b>${fmt(f)}</b></td><td class="num">${fmt(k)}</td><td class="num">${e||a?fmt(e+a):"—"}${sx.length?`<br><small>${sx.map(z=>esc(z.name)).join("، ")}</small>`:""}</td><td class="num"><b style="color:${f-k>0?"var(--bad)":"var(--ok)"}">${fmt(f-k)}</b></td><td class="num ms-cum">${fmt(cumF)}<br><small>استلمت ${fmt(cumK)}</small></td></tr>`}).join("");
+  const TF=Object.values(tot).reduce((a,x)=>a+x.f,0), TK=Object.values(tot).reduce((a,x)=>a+x.k,0);
+  $("#msb").innerHTML=`<div class="kpis"><div class="kpi"><small>جابوا هذا الشهر</small><b>${dinar(TF)}</b></div><div class="kpi"><small>استلمت</small><b>${dinar(TK)}</b></div><div class="kpi"><small>مصاريف وسلف</small><b>${dinar(cumE+r.staff.filter(z=>z.kind==="advance").reduce((a,z)=>a+z.amount,0)+r.rows.reduce((a,x)=>a+x.advances,0))}</b></div><div class="kpi ${TF-TK>0?"warn":""}"><small>الباقي بذمّة السواق</small><b>${dinar(TF-TK)}</b></div></div>
+    <div class="tbl-wrap"><table class="ms-t"><thead><tr><th>اليوم</th>${C.map(c=>`<th>${esc(c.driver_name.split(" ")[0])}</th>`).join("")}<th>جابوا</th><th>استلمت</th><th>مصاريف/سلف</th><th>باقي اليوم</th><th>من أول الشهر</th></tr></thead>
+    <tbody>${rowsH}</tbody>
+    <tfoot><tr><th>المجموع</th>${C.map(c=>{const T=tot[c.id];return `<td class="num ms-c"><b>${fmt(T.f)}</b><span class="ms-k">💵 ${fmt(T.k)}</span><span class="ms-x" style="color:${T.f-T.k>0?"var(--bad)":"var(--ok)"}">باقي ${fmt(T.f-T.k)}</span></td>`}).join("")}<td class="num"><b>${fmt(TF)}</b></td><td class="num"><b>${fmt(TK)}</b></td><td></td><td class="num"><b>${fmt(TF-TK)}</b></td><td></td></tr></tfoot></table></div>
+    <p class="note">بكل خانة سائق: الرقم الأول شكد جاب، و💵 شكد استلمت منه بذاك اليوم.</p>`;
+  $("#msb").querySelectorAll("[data-day]").forEach(tr=>{const open=()=>{entDay=tr.dataset.day;entMode="day";renderEntry()};tr.onclick=open;tr.onkeydown=e=>{if(e.key==="Enter")open()}});
 }
 // days before the system was used: per driver, boxes for what he brought each day and what we received from him
 async function manualDays(){

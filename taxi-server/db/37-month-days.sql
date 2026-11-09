@@ -1,0 +1,4 @@
+-- 37: taxi_admin_month_days(pin, month) — owner only. Every day of the month, per driver: what he brought
+-- (done trips incl. manual entries, minus points), what we received (by manual_day or receipt date), expenses, advances;
+-- plus staff expenses/advances. Applied as migration taxi_month_days (see Supabase).
+-- Data 2026-11-09: the old entries were moved back from 31/10 to 1/11 at the owner's request.
