@@ -570,7 +570,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091314";
+const BUILD="202611091937";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2886,7 +2886,7 @@ async function renderAdmins(){
   let list; try{list=await rpc("taxi_admin_admins",{p_pin:PIN})}catch(e){box.innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
   const owner=me&&me.owner, dt=ts=>ts?new Date(ts).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"}):"ما دخل بعد";
   box.innerHTML=`<ul class="log"><li><span class="pill s-ok">رئيسي</span><span><b>المدير</b>${owner?" (إنت)":""}</span><span></span></li>
-    ${list.map(a=>`<li><span class="pill ${a.active?"s-ok":"s-idle"}">${a.active?"فعّال":"موقوف"}</span><span><b>${esc(a.name)}</b>${me&&me.id===a.id?" (إنت)":""} <span class="pill ${a.perms==="drivers"?"s-warn":"s-ok"}">${a.perms==="drivers"?"السواق والطلبات بس":"كل الصلاحيات"}</span><br><small style="color:var(--muted)">آخر دخول: ${dt(a.last_seen)}</small></span>
+    ${list.map(a=>`<li><span class="pill ${a.active?"s-ok":"s-idle"}">${a.active?"فعّال":"موقوف"}</span><span><b>${esc(a.name)}</b>${me&&me.id===a.id?" (إنت)":""} <span class="pill ${a.perms==="drivers"?"s-warn":"s-ok"}">${a.perms==="drivers"?"السواق والطلبات بس":"كل الصلاحيات"}</span><br><small style="color:var(--muted)">${a.phone?`📞 <span dir="ltr">${esc(a.phone)}</span> · `:""}آخر دخول: ${dt(a.last_seen)}</small></span>
       ${owner?`<span class="acts"><select class="btn sm" data-ap="${a.id}" aria-label="صلاحيات ${esc(a.name)}"><option value="full" ${a.perms!=="drivers"?"selected":""}>كل الصلاحيات</option><option value="drivers" ${a.perms==="drivers"?"selected":""}>السواق والطلبات بس</option></select><button class="btn sm" data-aa="reset" data-id="${a.id}">رمز جديد</button><button class="btn sm" data-aa="toggle" data-id="${a.id}">${a.active?"إيقاف":"تفعيل"}</button><button class="btn sm danger" data-aa="delete" data-id="${a.id}">حذف</button></span>`:"<span></span>"}</li>`).join("")}</ul>
     ${owner?`<form id="af" style="display:flex;flex-direction:column;gap:12px;margin-top:12px"><div class="grid2">
       <div class="field"><label for="a-name">اسم المسؤول</label><input id="a-name" required placeholder="مثال: أبو علي"></div>
