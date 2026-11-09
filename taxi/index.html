@@ -532,7 +532,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091152";
+const BUILD="202611091155";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2787,13 +2787,15 @@ function showTrip(t,force){
   const same=key===JSON.stringify(ck(curTrip));
   // a running trip card keeps its own live timer and the typed fare; redraw it only when something changes
   if(same&&(!force||(t&&t.status==="started"&&$("#tr-end")))) return;
-  // don't redraw the empty card under the driver's fingers while he types a zone name
-  if(same&&!t&&document.activeElement&&box.contains(document.activeElement)&&document.activeElement.tagName==="INPUT") return;
+  // the empty card (zone buttons) is redrawn only when something on it really changes,
+  // so the zone list doesn't jump back to the top while the driver scrolls it
+  if(!t&&$("#tr-zones")){const ek=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT]);
+    if(ek===emptyKey){const eta=$("#back-eta");if(eta&&today.ret){const B=today.base&&today.base.lat?today.base:BASE_DEF,fx=lastFix&&lastFix.coords,la=fx?fx.latitude:today.lat,lo=fx?fx.longitude:today.lng;if(la!=null)eta.textContent=backEta(la,lo,B)}return}}
   curTrip=t;
   if(!ON&&!EXT){box.innerHTML="";return}
   const sum=`<div class="stats" style="margin-top:10px"><div class="stat"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)}</b></div><div class="stat"><small>هذا الأسبوع</small><b>${today.wk||0} سفرة</b></div>${today.rating&&today.rating.count?`<div class="stat"><small>تقييم الزباين</small><b>⭐ ${today.rating.avg} <small>(${today.rating.count})</small></b></div>`:""}</div>`+moneyCard();
   const B=today.base&&today.base.lat?today.base:BASE_DEF, fx=lastFix&&lastFix.coords, myLat=fx?fx.latitude:today.lat, myLng=fx?fx.longitude:today.lng;
-  const back=!t&&today.ret?`<div class="trip back"><h3>🔙 راجع لـ${esc(B.name)}</h3><p>${myLat!=null?`توصل بعد ~<b>${backEta(myLat,myLng,B)} دقيقة</b> (${baseKm(myLat,myLng,B).toFixed(1)} كم). `:""}الطريق للمجمع ما ينحسب «بدون سفرة».</p><button class="btn primary big" id="tr-ready">✅ وصلت المجمع، جاهز للكراوي</button></div>`
+  const back=!t&&today.ret?`<div class="trip back"><h3>🔙 راجع لـ${esc(B.name)}</h3><p>${myLat!=null?`توصل بعد ~<b><span id="back-eta">${backEta(myLat,myLng,B)}</span> دقيقة</b> (${baseKm(myLat,myLng,B).toFixed(1)} كم). `:""}الطريق للمجمع ما ينحسب «بدون سفرة».</p><button class="btn primary big" id="tr-ready">✅ وصلت المجمع، جاهز للكراوي</button></div>`
     :!t&&today.ready?`<p class="note" style="margin:0">✅ إنت جاهز بالمجمع من ${hm(today.ready)}.</p>`:"";
   if(!t){box.innerHTML=`${back}<div class="trip"><h3>ماكو سفرة</h3><p>إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.</p>
       <div class="field"><label for="tr-zq">إلى وين؟ اضغط على المنطقة</label><input id="tr-zq" type="search" placeholder="🔎 ابحث عن منطقة" autocomplete="off" value="${esc(drvQ)}"></div>
@@ -2802,12 +2804,14 @@ function showTrip(t,force){
       <button class="btn primary big" id="tr-start">بدء سفرة</button>
       <button class="btn big" id="tr-sp">⭐ زبون خاص (بدون كروة)</button>
       <button class="btn big" id="tr-line">🛣 رايح أوصل خط</button></div>${sum}`;
+    emptyKey=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT]);
     // zones as big buttons: one tap picks it; the choice survives the screen refreshing every few seconds
     const zs=today.zones||[];
-    const drawZ=()=>{const q=drvQ.trim();const L=zs.filter(z=>!q||z.name.includes(q));
+    const drawZ=()=>{const q=drvQ.trim();const L=zs.filter(z=>!q||z.name.includes(q));const zb=$("#tr-zones"),st=zb.scrollTop;
       $("#tr-zones").innerHTML=L.map(z=>`<button type="button" role="radio" aria-checked="${drvZone===z.id}" class="zchip${drvZone===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}<small>${fmt(z.price)}</small></button>`).join("")
         +`<button type="button" role="radio" aria-checked="${drvZone===0}" class="zchip other${drvZone===0?" on":""}" data-z="0">✏️ منطقة أخرى</button>`;
       $("#tr-zones").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{drvZone=+b.dataset.z;$("#tr-to-f").hidden=drvZone!==0;if(drvZone===0)setTimeout(()=>$("#tr-to").focus(),30);drawZ()});
+      zb.scrollTop=st;
       const z=zs.find(x=>x.id===drvZone);$("#tr-start").textContent=z?`🚕 بدء سفرة لـ ${z.name}`:"🚕 بدء سفرة"};
     drawZ();
     $("#tr-zq").oninput=e=>{drvQ=e.target.value;drawZ()};
@@ -2891,7 +2895,7 @@ function showTrip(t,force){
     chgT=setInterval(()=>{const left=Math.max(0,s0-Math.floor((Date.now()-t0)/1000)),el=$("#chg-left");if(!el)return clearInterval(chgT);
       el.textContent="0:"+String(left).padStart(2,"0");if(left<=0){clearInterval(chgT);setTimeout(()=>{curTrip=undefined;if(EXT)setExt(true);else refreshTrip()},1500)}},1000)}
 }
-let waitT, chgT, drvZone=null, drvQ="", drvTo="";
+let waitT, chgT, drvZone=null, drvQ="", drvTo="", emptyKey="";
 // "تسكير": the customer didn't come down; the office approves or refuses with a reason
 function noshowBox(t){
   if(t.noshow_status==="pending") return `<div class="spbox wait"><b>⏳ طلب التسكير عند الإدارة</b><small>${esc(t.noshow_note||"")}</small><small>إذا نزل الزبون دوس «انطلاق» عادي.</small></div>`;
