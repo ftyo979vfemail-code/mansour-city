@@ -561,7 +561,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091250";
+const BUILD="202611091253";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2254,8 +2254,11 @@ async function renderReceipts(){
     <div id="rcb"><div class="empty">جارٍ التحميل…</div></div></div>`;
   $("#rc-car").onchange=e=>{rcpCar=e.target.value;renderReceipts()};
   $("#rc-lg").onclick=()=>{const act=cars.filter(c=>c.active);if(rcpCar)return openLedger(rcpCar);
-    const m=modal(`<h3>💸 مصروف أو سلفة لمنو؟</h3><div class="zones">${act.map(c=>`<button type="button" class="btn" data-lc="${c.id}">${esc(c.driver_name)}</button>`).join("")}</div><div class="row"><button class="btn" id="lc-x">رجوع</button></div>`);
-    $("#lc-x",m).onclick=()=>m.remove(); m.querySelectorAll("[data-lc]").forEach(b=>b.onclick=()=>{m.remove();openLedger(b.dataset.lc)})};
+    const m=modal(`<h3>💸 مصروف أو سلفة لمنو؟</h3><h4 style="margin:0">السواق</h4><div class="zones">${act.map(c=>`<button type="button" class="btn" data-lc="${c.id}">${esc(c.driver_name)}</button>`).join("")}</div>
+      <h4 style="margin:0">الموظفين</h4><div class="zones" id="lc-p"><small class="note">…</small></div><div class="row"><button class="btn" id="lc-x">رجوع</button></div>`);
+    $("#lc-x",m).onclick=()=>m.remove(); m.querySelectorAll("[data-lc]").forEach(b=>b.onclick=()=>{m.remove();openLedger(b.dataset.lc)});
+    rpc("taxi_admin_ledger_people",{p_pin:PIN}).then(P=>{$("#lc-p",m).innerHTML=P.length?P.map(x=>`<button type="button" class="btn" data-lp="${x.id}">👤 ${esc(x.name)}</button>`).join(""):`<small class="note">ماكو موظفين</small>`;
+      m.querySelectorAll("[data-lp]").forEach(b=>b.onclick=()=>{m.remove();openPerson(+b.dataset.lp)})}).catch(e=>{$("#lc-p",m).textContent=e.message})};
   $("#rc-cal").onclick=async()=>{let marks={};try{marks=await rpc("taxi_admin_record_days",{p_pin:PIN,p_car:rcpCar||null})}catch{}
     rangePicker(rcpF,rcpT,marks,(f,t)=>{rcpF=f;rcpT=t;renderReceipts()})};
   document.querySelectorAll("[data-rq]").forEach(b=>b.onclick=()=>{const d=new Date(Date.now()+3*36e5);rcpT=today;
@@ -2271,14 +2274,14 @@ async function renderReceipts(){
   const kDay=k=>k.manual_day||bgd(k.at);
   // an office-paid expense comes off the same driver's receipt of the SAME day; if that day has none, off the next receipt after it — never an older day
   const spent={}, unsp={};
-  [...new Set(LG.map(i=>i.car_id))].forEach(car=>{
+  [...new Set(LG.filter(i=>i.car_id).map(i=>i.car_id))].forEach(car=>{
     const rs=L.filter(k=>k.car_id===car).sort((a,b)=>kDay(a)<kDay(b)?-1:kDay(a)>kDay(b)?1:new Date(a.at)-new Date(b.at)).map(k=>({k,d:kDay(k),left:k.amount}));
     LG.filter(i=>i.car_id===car&&i.kind==="expense"&&!i.from_cash).sort((a,b)=>a.day<b.day?-1:a.day>b.day?1:a.id-b.id).forEach(i=>{let need=i.amount;
       for(const r of rs){if(need<=0)break;if(r.d<i.day)continue;const take=Math.min(r.left,need);if(take<=0)continue;r.left-=take;need-=take;(spent[r.k.id]=spent[r.k.id]||[]).push({amount:take,note:i.note,day:i.day,full:i.amount})}
       if(need>0)unsp[i.id]=need})});
   const lgItem=i=>`<li class="${i.kind}"><span class="lg-amt">${i.kind==="advance"?"🤝":"💸"} ${fmt(i.amount)}</span>
-      <span><b>${i.kind==="advance"?"سلفة":"مصروف"} · ${esc(i.driver_name)}</b><br><span class="lg-why">${i.note?esc(i.note):"<i>بدون سبب</i>"}</span><br><small style="color:var(--muted)">${i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده (انخصمت من اللي لازم يسلّمه)":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده (انخصم من اللي لازم يسلّمه)":unsp[i.id]?`ينخصم من أول استلام إله من هذا اليوم وطالع${unsp[i.id]<i.amount?` (باقي ${fmt(unsp[i.id])})`:""}`:"انصرف من استلام هذا اليوم")}</small></span>
-      <span class="acts"><button class="btn sm" data-lgo="${i.car_id}">${OWNER()?"تعديل":"التفاصيل"}</button></span></li>`;
+      <span><b>${i.kind==="advance"?"سلفة":"مصروف"} · ${esc(i.driver_name)}</b>${i.staff?` <span class="pill s-idle">موظف</span>`:""}<br><span class="lg-why">${i.note?esc(i.note):"<i>بدون سبب</i>"}</span><br><small style="color:var(--muted)">${i.staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده (انخصمت من اللي لازم يسلّمه)":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده (انخصم من اللي لازم يسلّمه)":unsp[i.id]?`ينخصم من أول استلام إله من هذا اليوم وطالع${unsp[i.id]<i.amount?` (باقي ${fmt(unsp[i.id])})`:""}`:"انصرف من استلام هذا اليوم")}</small></span>
+      <span class="acts"><button class="btn sm" ${i.staff?`data-lgp="${i.person_id}"`:`data-lgo="${i.car_id}"`}>${OWNER()?"تعديل":"التفاصيل"}</button></span></li>`;
   const rcItem=k=>{const tr=k.trips, first=tr[0], last=tr[tr.length-1];
       const sp=spent[k.id]||[], spT=sp.reduce((a,x)=>a+x.amount,0);
       return `<details class="rcpt"><summary><span class="rc-amt">💵 ${dinar(k.amount)}${spT?`<small class="rc-net">− صرف ${fmt(spT)}<br>= صافي <b>${fmt(k.amount-spT)}</b></small>`:""}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>${k.manual_day?"استلام قديم (إدخال يدوي)":tm(k.at)}${who(k.note)&&!k.manual_day?` · استلمه ${esc(who(k.note))}`:""}</small></span>
@@ -2308,6 +2311,7 @@ async function renderReceipts(){
   $("#rcb").querySelectorAll("[data-rcd]").forEach(b=>b.onclick=()=>{const k=byId(b.dataset.rcd);
     confirmBox(`تحذف استلام ${dinar(k.amount)} من ${esc(k.driver_name)}؟ المبلغ يرجع بذمّته.`,"🗑 حذف",async()=>{try{await rpc("taxi_admin_cash_edit",{p_pin:PIN,p_id:k.id,p_amount:null,p_note:"",p_delete:true});toast("انحذف");renderReceipts()}catch(e){toast(e.message)}},"رجوع")});
   $("#rcb").querySelectorAll("[data-lgo]").forEach(b=>b.onclick=()=>openLedger(b.dataset.lgo));
+  $("#rcb").querySelectorAll("[data-lgp]").forEach(b=>b.onclick=()=>openPerson(+b.dataset.lgp));
   $("#rcb").querySelectorAll("[data-rcl]").forEach(b=>b.onclick=()=>openLedger(b.dataset.rcl));
 }
 /* ---------- monthly inventory (main manager only) ---------- */
@@ -2351,20 +2355,23 @@ async function renderInventory(){
 async function openLedger(id){const c=cars.find(z=>z.id===id);if(!c)return;
   if(OWNER()){try{const r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_day:null,p_period:"month"});const x=r.rows.find(z=>z.id===id);if(x)return driverLedger(x)}catch{}}
   driverLedger({id:c.id,plate:c.plate,driver_name:c.driver_name})}
+async function openPerson(id){let P=[];try{P=await rpc("taxi_admin_ledger_people",{p_pin:PIN})}catch(e){return toast(e.message)}
+  const p=P.find(z=>z.id===id); if(p) driverLedger({person_id:p.id,driver_name:p.name})}
 async function driverLedger(x){
   const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10);
-  const m=modal(`<h3>${plateHTML(x.plate)} ${esc(x.driver_name)}</h3>
+  const staff=!!x.person_id;
+  const m=modal(`<h3>${staff?"👤":plateHTML(x.plate)} ${esc(x.driver_name)}${staff?` <span class="pill s-idle">موظف</span>`:""}</h3>
     ${x.cash==null?"":`<div class="calc"><div><span>جمع (كاش)</span><b>${dinar(x.cash)}</b></div><div><span>مصاريف</span><b>${dinar(x.expenses||0)}</b></div><div><span>سلف بهاي الفترة</span><b>${dinar(x.advances||0)}</b></div><div><span>استلمنا</span><b>${dinar(x.received)}</b></div><div class="tot"><span>الباقي بذمّته</span><b>${dinar(x.closing)}</b></div></div>`}
-    <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button class="btn primary" id="lg-exp">💸 مصروف</button><button class="btn primary" id="lg-adv">🤝 سلفة</button>${OWNER()?`<button class="btn" id="lg-days">✍️ تعديل الأيام القديمة</button>`:""}</div>
+    <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button class="btn primary" id="lg-exp">💸 مصروف</button><button class="btn primary" id="lg-adv">🤝 سلفة</button>${OWNER()&&!staff?`<button class="btn" id="lg-days">✍️ تعديل الأيام القديمة</button>`:""}</div>
     <div id="lg-list"><div class="empty">جارٍ التحميل…</div></div>
     <div class="row"><button class="btn" id="lg-x">سدّ</button></div>`);
   m.classList.add("wide");
   let changed=false; $("#lg-x",m).onclick=()=>{m.remove();if(changed)(tab==="rcp"?renderReceipts:renderInventory)()};
   if($("#lg-days",m))$("#lg-days",m).onclick=()=>{m.remove();manualDays()};
-  const load=async()=>{let r;try{r=await rpc("taxi_admin_ledger_list",{p_pin:PIN,p_car:x.id})}catch(e){$("#lg-list",m).innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const load=async()=>{let r;try{r=staff?await rpc("taxi_admin_ledger_person_list",{p_pin:PIN,p_person:x.person_id}):await rpc("taxi_admin_ledger_list",{p_pin:PIN,p_car:x.id})}catch(e){$("#lg-list",m).innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
     const dd=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
     $("#lg-list",m).innerHTML=`<p class="note" style="margin:0">كل السلف عليه: <b>${dinar(r.advances_total)}</b> · كل المصاريف: <b>${dinar(r.expenses_total)}</b></p>
-      ${r.items.length?`<ul class="log">${r.items.map(i=>`<li><span class="pill ${i.kind==="advance"?"s-warn":"s-idle"}">${i.kind==="advance"?"🤝 سلفة":"💸 مصروف"}</span><span><b class="num">${fmt(i.amount)}</b> · ${dd(i.day)}${i.note?`<br><small>${esc(i.note)}</small>`:""}<br><small style="color:var(--muted)">${i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده":"انصرف من المبلغ المسلّم")}</small></span>${OWNER()?`<span class="acts"><button class="btn sm" data-le="${i.id}">تعديل</button><button class="btn sm danger" data-ld="${i.id}">حذف</button></span>`:`<small style="color:var(--muted)">${esc(i.by||"")}</small>`}</li>`).join("")}</ul>`:`<p class="note">ماكو مصاريف ولا سلف.</p>`}`;
+      ${r.items.length?`<ul class="log">${r.items.map(i=>`<li><span class="pill ${i.kind==="advance"?"s-warn":"s-idle"}">${i.kind==="advance"?"🤝 سلفة":"💸 مصروف"}</span><span><b class="num">${fmt(i.amount)}</b> · ${dd(i.day)}${i.note?`<br><small>${esc(i.note)}</small>`:""}<br><small style="color:var(--muted)">${staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده":"انصرف من المبلغ المسلّم")}</small></span>${OWNER()?`<span class="acts"><button class="btn sm" data-le="${i.id}">تعديل</button><button class="btn sm danger" data-ld="${i.id}">حذف</button></span>`:`<small style="color:var(--muted)">${esc(i.by||"")}</small>`}</li>`).join("")}</ul>`:`<p class="note">ماكو مصاريف ولا سلف.</p>`}`;
     $("#lg-list",m).querySelectorAll("[data-le]").forEach(b=>b.onclick=()=>form(r.items.find(i=>i.id===+b.dataset.le)));
     $("#lg-list",m).querySelectorAll("[data-ld]").forEach(b=>b.onclick=async()=>{if(b.dataset.sure!=="1"){b.dataset.sure="1";b.textContent="متأكد؟";return}
       try{await rpc("taxi_admin_ledger_delete",{p_pin:PIN,p_id:+b.dataset.ld});changed=true;toast("انحذف");load()}catch(e){toast(e.message)}})};
@@ -2373,11 +2380,11 @@ async function driverLedger(x){
       <div class="field"><label for="lf-a">المبلغ (دينار)</label><input id="lf-a" inputmode="numeric" value="${it?it.amount:""}" style="font:600 22px var(--mono);text-align:center"></div>
       <div class="field"><label for="lf-d">التاريخ</label><input id="lf-d" type="date" value="${it?it.day:today}" max="${today}"></div>
       <div class="field"><label for="lf-n">ملاحظة</label><input id="lf-n" maxlength="200" value="${it?esc(it.note):""}" placeholder="${adv?"مثال: سلفة لظرف عائلي":"مثال: بانزين، غسل، تصليح إطار"}"></div>
-      ${adv?`<fieldset class="md-rec"><legend>منين أخذها؟</legend><label><input type="radio" name="lf-s" value="1" ${!it||it.from_cash?"checked":""}> من الكاش اللي بيده (تنخصم من اللي لازم يسلّمه)</label><label><input type="radio" name="lf-s" value="0" ${it&&!it.from_cash?"checked":""}> من المكتب</label></fieldset>`:`<fieldset class="md-rec"><legend>منو دفعه؟</legend><label><input type="radio" name="lf-s" value="0" ${!it||!it.from_cash?"checked":""}> انصرف من المبلغ اللي سلّمه للإدارة (حسابه ما يتغيّر، ينقص صافي الإدارة)</label><label><input type="radio" name="lf-s" value="1" ${it&&it.from_cash?"checked":""}> السائق صرفه من الكاش اللي بيده (ينخصم من اللي لازم يسلّمه)</label></fieldset>`}
+      ${staff?"":adv?`<fieldset class="md-rec"><legend>منين أخذها؟</legend><label><input type="radio" name="lf-s" value="1" ${!it||it.from_cash?"checked":""}> من الكاش اللي بيده (تنخصم من اللي لازم يسلّمه)</label><label><input type="radio" name="lf-s" value="0" ${it&&!it.from_cash?"checked":""}> من المكتب</label></fieldset>`:`<fieldset class="md-rec"><legend>منو دفعه؟</legend><label><input type="radio" name="lf-s" value="0" ${!it||!it.from_cash?"checked":""}> انصرف من المبلغ اللي سلّمه للإدارة (حسابه ما يتغيّر، ينقص صافي الإدارة)</label><label><input type="radio" name="lf-s" value="1" ${it&&it.from_cash?"checked":""}> السائق صرفه من الكاش اللي بيده (ينخصم من اللي لازم يسلّمه)</label></fieldset>`}
       <div class="err" id="lf-e"></div><div class="row"><button class="btn" id="lf-x">رجوع</button><button class="btn primary" id="lf-ok">حفظ</button></div>`);
     $("#lf-x",f).onclick=()=>f.remove();
     $("#lf-ok",f).onclick=async()=>{const s=f.querySelector('[name="lf-s"]:checked');
-      try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{id:it?it.id:"",car_id:x.id,kind,amount:$("#lf-a",f).value,day:$("#lf-d",f).value,note:$("#lf-n",f).value,from_cash:s?s.value==="1":true}});f.remove();changed=true;toast("انحفظ");load()}catch(e){$("#lf-e",f).textContent=e.message}}};
+      try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{id:it?it.id:"",car_id:staff?"":x.id,person_id:staff?x.person_id:"",kind,amount:$("#lf-a",f).value,day:$("#lf-d",f).value,note:$("#lf-n",f).value,from_cash:s?s.value==="1":true}});f.remove();changed=true;toast("انحفظ");load()}catch(e){$("#lf-e",f).textContent=e.message}}};
   $("#lg-exp",m).onclick=()=>form(null,"expense"); $("#lg-adv",m).onclick=()=>form(null,"advance");
   load();
 }
