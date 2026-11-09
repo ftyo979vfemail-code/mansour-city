@@ -246,6 +246,12 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 .hb i{display:block;height:12px;border-radius:6px;background:var(--amber);min-width:4px}
 .kpi.warn{border-color:var(--amber)}
 .spbar,.depbar{flex-direction:column;align-items:stretch}
+.lgl{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:8px}
+.lgl li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;border:1px solid var(--line);border-inline-start:4px solid var(--warn);border-radius:12px;padding:10px 12px;background:var(--panel)}
+.lgl li.advance{border-inline-start-color:var(--amber)}
+.lg-amt{font:700 17px var(--mono);color:var(--bad)}
+.lg-why{font-weight:600}
+@media(max-width:560px){.lgl li{grid-template-columns:1fr}}
 .rcpt{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px;overflow:hidden}
 .rcpt summary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
 .rcpt summary::-webkit-details-marker{display:none}
@@ -532,7 +538,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091155";
+const BUILD="202611091158";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2192,13 +2198,19 @@ async function renderReceipts(){
     <div id="rcb"><div class="empty">جارٍ التحميل…</div></div></div>`;
   $("#rc-car").onchange=e=>{rcpCar=e.target.value;renderReceipts()};
   $("#rc-f").onchange=e=>{rcpF=e.target.value;renderReceipts()}; $("#rc-t").onchange=e=>{rcpT=e.target.value;renderReceipts()};
-  let L; try{L=await rpc("taxi_admin_receipts",{p_pin:PIN,p_car:rcpCar||null,p_from:rcpF,p_to:rcpT})}catch(e){$("#rcb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  let L, LG; try{[L,LG]=await Promise.all([rpc("taxi_admin_receipts",{p_pin:PIN,p_car:rcpCar||null,p_from:rcpF,p_to:rcpT}),rpc("taxi_admin_ledger_range",{p_pin:PIN,p_car:rcpCar||null,p_from:rcpF,p_to:rcpT})])}catch(e){$("#rcb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
   const dT=ts=>new Date(ts).toLocaleString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric",hour:"numeric",minute:"2-digit"});
   const dD=ts=>new Date(ts).toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
   const tm=ts=>new Date(ts).toLocaleTimeString("ar-IQ",{hour:"numeric",minute:"2-digit"});
   const who=n=>{const p=(n||"").split("·");return p.length>1?p[p.length-1].replace("استلمه","").trim():""};
-  const total=L.reduce((a,k)=>a+k.amount,0);
-  $("#rcb").innerHTML=`<div class="kpis"><div class="kpi"><small>استلمنا بهاي الفترة</small><b>${dinar(total)}</b><small>${L.length} استلام</small></div></div>
+  const total=L.reduce((a,k)=>a+k.amount,0), exO=LG.filter(i=>i.kind==="expense"&&!i.from_cash).reduce((a,i)=>a+i.amount,0), exD=LG.filter(i=>i.kind==="expense"&&i.from_cash).reduce((a,i)=>a+i.amount,0), adv=LG.filter(i=>i.kind==="advance").reduce((a,i)=>a+i.amount,0);
+  const ledgerHTML=LG.length?`<h3 style="margin:4px 0 8px">💸 المصاريف والسلف بهاي الفترة</h3><ul class="lgl">${LG.map(i=>`<li class="${i.kind}"><span class="lg-amt">${i.kind==="advance"?"🤝":"💸"} ${fmt(i.amount)}</span>
+      <span><b>${i.kind==="advance"?"سلفة":"مصروف"} · ${esc(i.driver_name)}</b> <small>${dD(i.day+"T12:00:00Z")}</small><br><span class="lg-why">${i.note?esc(i.note):"<i>بدون سبب</i>"}</span><br><small style="color:var(--muted)">${i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده (انخصمت من اللي لازم يسلّمه)":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده (انخصم من اللي لازم يسلّمه)":"انصرف من المبلغ المسلّم للإدارة")}</small></span>
+      ${OWNER()?`<span class="acts"><button class="btn sm" data-lgo="${i.car_id}">تعديل</button></span>`:""}</li>`).join("")}</ul>`:"";
+  $("#rcb").innerHTML=`<div class="kpis"><div class="kpi"><small>استلمنا بهاي الفترة</small><b>${dinar(total)}</b><small>${L.length} استلام</small></div>
+    ${exO||exD||adv?`<div class="kpi warn"><small>المصاريف والسلف</small><b>${dinar(exO+exD+adv)}</b><small>${[exO?`من المبلغ المسلّم ${fmt(exO)}`:"",exD?`من كاش السواق ${fmt(exD)}`:"",adv?`سلف ${fmt(adv)}`:""].filter(Boolean).join(" · ")}</small></div>
+    <div class="kpi"><small>الصافي عند الإدارة</small><b>${dinar(total-exO)}</b><small>اللي استلمناه − المصاريف اللي انصرفت منه</small></div>`:""}</div>
+    ${ledgerHTML}${L.length?`<h3 style="margin:12px 0 8px">💵 الاستلامات</h3>`:""}
     ${L.length?L.map(k=>{const tr=k.trips, first=tr[0], last=tr[tr.length-1];
       return `<details class="rcpt"><summary><span class="rc-amt">💵 ${dinar(k.amount)}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>${k.manual_day?`استلام قديم ليوم ${dD(k.manual_day+"T12:00:00Z")}`:dT(k.at)}${who(k.note)&&!k.manual_day?` · استلمه ${esc(who(k.note))}`:""}</small></span>
         <span class="rc-cov">${tr.length?`غطّى ${tr.length} ${tr.length===1?"سفرة":"سفرات"}<br><small>${dD(first.ended_at)}${tr.length>1&&dD(first.ended_at)!==dD(last.ended_at)?` — ${dD(last.ended_at)}`:""}</small>`:"ما غطّى سفرات"}${k.unallocated>0?`<br><small style="color:var(--ok)">+ ${fmt(k.unallocated)} زيادة (رصيد إله)</small>`:""}</span></summary>
@@ -2215,6 +2227,7 @@ async function renderReceipts(){
     $("#ce-ok",m).onclick=async()=>{try{await rpc("taxi_admin_cash_edit",{p_pin:PIN,p_id:k.id,p_amount:parseInt(($("#ce-a",m).value||"").replace(/\D/g,""),10)||0,p_note:$("#ce-n",m).value});m.remove();toast("انعدل الاستلام");renderReceipts()}catch(e){$("#ce-e",m).textContent=e.message}}});
   $("#rcb").querySelectorAll("[data-rcd]").forEach(b=>b.onclick=()=>{const k=byId(b.dataset.rcd);
     confirmBox(`تحذف استلام ${dinar(k.amount)} من ${esc(k.driver_name)}؟ المبلغ يرجع بذمّته.`,"🗑 حذف",async()=>{try{await rpc("taxi_admin_cash_edit",{p_pin:PIN,p_id:k.id,p_amount:null,p_note:"",p_delete:true});toast("انحذف");renderReceipts()}catch(e){toast(e.message)}},"رجوع")});
+  $("#rcb").querySelectorAll("[data-lgo]").forEach(b=>b.onclick=async()=>{try{const r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_day:null,p_period:"month"});const x=r.rows.find(z=>z.id===b.dataset.lgo);if(x)driverLedger(x)}catch(e){toast(e.message)}});
   $("#rcb").querySelectorAll("[data-rcl]").forEach(b=>b.onclick=async()=>{try{const r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_day:null,p_period:"month"});const x=r.rows.find(z=>z.id===b.dataset.rcl);if(x)driverLedger(x)}catch(e){toast(e.message)}});
 }
 /* ---------- monthly inventory (main manager only) ---------- */
