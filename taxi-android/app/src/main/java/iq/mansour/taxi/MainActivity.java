@@ -398,7 +398,7 @@ public class MainActivity extends Activity {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
         JSONObject cxk = st.optJSONObject("cancelled");
-        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optString("noshow_status") + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money"));
+        String key = (t == null ? "none:" + st.optString("returning_since") + st.optString("ready_at") + ":" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optString("noshow_status") + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money"));
         if (key.equals(tripKey)) return;
         tripKey = key;
         h.removeCallbacks(waitTick);
@@ -418,6 +418,27 @@ public class MainActivity extends Activity {
                 cv.setBackground(box(0xFFFDECEA, 0xFFB42318, 12));
                 cv.setPadding(dp(12), dp(10), dp(12), dp(10));
                 card.addView(cv, full());
+                card.addView(space(8));
+            }
+            if (!st.optString("returning_since").isEmpty() && !st.isNull("returning_since")) {
+                JSONObject b = st.optJSONObject("base");
+                String bn = b == null ? "المجمع" : b.optString("name", "المجمع");
+                String eta = "";
+                if (b != null && !st.isNull("last_lat")) {
+                    double km = km(st.optDouble("last_lat"), st.optDouble("last_lng"), b.optDouble("lat"), b.optDouble("lng"));
+                    eta = "توصل بعد ~" + Math.max(1, Math.round(km * 1.35 / 25 * 60)) + " دقيقة (" + String.format(java.util.Locale.US, "%.1f", km) + " كم). ";
+                }
+                TextView rt = text("🔙 راجع لـ" + bn + "\n" + eta + "الطريق للمجمع ما ينحسب «بدون سفرة».", 15, OK, true);
+                rt.setBackground(box(0xFFE7F6EE, OK, 12));
+                rt.setPadding(dp(12), dp(10), dp(12), dp(10));
+                card.addView(rt, full());
+                card.addView(space(6));
+                Button rd = button("✅ وصلت المجمع، جاهز للكراوي", true);
+                rd.setOnClickListener(v -> tripAction("ready", null));
+                card.addView(rd, full());
+                card.addView(space(12));
+            } else if (!st.isNull("ready_at") && !st.optString("ready_at").isEmpty()) {
+                card.addView(text("✅ إنت جاهز بالمجمع من " + hm(st.optString("ready_at")), 14, OK, true));
                 card.addView(space(8));
             }
             card.addView(text("ماكو سفرة", 19, FG, true));
@@ -458,6 +479,10 @@ public class MainActivity extends Activity {
             Button spb = button("⭐ زبون خاص (بدون كروة)", false);
             spb.setOnClickListener(v -> specialDialog(ids.get(Math.max(0, zone.getSelectedItemPosition()))));
             card.addView(spb, full());
+            card.addView(space(8));
+            Button lnb = button("🛣 رايح أوصل خط", false);
+            lnb.setOnClickListener(v -> lineDialog(labels, ids, st.optJSONObject("base")));
+            card.addView(lnb, full());
         } else {
             String where = "من: " + or(t.optString("pickup")) + "\nإلى: " + or(t.optString("dropoff"))
                     + (t.optString("customer_name").isEmpty() ? "" : "\nالزبون: " + t.optString("customer_name"))
@@ -542,7 +567,9 @@ public class MainActivity extends Activity {
             } else {
                 final boolean round = t.optBoolean("round_trip");
                 final boolean waiting = t.optBoolean("waiting");
-                card.addView(text("بسفرة من " + hm(t.optString("started_at")) + (round ? "  ↩ مرجع" : ""), 19, OK, true));
+                card.addView(text("line".equals(t.optString("trip_kind"))
+                        ? "🛣 خط: رايح " + t.optString("dropoff") + "\n↩ المرجع " + or(t.optString("pickup"))
+                        : "بسفرة من " + hm(t.optString("started_at")) + (round ? "  ↩ مرجع" : ""), 19, OK, true));
                 card.addView(text(where, 15, FG, false));
                 card.addView(space(10));
                 final boolean spPending = waiting ? "pending".equals(t.optString("special_status")) : addSpecial(card, t);
@@ -791,6 +818,40 @@ public class MainActivity extends Activity {
             card.addView(space(8));
         }
         return st.equals("pending");
+    }
+
+    static double km(double a1, double o1, double a2, double o2) {
+        double r = Math.PI / 180, dl = (a2 - a1) * r, dg = (o2 - o1) * r;
+        double h = Math.sin(dl / 2) * Math.sin(dl / 2) + Math.cos(a1 * r) * Math.cos(a2 * r) * Math.sin(dg / 2) * Math.sin(dg / 2);
+        return 2 * 6371 * Math.asin(Math.sqrt(h));
+    }
+
+    // "خط": going to deliver a line; the return is always the compound
+    private void lineDialog(java.util.List<String> labels, java.util.List<Integer> ids, JSONObject base) {
+        String bn = base == null ? "المجمع" : base.optString("name", "المجمع");
+        LinearLayout v = new LinearLayout(this);
+        v.setOrientation(LinearLayout.VERTICAL);
+        v.setPadding(dp(16), dp(8), dp(16), 0);
+        final android.widget.Spinner sp = new android.widget.Spinner(this);
+        final java.util.List<String> l2 = new java.util.ArrayList<>();
+        for (String s : labels) l2.add(s.replaceAll(" — [0-9,]+$", ""));
+        sp.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, l2));
+        v.addView(text("المنطقة:", 13, MUTED, true));
+        v.addView(sp, full());
+        final EditText other = input("اسم المنطقة (إذا مو بالقائمة)", InputType.TYPE_CLASS_TEXT);
+        v.addView(other, full());
+        new android.app.AlertDialog.Builder(this).setTitle("🛣 رايح أوصل خط")
+                .setMessage("اختار أو اكتب المنطقة. المرجع ثابت: " + bn + ".")
+                .setView(v)
+                .setNegativeButton("رجوع", null)
+                .setPositiveButton("انطلق", (d, w) -> {
+                    int zid = ids.get(Math.max(0, sp.getSelectedItemPosition()));
+                    String typed = other.getText().toString().trim();
+                    JSONObject p = obj("dropoff", typed);
+                    try { if (zid > 0 && typed.isEmpty()) p.put("zone_id", zid); } catch (Exception ignored) {}
+                    if (zid == 0 && typed.length() < 2) { android.widget.Toast.makeText(this, "اكتب اسم المنطقة", android.widget.Toast.LENGTH_LONG).show(); return; }
+                    tripAction("line", p);
+                }).show();
     }
 
     private void noshowDialog(JSONObject t) {

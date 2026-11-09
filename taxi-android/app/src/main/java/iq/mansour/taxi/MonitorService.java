@@ -111,6 +111,10 @@ public class MonitorService extends Service {
             case "cust_cancel": title = "الزبون ألغى طلبه"; alarm = false; who = e.optString("plate"); break;
             case "complaint": title = "📣 شكوى زبون جديدة"; alarm = false; break;
             case "special": title = "⭐ زبون خاص (بدون كروة) ينتظر موافقتك"; alarm = true; break;
+            case "line": title = "🛣 سائق طلع يوصل خط"; alarm = false; break;
+            case "ready": title = "✅ سائق جاهز بالمجمع"; alarm = false; break;
+            case "return_long": title = "⚠ سائق طوّل بالرجعة للمجمع"; alarm = true; break;
+            case "hurry_answer": title = "⏳ جواب زبون: مستعجل؟"; alarm = true; who = e.optString("plate"); break;
             case "noshow": title = "✖ سائق يريد يسكّر طلب (الزبون ما نزل)"; alarm = true; break;
             case "scheduled": title = "🗓 حجز مسبق جديد يحتاج تأكيد"; alarm = true; who = e.optString("plate"); break;
             case "scheduled_due": title = "🗓 وقت حجز مسبق"; alarm = true; who = e.optString("plate"); break;
