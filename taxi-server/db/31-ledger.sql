@@ -1,0 +1,7 @@
+-- 31: per-driver expenses (مصاريف) and advances (سلف), with a note, entered by the main manager from the inventory.
+-- taxi_ledger(car_id, kind expense|advance, amount, day, note, from_cash). Expenses, and advances taken from the
+-- fares he holds (from_cash), come off what the driver must hand over: taxi_ledger_cash() is subtracted in
+-- taxi_balance_row (driver page, files, accounts) and in taxi_admin_inventory (opening/closing, plus expenses,
+-- advances, advances_total columns). Advances from the office do not touch the cash balance; advances_total is his debt.
+-- RPCs: taxi_admin_ledger_save (insert/update, owner), taxi_admin_ledger_delete (owner), taxi_admin_ledger_list (any manager).
+-- Applied as migration taxi_ledger_expenses_advances.
