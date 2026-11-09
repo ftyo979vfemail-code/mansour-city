@@ -246,6 +246,14 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 .hb i{display:block;height:12px;border-radius:6px;background:var(--amber);min-width:4px}
 .kpi.warn{border-color:var(--amber)}
 .spbar,.depbar{flex-direction:column;align-items:stretch}
+.rcpt{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px;overflow:hidden}
+.rcpt summary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
+.rcpt summary::-webkit-details-marker{display:none}
+.rcpt[open] summary{border-bottom:1px solid var(--line)}
+.rcpt .tbl-wrap{margin:10px 12px 0}.rcpt .note{padding:0 14px 12px}
+.rc-amt{font:700 18px var(--mono);color:var(--ok)}
+.rc-cov{text-align:left;font-size:13px}
+@media(max-width:560px){.rcpt summary{grid-template-columns:1fr}.rc-cov{text-align:right}}
 .mdc{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px;display:flex;flex-direction:column;gap:6px}
 .mdc h4{margin:0;display:flex;gap:8px;align-items:center}
 .mdrow{display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap}
@@ -523,7 +531,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091123";
+const BUILD="202611091128";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1528,6 +1536,7 @@ function adminShell(){
        <button role="tab" data-t="sched">الحجوزات <span class="tbadge" id="sc-n" hidden></span></button>
        <button role="tab" data-t="routes">الطرق</button>
        <button role="tab" data-t="inv">📦 الجرد</button>
+       <button role="tab" data-t="rcp">🧾 الاستلامات</button>
        <button role="tab" data-t="daily">التقرير اليومي</button>
        <button role="tab" data-t="fb">التقييم والشكاوي <span class="tbadge" id="fb-n" hidden></span></button>
        <button role="tab" data-t="week">التسوية الأسبوعية</button>
@@ -1734,6 +1743,7 @@ function renderTab(){
   if(tab==="routes") renderRoutes();
   if(tab==="daily") renderDaily();
   if(tab==="inv") renderInventory();
+  if(tab==="rcp") renderReceipts();
   if(tab==="sched") renderSched();
   if(tab==="fb") renderFeedback();
 }
@@ -2169,6 +2179,31 @@ function drawFeedback(f){
     const m=modal(`<h3>تسكير الشكوى</h3><div class="field"><label for="cp-n">شنو سويتوا؟ (اختياري)</label><input id="cp-n" maxlength="300" placeholder="مثال: كلمنا السائق ونبّهناه"></div><div class="err" id="cp-e"></div><div class="row"><button class="btn" id="cp-x">رجوع</button><button class="btn primary" id="cp-ok">تسكير</button></div>`);
     $("#cp-x",m).onclick=()=>m.remove();
     $("#cp-ok",m).onclick=async()=>{try{await rpc("taxi_admin_complaint_close",{p_pin:PIN,p_id:+b.dataset.cp,p_note:$("#cp-n",m).value});m.remove();toast("تسكّرت الشكوى");renderFeedback();pollComplaints()}catch(e){$("#cp-e",m).textContent=e.message}}});
+}
+/* ---------- receipts: every amount received, with the trips it paid for ---------- */
+let rcpF=null, rcpT=null, rcpCar="";
+async function renderReceipts(){
+  const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10);
+  rcpT=rcpT||today; rcpF=rcpF||new Date(Date.now()+3*36e5-13*864e5).toISOString().slice(0,10);
+  $("#view").innerHTML=`<div class="wrap" id="rv"><div class="bar"><h2>🧾 الاستلامات</h2>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><select id="rc-car" class="btn sm" aria-label="السائق"><option value="">كل السواق</option>${cars.filter(c=>c.active).map(c=>`<option value="${c.id}" ${rcpCar===c.id?"selected":""}>${esc(c.driver_name)}</option>`).join("")}</select>
+    <label>من <input type="date" id="rc-f" value="${rcpF}" max="${today}"></label><label>لحد <input type="date" id="rc-t" value="${rcpT}" max="${today}"></label></div></div>
+    <div id="rcb"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  $("#rc-car").onchange=e=>{rcpCar=e.target.value;renderReceipts()};
+  $("#rc-f").onchange=e=>{rcpF=e.target.value;renderReceipts()}; $("#rc-t").onchange=e=>{rcpT=e.target.value;renderReceipts()};
+  let L; try{L=await rpc("taxi_admin_receipts",{p_pin:PIN,p_car:rcpCar||null,p_from:rcpF,p_to:rcpT})}catch(e){$("#rcb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const dT=ts=>new Date(ts).toLocaleString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric",hour:"numeric",minute:"2-digit"});
+  const dD=ts=>new Date(ts).toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
+  const tm=ts=>new Date(ts).toLocaleTimeString("ar-IQ",{hour:"numeric",minute:"2-digit"});
+  const who=n=>{const p=(n||"").split("·");return p.length>1?p[p.length-1].replace("استلمه","").trim():""};
+  const total=L.reduce((a,k)=>a+k.amount,0);
+  $("#rcb").innerHTML=`<div class="kpis"><div class="kpi"><small>استلمنا بهاي الفترة</small><b>${dinar(total)}</b><small>${L.length} استلام</small></div></div>
+    ${L.length?L.map(k=>{const tr=k.trips, first=tr[0], last=tr[tr.length-1];
+      return `<details class="rcpt"><summary><span class="rc-amt">💵 ${dinar(k.amount)}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>${k.manual_day?`استلام قديم ليوم ${dD(k.manual_day+"T12:00:00Z")}`:dT(k.at)}${who(k.note)&&!k.manual_day?` · استلمه ${esc(who(k.note))}`:""}</small></span>
+        <span class="rc-cov">${tr.length?`غطّى ${tr.length} ${tr.length===1?"سفرة":"سفرات"}<br><small>${dD(first.ended_at)}${tr.length>1&&dD(first.ended_at)!==dD(last.ended_at)?` — ${dD(last.ended_at)}`:""}</small>`:"ما غطّى سفرات"}${k.unallocated>0?`<br><small style="color:var(--ok)">+ ${fmt(k.unallocated)} زيادة (رصيد إله)</small>`:""}</span></summary>
+        <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الوقت</th><th>من ← إلى</th><th>الكروة</th><th>انحسب من هذا الاستلام</th></tr></thead><tbody>
+        ${tr.map(t=>`<tr><td>${dD(t.ended_at)}</td><td>${t.manual?"—":tm(t.ended_at)}</td><td>${t.manual?"إدخال يدوي (مجموع اليوم)":`${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}${t.line?" · خط":""}`}</td><td class="num">${fmt(t.cash)}</td><td class="num">${t.covered<t.cash?`<span class="pill s-warn">${fmt(t.covered)} من ${fmt(t.cash)}</span>`:fmt(t.covered)}</td></tr>`).join("")}
+        </tbody></table></div><p class="note" style="margin:6px 0 0">${k.owed_after>0?`بعد هذا الاستلام بقى بذمّته <b>${dinar(k.owed_after)}</b> من السفرات اللي قبله.`:k.owed_after<0?`بعد هذا الاستلام صار إله رصيد <b>${dinar(-k.owed_after)}</b>.`:`بعد هذا الاستلام ما بقى عليه شي من السفرات اللي قبله.`}</p></details>`}).join(""):`<p class="note">ماكو استلامات بهاي الفترة.</p>`}`;
 }
 /* ---------- monthly inventory (main manager only) ---------- */
 let invDay=null, invPer="month", invData=null;
