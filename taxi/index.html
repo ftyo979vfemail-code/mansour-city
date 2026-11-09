@@ -532,7 +532,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091147";
+const BUILD="202611091149";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2204,7 +2204,18 @@ async function renderReceipts(){
         <span class="rc-cov">${tr.length?`غطّى ${tr.length} ${tr.length===1?"سفرة":"سفرات"}<br><small>${dD(first.ended_at)}${tr.length>1&&dD(first.ended_at)!==dD(last.ended_at)?` — ${dD(last.ended_at)}`:""}</small>`:"ما غطّى سفرات"}${k.unallocated>0?`<br><small style="color:var(--ok)">+ ${fmt(k.unallocated)} زيادة (رصيد إله)</small>`:""}</span></summary>
         <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الوقت</th><th>من ← إلى</th><th>الكروة</th><th>انحسب من هذا الاستلام</th></tr></thead><tbody>
         ${tr.map(t=>`<tr><td>${dD(t.ended_at)}</td><td>${t.manual?"—":tm(t.ended_at)}</td><td>${t.manual?"إدخال يدوي (مجموع اليوم)":`${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}${t.line?" · خط":""}`}</td><td class="num">${fmt(t.cash)}</td><td class="num">${t.covered<t.cash?`<span class="pill s-warn">${fmt(t.covered)} من ${fmt(t.cash)}</span>`:fmt(t.covered)}</td></tr>`).join("")}
-        </tbody></table></div><p class="note" style="margin:6px 0 0">${k.owed_after>0?`بعد هذا الاستلام بقى بذمّته <b>${dinar(k.owed_after)}</b> من السفرات اللي قبله.`:k.owed_after<0?`بعد هذا الاستلام صار إله رصيد <b>${dinar(-k.owed_after)}</b>.`:`بعد هذا الاستلام ما بقى عليه شي من السفرات اللي قبله.`}</p></details>`}).join(""):`<p class="note">ماكو استلامات بهاي الفترة.</p>`}`;
+        </tbody></table></div>
+        ${OWNER()?`<div class="row rc-acts" style="justify-content:flex-start;gap:8px;flex-wrap:wrap;padding:10px 14px 0"><button class="btn sm" data-rce="${k.id}">✏️ تعديل المبلغ</button><button class="btn sm danger" data-rcd="${k.id}">🗑 حذف الاستلام</button><button class="btn sm" data-rcl="${k.car_id}">💸 مصاريف وسلف ${esc(k.driver_name.split(" ")[0])}</button></div>`:""}
+        <p class="note" style="margin:6px 0 0">${k.owed_after>0?`بعد هذا الاستلام بقى بذمّته <b>${dinar(k.owed_after)}</b> من السفرات اللي قبله.`:k.owed_after<0?`بعد هذا الاستلام صار إله رصيد <b>${dinar(-k.owed_after)}</b>.`:`بعد هذا الاستلام ما بقى عليه شي من السفرات اللي قبله.`}</p></details>`}).join(""):`<p class="note">ماكو استلامات بهاي الفترة.</p>`}`;
+  const byId=id=>L.find(k=>k.id===+id);
+  $("#rcb").querySelectorAll("[data-rce]").forEach(b=>b.onclick=()=>{const k=byId(b.dataset.rce);
+    const m=modal(`<h3>✏️ تعديل استلام ${esc(k.driver_name)}</h3><div class="field"><label for="ce-a">المبلغ الصحيح (دينار)</label><input id="ce-a" inputmode="numeric" value="${k.amount}" style="font:600 22px var(--mono);text-align:center"></div>
+      <div class="field"><label for="ce-n">السبب (اختياري)</label><input id="ce-n" maxlength="100" placeholder="مثال: انكتب غلط"></div><div class="err" id="ce-e"></div><div class="row"><button class="btn" id="ce-x">رجوع</button><button class="btn primary" id="ce-ok">حفظ</button></div>`);
+    $("#ce-x",m).onclick=()=>m.remove();
+    $("#ce-ok",m).onclick=async()=>{try{await rpc("taxi_admin_cash_edit",{p_pin:PIN,p_id:k.id,p_amount:parseInt(($("#ce-a",m).value||"").replace(/\D/g,""),10)||0,p_note:$("#ce-n",m).value});m.remove();toast("انعدل الاستلام");renderReceipts()}catch(e){$("#ce-e",m).textContent=e.message}}});
+  $("#rcb").querySelectorAll("[data-rcd]").forEach(b=>b.onclick=()=>{const k=byId(b.dataset.rcd);
+    confirmBox(`تحذف استلام ${dinar(k.amount)} من ${esc(k.driver_name)}؟ المبلغ يرجع بذمّته.`,"🗑 حذف",async()=>{try{await rpc("taxi_admin_cash_edit",{p_pin:PIN,p_id:k.id,p_amount:null,p_note:"",p_delete:true});toast("انحذف");renderReceipts()}catch(e){toast(e.message)}},"رجوع")});
+  $("#rcb").querySelectorAll("[data-rcl]").forEach(b=>b.onclick=async()=>{try{const r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_day:null,p_period:"month"});const x=r.rows.find(z=>z.id===b.dataset.rcl);if(x)driverLedger(x)}catch(e){toast(e.message)}});
 }
 /* ---------- monthly inventory (main manager only) ---------- */
 let invDay=null, invPer="month", invData=null;
@@ -2251,7 +2262,7 @@ async function driverLedger(x){
     <div id="lg-list"><div class="empty">جارٍ التحميل…</div></div>
     <div class="row"><button class="btn" id="lg-x">سدّ</button></div>`);
   m.classList.add("wide");
-  let changed=false; $("#lg-x",m).onclick=()=>{m.remove();if(changed)renderInventory()};
+  let changed=false; $("#lg-x",m).onclick=()=>{m.remove();if(changed)(tab==="rcp"?renderReceipts:renderInventory)()};
   $("#lg-days",m).onclick=()=>{m.remove();manualDays()};
   const load=async()=>{let r;try{r=await rpc("taxi_admin_ledger_list",{p_pin:PIN,p_car:x.id})}catch(e){$("#lg-list",m).innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
     const dd=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});

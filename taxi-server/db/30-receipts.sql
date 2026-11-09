@@ -35,3 +35,6 @@ begin
     where kc.at >= f and kc.at < t), '[]'::json);
 end $$;
 grant execute on function public.taxi_admin_receipts(text,uuid,date,date) to anon, authenticated;
+
+-- update (migration taxi_cash_edit_owner): taxi_admin_cash_edit(pin, id, amount, note, delete) — the main manager fixes
+-- or removes any received amount (any age); every change is kept in taxi_cash_audit.
