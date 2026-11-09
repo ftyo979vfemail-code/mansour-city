@@ -320,6 +320,11 @@ select.btn{font-weight:500}
 .freeopt{display:flex;gap:10px;align-items:center;border:2px dashed var(--amber,#f5b400);border-radius:14px;padding:12px;font-weight:700;cursor:pointer}
 .freeopt input{width:22px;height:22px;accent-color:var(--amber,#f5b400)}
 .zchip{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:9px 14px;font-weight:600}
+.zones.dz{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));max-height:360px}
+.zones.dz .zchip{border-radius:14px;padding:12px 10px;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:58px;color:var(--fg);cursor:pointer}
+.zones.dz .zchip small{font:500 12px var(--mono);color:var(--muted)}
+.zones.dz .zchip.on{border:2px solid var(--amber);background:color-mix(in srgb,var(--amber) 22%,var(--panel))}
+.zones.dz .zchip.other{border-style:dashed}
 .zchip.on{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
 .ost{text-align:center;align-items:stretch}.ost h2{font-size:24px}.ost p{margin:0;color:var(--muted)}
 .ost-ico{font-size:46px;line-height:1}
@@ -502,7 +507,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091009";
+const BUILD="202611091026";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2564,6 +2569,8 @@ function showTrip(t,force){
   const same=key===JSON.stringify(ck(curTrip));
   // a running trip card keeps its own live timer and the typed fare; redraw it only when something changes
   if(same&&(!force||(t&&t.status==="started"&&$("#tr-end")))) return;
+  // don't redraw the empty card under the driver's fingers while he types a zone name
+  if(same&&!t&&document.activeElement&&box.contains(document.activeElement)&&document.activeElement.tagName==="INPUT") return;
   curTrip=t;
   if(!ON&&!EXT){box.innerHTML="";return}
   const sum=`<div class="stats" style="margin-top:10px"><div class="stat"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)}</b></div><div class="stat"><small>هذا الأسبوع</small><b>${today.wk||0} سفرة</b></div>${today.rating&&today.rating.count?`<div class="stat"><small>تقييم الزباين</small><b>⭐ ${today.rating.avg} <small>(${today.rating.count})</small></b></div>`:""}</div>`+moneyCard();
@@ -2571,13 +2578,24 @@ function showTrip(t,force){
   const back=!t&&today.ret?`<div class="trip back"><h3>🔙 راجع لـ${esc(B.name)}</h3><p>${myLat!=null?`توصل بعد ~<b>${backEta(myLat,myLng,B)} دقيقة</b> (${baseKm(myLat,myLng,B).toFixed(1)} كم). `:""}الطريق للمجمع ما ينحسب «بدون سفرة».</p><button class="btn primary big" id="tr-ready">✅ وصلت المجمع، جاهز للكراوي</button></div>`
     :!t&&today.ready?`<p class="note" style="margin:0">✅ إنت جاهز بالمجمع من ${hm(today.ready)}.</p>`:"";
   if(!t){box.innerHTML=`${back}<div class="trip"><h3>ماكو سفرة</h3><p>إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.</p>
-      <div class="field"><label for="tr-zone">إلى وين؟</label><select id="tr-zone" class="btn" style="width:100%">${(today.zones||[]).map(z=>`<option value="${z.id}">${esc(z.name)} — ${fmt(z.price)}</option>`).join("")}<option value="">منطقة أخرى</option></select></div>
-      <div class="field" id="tr-to-f" hidden><label for="tr-to">اسم المكان</label><input id="tr-to"></div>
+      <div class="field"><label for="tr-zq">إلى وين؟ اضغط على المنطقة</label><input id="tr-zq" type="search" placeholder="🔎 ابحث عن منطقة" autocomplete="off" value="${esc(drvQ)}"></div>
+      <div class="zones dz" id="tr-zones" role="radiogroup" aria-label="المنطقة"></div>
+      <div class="field" id="tr-to-f" ${drvZone===0?"":"hidden"}><label for="tr-to">اسم المكان</label><input id="tr-to" value="${esc(drvTo)}"></div>
       <button class="btn primary big" id="tr-start">بدء سفرة</button>
       <button class="btn big" id="tr-sp">⭐ زبون خاص (بدون كروة)</button>
       <button class="btn big" id="tr-line">🛣 رايح أوصل خط</button></div>${sum}`;
-    $("#tr-zone").onchange=e=>{$("#tr-to-f").hidden=!!e.target.value};$("#tr-to-f").hidden=!!$("#tr-zone").value;
-    $("#tr-start").onclick=()=>tripAct("start",{zone_id:$("#tr-zone").value,dropoff:$("#tr-to").value});
+    // zones as big buttons: one tap picks it; the choice survives the screen refreshing every few seconds
+    const zs=today.zones||[];
+    const drawZ=()=>{const q=drvQ.trim();const L=zs.filter(z=>!q||z.name.includes(q));
+      $("#tr-zones").innerHTML=L.map(z=>`<button type="button" role="radio" aria-checked="${drvZone===z.id}" class="zchip${drvZone===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}<small>${fmt(z.price)}</small></button>`).join("")
+        +`<button type="button" role="radio" aria-checked="${drvZone===0}" class="zchip other${drvZone===0?" on":""}" data-z="0">✏️ منطقة أخرى</button>`;
+      $("#tr-zones").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{drvZone=+b.dataset.z;$("#tr-to-f").hidden=drvZone!==0;if(drvZone===0)setTimeout(()=>$("#tr-to").focus(),30);drawZ()});
+      const z=zs.find(x=>x.id===drvZone);$("#tr-start").textContent=z?`🚕 بدء سفرة لـ ${z.name}`:drvZone===0?"🚕 بدء سفرة":"اختار المنطقة وابدأ السفرة";$("#tr-start").disabled=drvZone==null};
+    drawZ();
+    $("#tr-zq").oninput=e=>{drvQ=e.target.value;drawZ()};
+    $("#tr-to").oninput=e=>{drvTo=e.target.value};
+    $("#tr-start").onclick=()=>{const p={zone_id:drvZone||"",dropoff:drvZone===0?$("#tr-to").value:""};if(drvZone===0&&p.dropoff.trim().length<2){toast("اكتب اسم المكان");return}
+      drvZone=null;drvQ="";drvTo="";tripAct("start",p)};
     $("#tr-sp").onclick=()=>specialForm(null);
     $("#tr-line").onclick=()=>lineForm(B);
     const rd=$("#tr-ready"); if(rd) rd.onclick=()=>tripAct("ready");
@@ -2646,7 +2664,7 @@ function showTrip(t,force){
     chgT=setInterval(()=>{const left=Math.max(0,s0-Math.floor((Date.now()-t0)/1000)),el=$("#chg-left");if(!el)return clearInterval(chgT);
       el.textContent="0:"+String(left).padStart(2,"0");if(left<=0){clearInterval(chgT);setTimeout(()=>{curTrip=undefined;if(EXT)setExt(true);else refreshTrip()},1500)}},1000)}
 }
-let waitT, chgT;
+let waitT, chgT, drvZone=null, drvQ="", drvTo="";
 // "تسكير": the customer didn't come down; the office approves or refuses with a reason
 function noshowBox(t){
   if(t.noshow_status==="pending") return `<div class="spbox wait"><b>⏳ طلب التسكير عند الإدارة</b><small>${esc(t.noshow_note||"")}</small><small>إذا نزل الزبون دوس «انطلاق» عادي.</small></div>`;

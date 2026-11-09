@@ -185,6 +185,7 @@ public class MainActivity extends Activity {
         }
     }
     private int tickN = 0;
+    private int selZone = -1;  // the zone the driver tapped on the empty card (-1 none, 0 other)
 
     private final Runnable tick = new Runnable() {
         @Override public void run() { refresh(); h.postDelayed(this, 2000); }
@@ -454,30 +455,54 @@ public class MainActivity extends Activity {
             }
             labels.add("منطقة أخرى");
             ids.add(0);
-            card.addView(text("إلى وين؟", 13, MUTED, true));
-            final android.widget.Spinner zone = new android.widget.Spinner(this);
-            zone.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, labels));
-            zone.setBackground(box(CARD, LINE, 10));
-            card.addView(zone, full());
+            card.addView(text("إلى وين؟ اضغط على المنطقة", 13, MUTED, true));
+            // zones as big buttons, two per row: one tap picks it
+            final android.widget.GridLayout grid = new android.widget.GridLayout(this);
+            grid.setColumnCount(2);
+            final java.util.List<Button> zbtns = new java.util.ArrayList<>();
             final EditText to = input("اسم المكان", InputType.TYPE_CLASS_TEXT);
-            to.setVisibility(View.GONE);
+            to.setVisibility(selZone == 0 ? View.VISIBLE : View.GONE);
+            final Button go = button("بدء سفرة", true);
+            final Runnable paint = () -> {
+                for (int i = 0; i < zbtns.size(); i++) {
+                    boolean on = ids.get(i) == selZone;
+                    zbtns.get(i).setBackground(box(on ? 0xFFFFF4DC : CARD, on ? AMBER : LINE, 12));
+                }
+                int k = ids.indexOf(selZone);
+                go.setText(selZone < 0 ? "اختار المنطقة وابدأ السفرة" : selZone == 0 ? "🚕 بدء سفرة" : "🚕 بدء سفرة لـ " + labels.get(k).replaceAll(" — [0-9,]+$", ""));
+                go.setEnabled(selZone >= 0);
+                go.setAlpha(selZone >= 0 ? 1f : 0.5f);
+                to.setVisibility(selZone == 0 ? View.VISIBLE : View.GONE);
+            };
+            for (int i = 0; i < labels.size(); i++) {
+                final int zid = ids.get(i);
+                Button zb = button(zid == 0 ? "✏️ منطقة أخرى" : labels.get(i).replace(" — ", "\n"), false);
+                zb.setTextSize(15);
+                zb.setMinHeight(dp(58));
+                zb.setOnClickListener(v -> { selZone = zid; paint.run(); if (zid == 0) to.requestFocus(); });
+                android.widget.GridLayout.LayoutParams gl = new android.widget.GridLayout.LayoutParams(
+                        android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f), android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f));
+                gl.width = 0;
+                gl.setMargins(dp(3), dp(3), dp(3), dp(3));
+                grid.addView(zb, gl);
+                zbtns.add(zb);
+            }
+            card.addView(grid, full());
             card.addView(to, full());
-            zone.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-                @Override public void onItemSelected(android.widget.AdapterView<?> a, View v, int pos, long id) { to.setVisibility(ids.get(pos) == 0 ? View.VISIBLE : View.GONE); }
-                @Override public void onNothingSelected(android.widget.AdapterView<?> a) {}
-            });
             card.addView(space(8));
-            Button go = button("بدء سفرة", true);
+            paint.run();
             go.setOnClickListener(v -> {
-                int zid = ids.get(Math.max(0, zone.getSelectedItemPosition()));
-                JSONObject p = obj("dropoff", to.getText().toString());
-                try { if (zid > 0) p.put("zone_id", zid); } catch (Exception ignored) {}
+                if (selZone < 0) return;
+                JSONObject p = obj("dropoff", selZone == 0 ? to.getText().toString() : "");
+                if (selZone == 0 && to.getText().toString().trim().length() < 2) { android.widget.Toast.makeText(this, "اكتب اسم المكان", android.widget.Toast.LENGTH_LONG).show(); return; }
+                try { if (selZone > 0) p.put("zone_id", selZone); } catch (Exception ignored) {}
+                selZone = -1;
                 tripAction("start", p);
             });
             card.addView(go, full());
             card.addView(space(8));
             Button spb = button("⭐ زبون خاص (بدون كروة)", false);
-            spb.setOnClickListener(v -> specialDialog(ids.get(Math.max(0, zone.getSelectedItemPosition()))));
+            spb.setOnClickListener(v -> specialDialog(Math.max(0, selZone)));
             card.addView(spb, full());
             card.addView(space(8));
             Button lnb = button("🛣 رايح أوصل خط", false);
