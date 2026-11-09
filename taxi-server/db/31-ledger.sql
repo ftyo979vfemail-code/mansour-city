@@ -5,3 +5,7 @@
 -- advances, advances_total columns). Advances from the office do not touch the cash balance; advances_total is his debt.
 -- RPCs: taxi_admin_ledger_save (insert/update, owner), taxi_admin_ledger_delete (owner), taxi_admin_ledger_list (any manager).
 -- Applied as migration taxi_ledger_expenses_advances.
+
+-- update (migration taxi_ledger_expense_source): expenses also carry from_cash. from_cash=false (default in the form):
+-- paid out of what he already handed over — his balance stays, the inventory shows office_expenses and the net received.
+-- taxi_ledger_cash now counts only from_cash entries (expenses and advances alike).
