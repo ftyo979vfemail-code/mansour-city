@@ -562,7 +562,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091255";
+const BUILD="202611091258";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2289,9 +2289,9 @@ function lineSubForm(x){
   $("#ls-x",m).onclick=()=>m.remove();
   const del=$("#ls-del",m); if(del) del.onclick=()=>{if(del.dataset.sure!=="1"){del.dataset.sure="1";del.textContent="متأكد؟";return}
     rpc("taxi_admin_line_sub_delete",{p_pin:PIN,p_id:x.id}).then(()=>{m.remove();toast("انحذف");renderLines()}).catch(e=>$("#ls-e",m).textContent=e.message)};
-  $("#ls-ok",m).onclick=async()=>{const g=id=>$(id,m).value;
+  $("#ls-ok",m).onclick=async e=>{const btn=e.currentTarget;if(btn.disabled)return;btn.disabled=true;const g=id=>$(id,m).value;
     try{await rpc("taxi_admin_line_sub_save",{p_pin:PIN,p:{id:ed?x.id:"",students:g("#ls-s"),n:g("#ls-n"),amount:g("#ls-a"),building:g("#ls-b"),floor:g("#ls-f"),apt:g("#ls-p"),dest:g("#ls-d"),car_id:g("#ls-c"),note:g("#ls-o"),active:ed?$("#ls-act",m).checked:true}});
-      m.remove();toast("انحفظ");renderLines()}catch(e){$("#ls-e",m).textContent=e.message}};
+      m.remove();toast("انحفظ");renderLines()}catch(e){btn.disabled=false;$("#ls-e",m).textContent=e.message}};
 }
 /* ---------- receipts: every amount received, with the trips it paid for ---------- */
 let rcpF=null, rcpT=null, rcpCar="";
@@ -2435,8 +2435,8 @@ async function driverLedger(x){
       ${staff?"":adv?`<fieldset class="md-rec"><legend>منين أخذها؟</legend><label><input type="radio" name="lf-s" value="1" ${!it||it.from_cash?"checked":""}> من الكاش اللي بيده (تنخصم من اللي لازم يسلّمه)</label><label><input type="radio" name="lf-s" value="0" ${it&&!it.from_cash?"checked":""}> من المكتب</label></fieldset>`:`<fieldset class="md-rec"><legend>منو دفعه؟</legend><label><input type="radio" name="lf-s" value="0" ${!it||!it.from_cash?"checked":""}> انصرف من المبلغ اللي سلّمه للإدارة (حسابه ما يتغيّر، ينقص صافي الإدارة)</label><label><input type="radio" name="lf-s" value="1" ${it&&it.from_cash?"checked":""}> السائق صرفه من الكاش اللي بيده (ينخصم من اللي لازم يسلّمه)</label></fieldset>`}
       <div class="err" id="lf-e"></div><div class="row"><button class="btn" id="lf-x">رجوع</button><button class="btn primary" id="lf-ok">حفظ</button></div>`);
     $("#lf-x",f).onclick=()=>f.remove();
-    $("#lf-ok",f).onclick=async()=>{const s=f.querySelector('[name="lf-s"]:checked');
-      try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{id:it?it.id:"",car_id:staff?"":x.id,person_id:staff?x.person_id:"",kind,amount:$("#lf-a",f).value,day:$("#lf-d",f).value,note:$("#lf-n",f).value,from_cash:s?s.value==="1":true}});f.remove();changed=true;toast("انحفظ");load()}catch(e){$("#lf-e",f).textContent=e.message}}};
+    $("#lf-ok",f).onclick=async e=>{const btn=e.currentTarget;if(btn.disabled)return;btn.disabled=true;const s=f.querySelector('[name="lf-s"]:checked');
+      try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{id:it?it.id:"",car_id:staff?"":x.id,person_id:staff?x.person_id:"",kind,amount:$("#lf-a",f).value,day:$("#lf-d",f).value,note:$("#lf-n",f).value,from_cash:s?s.value==="1":true}});f.remove();changed=true;toast("انحفظ");load()}catch(e){btn.disabled=false;$("#lf-e",f).textContent=e.message}}};
   $("#lg-exp",m).onclick=()=>form(null,"expense"); $("#lg-adv",m).onclick=()=>form(null,"advance");
   load();
 }
