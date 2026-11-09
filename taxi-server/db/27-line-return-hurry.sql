@@ -181,3 +181,6 @@ begin
   end loop;
   perform taxi_mark_returns();
 end $function$;
+
+-- update (migration taxi_line_free): a خط is a monthly subscription — fare 0, no مرجع/meter charge, ending it does not
+-- start the return-to-compound state; existing line trips were set to 0.

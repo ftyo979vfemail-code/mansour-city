@@ -532,7 +532,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091149";
+const BUILD="202611091152";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2842,6 +2842,14 @@ function showTrip(t,force){
     if(t.pickup_waiting){const t0=Date.now(),w0=t.pickup_wait_sec||0;waitT=setInterval(()=>{const c=$("#pwclock");if(!c)return clearInterval(waitT);c.textContent=clock(w0+Math.floor((Date.now()-t0)/1000))},1000)}
     return}
   const navBtn=`<a class="btn big" href="#nav" style="text-align:center">🧭 الطريق على الخريطة</a>`;
+  // a "خط" is a monthly subscription: no money on the screen, one button ends it and the screen goes back to normal
+  if(t.trip_kind==="line"){clearInterval(waitT);
+    box.innerHTML=`<div class="trip on"><h3>🛣 خط: رايح ${esc(t.dropoff||"")}</h3><p>المرجع: <b>${esc(t.pickup||"المجمع")}</b> · من ${hm(t.started_at)}</p>
+      <p class="note" style="margin:0">الخط اشتراك شهري، ما تستلم فلوس من الركاب.</p>
+      ${wazeBtn(t,"ويز: روح لـ "+esc(t.dropoff||"الوجهة"))}
+      <button class="btn primary big" id="tr-lend">✅ خلصت الخط</button></div>`;
+    $("#tr-lend").onclick=()=>tripAct("end",{});
+    return}
   const fixed=t.zone_id&&t.fare;
   const spFree=t.special_status==="approved", spWait=t.special_status==="pending";
   box.innerHTML=`<div class="trip on"><h3>${t.trip_kind==="line"?`🛣 خط: رايح ${esc(t.dropoff||"")} ↩ المرجع ${esc(t.pickup||"المجمع")}`:`بسفرة من ${hm(t.started_at)}${t.round_trip?` <span class="pill s-warn">↩ مرجع</span>`:""}`}</h3>${where}${specialBox(t)}

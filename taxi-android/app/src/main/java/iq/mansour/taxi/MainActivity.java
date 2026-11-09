@@ -591,6 +591,15 @@ public class MainActivity extends Activity {
                 go.setOnClickListener(v -> tripAction("start", null));
                 if (spPending) { go.setEnabled(false); go.setAlpha(0.45f); }
                 card.addView(go, full());
+            } else if ("line".equals(t.optString("trip_kind"))) {
+                // a "خط" is a monthly subscription: no money, one button ends it
+                card.addView(text("🛣 خط: رايح " + t.optString("dropoff"), 19, OK, true));
+                card.addView(text("المرجع: " + or(t.optString("pickup")) + " · من " + hm(t.optString("started_at")), 15, FG, false));
+                card.addView(text("الخط اشتراك شهري، ما تستلم فلوس من الركاب.", 13, MUTED, false));
+                card.addView(space(10));
+                Button le = button("✅ خلصت الخط", true);
+                le.setOnClickListener(v -> tripAction("end", new JSONObject()));
+                card.addView(le, full());
             } else {
                 final boolean round = t.optBoolean("round_trip");
                 final boolean waiting = t.optBoolean("waiting");
