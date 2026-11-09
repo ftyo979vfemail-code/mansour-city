@@ -38,3 +38,7 @@ grant execute on function public.taxi_admin_receipts(text,uuid,date,date) to ano
 
 -- update (migration taxi_cash_edit_owner): taxi_admin_cash_edit(pin, id, amount, note, delete) — the main manager fixes
 -- or removes any received amount (any age); every change is kept in taxi_cash_audit.
+
+-- update (migrations taxi_ledger_range, taxi_record_days): taxi_admin_ledger_range(pin, car, from, to) lists expenses and
+-- advances for the receipts page; taxi_admin_record_days(pin, car) gives the days that have receipts / ledger / trips
+-- so the date picker can mark them.

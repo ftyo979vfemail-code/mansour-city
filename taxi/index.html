@@ -246,6 +246,20 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 .hb i{display:block;height:12px;border-radius:6px;background:var(--amber);min-width:4px}
 .kpi.warn{border-color:var(--amber)}
 .spbar,.depbar{flex-direction:column;align-items:stretch}
+.cal-head{display:flex;align-items:center;justify-content:space-between}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .dow{text-align:center;font-size:12px;color:var(--muted);font-weight:700}
+.cal .day{position:relative;border:1px solid var(--line);background:var(--panel);border-radius:10px;min-height:42px;font:600 15px var(--mono);color:var(--fg);cursor:pointer}
+.cal .day.off{opacity:.35;cursor:default}
+.cal .day.in{background:color-mix(in srgb,var(--amber) 18%,var(--panel))}
+.cal .day.sel{background:var(--amber);color:var(--amber-ink);border-color:var(--amber)}
+.cal .day.hc{border:2px solid var(--ok)}
+.cal .day i{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);display:flex;gap:2px}
+.cal .day.hl::after{content:"";position:absolute;top:4px;left:5px;width:7px;height:7px;border-radius:50%;background:var(--warn)}
+.cal .day.ht::before{content:"";position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:var(--muted)}
+.cal-key{display:flex;gap:14px;justify-content:center;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.cal-key .k{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:middle;margin-inline-end:4px}
+.cal-key .k.c{border:2px solid var(--ok)}.cal-key .k.l{background:var(--warn);border-radius:50%}.cal-key .k.t{background:var(--muted);border-radius:50%}
 .lgl{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:8px}
 .lgl li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;border:1px solid var(--line);border-inline-start:4px solid var(--warn);border-radius:12px;padding:10px 12px;background:var(--panel)}
 .lgl li.advance{border-inline-start-color:var(--amber)}
@@ -541,7 +555,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091203";
+const BUILD="202611091209";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2190,6 +2204,34 @@ function drawFeedback(f){
     $("#cp-x",m).onclick=()=>m.remove();
     $("#cp-ok",m).onclick=async()=>{try{await rpc("taxi_admin_complaint_close",{p_pin:PIN,p_id:+b.dataset.cp,p_note:$("#cp-n",m).value});m.remove();toast("تسكّرت الشكوى");renderFeedback();pollComplaints()}catch(e){$("#cp-e",m).textContent=e.message}}});
 }
+/* ---------- date range picker that marks the days that have records ---------- */
+const dLbl=d=>{const x=new Date(d+"T12:00:00Z");return x.getUTCDate()+"/"+(x.getUTCMonth()+1)};
+function rangePicker(f,t,marks,done){
+  const has=k=>new Set((marks&&marks[k])||[]);const C=has("cash"),Lg=has("ledger"),T=has("trips");
+  const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10);
+  let a=f,b=t,picking=false,view=(t||today).slice(0,7);
+  const m=modal(`<h3>📅 اختار الفترة</h3><p class="note" style="margin:0">اضغط يوم البداية وبعدين يوم النهاية. إذا تريد يوم واحد اضغطه مرتين.</p>
+    <div class="cal-head"><button class="btn sm" id="cl-p" aria-label="الشهر السابق">›</button><b id="cl-m"></b><button class="btn sm" id="cl-n" aria-label="الشهر الجاي">‹</button></div>
+    <div class="cal" id="cl-g"></div>
+    <div class="cal-key"><span><i class="k c"></i> استلام</span><span><i class="k l"></i> مصروف / سلفة</span><span><i class="k t"></i> سفرات</span></div>
+    <p id="cl-s" style="margin:0;font-weight:700;text-align:center"></p>
+    <div class="row"><button class="btn" id="cl-x">رجوع</button><button class="btn primary" id="cl-ok">عرض</button></div>`);
+  const draw=()=>{const [y,mo]=view.split("-").map(Number);const first=new Date(Date.UTC(y,mo-1,1)),days=new Date(Date.UTC(y,mo,0)).getUTCDate();
+    $("#cl-m",m).textContent=new Date(Date.UTC(y,mo-1,15)).toLocaleDateString("ar-IQ",{month:"long",year:"numeric"});
+    const lead=(first.getUTCDay()+1)%7; // week starts on Saturday
+    let h=["س","ح","ن","ث","ر","خ","ج"].map(x=>`<span class="dow">${x}</span>`).join("")+"<span></span>".repeat(lead);
+    for(let d=1;d<=days;d++){const k=view+"-"+String(d).padStart(2,"0");const lo=a<=b?a:b,hi=a<=b?b:a;
+      const cls=["day",k===lo||k===hi?"sel":"",k>lo&&k<hi?"in":"",k>today?"off":"",C.has(k)?"hc":"",Lg.has(k)?"hl":"",T.has(k)?"ht":""].filter(Boolean).join(" ");
+      h+=`<button type="button" class="${cls}" data-d="${k}" ${k>today?"disabled":""}>${d}<i></i></button>`}
+    $("#cl-g",m).innerHTML=h;
+    $("#cl-g",m).querySelectorAll("[data-d]").forEach(x=>x.onclick=()=>{const k=x.dataset.d;if(!picking){a=b=k;picking=true}else{b=k;picking=false}draw()});
+    $("#cl-s",m).textContent=a===b?`يوم ${dLbl(a)}`:`من ${dLbl(a<=b?a:b)} لحد ${dLbl(a<=b?b:a)}`;
+    $("#cl-n",m).disabled=view>=today.slice(0,7)};
+  const shift=n=>{const [y,mo]=view.split("-").map(Number);const d=new Date(Date.UTC(y,mo-1+n,1));view=d.toISOString().slice(0,7);draw()};
+  $("#cl-p",m).onclick=()=>shift(-1); $("#cl-n",m).onclick=()=>shift(1);
+  $("#cl-x",m).onclick=()=>m.remove(); $("#cl-ok",m).onclick=()=>{m.remove();done(a<=b?a:b,a<=b?b:a)};
+  draw();
+}
 /* ---------- receipts: every amount received, with the trips it paid for ---------- */
 let rcpF=null, rcpT=null, rcpCar="";
 async function renderReceipts(){
@@ -2197,10 +2239,15 @@ async function renderReceipts(){
   rcpT=rcpT||today; rcpF=rcpF||new Date(Date.now()+3*36e5-13*864e5).toISOString().slice(0,10);
   $("#view").innerHTML=`<div class="wrap" id="rv"><div class="bar"><h2>🧾 الاستلامات</h2>
     <div class="row" style="gap:8px;flex-wrap:wrap"><select id="rc-car" class="btn sm" aria-label="السائق"><option value="">كل السواق</option>${cars.filter(c=>c.active).map(c=>`<option value="${c.id}" ${rcpCar===c.id?"selected":""}>${esc(c.driver_name)}</option>`).join("")}</select>
-    <label>من <input type="date" id="rc-f" value="${rcpF}" max="${today}"></label><label>لحد <input type="date" id="rc-t" value="${rcpT}" max="${today}"></label></div></div>
+    <button class="btn sm primary" id="rc-cal">📅 ${rcpF===rcpT?dLbl(rcpF):`${dLbl(rcpF)} — ${dLbl(rcpT)}`}</button>
+    <button class="btn sm" data-rq="day">اليوم</button><button class="btn sm" data-rq="week">هذا الأسبوع</button><button class="btn sm" data-rq="month">هذا الشهر</button></div></div>
     <div id="rcb"><div class="empty">جارٍ التحميل…</div></div></div>`;
   $("#rc-car").onchange=e=>{rcpCar=e.target.value;renderReceipts()};
-  $("#rc-f").onchange=e=>{rcpF=e.target.value;renderReceipts()}; $("#rc-t").onchange=e=>{rcpT=e.target.value;renderReceipts()};
+  $("#rc-cal").onclick=async()=>{let marks={};try{marks=await rpc("taxi_admin_record_days",{p_pin:PIN,p_car:rcpCar||null})}catch{}
+    rangePicker(rcpF,rcpT,marks,(f,t)=>{rcpF=f;rcpT=t;renderReceipts()})};
+  document.querySelectorAll("[data-rq]").forEach(b=>b.onclick=()=>{const d=new Date(Date.now()+3*36e5);rcpT=today;
+    if(b.dataset.rq==="day")rcpF=today;else if(b.dataset.rq==="month")rcpF=today.slice(0,8)+"01";else{const w=(d.getUTCDay()+1)%7;rcpF=new Date(d.getTime()-w*864e5).toISOString().slice(0,10)}
+    renderReceipts()});
   let L, LG; try{[L,LG]=await Promise.all([rpc("taxi_admin_receipts",{p_pin:PIN,p_car:rcpCar||null,p_from:rcpF,p_to:rcpT}),rpc("taxi_admin_ledger_range",{p_pin:PIN,p_car:rcpCar||null,p_from:rcpF,p_to:rcpT})])}catch(e){$("#rcb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
   const dT=ts=>new Date(ts).toLocaleString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric",hour:"numeric",minute:"2-digit"});
   const dD=ts=>new Date(ts).toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
