@@ -508,7 +508,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091059";
+const BUILD="202611091106";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -583,6 +583,14 @@ function landingApp(){
   if(!role&&store.get("taxi_driver_code")){store.set("taxi_role","driver");location.replace("#driver");return}
   if(!role&&store.get("taxi_cs")){store.set("taxi_role","customer");location.replace("#order");return}
   document.title="المنصور تاكسي";
+  if(isStandalone()){
+    $("#app").innerHTML=`<div class="gate"><div class="gate-card" style="display:flex;flex-direction:column;gap:12px;text-align:center">
+      <img src="img/wordmark.png" alt="المنصور تاكسي" style="height:60px;align-self:center"><h2 style="margin:0">منو يستخدم التطبيق؟</h2>
+      <a class="btn primary big" href="#order">🙋 أنا زبون: أطلب تكسي</a>
+      <a class="btn big" href="#driver">🚕 أنا سائق: أدخل برمزي</a>
+      <a class="btn" href="#admin">الإدارة</a>
+      <small style="color:var(--muted)">تختار مرة وحدة، والتطبيق يتذكّرك.</small></div></div>`;
+    return}
   $("#app").innerHTML=`<div class="lp">
   <header class="hero">
     <div class="lp-in hero-top"><img src="img/wordmark-light.png" alt="المنصور تاكسي" width="140" height="74"><a href="#admin">دخول الإدارة</a></div>
@@ -805,6 +813,16 @@ function bindInstall(){
     $("#ios-ok",m).onclick=()=>m.remove()};
 }
 if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
+// on the driver page the home-screen icon opens straight into this driver's page (his code rides along in ?c=)
+function driverManifest(){
+  try{
+    const base=location.origin+location.pathname, start=base+"?c="+encodeURIComponent(CODE)+"#driver";
+    history.replaceState(null,"",location.pathname+"?c="+encodeURIComponent(CODE)+"#driver");
+    const m={name:"المنصور تاكسي · السائق",short_name:"تاكسي السائق",id:base+"?driver",start_url:start,scope:base,display:"standalone",dir:"rtl",lang:"ar",
+      background_color:"#014e55",theme_color:"#014e55",icons:[{src:new URL("img/apple-touch-icon.png",base).href,sizes:"180x180",type:"image/png"},{src:new URL("img/icon-512.png",base).href,sizes:"512x512",type:"image/png"}]};
+    const l=document.querySelector('link[rel="manifest"]'); if(l) l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:"application/manifest+json"}));
+  }catch{}
+}
 /* ---------- push notifications (customers and drivers) ---------- */
 const VAPID_PUB="BKnADo70ajkFMMICdSLPjWqntLHNHpWY8SIY7r7mzITcLQIS-41TxorkccR67waTePIWCGTojJSoX3rVxa4y0Fo";
 const b64u=x=>{const p="=".repeat((4-x.length%4)%4),r=atob((x+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(r,c=>c.charCodeAt(0))};
@@ -1366,6 +1384,8 @@ function navSave(){
 function route(){ try{const q=new URLSearchParams(location.search),c=q.get("c"),d=q.get("d");if(c&&/^\d{4,8}$/.test(c)){store.set("taxi_driver_code",c);store.set("taxi_role","driver");CODE=c}
     // dispatcher QR: ?d=<token> logs this phone in as a dispatcher
     if(d&&/^[0-9a-f-]{36}$/i.test(d)){store.set("taxi_disp",d);store.set("taxi_role","disp");history.replaceState(null,"",location.pathname+"#disp");}}catch{}
+  if(["#order","#signup","#login","#account",""].includes(location.hash)&&store.get("taxi_role")==="driver"&&store.get("taxi_driver_code")){history.replaceState(null,"",location.pathname+"#driver")}
+  if(["#order","#signup","#login","#account",""].includes(location.hash)&&store.get("taxi_role")==="disp"&&store.get("taxi_disp")){history.replaceState(null,"",location.pathname+"#disp")}
   const h=location.hash; (h==="#disp"?dispApp:h==="#nav"?navApp:h==="#driver"?driverApp:h==="#admin"?adminApp:h==="#order"?orderApp:h==="#signup"?signupApp:h==="#login"?loginApp:h==="#account"?accountApp:landingApp)(); }
 window.addEventListener("hashchange",()=>location.reload());
 
@@ -2502,7 +2522,7 @@ async function driverStart(){
   $("#retry").onclick=()=>{unlockAudio();startWatch()};
   $("#toExt").hidden=!/iPhone|iPad|iPod/.test(navigator.userAgent)&&!(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
   $("#toExt").onclick=()=>{siren(false);$("#block").hidden=true;gpsBad=false;if(!$("#extCard"))renderExtCard();$("#extOn").checked=true;setExt(true);window.scrollTo(0,0)};
-  unlockAudio(); pushCard($("#drvpush"),"driver");
+  unlockAudio(); pushCard($("#drvpush"),"driver"); driverManifest();
   try{if(navigator.getBattery){const b=await navigator.getBattery();battery=Math.round(b.level*100);b.addEventListener("levelchange",()=>battery=Math.round(b.level*100))}}catch{}
   $("#ring").onclick=()=>{unlockAudio();ON?confirmStop():goOn()};
   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
