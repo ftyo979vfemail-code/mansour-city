@@ -246,6 +246,7 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 .hb i{display:block;height:12px;border-radius:6px;background:var(--amber);min-width:4px}
 .kpi.warn{border-color:var(--amber)}
 .spbar,.depbar{flex-direction:column;align-items:stretch}
+.ro [data-fc],.ro [data-cash],.ro #dfcash,.ro [data-cdel],.ro [data-settle],.ro [data-dok],.ro [data-dno],.ro #dd-ok,.ro #dd-no,.ro [data-pg],.ro #dd-a,.ro [data-te],.ro [data-tdel]{display:none!important}
 .waitbox.locked{border-color:var(--muted);background:color-mix(in srgb,var(--muted) 10%,var(--panel))}
 .pushcard{display:flex;align-items:center;gap:10px;border:2px dashed var(--amber);border-radius:14px;padding:10px 12px}
 .pushcard span{flex:1;min-width:0}
@@ -507,7 +508,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091037";
+const BUILD="202611091048";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1460,10 +1461,12 @@ function adminGate(msg){
 }
 let ME=null;
 const FULL=()=>!ME||ME.perms!=="drivers";
-const MONEY_TABS=["files","week","acc","cust","daily","set"];
+const MONEY_TABS=["set"];
+const OWNER=()=>!!(ME&&(ME.owner||ME.id===0));
 function adminShell(){
   if(!ME){rpc("taxi_admin_me",{p_pin:PIN}).then(m=>{ME=m;adminShell()}).catch(()=>{ME={perms:"full",name:""};adminShell()});return}
-  setTimeout(()=>{const w=$("#who");if(w&&ME.name){w.hidden=false;w.textContent="👤 "+ME.name+(FULL()?"":" · السواق والطلبات")}},0);
+  setTimeout(()=>{const w=$("#who");if(w&&ME.name){w.hidden=false;w.textContent="👤 "+ME.name+(OWNER()?"":" · الحسابات للمشاهدة بس")}},0);
+  document.body.classList.toggle("ro",!OWNER());
   if(!FULL()&&MONEY_TABS.includes(tab)) tab="live";
   $("#app").innerHTML=`<div class="shell">
    <header class="top">
@@ -1536,7 +1539,7 @@ async function poll(){
     noshowBar(ts.filter(t=>t.noshow_status==="pending"&&t.status==="accepted"));
     schedBar(ts.filter(t=>t.status==="scheduled"));
   }).catch(()=>{});
-  if(FULL()){pollDeposits(); pollRouteChanges();} if(pollN%6===1) pollComplaints();
+  pollDeposits(); if(FULL()) pollRouteChanges(); if(pollN%6===1) pollComplaints();
   if(tab==="live") renderLive(); else if(tab==="cars") renderCars(); else if(tab==="trips") loadTrips(true);
 }
 let prevSp=[], prevSpInit=false;
@@ -1875,13 +1878,38 @@ async function driverFile(id){
 let tripsDay=null, tripsCache=[];
 function todayStr(){const d=new Date(Date.now()+3*3600e3);return d.toISOString().slice(0,10)}
 function hm(ts){return ts?new Date(ts).toLocaleTimeString("ar-IQ",{hour:"2-digit",minute:"2-digit"}):"—"}
+// owner only: fix a fare or delete a trip; every change is logged
+function tripFareEdit(t){
+  const m=modal(`<h3>✏️ تعديل كروة السفرة</h3><div class="calc"><div><span>السائق</span><b>${esc(t.driver_name||"—")}</b></div><div><span>إلى</span><b>${esc(t.dropoff||"—")}</b></div><div><span>الوقت</span><b>${hm(t.created_at)}</b></div><div><span>الكروة هسه</span><b>${dinar(t.fare)}</b></div></div>
+    <div class="field"><label for="fe-a">الكروة الصحيحة (دينار)</label><input id="fe-a" inputmode="numeric" value="${t.fare||""}" style="font:600 22px var(--mono);text-align:center"></div>
+    <div class="field"><label for="fe-n">السبب (اختياري)</label><input id="fe-n" maxlength="200" placeholder="مثال: السائق كتب 5 بدال 5000"></div>
+    <div class="err" id="fe-e"></div><div class="row"><button class="btn" id="fe-x">رجوع</button><button class="btn primary" id="fe-ok">حفظ</button></div>`);
+  $("#fe-x",m).onclick=()=>m.remove();
+  $("#fe-ok",m).onclick=async()=>{const a=parseInt(($("#fe-a",m).value||"").replace(/\D/g,""),10);if(isNaN(a)){$("#fe-e",m).textContent="اكتب المبلغ";return}
+    try{const r=await rpc("taxi_admin_trip_edit",{p_pin:PIN,p_id:t.id,p_fare:a,p_note:$("#fe-n",m).value});m.remove();toast("انعدلت الكروة: "+dinar(r.fare));loadTrips()}catch(e){$("#fe-e",m).textContent=e.message}};
+}
+function tripDelete(t){
+  const m=modal(`<h3>🗑 حذف السفرة</h3><p style="margin:0">${esc(t.driver_name||"")} ← ${esc(t.dropoff||"—")} · ${hm(t.created_at)}${t.fare?` · <b>${dinar(t.fare)}</b>`:""}</p><p class="note" style="margin:0">تنحذف من الحسابات كلها. الحذف ينسجل بسجل التعديلات.</p>
+    <div class="field"><label for="td-n">السبب</label><input id="td-n" maxlength="200" placeholder="مثال: سفرة تجربة"></div>
+    <div class="err" id="td-e"></div><div class="row"><button class="btn" id="td-x">رجوع</button><button class="btn danger" id="td-ok">حذف</button></div>`);
+  $("#td-x",m).onclick=()=>m.remove();
+  $("#td-ok",m).onclick=async()=>{try{await rpc("taxi_admin_trip_delete",{p_pin:PIN,p_id:t.id,p_note:$("#td-n",m).value});m.remove();toast("انحذفت السفرة");loadTrips()}catch(e){$("#td-e",m).textContent=e.message}};
+}
+async function tripAudit(){
+  const m=modal(`<h3>🧾 سجل تعديل الكراوي</h3><div id="au"><div class="empty">جارٍ التحميل…</div></div><div class="row"><button class="btn primary" id="au-x">تمام</button></div>`);
+  m.classList.add("wide"); $("#au-x",m).onclick=()=>m.remove();
+  try{const L=await rpc("taxi_admin_trip_audit",{p_pin:PIN});
+    $("#au",m).innerHTML=L.length?`<ul class="log">${L.map(a=>`<li><span class="pill ${a.action==="delete"?"s-bad":"s-warn"}">${a.action==="delete"?"حذف":"تعديل"}</span><span>${esc(a.driver||"")} ← ${esc(a.dropoff||"—")}: ${a.action==="delete"?dinar(a.old_fare):`${fmt(a.old_fare)} ← <b>${fmt(a.new_fare)}</b>`}${a.note?`<br><small>${esc(a.note)}</small>`:""}</span><time>${new Date(a.at).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"})}</time></li>`).join("")}</ul>`:`<p class="note">ماكو تعديلات.</p>`}
+  catch(e){$("#au",m).innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
 function renderTrips(){
   tripsDay=tripsDay||todayStr();
   $("#view").innerHTML=`<div class="wrap">
-    <div class="bar"><h2>السفرات</h2><label class="sr" for="tday">اليوم</label><input id="tday" type="date" value="${tripsDay}" class="btn"><button class="btn primary" id="nt">+ حجز سفرة</button></div>
+    <div class="bar"><h2>السفرات</h2><label class="sr" for="tday">اليوم</label><input id="tday" type="date" value="${tripsDay}" class="btn"><button class="btn" id="taud">🧾 سجل تعديل الكراوي</button><button class="btn primary" id="nt">+ حجز سفرة</button></div>
     <div id="tsum" class="kpis"></div>
     <div id="tlist"><div class="empty">جارٍ التحميل…</div></div></div>`;
   $("#tday").onchange=e=>{tripsDay=e.target.value;loadTrips()};
+  $("#taud").onclick=tripAudit;
   $("#nt").onclick=()=>tripForm();
   loadTrips();
 }
@@ -1902,9 +1930,11 @@ async function loadTrips(quiet){
     <td>${t.source==="office"?"المكتب":t.source==="customer"?"الزبون (أونلاين)":"السائق"}</td>
     <td><span class="pill ${st[0]}">${st[1]}</span>${t.round_trip?` <span class="pill s-warn">↩ مرجع${t.round_fee?" +"+fmt(t.round_fee):""}</span>`:""}${t.pickup_wait_sec>0?` <span class="pill ${t.pickup_waiting?"s-warn":"s-idle"}">🕓 ${t.pickup_waiting?"وصل وينتظر ":"انتظر بالاستلام "}${Math.ceil(t.pickup_wait_sec/60)} د</span>`:""}${t.wait_sec>0?` <span class="pill ${t.waiting?"s-warn":"s-idle"}">⏱ عدّاد ${t.waiting?"شغّال ":""}${Math.ceil(t.wait_sec/60)} د${t.wait_fee?" +"+fmt(t.wait_fee):""}</span>`:""}${t.stars?` <span class="pill ${t.stars<=2?"s-bad":"s-ok"}">${"★".repeat(t.stars)}</span>`:""}${t.trip_kind==="line"?` <span class="pill s-ok">🛣 خط</span>`:""}${t.hurry_answer?` <span class="pill ${t.hurry_answer==="wait"?"s-ok":"s-idle"}">⏳ ${t.hurry_answer==="wait"?"ينتظر":"مستعجل، ألغى"}</span>`:t.hurry_asked_at&&["requested","rejected","assigned"].includes(t.status)?` <span class="pill s-warn">⏳ سألناه</span>`:""}${t.scheduled_at?`<br><span class="pill s-idle">🗓 ${whenTxt(t.scheduled_at)}</span>`:""}${t.noshow_status?`<br><span class="pill ${t.noshow_status==="approved"?"s-idle":t.noshow_status==="pending"?"s-warn":"s-bad"}">✖ تسكير${t.noshow_status==="approved"?": الزبون ما نزل":t.noshow_status==="pending"?": ينتظر موافقة":": انرفض"}</span> <small style="color:var(--muted)">${esc(t.noshow_note||"")}${t.noshow_reason?` · ${esc(t.noshow_reason)}`:""}</small>`:""}${t.special_status?`<br><span class="pill ${t.special_status==="approved"?"s-ok":t.special_status==="pending"?"s-warn":"s-idle"}">⭐ زبون خاص${t.special_status==="approved"?" بدون كروة":t.special_status==="pending"?": ينتظر موافقة":": انرفض"}</span> <small style="color:var(--muted)">${esc(t.special_note||"")}${t.special_by?` · ${esc(t.special_by)}`:""}</small>`:""}${t.dispatched_by?`<br><small style="color:var(--muted)">أرسلها: ${esc(t.dispatched_by)}</small>`:""}${t.cancel_reason?`<br><small style="color:var(--muted)">${esc(t.cancel_reason)}</small>`:""}</td>
     <td style="font-variant-numeric:tabular-nums">${t.fare?fmt(t.fare):"—"}</td><td>${t.km!=null?t.km:"—"}</td>
-    <td><div class="acts">${t.car_id&&["accepted","started","done"].includes(t.status)?`<button class="btn sm" data-tp="${t.id}">🗺 المسار</button>`:""}${t.status==="requested"?`<button class="btn sm primary" data-ta="re" data-id="${t.id}">إرسال لسائق</button>`:["assigned","rejected"].includes(t.status)?`<button class="btn sm" data-ta="re" data-id="${t.id}">تحويل لسائق</button>`:""}${openT?`<button class="btn sm danger" data-ta="cancel" data-id="${t.id}">إلغاء</button>`:""}</div></td></tr>`}).join("")}
+    <td><div class="acts">${OWNER()&&t.status==="done"?`<button class="btn sm" data-te="${t.id}">✏️ الكروة</button>`:""}${OWNER()&&["done","cancelled","rejected","requested","scheduled"].includes(t.status)?`<button class="btn sm danger" data-tdel="${t.id}">🗑</button>`:""}${t.car_id&&["accepted","started","done"].includes(t.status)?`<button class="btn sm" data-tp="${t.id}">🗺 المسار</button>`:""}${t.status==="requested"?`<button class="btn sm primary" data-ta="re" data-id="${t.id}">إرسال لسائق</button>`:["assigned","rejected"].includes(t.status)?`<button class="btn sm" data-ta="re" data-id="${t.id}">تحويل لسائق</button>`:""}${openT?`<button class="btn sm danger" data-ta="cancel" data-id="${t.id}">إلغاء</button>`:""}</div></td></tr>`}).join("")}
   </tbody></table></div>`;
   box.querySelectorAll("[data-tp]").forEach(b=>b.onclick=()=>showTripPath(+b.dataset.tp));
+  box.querySelectorAll("[data-te]").forEach(b=>b.onclick=()=>tripFareEdit(tripsCache.find(x=>x.id===+b.dataset.te)));
+  box.querySelectorAll("[data-tdel]").forEach(b=>b.onclick=()=>tripDelete(tripsCache.find(x=>x.id===+b.dataset.tdel)));
   box.querySelectorAll("[data-ta]").forEach(b=>b.onclick=()=>{
     const id=+b.dataset.id;
     if(b.dataset.ta==="cancel") confirmBox("إلغاء هذي السفرة؟","إلغاء السفرة",async()=>{await rpc("taxi_admin_trip_action",{p_pin:PIN,p_id:id,p_action:"cancel"});toast("انلغت");loadTrips()});
