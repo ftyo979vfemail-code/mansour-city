@@ -44,3 +44,6 @@ grant execute on function public.taxi_admin_inventory(text,date) to anon, authen
 -- update (migration taxi_manual_days): days before the system — taxi_admin_manual_set(pin, car, day, amount, received)
 -- stores one 'manual' done trip per driver per day (replaced on re-entry; received -> a matching taxi_cash row),
 -- taxi_admin_manual_get(pin, from, to) for the entry grid; the inventory counts them as manual_days, not trips.
+
+-- update (migration taxi_manual_cash_days): taxi_cash.manual_day + taxi_admin_manual_cash_set(pin, car, day, amount):
+-- what the office received from a driver on an old day (replaced on re-entry); manual_get also returns 'cash'.
