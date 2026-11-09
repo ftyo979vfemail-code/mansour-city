@@ -269,6 +269,7 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 .lg-amt{font:700 17px var(--mono);color:var(--bad)}
 .lg-why{font-weight:600}
 @media(max-width:560px){.lgl li{grid-template-columns:1fr}}
+.rc-day{margin:0 0 18px}.rc-dh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px;margin:0 0 8px;padding:8px 12px;border-radius:10px;background:var(--panel2,var(--panel));border:1px solid var(--line);font-size:16px}.rc-dh small{font-weight:400;font-size:13px}
 .rcpt{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px;overflow:hidden}
 .rcpt summary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
 .rcpt summary::-webkit-details-marker{display:none}
@@ -558,7 +559,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091211";
+const BUILD="202611091218";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2258,28 +2259,38 @@ async function renderReceipts(){
   const tm=ts=>new Date(ts).toLocaleTimeString("ar-IQ",{hour:"numeric",minute:"2-digit"});
   const who=n=>{const p=(n||"").split("·");return p.length>1?p[p.length-1].replace("استلمه","").trim():""};
   const total=L.reduce((a,k)=>a+k.amount,0), exO=LG.filter(i=>i.kind==="expense"&&!i.from_cash).reduce((a,i)=>a+i.amount,0), exD=LG.filter(i=>i.kind==="expense"&&i.from_cash).reduce((a,i)=>a+i.amount,0), adv=LG.filter(i=>i.kind==="advance").reduce((a,i)=>a+i.amount,0);
-  const spent={};  // receipt id -> [{amount, note, day}]
+  const bgd=ts=>new Date(new Date(ts).getTime()+3*36e5).toISOString().slice(0,10);
+  const kDay=k=>k.manual_day||bgd(k.at);
+  // an office-paid expense comes off the same driver's receipt of the SAME day; if that day has none, off the next receipt after it — never an older day
+  const spent={}, unsp={};
   [...new Set(LG.map(i=>i.car_id))].forEach(car=>{
-    const rs=L.filter(k=>k.car_id===car).sort((a,b)=>new Date(a.at)-new Date(b.at)).map(k=>({k,left:k.amount}));
+    const rs=L.filter(k=>k.car_id===car).sort((a,b)=>kDay(a)<kDay(b)?-1:kDay(a)>kDay(b)?1:new Date(a.at)-new Date(b.at)).map(k=>({k,d:kDay(k),left:k.amount}));
     LG.filter(i=>i.car_id===car&&i.kind==="expense"&&!i.from_cash).sort((a,b)=>a.day<b.day?-1:a.day>b.day?1:a.id-b.id).forEach(i=>{let need=i.amount;
-      for(const r of rs){if(need<=0)break;const take=Math.min(r.left,need);if(take<=0)continue;r.left-=take;need-=take;(spent[r.k.id]=spent[r.k.id]||[]).push({amount:take,note:i.note,day:i.day,full:i.amount})}})});
-  const ledgerHTML=LG.length?`<h3 style="margin:4px 0 8px">💸 المصاريف والسلف بهاي الفترة</h3><ul class="lgl">${LG.map(i=>`<li class="${i.kind}"><span class="lg-amt">${i.kind==="advance"?"🤝":"💸"} ${fmt(i.amount)}</span>
-      <span><b>${i.kind==="advance"?"سلفة":"مصروف"} · ${esc(i.driver_name)}</b> <small>${dD(i.day+"T12:00:00Z")}</small><br><span class="lg-why">${i.note?esc(i.note):"<i>بدون سبب</i>"}</span><br><small style="color:var(--muted)">${i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده (انخصمت من اللي لازم يسلّمه)":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده (انخصم من اللي لازم يسلّمه)":"انصرف من المبلغ المسلّم للإدارة")}</small></span>
-      ${OWNER()?`<span class="acts"><button class="btn sm" data-lgo="${i.car_id}">تعديل</button></span>`:""}</li>`).join("")}</ul>`:"";
-  $("#rcb").innerHTML=`<div class="kpis"><div class="kpi"><small>استلمنا بهاي الفترة</small><b>${dinar(total)}</b><small>${L.length} استلام</small></div>
-    ${exO||exD||adv?`<div class="kpi warn"><small>المصاريف والسلف</small><b>${dinar(exO+exD+adv)}</b><small>${[exO?`من المبلغ المسلّم ${fmt(exO)}`:"",exD?`من كاش السواق ${fmt(exD)}`:"",adv?`سلف ${fmt(adv)}`:""].filter(Boolean).join(" · ")}</small></div>
-    <div class="kpi"><small>الصافي عند الإدارة</small><b>${dinar(total-exO)}</b><small>اللي استلمناه − المصاريف اللي انصرفت منه</small></div>`:""}</div>
-    ${ledgerHTML}${L.length?`<h3 style="margin:12px 0 8px">💵 الاستلامات</h3>`:""}
-    ${L.length?L.map(k=>{const tr=k.trips, first=tr[0], last=tr[tr.length-1];
+      for(const r of rs){if(need<=0)break;if(r.d<i.day)continue;const take=Math.min(r.left,need);if(take<=0)continue;r.left-=take;need-=take;(spent[r.k.id]=spent[r.k.id]||[]).push({amount:take,note:i.note,day:i.day,full:i.amount})}
+      if(need>0)unsp[i.id]=need})});
+  const lgItem=i=>`<li class="${i.kind}"><span class="lg-amt">${i.kind==="advance"?"🤝":"💸"} ${fmt(i.amount)}</span>
+      <span><b>${i.kind==="advance"?"سلفة":"مصروف"} · ${esc(i.driver_name)}</b><br><span class="lg-why">${i.note?esc(i.note):"<i>بدون سبب</i>"}</span><br><small style="color:var(--muted)">${i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده (انخصمت من اللي لازم يسلّمه)":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده (انخصم من اللي لازم يسلّمه)":unsp[i.id]?`ينخصم من أول استلام إله من هذا اليوم وطالع${unsp[i.id]<i.amount?` (باقي ${fmt(unsp[i.id])})`:""}`:"انصرف من استلام هذا اليوم")}</small></span>
+      ${OWNER()?`<span class="acts"><button class="btn sm" data-lgo="${i.car_id}">تعديل</button></span>`:""}</li>`;
+  const rcItem=k=>{const tr=k.trips, first=tr[0], last=tr[tr.length-1];
       const sp=spent[k.id]||[], spT=sp.reduce((a,x)=>a+x.amount,0);
-      return `<details class="rcpt"><summary><span class="rc-amt">💵 ${dinar(k.amount)}${spT?`<small class="rc-net">− صرف ${fmt(spT)}<br>= صافي <b>${fmt(k.amount-spT)}</b></small>`:""}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>${k.manual_day?`استلام قديم ليوم ${dD(k.manual_day+"T12:00:00Z")}`:dT(k.at)}${who(k.note)&&!k.manual_day?` · استلمه ${esc(who(k.note))}`:""}</small></span>
+      return `<details class="rcpt"><summary><span class="rc-amt">💵 ${dinar(k.amount)}${spT?`<small class="rc-net">− صرف ${fmt(spT)}<br>= صافي <b>${fmt(k.amount-spT)}</b></small>`:""}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>${k.manual_day?"استلام قديم (إدخال يدوي)":tm(k.at)}${who(k.note)&&!k.manual_day?` · استلمه ${esc(who(k.note))}`:""}</small></span>
         <span class="rc-cov">${tr.length?`غطّى ${tr.length} ${tr.length===1?"سفرة":"سفرات"}<br><small>${dD(first.ended_at)}${tr.length>1&&dD(first.ended_at)!==dD(last.ended_at)?` — ${dD(last.ended_at)}`:""}</small>`:"ما غطّى سفرات"}${k.unallocated>0?`<br><small style="color:var(--ok)">+ ${fmt(k.unallocated)} زيادة (رصيد إله)</small>`:""}</span></summary>
         <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الوقت</th><th>من ← إلى</th><th>الكروة</th><th>انحسب من هذا الاستلام</th></tr></thead><tbody>
         ${tr.map(t=>`<tr><td>${dD(t.ended_at)}</td><td>${t.manual?"—":tm(t.ended_at)}</td><td>${t.manual?"إدخال يدوي (مجموع اليوم)":`${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}${t.line?" · خط":""}`}</td><td class="num">${fmt(t.cash)}</td><td class="num">${t.covered<t.cash?`<span class="pill s-warn">${fmt(t.covered)} من ${fmt(t.cash)}</span>`:fmt(t.covered)}</td></tr>`).join("")}
         </tbody></table></div>
         ${sp.length?`<ul class="rc-sp">${sp.map(x=>`<li>💸 انصرف <b>${fmt(x.amount)}</b>${x.amount<x.full?` (من مصروف ${fmt(x.full)})`:""} · ${dD(x.day+"T12:00:00Z")} · <span class="lg-why">${x.note?esc(x.note):"بدون سبب"}</span></li>`).join("")}<li class="tot">الاستلام ${fmt(k.amount)} − الصرف ${fmt(spT)} = <b>${fmt(k.amount-spT)}</b> صافي</li></ul>`:""}
         ${OWNER()?`<div class="row rc-acts" style="justify-content:flex-start;gap:8px;flex-wrap:wrap;padding:10px 14px 0"><button class="btn sm" data-rce="${k.id}">✏️ تعديل المبلغ</button><button class="btn sm danger" data-rcd="${k.id}">🗑 حذف الاستلام</button><button class="btn sm" data-rcl="${k.car_id}">💸 مصاريف وسلف ${esc(k.driver_name.split(" ")[0])}</button></div>`:""}
-        <p class="note" style="margin:6px 0 0">${k.owed_after>0?`بعد هذا الاستلام بقى بذمّته <b>${dinar(k.owed_after)}</b> من السفرات اللي قبله.`:k.owed_after<0?`بعد هذا الاستلام صار إله رصيد <b>${dinar(-k.owed_after)}</b>.`:`بعد هذا الاستلام ما بقى عليه شي من السفرات اللي قبله.`}</p></details>`}).join(""):`<p class="note">ماكو استلامات بهاي الفترة.</p>`}`;
+        <p class="note" style="margin:6px 0 0">${k.owed_after>0?`بعد هذا الاستلام بقى بذمّته <b>${dinar(k.owed_after)}</b> من السفرات اللي قبله.`:k.owed_after<0?`بعد هذا الاستلام صار إله رصيد <b>${dinar(-k.owed_after)}</b>.`:`بعد هذا الاستلام ما بقى عليه شي من السفرات اللي قبله.`}</p></details>`};
+  const days=[...new Set([...L.map(kDay),...LG.map(i=>i.day)])].sort().reverse();
+  const dayHTML=d=>{const ks=L.filter(k=>kDay(k)===d), ls=LG.filter(i=>i.day===d);
+    const rec=ks.reduce((a,k)=>a+k.amount,0), sp=ks.reduce((a,k)=>a+(spent[k.id]||[]).reduce((x,y)=>x+y.amount,0),0), ex=ls.filter(i=>i.kind==="expense").reduce((a,i)=>a+i.amount,0), av=ls.filter(i=>i.kind==="advance").reduce((a,i)=>a+i.amount,0);
+    return `<section class="rc-day"><h3 class="rc-dh"><span>📅 ${dD(d+"T12:00:00Z")}</span><small>${rec?`استلام <b>${fmt(rec)}</b>`:"ماكو استلام"}${ex?` · مصاريف ${fmt(ex)}`:""}${av?` · سلف ${fmt(av)}`:""}${rec?` · صافي اليوم <b>${fmt(rec-sp)}</b>`:""}</small></h3>
+      ${ls.length?`<ul class="lgl">${ls.map(lgItem).join("")}</ul>`:""}${ks.map(rcItem).join("")}</section>`};
+  $("#rcb").innerHTML=`<div class="kpis"><div class="kpi"><small>استلمنا بهاي الفترة</small><b>${dinar(total)}</b><small>${L.length} استلام · ${days.length} ${days.length===1?"يوم":"أيام"}</small></div>
+    ${exO||exD||adv?`<div class="kpi warn"><small>المصاريف والسلف</small><b>${dinar(exO+exD+adv)}</b><small>${[exO?`من المبلغ المسلّم ${fmt(exO)}`:"",exD?`من كاش السواق ${fmt(exD)}`:"",adv?`سلف ${fmt(adv)}`:""].filter(Boolean).join(" · ")}</small></div>
+    <div class="kpi"><small>الصافي عند الإدارة</small><b>${dinar(total-exO)}</b><small>اللي استلمناه − المصاريف اللي انصرفت منه</small></div>`:""}</div>
+    <p class="note" style="margin:0 0 10px">كل يوم بحساباته: الاستلام والمصاريف تنحسب بيومها، وما تندمج ويا الأيام اللي قبلها.</p>
+    ${days.length?days.map(dayHTML).join(""):`<p class="note">ماكو استلامات بهاي الفترة.</p>`}`;
   const byId=id=>L.find(k=>k.id===+id);
   $("#rcb").querySelectorAll("[data-rce]").forEach(b=>b.onclick=()=>{const k=byId(b.dataset.rce);
     const m=modal(`<h3>✏️ تعديل استلام ${esc(k.driver_name)}</h3><div class="field"><label for="ce-a">المبلغ الصحيح (دينار)</label><input id="ce-a" inputmode="numeric" value="${k.amount}" style="font:600 22px var(--mono);text-align:center"></div>
