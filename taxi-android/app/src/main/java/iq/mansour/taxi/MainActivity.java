@@ -398,7 +398,7 @@ public class MainActivity extends Activity {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
         JSONObject cxk = st.optJSONObject("cancelled");
-        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money"));
+        String key = (t == null ? "none:" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optString("noshow_status") + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money"));
         if (key.equals(tripKey)) return;
         tripKey = key;
         h.removeCallbacks(waitTick);
@@ -414,7 +414,7 @@ public class MainActivity extends Activity {
         if (t == null) {
             JSONObject cx = st.optJSONObject("cancelled");
             if (cx != null) {
-                TextView cv = text("✖ الزبون ألغى طلبه" + (cx.optString("dropoff").isEmpty() ? "" : " لـ " + cx.optString("dropoff")), 16, 0xFFB42318, true);
+                TextView cv = text(("noshow".equals(cx.optString("kind")) ? "✔ الإدارة سكّرت الطلب (الزبون ما نزل)" : "✖ الزبون ألغى طلبه") + (cx.optString("dropoff").isEmpty() ? "" : " لـ " + cx.optString("dropoff")), 16, 0xFFB42318, true);
                 cv.setBackground(box(0xFFFDECEA, 0xFFB42318, 12));
                 cv.setPadding(dp(12), dp(10), dp(12), dp(10));
                 card.addView(cv, full());
@@ -486,13 +486,22 @@ public class MainActivity extends Activity {
                 card.addView(r, full());
             } else if (status.equals("accepted")) {
                 final boolean pw = t.optBoolean("pickup_waiting");
-                card.addView(text(pw ? "وصلت للزبون" : "رايح للزبون", 19, FG, true));
+                final String ns = t.optString("noshow_status");
+                final boolean nsPending = ns.equals("pending");
+                card.addView(text(pw || nsPending ? "وصلت للزبون" : "رايح للزبون", 19, FG, true));
                 card.addView(text(where, 15, FG, false));
                 card.addView(space(10));
                 final boolean spPending = addSpecial(card, t);
                 pwBase = t.optInt("pickup_wait_sec", 0);
                 pwFrom = System.currentTimeMillis();
-                if (pw) {
+                if (nsPending) {
+                    // the clock is locked while the office decides on the close request
+                    TextView lk = text("🔒 العدّاد انقفل: " + clock(pwBase) + "\n⏳ طلب التسكير عند الإدارة\n" + t.optString("noshow_note")
+                            + "\nإذا نزل الزبون دوس «انطلاق» عادي.", 15, 0xFF8A5A00, true);
+                    lk.setBackground(box(0xFFFFF4DC, AMBER, 12));
+                    lk.setPadding(dp(12), dp(10), dp(12), dp(10));
+                    card.addView(lk, full());
+                } else if (pw) {
                     LinearLayout wb = new LinearLayout(this);
                     wb.setOrientation(LinearLayout.VERTICAL);
                     wb.setGravity(Gravity.CENTER);
@@ -508,6 +517,17 @@ public class MainActivity extends Activity {
                     wb.addView(nt);
                     card.addView(wb, full());
                     h.postDelayed(pwTick, 1000);
+                    if (ns.equals("rejected")) {
+                        TextView rj = text("✖ الإدارة رفضت التسكير: كمّل انتظار" + (t.optString("noshow_reason").isEmpty() ? "" : "\n" + t.optString("noshow_reason")), 14, 0xFFB42318, true);
+                        rj.setBackground(box(0xFFFDECEA, 0xFFB42318, 12));
+                        rj.setPadding(dp(12), dp(10), dp(12), dp(10));
+                        card.addView(space(8));
+                        card.addView(rj, full());
+                    }
+                    card.addView(space(8));
+                    Button close = button("✖ تسكير (الزبون ما نزل)", false);
+                    close.setOnClickListener(v -> noshowDialog(t));
+                    card.addView(close, full());
                 } else {
                     Button arr = button("📍 وصلت، دا أنتظر الزبون", false);
                     arr.setOnClickListener(v -> tripAction("wait_start", null));
@@ -771,6 +791,20 @@ public class MainActivity extends Activity {
             card.addView(space(8));
         }
         return st.equals("pending");
+    }
+
+    private void noshowDialog(JSONObject t) {
+        int mins = (t.optInt("pickup_wait_sec", 0) + (int) ((System.currentTimeMillis() - pwFrom) / 1000)) / 60;
+        final EditText note = input("مثال: وصلت للعمارة وانتظرت وما نزل أحد", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        new android.app.AlertDialog.Builder(this).setTitle("✖ تسكير الطلب")
+                .setMessage("انتظرت الزبون " + mins + " دقيقة. العدّاد ينقفل، والطلب يروح للإدارة توافق على التسكير أو ترفضه. اكتب شنو صار:")
+                .setView(note)
+                .setNegativeButton("رجوع", null)
+                .setPositiveButton("إرسال للإدارة", (d, w) -> {
+                    String n = note.getText().toString().trim();
+                    if (n.length() < 3) { android.widget.Toast.makeText(this, "اكتب ملاحظة: شنو صار؟", android.widget.Toast.LENGTH_LONG).show(); return; }
+                    tripAction("noshow", obj("note", n));
+                }).show();
     }
 
     private void specialDialog(int zoneId) {

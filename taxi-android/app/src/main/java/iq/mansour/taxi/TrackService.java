@@ -248,7 +248,7 @@ public class TrackService extends Service implements LocationListener {
         String to = c.optString("dropoff");
         nm.notify(4, new Notification.Builder(this, CH_OFFER)
                 .setSmallIcon(R.drawable.ic_car)
-                .setContentTitle("✖ الزبون ألغى الطلب")
+                .setContentTitle("noshow".equals(c.optString("kind")) ? "✔ الإدارة سكّرت الطلب (الزبون ما نزل)" : "✖ الزبون ألغى الطلب")
                 .setContentText((to.isEmpty() || to.equals("null") ? "" : "طلب " + to + " انلغى. ") + "انتظر طلب جديد من المكتب")
                 .setAutoCancel(true)
                 .setContentIntent(open)

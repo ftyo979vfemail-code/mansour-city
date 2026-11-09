@@ -246,6 +246,9 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 .hb i{display:block;height:12px;border-radius:6px;background:var(--amber);min-width:4px}
 .kpi.warn{border-color:var(--amber)}
 .spbar{flex-direction:column;align-items:stretch}
+.waitbox.locked{border-color:var(--muted);background:color-mix(in srgb,var(--muted) 10%,var(--panel))}
+.pushcard{display:flex;align-items:center;gap:10px;border:2px dashed var(--amber);border-radius:14px;padding:10px 12px}
+.pushcard span{flex:1;min-width:0}
 .sp-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
 .spbox{display:flex;flex-direction:column;gap:4px;border-radius:14px;padding:12px;border:2px solid var(--amber);background:color-mix(in srgb,var(--amber) 12%,var(--panel))}
 .spbox.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--panel))}
@@ -498,7 +501,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611081825";
+const BUILD="202611090553";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -526,16 +529,22 @@ function status(c){
   if(c.gps_state==="denied") return {k:"bad",t:"رفض الموقع"};
   if(c.gps_state==="closed") return {k:"bad",t:"أغلق التطبيق"};
   if(c.gps_state==="lost") return {k:"bad",t:"انقطع الإرسال"};
-  const old=(Date.now()-new Date(c.last_seen))/1000>STALE_SEC;
-  if(old) return {k:"bad",t:"انقطع الإرسال"};
+  const age=(Date.now()-new Date(c.last_seen))/1000, onTrip=c.trip&&c.trip.status==="started";
+  // iPhones stop sending while the car stands still: a parked car is "واقف", not cut off
+  if(c.gps_state==="parked"||(!onTrip&&(c.last_speed||0)<1&&age>STALE_SEC)){
+    if(age>45*60) return {k:"bad",t:"انقطع الإرسال"};
+    if(c.unlogged_flagged) return {k:"bad",t:"⚠ يتحرك بدون سفرة"};
+    if(c.trip&&TS[c.trip.status]) return {k:c.trip.status==="assigned"?"warn":"ok",t:TS[c.trip.status][1]+" · واقف"};
+    return {k:"ok",t:`واقف · آخر إشارة قبل ${Math.max(1,Math.round(age/60))} د`}}
+  if(age>STALE_SEC*4) return {k:"bad",t:"انقطع الإرسال"};
   if(c.unlogged_flagged) return {k:"bad",t:"⚠ يتحرك بدون سفرة"};
   if(c.trip&&TS[c.trip.status]) return {k:c.trip.status==="assigned"?"warn":"ok",t:TS[c.trip.status][1]};
   return {k:"ok",t:"فاضي"};
 }
-const TS={requested:["s-bad","طلب زبون جديد"],assigned:["s-warn","بانتظار قبول السائق"],accepted:["s-ok","رايح للزبون"],started:["s-ok","بسفرة"],done:["s-idle","انتهت"],cancelled:["s-idle","ملغية"],rejected:["s-bad","رفضها السائق"]};
+const TS={scheduled:["s-warn","حجز مسبق"],requested:["s-bad","طلب زبون جديد"],assigned:["s-warn","بانتظار قبول السائق"],accepted:["s-ok","رايح للزبون"],started:["s-ok","بسفرة"],done:["s-idle","انتهت"],cancelled:["s-idle","ملغية"],rejected:["s-bad","رفضها السائق"]};
 const fmt=n=>Number(n||0).toLocaleString("en-US");
 const dinar=n=>fmt(n)+" د.ع";
-const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],deposit:["s-ok","طلب إيداع من سائق"],route_change:["s-warn","الزبون غيّر مساره"],route_refused:["s-idle","الزبون رفض تغيير الوجهة"],route_suspect:["s-bad","⚠ تغيير وجهة مشكوك بيه"],cust_cancel:["s-idle","الزبون ألغى طلبه"],low_rating:["s-bad","⭐ تقييم واطي"],special:["s-warn","⭐ زبون خاص ينتظر موافقة"],complaint:["s-bad","📣 شكوى زبون"],round:["s-warn","مرجع"]};
+const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],parked:["s-idle","واقف"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],deposit:["s-ok","طلب إيداع من سائق"],route_change:["s-warn","الزبون غيّر مساره"],route_refused:["s-idle","الزبون رفض تغيير الوجهة"],route_suspect:["s-bad","⚠ تغيير وجهة مشكوك بيه"],cust_cancel:["s-idle","الزبون ألغى طلبه"],low_rating:["s-bad","⭐ تقييم واطي"],special:["s-warn","⭐ زبون خاص ينتظر موافقة"],noshow:["s-warn","✖ السائق يريد يسكّر (الزبون ما نزل)"],scheduled:["s-warn","🗓 حجز مسبق جديد"],scheduled_due:["s-warn","🗓 وقت حجز مسبق"],complaint:["s-bad","📣 شكوى زبون"],round:["s-warn","مرجع"]};
 const ICON=`<img class="logo-light" src="img/mark.png" alt=""><img class="logo-dark" src="img/mark-light.png" alt="">`;
 const ICON_OLD=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M4 13l2-6a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l2 6v4H4z"/><path d="M10 4h4"/><circle cx="7.5" cy="13.5" r="1"/><circle cx="16.5" cy="13.5" r="1"/></svg>`;
 
@@ -724,6 +733,7 @@ async function accountApp(){
     <div class="drvcard" style="border-color:var(--line)"><div><small>الاسم</small><b>${esc(me.name)}</b></div><div><small>اسم المستخدم</small><b dir="ltr">${esc(me.username||"")}</b></div>${me.building?`<div><small>السكن</small><b>عمارة ${esc(me.building)} · طابق ${esc(me.floor)} · شقة ${esc(me.apartment)}</b></div>`:""}</div>
     ${ptsCard(me.points)}
     ${me.open?`<a class="btn primary big" href="#order" style="text-align:center">عندك طلب مفتوح: تابعه أو ألغِه</a>`:`<a class="btn primary big" href="#order" style="text-align:center">🚕 اطلب تكسي</a>`}
+    ${me.scheduled&&me.scheduled.length?`<h3 class="h4">🗓 حجوزاتي</h3><ul class="log">${me.scheduled.map(b=>`<li><span>🗓</span><span>${esc(b.zone||"—")}<br><small style="color:var(--muted)">${dt(b.at)}</small></span><span class="pill ${b.confirmed?"s-ok":"s-warn"}">${b.confirmed?"مأكّد":"ينتظر تأكيد"}</span><button class="btn sm" data-bk="${esc(b.token)}">فتح</button></li>`).join("")}</ul>`:""}
     <h3 class="h4">طلباتي</h3>
     ${me.trips.length?`<ul class="log">${me.trips.map(t=>{const o=OS[t.status]||["",t.status];return `<li><span>${o[0]}</span><span>${esc(t.zone||"—")}${t.free?` <span class="pill s-ok">مجانية ⭐</span>`:""}<br><small style="color:var(--muted)">${dt(t.created_at)}${t.earned?` · +${fmt(t.earned)} نقطة`:""}${t.stars?` · ${"⭐".repeat(t.stars)}`:""}</small></span><span class="pill ${t.status==="done"?"s-ok":t.status==="cancelled"?"s-idle":"s-warn"}">${o[1]}</span></li>`}).join("")}</ul>`:`<p class="note" style="margin:0">ما عندك طلبات بعد.</p>`}
     ${me.points&&me.points.history.length?`<h3 class="h4">حركة النقاط</h3><ul class="log">${me.points.history.map(h=>`<li><span class="pill ${h.delta>0?"s-ok":"s-warn"}">${PR[h.reason]||h.reason}</span><span>${esc(h.zone||h.note||"")}<br><small style="color:var(--muted)">${dt(h.at)}</small></span><b class="num" dir="ltr">${h.delta>0?"+":""}${fmt(h.delta)}</b></li>`).join("")}</ul>`:""}
@@ -731,6 +741,7 @@ async function accountApp(){
     <button class="btn big" id="acmp">📣 عندي شكوى أو ملاحظة</button>
     <button class="btn big" id="out">تسجيل خروج</button></div>`;
   bindInstall(); $("#acmp").onclick=()=>complainForm(null,()=>{});
+  box.querySelectorAll("[data-bk]").forEach(b=>b.onclick=()=>{store.set("taxi_order",b.dataset.bk);location.hash="#order";});
   $("#out").onclick=async()=>{try{await rpc("taxi_customer_logout",{p_token:CS.tok})}catch{} CS.clear(); location.hash="#"};
 }
 /* ---------- rating, complaints ---------- */
@@ -778,6 +789,38 @@ function bindInstall(){
     $("#ios-ok",m).onclick=()=>m.remove()};
 }
 if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
+/* ---------- push notifications (customers and drivers) ---------- */
+const VAPID_PUB="BKnADo70ajkFMMICdSLPjWqntLHNHpWY8SIY7r7mzITcLQIS-41TxorkccR67waTePIWCGTojJSoX3rVxa4y0Fo";
+const b64u=x=>{const p="=".repeat((4-x.length%4)%4),r=atob((x+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(r,c=>c.charCodeAt(0))};
+function pushSupport(){
+  if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)) return isIOS()&&!isStandalone()?"ios-install":"no";
+  return Notification.permission==="denied"?"denied":"ok";
+}
+async function pushSubscribe(ask){
+  if(ask){const r=await Notification.requestPermission();if(r!=="granted") throw new Error("ما سمحت بالإشعارات. فعّلها من إعدادات المتصفح.")}
+  else if(Notification.permission!=="granted") return null;
+  const reg=await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID_PUB)});
+  return sub.toJSON();
+}
+function pushSave(who,sub){return who==="driver"?rpc("taxi_driver_push",{p_code:CODE,p_sub:sub,p_on:true}):rpc("taxi_customer_push",{p_token:CS.tok,p_sub:sub,p_on:true})}
+// a small card with the "turn on notifications" button; once allowed, the subscription is refreshed quietly
+async function pushCard(el,who){
+  if(!el) return;
+  const st=pushSupport();
+  if(st==="ok"&&Notification.permission==="granted"){el.innerHTML="";try{const sub=await pushSubscribe(false);if(sub)await pushSave(who,sub)}catch{}return}
+  let hide=false; try{hide=Number(store.get("taxi_push_x_"+who)||0)>Date.now()}catch{}
+  if(hide||st==="no"){el.innerHTML="";return}
+  const txt=who==="driver"?"توصلك السفرة الجديدة حتى لو التطبيق مسكّر":"يوصلك وقت السائق يقبل طلبك ووقت يوصل";
+  el.innerHTML=st==="ios-install"
+    ?`<div class="pushcard"><span>🔔 <b>الإشعارات على الآيفون</b><br><small>${who==="driver"?"ضيف الصفحة للشاشة الرئيسية (زر المشاركة ← إضافة إلى الشاشة الرئيسية)، وافتحها من الأيقونة، وفعّل الإشعارات.":"ثبّت التطبيق على الشاشة الرئيسية وافتحه من الأيقونة، وبعدها فعّل الإشعارات."}</small></span><button type="button" class="cx-inst-x" data-px aria-label="مو هسه">✕</button></div>`
+    :st==="denied"?`<div class="pushcard"><span>🔕 <b>الإشعارات مسكّرة</b><br><small>فعّلها من إعدادات المتصفح لهذا الموقع.</small></span><button type="button" class="cx-inst-x" data-px aria-label="مو هسه">✕</button></div>`
+    :`<div class="pushcard"><span>🔔 <b>فعّل الإشعارات</b><br><small>${txt}</small></span><button type="button" class="btn primary sm" data-pgo>تفعيل</button><button type="button" class="cx-inst-x" data-px aria-label="مو هسه">✕</button></div>`;
+  const x=el.querySelector("[data-px]"); if(x) x.onclick=()=>{try{store.set("taxi_push_x_"+who,String(Date.now()+3*864e5))}catch{};el.innerHTML=""};
+  const g=el.querySelector("[data-pgo]"); if(g) g.onclick=async()=>{g.disabled=true;
+    try{const sub=await pushSubscribe(true);await pushSave(who,sub);el.innerHTML="";toast("تفعّلت الإشعارات 🔔")}catch(e){toast(e.message||"ما تفعّلت");g.disabled=false}};
+}
 /* ---------------- CUSTOMER ORDER ---------------- */
 let orderZones=[], orderZone=null, orderT=null;
 async function orderApp(){
@@ -800,6 +843,7 @@ async function orderForm(){
   const th=pts?pts.redeem||5000:5000, bal=pts?pts.balance||0:0, pct=Math.min(100,Math.round(bal*100/th));
   box.innerHTML=`<form id="of" novalidate style="display:flex;flex-direction:column;gap:14px">
     ${installCard()}
+    <div id="cx-push"></div>
     ${unrated?`<div class="ocard rate-mini" id="ur-card"><b>⭐ شلون كانت سفرتك${unrated.zone?` لـ ${esc(unrated.zone)}`:""}${unrated.driver_name?` ويا ${esc(unrated.driver_name)}`:""}؟</b>${starsHTML(0,"ur")}<small style="color:#6a6247">اضغط على النجوم وقيّم السائق</small></div>`:""}
     <div class="ocard" id="addrbox">
       <h2 class="cx-h2" id="ph">منين ناخذك؟</h2>
@@ -842,11 +886,30 @@ async function orderForm(){
       ${canFree?`<label class="freeopt"><input type="checkbox" id="o-free"> <span>⭐ استخدم ${fmt(pts.redeem)} نقطة وخلّي هاي الكروة مجانية<br><small style="font-weight:400;color:var(--muted)">إذا الكروة أكثر من ${fmt(pts.redeem)} دينار تدفع الفرق بس.</small></span></label>`:""}
       <div class="err" id="oe"></div>
     </div>
+    <div class="ocard">
+      <h2 class="cx-h2" id="wh">إيمتى؟</h2>
+      <div class="cx-seg" role="radiogroup" aria-labelledby="wh">
+        <button type="button" role="radio" aria-checked="true" data-when="now">هسه</button>
+        <button type="button" role="radio" aria-checked="false" data-when="later">🗓 حجز مسبق</button>
+      </div>
+      <div id="when-box" hidden style="display:flex;flex-direction:column;gap:10px">
+        <div class="grid2"><div class="field"><label for="w-day">اليوم</label><select id="w-day" class="btn" style="width:100%"></select></div>
+        <div class="field"><label for="w-time">الساعة</label><input id="w-time" type="time" step="300"></div></div>
+        <small style="color:#6a6247">الحجز يروح للإدارة تأكّده وتجهّزلك سائق. احجز قبل نص ساعة على الأقل، ولحد 7 أيام.</small>
+      </div>
+    </div>
     ${pts?`<a class="cx-pts${bal>=th?" ready":""}" href="#account"><div class="cx-ring" style="background:conic-gradient(#febd02 0 ${pct}%,rgb(255 255 255/.15) ${pct}% 100%)"><span>${pct}%</span></div><div style="flex:1"><b>${fmt(bal)} نقطة</b><small>${bal>=th?"عندك كروة مجانية! فعّلها فوق":`${fmt(th)} نقطة = كروة مجانية`}</small></div></a>`:""}
     <div class="cx-cta"><button class="btn primary big" id="osub">اطلب هسه <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></button></div>
   </form>`;
   $("#pickbtn").onclick=()=>$("#addrbox").scrollIntoView({behavior:"smooth",block:"center"});
-  bindInstall();
+  bindInstall(); pushCard($("#cx-push"),"customer");
+  // "إيمتى؟": now, or a booking ahead of time
+  let when="now";
+  const dayNames=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+  $("#w-day").innerHTML=[...Array(8)].map((_,i)=>{const d=new Date(Date.now()+i*864e5);const v=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");return `<option value="${v}">${i===0?"اليوم":i===1?"باچر":dayNames[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}</option>`}).join("");
+  {const t=new Date(Date.now()+60*6e4);t.setMinutes(Math.ceil(t.getMinutes()/15)*15);$("#w-time").value=String(t.getHours()).padStart(2,"0")+":"+String(t.getMinutes()%60).padStart(2,"0");if(t.getDate()!==new Date().getDate())$("#w-day").selectedIndex=1}
+  document.querySelectorAll("[data-when]").forEach(b=>b.onclick=()=>{when=b.dataset.when;document.querySelectorAll("[data-when]").forEach(x=>x.setAttribute("aria-checked",x===b));$("#when-box").hidden=when!=="later";
+    $("#osub").firstChild.textContent=when==="later"?"احجز ":"اطلب هسه "});
   if(unrated) bindStars("ur",n=>rateForm(unrated.id,n,unrated.driver_name,()=>{const c=$("#ur-card");if(c)c.innerHTML=`<b>شكرًا على تقييمك ${"⭐".repeat(n)}</b>`}));
   const pe=$("#pm-edit"); if(pe) pe.onclick=()=>{$("#pm-fields").hidden=false;$("#pm-sum").hidden=true};
   $("#notet").onclick=()=>{$("#notef").hidden=false;$("#notet").hidden=true;$("#o-note").focus()};
@@ -972,6 +1035,10 @@ async function orderForm(){
     Object.assign(p,{zone_id:orderZone,note:$("#o-note").value,use_points:!!($("#o-free")&&$("#o-free").checked),
       dest_lat:dExact&&dpin?dpin.lat:null,dest_lng:dExact&&dpin?dpin.lng:null,dest_note:$("#dst-txt").value.trim()});
     if(!orderZone){$("#oe").textContent="اختار المنطقة اللي رايح إلها";$("#qh").scrollIntoView({behavior:"smooth",block:"start"});return}
+    if(when==="later"){const d=$("#w-day").value,t=$("#w-time").value;if(!t){$("#oe").textContent="اختار الساعة";return}
+      const at=new Date(d+"T"+t);if(isNaN(at)){$("#oe").textContent="الوقت غلط";return}
+      if(at-Date.now()<30*6e4){$("#oe").textContent="الحجز لازم بعد نص ساعة على الأقل. إذا تريد هسه اختار «هسه».";return}
+      p.scheduled_at=at.toISOString()}
     btn.disabled=true;$("#oe").textContent="";
     try{const r=await rpc("taxi_customer_order",{p_token:CS.tok,p});
       store.set("taxi_order",r.token);
@@ -979,7 +1046,7 @@ async function orderForm(){
         rpc("taxi_customer_address",{p_token:CS.tok,p:{building:b,floor:f,apartment:a}}).catch(()=>{})}
       orderStatus(r.token)}catch(err){if(custError(err))return;$("#oe").textContent=err.message;btn.disabled=false}};
 }
-const OS={arrived:["📍","السائق وصل وينتظرك","انزل للسيارة، ووقت تركب السائق ينطلق."],requested:["⏳","طلبك وصل للمكتب","دنختارلك أقرب سائق، لحظات."],assigned:["📲","انرسل للسائق","بانتظار موافقته."],
+const OS={scheduled:["🗓","انحجز موعدك","الإدارة تأكّد الحجز وتجهّزلك سائق."],arrived:["📍","السائق وصل وينتظرك","انزل للسيارة، ووقت تركب السائق ينطلق."],requested:["⏳","طلبك وصل للمكتب","دنختارلك أقرب سائق، لحظات."],assigned:["📲","انرسل للسائق","بانتظار موافقته."],
   accepted:["🚕","السائق جاي إلك","انتظر بمكانك."],started:["🛣️","بالطريق","توصل بالسلامة."],waiting:["⏸","السائق ينتظرك","ارجع للسيارة وقت تخلص، والسائق يكمّل الرحلة."],done:["✅","وصلت","شكرًا لاختيارك المنصور تاكسي."],
   cancelled:["✖️","انلغى الطلب",""],rejected:["📲","دنحوّل طلبك لسائق ثاني","لحظات."]};
 async function orderStatus(tok){
@@ -987,10 +1054,10 @@ async function orderStatus(tok){
   custShell("طلبك");
   const box=$("#ord"); if(!box) return;
   const draw=async()=>{let s;try{s=await rpc("taxi_customer_status",{p_token:tok})}catch(e){store.del("taxi_order");clearInterval(orderT);return orderForm()}
-    const o=(s.status==="started"&&s.waiting?OS.waiting:s.status==="accepted"&&s.pickup_waiting?OS.arrived:OS[s.status])||["•",s.status,""];
+    const o=s.status==="scheduled"&&s.sched_confirmed?["✅","حجزك مأكّد","قبل الموعد بشوية يتحرك السائق إلك."]:s.status==="cancelled"&&s.noshow?["✖️","انلغى الطلب","السائق انتظرك وما نزلت."]:(s.status==="started"&&s.waiting?OS.waiting:s.status==="accepted"&&s.pickup_waiting?OS.arrived:OS[s.status])||["•",s.status,""];
     box.innerHTML=`<div class="ocard ost">
       <div class="ost-ico">${o[0]}</div><h2>${o[1]}</h2><p>${o[2]}</p>
-      <div class="calc"><div><span>رايح إلى</span><b>${esc(s.zone||"—")}</b></div>${s.pickup?`<div><span>تنتظر عند</span><b>${esc(s.pickup)}</b></div>`:""}${s.free?`<div><span>الكروة</span><b style="color:var(--ok)">⭐ مجانية بالنقاط</b></div>`:""}${s.round_trip?`<div><span>نوع السفرة</span><b>↩ مرجع (ذهاب ورجعة)</b></div>`:""}${s.wait_sec>0&&s.status!=="started"||s.wait_sec>0&&!s.waiting?`<div><span>وقت الانتظار</span><b>${clock(s.wait_sec)}</b></div>`:""}</div>
+      <div class="calc">${s.scheduled_at?`<div><span>موعد الحجز</span><b>${new Date(s.scheduled_at).toLocaleString("ar-IQ",{weekday:"long",day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"})}</b></div>`:""}<div><span>رايح إلى</span><b>${esc(s.zone||"—")}</b></div>${s.pickup?`<div><span>تنتظر عند</span><b>${esc(s.pickup)}</b></div>`:""}${s.free?`<div><span>الكروة</span><b style="color:var(--ok)">⭐ مجانية بالنقاط</b></div>`:""}${s.round_trip?`<div><span>نوع السفرة</span><b>↩ مرجع (ذهاب ورجعة)</b></div>`:""}${s.wait_sec>0&&s.status!=="started"||s.wait_sec>0&&!s.waiting?`<div><span>وقت الانتظار</span><b>${clock(s.wait_sec)}</b></div>`:""}</div>
       ${s.dest_change&&s.dest_change.status==="awaiting_customer"?`<div class="cx-confirm"><b>🔀 السائق سجّل إن وجهتك تغيّرت إلى ${esc(s.dest_change.to)}</b><small>صح؟ قد تتغيّر الأجرة حسب المسافة اللي انمشت.</small>
         <div class="row"><button class="btn" id="dc-no">لا، مو صحيح</button><button class="btn primary" id="dc-yes">نعم، صح</button></div></div>`
        :s.dest_change&&["confirmed","applied","auto"].includes(s.dest_change.status)?`<p class="note" style="margin:0">🔀 وجهتك تغيّرت إلى <b>${esc(s.dest_change.to)}</b>.</p>`:""}
@@ -999,7 +1066,9 @@ async function orderStatus(tok){
       ${s.status==="cancelled"&&s.free?`<p class="note" style="margin:0">رجعت نقاطك لحسابك.</p>`:""}
       ${s.status==="done"&&CS.tok?(s.stars?`<p class="rate-done">شكرًا على تقييمك ${"⭐".repeat(s.stars)}</p>`:`<div class="rate-mini" id="st-rate"><b>قيّم السائق${s.driver_name?` ${esc(s.driver_name)}`:""}</b>${starsHTML(0,"st")}</div>`):""}
       ${s.driver_name?`<div class="drvcard"><div><small>السائق</small><b>${esc(s.driver_name)}</b><small>${esc([s.model,s.color].filter(Boolean).join(" · "))}</small></div>${plateHTML(s.plate,true)}</div>`:""}
-      ${["requested","assigned","accepted","rejected"].includes(s.status)?`<button class="btn big cancel-btn" id="ocn">✖ إلغاء الطلب</button>`:""}
+      ${["requested","assigned","accepted","rejected","scheduled"].includes(s.status)?`<button class="btn big cancel-btn" id="ocn">✖ ${s.status==="scheduled"?"إلغاء الحجز":"إلغاء الطلب"}</button>`:""}
+      ${s.status==="scheduled"?`<button class="btn primary big" id="ohome">طلب ثاني أو رجوع للرئيسية</button>`:""}
+      <div id="cx-push2"></div>
       ${["done","cancelled"].includes(s.status)?`<button class="btn primary big" id="onew">طلب جديد</button>`:""}
       ${CS.tok&&s.trip_id&&["accepted","started","done","cancelled"].includes(s.status)?(s.complained?`<p class="note" style="margin:0;text-align:center">📣 وصلت شكواك للإدارة، راح يتابعوها.</p>`:`<button type="button" class="cx-note-t" id="ocmp" style="align-self:center">عندك شكوى؟ اكتبلنا</button>`):""}
     </div>`;
@@ -1010,6 +1079,8 @@ async function orderStatus(tok){
     const nw=$("#onew"); if(nw) nw.onclick=()=>{store.del("taxi_order");clearInterval(orderT);orderZone=null;orderForm()};
     if($("#st-rate")) bindStars("st",n=>rateForm(s.trip_id,n,s.driver_name,draw));
     const cm=$("#ocmp"); if(cm) cm.onclick=()=>complainForm(s.trip_id,draw);
+    const oh=$("#ohome"); if(oh) oh.onclick=()=>{store.del("taxi_order");clearInterval(orderT);orderZone=null;orderForm()};
+    if(!["done","cancelled"].includes(s.status)) pushCard($("#cx-push2"),"customer");
     if(["done","cancelled"].includes(s.status)) clearInterval(orderT);
     clearInterval(waitT); if(s.status==="started"&&s.waiting||s.status==="accepted"&&s.pickup_waiting){const t0=Date.now(),w0=s.status==="accepted"?s.pickup_wait_sec:s.wait_sec;waitT=setInterval(()=>{const c=$("#cwclock");if(!c)return clearInterval(waitT);c.textContent=clock(w0+Math.floor((Date.now()-t0)/1000))},1000)}
   };
@@ -1368,8 +1439,12 @@ function adminGate(msg){
     try{cars=await rpc("taxi_admin_list",{p_pin:p});PIN=p;sess.set("taxi_pin",p);adminShell()}catch(err){$("#ge").textContent=err.message}};
 }
 let ME=null;
+const FULL=()=>!ME||ME.perms!=="drivers";
+const MONEY_TABS=["files","week","acc","cust","daily","set"];
 function adminShell(){
-  rpc("taxi_admin_me",{p_pin:PIN}).then(m=>{ME=m;const w=$("#who");if(w){w.hidden=false;w.textContent="👤 "+m.name}}).catch(()=>{});
+  if(!ME){rpc("taxi_admin_me",{p_pin:PIN}).then(m=>{ME=m;adminShell()}).catch(()=>{ME={perms:"full",name:""};adminShell()});return}
+  setTimeout(()=>{const w=$("#who");if(w&&ME.name){w.hidden=false;w.textContent="👤 "+ME.name+(FULL()?"":" · السواق والطلبات")}},0);
+  if(!FULL()&&MONEY_TABS.includes(tab)) tab="live";
   $("#app").innerHTML=`<div class="shell">
    <header class="top">
      <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>المنصور تاكسي</h1><small id="clock">تحديث مباشر كل 5 ثوانٍ</small></div></div>
@@ -1385,11 +1460,14 @@ function adminShell(){
      <div class="alert reqbar rcbar" id="rcbar" hidden></div>
      <div class="alert reqbar cpbar" id="cpbar" hidden></div>
      <div class="alert reqbar spbar" id="spbar" hidden></div>
+     <div class="alert reqbar spbar" id="nsbar" hidden></div>
+     <div class="alert reqbar" id="scbar" hidden></div>
      <div class="alert" id="alert" hidden></div>
      <nav class="tabs" role="tablist">
        <button role="tab" data-t="live">الخريطة الحيّة</button>
        <button role="tab" data-t="files">ملفات السواق</button>
        <button role="tab" data-t="trips">السفرات</button>
+       <button role="tab" data-t="sched">الحجوزات <span class="tbadge" id="sc-n" hidden></span></button>
        <button role="tab" data-t="routes">الطرق</button>
        <button role="tab" data-t="daily">التقرير اليومي</button>
        <button role="tab" data-t="fb">التقييم والشكاوي <span class="tbadge" id="fb-n" hidden></span></button>
@@ -1405,6 +1483,7 @@ function adminShell(){
   $("#addBtn").onclick=()=>carForm();
   $("#tripBtn").onclick=()=>tripForm();
   $("#out").onclick=()=>{sess.del("taxi_pin");PIN=null;ME=null;clearInterval(pollT);clearInterval(evT);adminGate()};
+  if(!FULL()) document.querySelectorAll(".tabs button").forEach(b=>{if(MONEY_TABS.includes(b.dataset.t))b.remove()});
   document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderTab()});
   document.addEventListener("pointerdown",()=>{try{audioCtx=audioCtx||new AudioContext()}catch{}},{once:true});
   renderTab(); poll(); pollT=setInterval(poll,5000);
@@ -1431,20 +1510,61 @@ async function poll(){
       if(prevReqInit&&!document.querySelector(".modal")) dispatchTrip([...fresh].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0])}
     prevReq=ids; prevReqInit=true;
     specialBar(ts.filter(t=>t.special_status==="pending"&&["accepted","started"].includes(t.status)));
+    noshowBar(ts.filter(t=>t.noshow_status==="pending"&&t.status==="accepted"));
+    schedBar(ts.filter(t=>t.status==="scheduled"));
   }).catch(()=>{});
-  pollDeposits(); pollRouteChanges(); if(pollN%6===1) pollComplaints();
+  if(FULL()){pollDeposits(); pollRouteChanges();} if(pollN%6===1) pollComplaints();
   if(tab==="live") renderLive(); else if(tab==="cars") renderCars(); else if(tab==="trips") loadTrips(true);
 }
 let prevSp=[], prevSpInit=false;
 function specialBar(sp){const bar=$("#spbar"); if(!bar) return;
   if(!sp.length){bar.hidden=true;prevSp=[];prevSpInit=true;return}
   bar.hidden=false;
-  bar.innerHTML=sp.map(t=>`<div class="sp-row"><span>⭐ <b>زبون خاص (بدون كروة)</b>: ${plateHTML(t.plate)} ${esc(t.driver_name||"")} يكول: «${esc(t.special_note||"")}»${t.dropoff?` ← ${esc(t.dropoff)}`:""}</span><span class="acts"><button class="btn sm primary" data-spok="${t.id}">✔ موافق</button><button class="btn sm" data-spno="${t.id}">✖ رفض</button></span></div>`).join("");
+  bar.innerHTML=sp.map(t=>`<div class="sp-row"><span>⭐ <b>زبون خاص (بدون كروة)</b>: ${plateHTML(t.plate)} ${esc(t.driver_name||"")} يكول: «${esc(t.special_note||"")}»${t.dropoff?` ← ${esc(t.dropoff)}`:""}</span>${FULL()?`<span class="acts"><button class="btn sm primary" data-spok="${t.id}">✔ موافق</button><button class="btn sm" data-spno="${t.id}">✖ رفض</button></span>`:`<small>ينتظر موافقة المدير</small>`}</div>`).join("");
   bar.querySelectorAll("[data-spok]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await rpc("taxi_admin_special",{p_pin:PIN,p_id:+b.dataset.spok,p_ok:true});toast("وافقت: السفرة بدون كروة");pollN=0;poll()}catch(e){toast(e.message);b.disabled=false}});
   bar.querySelectorAll("[data-spno]").forEach(b=>b.onclick=()=>{const m=modal(`<h3>رفض الزبون الخاص؟</h3><p style="margin:0">السفرة تكمّل بكروة عادية.</p><div class="field"><label for="spr">السبب (يشوفه السائق)</label><input id="spr" maxlength="200"></div><div class="err" id="spr-e"></div><div class="row"><button class="btn" id="spr-x">رجوع</button><button class="btn primary" id="spr-ok">رفض</button></div>`);
     $("#spr-x",m).onclick=()=>m.remove();
     $("#spr-ok",m).onclick=async()=>{try{await rpc("taxi_admin_special",{p_pin:PIN,p_id:+b.dataset.spno,p_ok:false,p_reason:$("#spr",m).value});m.remove();toast("انرفض، السفرة بكروة");pollN=0;poll()}catch(e){$("#spr-e",m).textContent=e.message}}});
   const ids=sp.map(t=>t.id); if(prevSpInit&&ids.some(id=>!prevSp.includes(id))){beep();setTimeout(beep,300);setTimeout(beep,600)} prevSp=ids; prevSpInit=true;
+}
+// driver wants to close: customer didn't come down
+let prevNs=[], prevNsInit=false;
+function noshowBar(ns){const bar=$("#nsbar"); if(!bar) return;
+  if(!ns.length){bar.hidden=true;prevNs=[];prevNsInit=true;return}
+  bar.hidden=false;
+  bar.innerHTML=ns.map(t=>`<div class="sp-row"><span>✖ <b>تسكير (الزبون ما نزل)</b>: ${plateHTML(t.plate)} ${esc(t.driver_name||"")} يكول: «${esc(t.noshow_note||"")}» · الزبون ${esc(t.customer_name||"")} · انتظر <b>${Math.floor((t.pickup_wait_sec||0)/60)} د</b>${t.pickup_waiting?" ولسه ينتظر":""}</span><span class="acts"><button class="btn sm primary" data-nsok="${t.id}">✔ وافق، سكّر الطلب</button><button class="btn sm" data-nsno="${t.id}">✖ رفض</button></span></div>`).join("");
+  bar.querySelectorAll("[data-nsok]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await rpc("taxi_admin_noshow",{p_pin:PIN,p_id:+b.dataset.nsok,p_ok:true});toast("انسكر الطلب");pollN=0;poll()}catch(e){toast(e.message);b.disabled=false}});
+  bar.querySelectorAll("[data-nsno]").forEach(b=>b.onclick=()=>{const m=modal(`<h3>رفض التسكير</h3><p style="margin:0">السائق يبقى ينتظر الزبون. اكتب السبب حتى يشوفه.</p><div class="field"><label for="nsr">السبب</label><input id="nsr" maxlength="200" placeholder="مثال: انتظر 5 دقايق بعد، الزبون نازل"></div><div class="err" id="nsr-e"></div><div class="row"><button class="btn" id="nsr-x">رجوع</button><button class="btn primary" id="nsr-ok">رفض</button></div>`);
+    $("#nsr-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#nsr",m).focus(),50);
+    $("#nsr-ok",m).onclick=async()=>{try{await rpc("taxi_admin_noshow",{p_pin:PIN,p_id:+b.dataset.nsno,p_ok:false,p_reason:$("#nsr",m).value});m.remove();toast("انرفض، السائق يكمّل انتظار");pollN=0;poll()}catch(e){$("#nsr-e",m).textContent=e.message}}});
+  const ids=ns.map(t=>t.id); if(prevNsInit&&ids.some(id=>!prevNs.includes(id))){beep();setTimeout(beep,300);setTimeout(beep,600)} prevNs=ids; prevNsInit=true;
+}
+// bookings made ahead of time
+let prevSc=[], prevScInit=false;
+const whenTxt=ts=>new Date(ts).toLocaleString("ar-IQ",{weekday:"long",day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"});
+function schedBar(sc){const n=$("#sc-n"), bar=$("#scbar"); const pend=sc.filter(t=>!t.sched_confirmed_at);
+  if(n){n.hidden=!pend.length;n.textContent=pend.length}
+  if(bar){if(pend.length&&tab!=="sched"){bar.hidden=false;bar.innerHTML=`🗓 ${pend.length} حجز مسبق يحتاج تأكيد: ${pend.slice(0,2).map(t=>`${esc(t.customer_name||"زبون")} ${whenTxt(t.scheduled_at)}`).join("، ")} <button class="btn sm primary">افتح الحجوزات</button>`;bar.querySelector("button").onclick=()=>{tab="sched";renderTab()}}else bar.hidden=true}
+  const ids=sc.map(t=>t.id); if(prevScInit&&ids.some(id=>!prevSc.includes(id))){beep();setTimeout(beep,400)} prevSc=ids; prevScInit=true;
+  if(tab==="sched"&&$("#scv")&&!document.querySelector(".modal")) renderSched(true);
+}
+async function renderSched(quiet){
+  const bar=$("#scbar"); if(bar) bar.hidden=true;
+  if(!quiet) $("#view").innerHTML=`<div class="wrap" id="scv"><div class="bar"><h2>الحجوزات المسبقة</h2></div><div class="empty">جارٍ التحميل…</div></div>`;
+  let L2; try{L2=await rpc("taxi_admin_scheduled",{p_pin:PIN})}catch(e){const v=$("#scv");if(v)v.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const v=$("#scv"); if(!v) return;
+  const left=ts=>{const m=Math.round((new Date(ts)-Date.now())/6e4);return m<60?`بعد ${m} د`:m<1440?`بعد ${Math.floor(m/60)} ساعة و${m%60} د`:`بعد ${Math.floor(m/1440)} يوم`};
+  v.innerHTML=`<div class="bar"><h2>الحجوزات المسبقة</h2><span class="pill s-idle">${L2.length} حجز</span></div>
+    <p class="note" style="margin-top:0">أكّد الحجز حتى يوصل للزبون إنه انأكد، واختار سائق إذا تريد تحجزه. قبل الوقت بـ20 دقيقة الحجز يصير طلب: يروح للسائق المحجوز إذا فاضي، وإلا يطلع لكم طلب جديد.</p>
+    ${L2.length?`<ul class="cps">${L2.map(t=>`<li class="cp ${t.sched_confirmed_at?"closed":""}"><div class="cp-h"><b>🗓 ${whenTxt(t.scheduled_at)}</b> <span class="pill s-idle">${left(t.scheduled_at)}</span><span class="pill ${t.sched_confirmed_at?"s-ok":"s-warn"}">${t.sched_confirmed_at?"مأكّد":"يحتاج تأكيد"}</span></div>
+      <p><b>${esc(t.customer_name||"زبون")}</b>: ${esc(t.pickup||"موقع على الخريطة")}${t.pickup_lat?` <a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍</a>`:""} ← <b>${esc(t.dropoff||"")}</b>${t.dropoff_note?` (${esc(t.dropoff_note)})`:""}${t.free?` <span class="pill s-ok">⭐ بالنقاط</span>`:""}${t.note?`<br><small style="color:var(--muted)">ملاحظة: ${esc(t.note)}</small>`:""}</p>
+      <div class="row" style="justify-content:flex-start;flex-wrap:wrap;gap:8px"><select class="btn sm" data-scc="${t.id}" aria-label="السائق المحجوز"><option value="">بدون سائق محدد</option>${cars.filter(c=>c.active).map(c=>`<option value="${c.id}" ${t.sched_car===c.id?"selected":""}>${esc(c.driver_name)} · ${esc(c.plate)}</option>`).join("")}</select>
+        <button class="btn sm primary" data-scok="${t.id}">${t.sched_confirmed_at?"حفظ السائق":"✔ تأكيد الحجز"}</button><button class="btn sm" data-scnow="${t.id}">🚕 أرسله هسه</button><button class="btn sm danger" data-sccx="${t.id}">إلغاء</button></div>
+      ${t.sched_confirmed_at?`<small style="color:var(--muted)">أكّده ${esc(t.sched_confirmed_by||"")}${t.sched_driver?` · محجوز لـ ${esc(t.sched_driver)}`:""}</small>`:""}</li>`).join("")}</ul>`:`<p class="note">ماكو حجوزات قادمة.</p>`}`;
+  v.querySelectorAll("[data-scok]").forEach(b=>b.onclick=async()=>{const id=+b.dataset.scok,car=v.querySelector(`[data-scc="${id}"]`).value||null;
+    try{await rpc("taxi_admin_sched_confirm",{p_pin:PIN,p_id:id,p_car:car});toast("انأكد الحجز");renderSched()}catch(e){toast(e.message)}});
+  v.querySelectorAll("[data-scnow]").forEach(b=>b.onclick=()=>{const t=L2.find(x=>x.id===+b.dataset.scnow);dispatchTrip({...t,status:"scheduled"})});
+  v.querySelectorAll("[data-sccx]").forEach(b=>b.onclick=()=>confirmBox("إلغاء هذا الحجز؟ يوصل للزبون إنه انلغى.","إلغاء الحجز",async()=>{await rpc("taxi_admin_trip_action",{p_pin:PIN,p_id:+b.dataset.sccx,p_action:"cancel"});toast("انلغى الحجز");renderSched()},"رجوع"));
 }
 let prevRc=[], prevRcInit=false, rcT;
 function pollRouteChanges(){
@@ -1534,6 +1654,7 @@ function renderTab(){
   if(tab==="files") renderFiles();
   if(tab==="routes") renderRoutes();
   if(tab==="daily") renderDaily();
+  if(tab==="sched") renderSched();
   if(tab==="fb") renderFeedback();
 }
 function initMap(){
@@ -1740,7 +1861,7 @@ async function loadTrips(quiet){
     <td>${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}${t.note?`<br><small style="color:var(--muted)">${esc(t.note)}</small>`:""}</td>
     <td>${t.customer_name?esc(t.customer_name)+"<br>":""}<span dir="ltr">${esc(t.customer_phone||"—")}</span>${t.pickup_lat?`<br><a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍 موقعه</a>`:""}</td>
     <td>${t.source==="office"?"المكتب":t.source==="customer"?"الزبون (أونلاين)":"السائق"}</td>
-    <td><span class="pill ${st[0]}">${st[1]}</span>${t.round_trip?` <span class="pill s-warn">↩ مرجع${t.round_fee?" +"+fmt(t.round_fee):""}</span>`:""}${t.pickup_wait_sec>0?` <span class="pill ${t.pickup_waiting?"s-warn":"s-idle"}">🕓 ${t.pickup_waiting?"وصل وينتظر ":"انتظر بالاستلام "}${Math.ceil(t.pickup_wait_sec/60)} د</span>`:""}${t.wait_sec>0?` <span class="pill ${t.waiting?"s-warn":"s-idle"}">⏱ عدّاد ${t.waiting?"شغّال ":""}${Math.ceil(t.wait_sec/60)} د${t.wait_fee?" +"+fmt(t.wait_fee):""}</span>`:""}${t.stars?` <span class="pill ${t.stars<=2?"s-bad":"s-ok"}">${"★".repeat(t.stars)}</span>`:""}${t.special_status?`<br><span class="pill ${t.special_status==="approved"?"s-ok":t.special_status==="pending"?"s-warn":"s-idle"}">⭐ زبون خاص${t.special_status==="approved"?" بدون كروة":t.special_status==="pending"?": ينتظر موافقة":": انرفض"}</span> <small style="color:var(--muted)">${esc(t.special_note||"")}${t.special_by?` · ${esc(t.special_by)}`:""}</small>`:""}${t.dispatched_by?`<br><small style="color:var(--muted)">أرسلها: ${esc(t.dispatched_by)}</small>`:""}${t.cancel_reason?`<br><small style="color:var(--muted)">${esc(t.cancel_reason)}</small>`:""}</td>
+    <td><span class="pill ${st[0]}">${st[1]}</span>${t.round_trip?` <span class="pill s-warn">↩ مرجع${t.round_fee?" +"+fmt(t.round_fee):""}</span>`:""}${t.pickup_wait_sec>0?` <span class="pill ${t.pickup_waiting?"s-warn":"s-idle"}">🕓 ${t.pickup_waiting?"وصل وينتظر ":"انتظر بالاستلام "}${Math.ceil(t.pickup_wait_sec/60)} د</span>`:""}${t.wait_sec>0?` <span class="pill ${t.waiting?"s-warn":"s-idle"}">⏱ عدّاد ${t.waiting?"شغّال ":""}${Math.ceil(t.wait_sec/60)} د${t.wait_fee?" +"+fmt(t.wait_fee):""}</span>`:""}${t.stars?` <span class="pill ${t.stars<=2?"s-bad":"s-ok"}">${"★".repeat(t.stars)}</span>`:""}${t.scheduled_at?`<br><span class="pill s-idle">🗓 ${whenTxt(t.scheduled_at)}</span>`:""}${t.noshow_status?`<br><span class="pill ${t.noshow_status==="approved"?"s-idle":t.noshow_status==="pending"?"s-warn":"s-bad"}">✖ تسكير${t.noshow_status==="approved"?": الزبون ما نزل":t.noshow_status==="pending"?": ينتظر موافقة":": انرفض"}</span> <small style="color:var(--muted)">${esc(t.noshow_note||"")}${t.noshow_reason?` · ${esc(t.noshow_reason)}`:""}</small>`:""}${t.special_status?`<br><span class="pill ${t.special_status==="approved"?"s-ok":t.special_status==="pending"?"s-warn":"s-idle"}">⭐ زبون خاص${t.special_status==="approved"?" بدون كروة":t.special_status==="pending"?": ينتظر موافقة":": انرفض"}</span> <small style="color:var(--muted)">${esc(t.special_note||"")}${t.special_by?` · ${esc(t.special_by)}`:""}</small>`:""}${t.dispatched_by?`<br><small style="color:var(--muted)">أرسلها: ${esc(t.dispatched_by)}</small>`:""}${t.cancel_reason?`<br><small style="color:var(--muted)">${esc(t.cancel_reason)}</small>`:""}</td>
     <td style="font-variant-numeric:tabular-nums">${t.fare?fmt(t.fare):"—"}</td><td>${t.km!=null?t.km:"—"}</td>
     <td><div class="acts">${t.car_id&&["accepted","started","done"].includes(t.status)?`<button class="btn sm" data-tp="${t.id}">🗺 المسار</button>`:""}${t.status==="requested"?`<button class="btn sm primary" data-ta="re" data-id="${t.id}">إرسال لسائق</button>`:["assigned","rejected"].includes(t.status)?`<button class="btn sm" data-ta="re" data-id="${t.id}">تحويل لسائق</button>`:""}${openT?`<button class="btn sm danger" data-ta="cancel" data-id="${t.id}">إلغاء</button>`:""}</div></td></tr>`}).join("")}
   </tbody></table></div>`;
@@ -2067,7 +2188,7 @@ function renderCars(){
   w.innerHTML=`<div class="bar"><h2>السيارات والسائقين</h2><span class="pill s-idle">${cars.length} سيارة</span></div>
   ${cars.length?`<div class="tbl-wrap"><table><thead><tr><th>رقم السيارة</th><th>الموديل</th><th>السائق</th><th>الهاتف</th><th>رمز دخول السائق</th><th>الحالة</th><th></th></tr></thead><tbody>
   ${cars.map(c=>{const s=status(c);return `<tr><td>${plateHTML(c.plate)}</td><td>${esc([c.model,c.year].filter(Boolean).join(" ")||"—")}${c.color?`<br><small style="color:var(--muted)">${esc(c.color)}</small>`:""}</td><td><b>${esc(c.driver_name)}</b></td><td dir="ltr" style="text-align:right">${esc(c.driver_phone||"—")}</td><td><span class="code">${esc(c.driver_code)}</span></td><td><span class="pill s-${s.k}">${s.t}</span></td>
-   <td><div class="acts"><button class="btn sm" data-a="edit" data-id="${c.id}">تعديل</button><button class="btn sm" data-a="code" data-id="${c.id}">رمز جديد</button><button class="btn sm" data-a="tog" data-id="${c.id}">${c.active?"إيقاف":"تفعيل"}</button><button class="btn sm danger" data-a="del" data-id="${c.id}">حذف</button></div></td></tr>`}).join("")}
+   <td><div class="acts"><button class="btn sm" data-a="edit" data-id="${c.id}">تعديل</button><button class="btn sm" data-a="code" data-id="${c.id}">رمز جديد</button><button class="btn sm" data-a="tog" data-id="${c.id}">${c.active?"إيقاف":"تفعيل"}</button>${FULL()?`<button class="btn sm danger" data-a="del" data-id="${c.id}">حذف</button>`:""}</div></td></tr>`}).join("")}
   </tbody></table></div>`:`<div class="empty" style="background:var(--panel);border:1px solid var(--line);border-radius:14px">لا توجد سيارات. أضف أول سيارة مع رقمها وموديلها واسم سائقها، وسيظهر لك رمز الدخول الخاص بالسائق.</div>`}
   <div class="share"><span>رابط صفحة السائق:</span><code id="dl">${esc(driverLink())}</code><button class="btn sm" id="cp">نسخ الرابط</button></div>
   <div class="share"><span><b>تطبيق السائق للأندرويد</b> (يتتبع بالخلفية والشاشة مقفولة):</span><code>${esc(APK_URL)}</code><button class="btn sm" id="cpa">نسخ رابط التطبيق</button></div>`;
@@ -2201,21 +2322,23 @@ async function renderAdmins(){
   let list; try{list=await rpc("taxi_admin_admins",{p_pin:PIN})}catch(e){box.innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
   const owner=me&&me.owner, dt=ts=>ts?new Date(ts).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"}):"ما دخل بعد";
   box.innerHTML=`<ul class="log"><li><span class="pill s-ok">رئيسي</span><span><b>المدير</b>${owner?" (إنت)":""}</span><span></span></li>
-    ${list.map(a=>`<li><span class="pill ${a.active?"s-ok":"s-idle"}">${a.active?"فعّال":"موقوف"}</span><span><b>${esc(a.name)}</b>${me&&me.id===a.id?" (إنت)":""}<br><small style="color:var(--muted)">آخر دخول: ${dt(a.last_seen)}</small></span>
-      ${owner?`<span class="acts"><button class="btn sm" data-aa="reset" data-id="${a.id}">رمز جديد</button><button class="btn sm" data-aa="toggle" data-id="${a.id}">${a.active?"إيقاف":"تفعيل"}</button><button class="btn sm danger" data-aa="delete" data-id="${a.id}">حذف</button></span>`:"<span></span>"}</li>`).join("")}</ul>
+    ${list.map(a=>`<li><span class="pill ${a.active?"s-ok":"s-idle"}">${a.active?"فعّال":"موقوف"}</span><span><b>${esc(a.name)}</b>${me&&me.id===a.id?" (إنت)":""} <span class="pill ${a.perms==="drivers"?"s-warn":"s-ok"}">${a.perms==="drivers"?"السواق والطلبات بس":"كل الصلاحيات"}</span><br><small style="color:var(--muted)">آخر دخول: ${dt(a.last_seen)}</small></span>
+      ${owner?`<span class="acts"><select class="btn sm" data-ap="${a.id}" aria-label="صلاحيات ${esc(a.name)}"><option value="full" ${a.perms!=="drivers"?"selected":""}>كل الصلاحيات</option><option value="drivers" ${a.perms==="drivers"?"selected":""}>السواق والطلبات بس</option></select><button class="btn sm" data-aa="reset" data-id="${a.id}">رمز جديد</button><button class="btn sm" data-aa="toggle" data-id="${a.id}">${a.active?"إيقاف":"تفعيل"}</button><button class="btn sm danger" data-aa="delete" data-id="${a.id}">حذف</button></span>`:"<span></span>"}</li>`).join("")}</ul>
     ${owner?`<form id="af" style="display:flex;flex-direction:column;gap:12px;margin-top:12px"><div class="grid2">
       <div class="field"><label for="a-name">اسم المسؤول</label><input id="a-name" required placeholder="مثال: أبو علي"></div>
       <div class="field"><label for="a-pin">رمز دخوله (4 أرقام أو أكثر)</label><input id="a-pin" class="code-input" inputmode="numeric" required minlength="4"></div></div>
+      <div class="field"><label for="a-perm">الصلاحيات</label><select id="a-perm" class="btn" style="width:100%"><option value="drivers">السواق والطلبات بس (بدون حسابات ولا حذف)</option><option value="full">كل الصلاحيات مثل المدير</option></select></div>
       <div class="err" id="ae"></div><button class="btn primary">+ إضافة مسؤول</button></form>`:""}`;
   if(!owner) return;
   $("#af").onsubmit=async e=>{e.preventDefault();const n=$("#a-name").value,k=$("#a-pin").value.trim();
-    try{await rpc("taxi_admin_admin_save",{p_pin:PIN,p_action:"add",p:{name:n,pin:k}});
+    try{await rpc("taxi_admin_admin_save",{p_pin:PIN,p_action:"add",p:{name:n,pin:k,perms:$("#a-perm").value}});
       const m=modal(`<h3>انضاف المسؤول</h3><p style="margin:0">انطي <b>${esc(n)}</b> رابط الإدارة ورمزه:</p>
         <div style="font:600 36px var(--mono);letter-spacing:.25em;text-align:center;direction:ltr;background:var(--bg);border-radius:12px;padding:12px">${esc(k)}</div>
         <div class="share" style="margin:0"><code>${esc(siteLink()+"#admin")}</code><button class="btn sm" id="ac">نسخ الرابط</button></div>
         <div class="row"><button class="btn primary" id="aok">تم</button></div>`);
       $("#ac",m).onclick=()=>copy(siteLink()+"#admin");$("#aok",m).onclick=()=>m.remove();renderAdmins()}
     catch(err){$("#ae").textContent=err.message}};
+  box.querySelectorAll("[data-ap]").forEach(sl=>sl.onchange=()=>rpc("taxi_admin_admin_save",{p_pin:PIN,p_action:"perms",p:{id:+sl.dataset.ap,perms:sl.value}}).then(()=>{toast("تغيّرت الصلاحيات");renderAdmins()}).catch(e=>toast(e.message)));
   box.querySelectorAll("[data-aa]").forEach(b=>b.onclick=()=>{const id=+b.dataset.id,a=list.find(x=>x.id===id),act=b.dataset.aa;
     if(act==="reset"){const m=modal(`<h3>رمز جديد لـ ${esc(a.name)}</h3><form id="rf" style="display:flex;flex-direction:column;gap:12px"><div class="field"><label for="rp">الرمز الجديد</label><input id="rp" class="code-input" inputmode="numeric" minlength="4" required></div><div class="err" id="re"></div><div class="row"><button type="button" class="btn" id="rc">إلغاء</button><button class="btn primary">حفظ</button></div></form>`);
       $("#rc",m).onclick=()=>m.remove();$("#rf",m).onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_admin_save",{p_pin:PIN,p_action:"reset",p:{id,pin:$("#rp",m).value.trim()}});m.remove();toast("تغيّر رمزه")}catch(err){$("#re",m).textContent=err.message}};return}
@@ -2302,6 +2425,7 @@ async function driverStart(){
       <div class="stat"><small>السرعة</small><b id="st-spd">—</b></div>
       <div class="stat"><small>عدد الإرسالات</small><b id="st-n">0</b></div>
     </div>
+    <div id="drvpush"></div>
     <div id="tripBox"></div>
     <p class="note" id="tips">الزر الأحمر يشغّل التتبع، ولما يشتغل يصير أخضر، واضغطه مرة ثانية حتى تطفيه. أثناء الدوام أبقِ الصفحة مفتوحة، وإطفاء الـ GPS أو إغلاق الصفحة يُسجَّل عند الإدارة فورًا.</p>
   </div>
@@ -2309,7 +2433,7 @@ async function driverStart(){
   $("#retry").onclick=()=>{unlockAudio();startWatch()};
   $("#toExt").hidden=!/iPhone|iPad|iPod/.test(navigator.userAgent)&&!(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
   $("#toExt").onclick=()=>{siren(false);$("#block").hidden=true;gpsBad=false;if(!$("#extCard"))renderExtCard();$("#extOn").checked=true;setExt(true);window.scrollTo(0,0)};
-  unlockAudio();
+  unlockAudio(); pushCard($("#drvpush"),"driver");
   try{if(navigator.getBattery){const b=await navigator.getBattery();battery=Math.round(b.level*100);b.addEventListener("levelchange",()=>battery=Math.round(b.level*100))}}catch{}
   $("#ring").onclick=()=>{unlockAudio();ON?confirmStop():goOn()};
   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -2338,7 +2462,7 @@ async function driverStart(){
 /* ---------- iPhone: background tracking through the Traccar Client app ---------- */
 const TRACCAR_URL="https://xdyxcvyhoidojtfpoepk.supabase.co/functions/v1/traccar";
 const APPSTORE_URL="https://apps.apple.com/app/traccar-client/id843156974";
-function traccarLink(){return "org.traccar.client://config?url="+encodeURIComponent(TRACCAR_URL)+"&id="+encodeURIComponent(CODE)+"&interval=30&accuracy=highest&distance=0"}
+function traccarLink(){return "org.traccar.client://config?url="+encodeURIComponent(TRACCAR_URL)+"&id="+encodeURIComponent(CODE)+"&interval=30&accuracy=highest&distance=0&angle=0&heartbeat=60&stop_detection=false&wakelock=true&buffer=true"}
 function renderExtCard(){
   const box=document.createElement("div");box.className="trip";box.id="extCard";
   box.innerHTML=`<h3>📱 تشغيل التتبع على الآيفون</h3>
@@ -2350,7 +2474,9 @@ function renderExtCard(){
      <ol class="steps-sm">
        <li><b>Device identifier</b>: <code dir="ltr">${esc(CODE)}</code></li>
        <li><b>Server URL</b>: <code dir="ltr" style="word-break:break-all">${TRACCAR_URL}</code> <button class="btn sm" id="cpu" type="button">نسخ</button></li>
-       <li><b>Location accuracy</b>: High · <b>Heartbeat</b>: 60 · فعّل <b>Prevent suspend</b></li>
+       <li><b>Location accuracy</b>: Highest · <b>Interval</b>: 30 · <b>Distance</b>: 0 · <b>Heartbeat</b>: 60</li>
+       <li>طفّي <b>Stop detection</b> (هذا يوقف الإرسال وقت السيارة واقفة)، وفعّل <b>Wake lock</b> و<b>Offline buffering</b>.</li>
+       <li>من إعدادات الآيفون: Traccar Client ← الموقع ← <b>Always</b>، و<b>Precise Location</b> شغّال، و<b>Background App Refresh</b> شغّال، وطفّي <b>Low Power Mode</b>.</li>
      </ol></details>
    <label class="chk"><input type="checkbox" id="extOn" ${EXT?"checked":""}> أستخدم Traccar للتتبع، وهاي الصفحة للسفرات بس</label>`;
   $(".drv").insertBefore(box,$("#ring"));
@@ -2394,12 +2520,12 @@ function noteCancel(c){
   if(!c||seenCancel===c.id) return; seenCancel=c.id;
   try{if(store.get("taxi_seen_cancel")==String(c.id))return;store.set("taxi_seen_cancel",String(c.id))}catch{}
   try{navigator.vibrate&&navigator.vibrate([300,120,300])}catch{}
-  const m=modal(`<h3>✖ الزبون ألغى الطلب</h3><p style="margin:0">الطلب ${c.dropoff?`لـ <b>${esc(c.dropoff)}</b> `:""}انلغى من الزبون. ما عليك شي، انتظر طلب جديد من المكتب.</p><div class="row"><button class="btn primary" id="cok">تمام</button></div>`);
+  const m=modal(c.kind==="noshow"?`<h3>✔ الإدارة سكّرت الطلب</h3><p style="margin:0">وافقت الإدارة على التسكير (الزبون ما نزل). انتظر طلب جديد من المكتب.</p><div class="row"><button class="btn primary" id="cok">تمام</button></div>`:`<h3>✖ الزبون ألغى الطلب</h3><p style="margin:0">الطلب ${c.dropoff?`لـ <b>${esc(c.dropoff)}</b> `:""}انلغى من الزبون. ما عليك شي، انتظر طلب جديد من المكتب.</p><div class="row"><button class="btn primary" id="cok">تمام</button></div>`);
   $("#cok",m).onclick=()=>m.remove();
 }
 function showTrip(t,force){
   const box=$("#tripBox"); if(!box) return;
-  const ck=x=>x&&[x.id,x.status,x.waiting,x.pickup_waiting,x.special_status,x.round_trip,x.zone_id,x.fare,x.dest_change&&x.dest_change.id,x.dest_change&&x.dest_change.status];
+  const ck=x=>x&&[x.id,x.status,x.waiting,x.pickup_waiting,x.special_status,x.noshow_status,x.round_trip,x.zone_id,x.fare,x.dest_change&&x.dest_change.id,x.dest_change&&x.dest_change.status];
   const key=JSON.stringify(ck(t));
   const same=key===JSON.stringify(ck(curTrip));
   // a running trip card keeps its own live timer and the typed fare; redraw it only when something changes
@@ -2426,13 +2552,16 @@ function showTrip(t,force){
   if(t.status==="accepted"){
     clearInterval(waitT);
     const spP=t.special_status==="pending";
-    box.innerHTML=`<div class="trip"><h3>${t.pickup_waiting?"وصلت للزبون":"رايح للزبون"}</h3>${where}${specialBox(t)}
-      ${t.pickup_waiting?`<div class="waitbox" role="timer" aria-live="off"><small>🕓 تنتظر الزبون ينزل</small><b id="pwclock">${clock(t.pickup_wait_sec)}</b><small>هذا الوقت ما ينحسب بفلوس</small></div>`
+    const nsP=t.noshow_status==="pending";
+    box.innerHTML=`<div class="trip"><h3>${t.pickup_waiting||nsP?"وصلت للزبون":"رايح للزبون"}</h3>${where}${specialBox(t)}
+      ${nsP?`<div class="waitbox locked" role="timer"><small>🔒 العدّاد انقفل</small><b>${clock(t.pickup_wait_sec)}</b><small>انتظرت ${Math.floor((t.pickup_wait_sec||0)/60)} دقيقة</small></div>${noshowBox(t)}`
+      :t.pickup_waiting?`<div class="waitbox" role="timer" aria-live="off"><small>🕓 تنتظر الزبون ينزل</small><b id="pwclock">${clock(t.pickup_wait_sec)}</b><small>هذا الوقت ما ينحسب بفلوس</small></div>${noshowBox(t)}`
         :`${wazeBtn(t,"ويز: روح للزبون")}<button class="btn big" id="tr-arr">📍 وصلت، دا أنتظر الزبون</button>${t.pickup_wait_sec>0?`<p class="note" style="margin:0">انتظرت: <b>${clock(t.pickup_wait_sec)}</b></p>`:""}`}
       <button class="btn primary big" id="tr-go" ${spP?"disabled":""}>🚕 انطلاق (ركب الزبون)</button></div>`;
     $("#tr-go").onclick=()=>tripAct("start");
     const sp=$("#tr-sp"); if(sp) sp.onclick=()=>specialForm(t);
     const ar=$("#tr-arr"); if(ar) ar.onclick=()=>tripAct("wait_start");
+    const nsb=$("#tr-ns"); if(nsb) nsb.onclick=()=>noshowForm(t);
     if(t.pickup_waiting){const t0=Date.now(),w0=t.pickup_wait_sec||0;waitT=setInterval(()=>{const c=$("#pwclock");if(!c)return clearInterval(waitT);c.textContent=clock(w0+Math.floor((Date.now()-t0)/1000))},1000)}
     return}
   const navBtn=`<a class="btn big" href="#nav" style="text-align:center">🧭 الطريق على الخريطة</a>`;
@@ -2478,6 +2607,23 @@ function showTrip(t,force){
       el.textContent="0:"+String(left).padStart(2,"0");if(left<=0){clearInterval(chgT);setTimeout(()=>{curTrip=undefined;if(EXT)setExt(true);else refreshTrip()},1500)}},1000)}
 }
 let waitT, chgT;
+// "تسكير": the customer didn't come down; the office approves or refuses with a reason
+function noshowBox(t){
+  if(t.noshow_status==="pending") return `<div class="spbox wait"><b>⏳ طلب التسكير عند الإدارة</b><small>${esc(t.noshow_note||"")}</small><small>إذا نزل الزبون دوس «انطلاق» عادي.</small></div>`;
+  const rej=t.noshow_status==="rejected"?`<div class="spbox bad"><b>✖ الإدارة رفضت التسكير: كمّل انتظار</b>${t.noshow_reason?`<small>${esc(t.noshow_reason)}</small>`:""}</div>`:"";
+  return rej+`<button type="button" class="btn big" id="tr-ns">✖ تسكير (الزبون ما نزل)</button>`;
+}
+function noshowForm(t){
+  const mins=Math.floor((t.pickup_wait_sec||0)/60);
+  const m=modal(`<h3>✖ تسكير الطلب</h3><p style="margin:0">انتظرت الزبون <b>${mins} دقيقة</b>. اكتب شنو صار، والطلب يروح للإدارة توافق على التسكير أو ترفضه.</p>
+    <div class="field"><label for="ns-n">الملاحظة</label><textarea id="ns-n" rows="3" maxlength="200" placeholder="مثال: وصلت للعمارة وانتظرت وما نزل أحد"></textarea></div>
+    <div class="err" id="ns-e"></div><div class="row"><button class="btn" id="ns-x">رجوع</button><button class="btn primary" id="ns-ok">إرسال للإدارة</button></div>`);
+  $("#ns-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#ns-n",m).focus(),50);
+  $("#ns-ok",m).onclick=async()=>{const n=$("#ns-n",m).value.trim();if(n.length<3){$("#ns-e",m).textContent="اكتب ملاحظة: شنو صار؟";return}
+    const b=$("#ns-ok",m);b.disabled=true;
+    try{await rpc("taxi_driver_trip",{p_code:CODE,p_action:"noshow",p:{note:n}});m.remove();toast("انرسل للإدارة");curTrip=undefined;if(EXT)setExt(true);else await refreshTrip()}
+    catch(e){$("#ns-e",m).textContent=e.message;b.disabled=false}};
+}
 // "زبون خاص": a free ride the office approves; the driver writes who exactly it is
 function specialBox(t){
   const st=t.special_status;
