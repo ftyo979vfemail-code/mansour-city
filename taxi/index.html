@@ -246,6 +246,7 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 .hb i{display:block;height:12px;border-radius:6px;background:var(--amber);min-width:4px}
 .kpi.warn{border-color:var(--amber)}
 .spbar,.depbar{flex-direction:column;align-items:stretch}
+table.inv tr.tot td{background:color-mix(in srgb,var(--amber) 14%,var(--panel));border-top:2px solid var(--amber)}
 .staff-links{position:fixed;bottom:max(12px,env(safe-area-inset-bottom));left:max(12px,env(safe-area-inset-left));display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
 .staff-links a{color:var(--muted);text-decoration:none;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
 .ro [data-cdel],.ro [data-pg],.ro [data-te],.ro [data-tdel]{display:none!important}
@@ -510,7 +511,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091109";
+const BUILD="202611091113";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1514,6 +1515,7 @@ function adminShell(){
        <button role="tab" data-t="trips">السفرات</button>
        <button role="tab" data-t="sched">الحجوزات <span class="tbadge" id="sc-n" hidden></span></button>
        <button role="tab" data-t="routes">الطرق</button>
+       <button role="tab" data-t="inv">📦 الجرد الشهري</button>
        <button role="tab" data-t="daily">التقرير اليومي</button>
        <button role="tab" data-t="fb">التقييم والشكاوي <span class="tbadge" id="fb-n" hidden></span></button>
        <button role="tab" data-t="week">التسوية الأسبوعية</button>
@@ -1529,6 +1531,7 @@ function adminShell(){
   $("#tripBtn").onclick=()=>tripForm();
   $("#out").onclick=()=>{sess.del("taxi_pin");PIN=null;ME=null;clearInterval(pollT);clearInterval(evT);adminGate()};
   if(!FULL()) document.querySelectorAll(".tabs button").forEach(b=>{if(MONEY_TABS.includes(b.dataset.t))b.remove()});
+  if(!OWNER()){const ib=document.querySelector('.tabs [data-t="inv"]');if(ib)ib.remove();if(tab==="inv")tab="live"}
   document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderTab()});
   document.addEventListener("pointerdown",()=>{try{audioCtx=audioCtx||new AudioContext()}catch{}},{once:true});
   renderTab(); poll(); pollT=setInterval(poll,5000);
@@ -1718,6 +1721,7 @@ function renderTab(){
   if(tab==="files") renderFiles();
   if(tab==="routes") renderRoutes();
   if(tab==="daily") renderDaily();
+  if(tab==="inv") renderInventory();
   if(tab==="sched") renderSched();
   if(tab==="fb") renderFeedback();
 }
@@ -2154,6 +2158,35 @@ function drawFeedback(f){
     $("#cp-x",m).onclick=()=>m.remove();
     $("#cp-ok",m).onclick=async()=>{try{await rpc("taxi_admin_complaint_close",{p_pin:PIN,p_id:+b.dataset.cp,p_note:$("#cp-n",m).value});m.remove();toast("تسكّرت الشكوى");renderFeedback();pollComplaints()}catch(e){$("#cp-e",m).textContent=e.message}}});
 }
+/* ---------- monthly inventory (main manager only) ---------- */
+let invMonth=null, invData=null;
+async function renderInventory(){
+  const now=new Date(Date.now()+3*36e5), cur=now.toISOString().slice(0,7); invMonth=invMonth||cur;
+  const shift=n=>{const [y,m]=invMonth.split("-").map(Number);const d=new Date(Date.UTC(y,m-1+n,1));return d.toISOString().slice(0,7)};
+  const mName=ym=>{const [y,m]=ym.split("-").map(Number);return new Date(Date.UTC(y,m-1,15)).toLocaleDateString("ar-IQ",{month:"long",year:"numeric"})};
+  $("#view").innerHTML=`<div class="wrap" id="iv"><div class="bar"><h2>📦 الجرد الشهري</h2><div class="row" style="gap:8px"><button class="btn sm" id="iv-p">‹ الشهر السابق</button><b>${mName(invMonth)}</b><button class="btn sm" id="iv-n" ${invMonth>=cur?"disabled":""}>الشهر الجاي ›</button><button class="btn sm" id="iv-c">📋 نسخ الجرد</button></div></div><div id="ivb"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  $("#iv-p").onclick=()=>{invMonth=shift(-1);renderInventory()}; $("#iv-n").onclick=()=>{invMonth=shift(1);renderInventory()};
+  $("#iv-c").onclick=()=>invData&&copy(invText(invData,mName(invMonth)));
+  let r; try{r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_month:invMonth+"-01"})}catch(e){$("#ivb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  invData=r; const R=r.rows, T=k=>R.reduce((a,x)=>a+Number(x[k]||0),0);
+  const dd=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
+  $("#ivb").innerHTML=`<div class="kpis">
+      <div class="kpi"><small>جمعوا السواق هذا الشهر</small><b>${dinar(T("cash"))}</b><small>${T("trips")} سفرة · كل الأجرة ${fmt(T("fares"))}${T("points")?` · بالنقاط ${fmt(T("points"))}`:""}</small></div>
+      <div class="kpi"><small>استلمنا هذا الشهر</small><b>${dinar(T("received"))}</b></div>
+      <div class="kpi warn"><small>الباقي اللي لازم نستلمه</small><b>${dinar(T("closing"))}</b><small>${T("opening")?`منه ${fmt(T("opening"))} من قبل هذا الشهر · `:""}${T("pending")?`${fmt(T("pending"))} إيداع ينتظر تأكيد`:""}</small></div></div>
+    <div class="tbl-wrap"><table class="inv"><thead><tr><th>السائق</th><th>من الشهر السابق</th><th>سفرات</th><th>جمع (كاش)</th><th>استلمنا</th><th>الباقي بذمّته</th><th>إيداع ينتظر</th></tr></thead><tbody>
+      ${R.map(x=>`<tr><td>${plateHTML(x.plate)} ${esc(x.driver_name)}${x.free_rides?` <small style="color:var(--muted)">· ${x.free_rides} زبون خاص</small>`:""}${x.lines?` <small style="color:var(--muted)">· ${x.lines} خط</small>`:""}</td>
+        <td class="num">${x.opening?fmt(x.opening):"—"}</td><td class="num">${x.trips}</td><td class="num">${fmt(x.cash)}</td><td class="num">${fmt(x.received)}</td>
+        <td class="num"><b style="color:${x.closing>0?"var(--bad)":"var(--ok)"}">${fmt(x.closing)}</b></td><td class="num">${x.pending?fmt(x.pending):"—"}</td></tr>`).join("")}
+      <tr class="tot"><td><b>المجموع الشامل</b></td><td class="num"><b>${fmt(T("opening"))}</b></td><td class="num"><b>${T("trips")}</b></td><td class="num"><b>${fmt(T("cash"))}</b></td><td class="num"><b>${fmt(T("received"))}</b></td><td class="num"><b>${fmt(T("closing"))}</b></td><td class="num"><b>${fmt(T("pending"))}</b></td></tr>
+    </tbody></table></div>
+    <p class="note">«الباقي بذمّته» = اللي عليه من الشهر السابق + اللي جمعه هذا الشهر − اللي استلمناه. هذا المبلغ اللي لازم نستلمه بالجرد.</p>
+    <h3>يوم بيوم</h3>
+    ${r.days.length?`<div class="tbl-wrap"><table><thead><tr><th>اليوم</th><th>سفرات</th><th>جمعوا</th><th>استلمنا</th></tr></thead><tbody>${r.days.map(d=>`<tr><td>${dd(d.d)}</td><td class="num">${d.trips}</td><td class="num">${fmt(d.cash)}</td><td class="num">${fmt(d.received)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="note">ماكو سفرات بهذا الشهر.</p>`}`;
+}
+function invText(r,mn){const R=r.rows,T=k=>R.reduce((a,x)=>a+Number(x[k]||0),0);
+  return [`📦 جرد المنصور تاكسي · ${mn}`,...R.map(x=>`• ${x.driver_name} (${x.plate}): ${x.trips} سفرة، جمع ${fmt(x.cash)}، استلمنا ${fmt(x.received)}، الباقي ${fmt(x.closing)}`),
+    "",`المجموع: ${T("trips")} سفرة · جمعوا ${fmt(T("cash"))} · استلمنا ${fmt(T("received"))} · الباقي ${fmt(T("closing"))} د.ع`].join("\n")}
 /* ---------- daily report ---------- */
 let dailyDay=null, dailyData=null;
 async function renderDaily(){
