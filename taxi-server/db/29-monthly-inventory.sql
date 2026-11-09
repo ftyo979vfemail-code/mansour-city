@@ -40,3 +40,7 @@ grant execute on function public.taxi_admin_inventory(text,date) to anon, authen
 
 -- update (migration taxi_inventory_periods): taxi_admin_inventory(pin, p_day, p_period 'day'|'week'|'month')
 -- returns {period, from, to, rows, days}; the week starts on Saturday (taxi_week_start).
+
+-- update (migration taxi_manual_days): days before the system — taxi_admin_manual_set(pin, car, day, amount, received)
+-- stores one 'manual' done trip per driver per day (replaced on re-entry; received -> a matching taxi_cash row),
+-- taxi_admin_manual_get(pin, from, to) for the entry grid; the inventory counts them as manual_days, not trips.
