@@ -272,6 +272,12 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 .fare-in input{font:600 26px var(--mono);text-align:center;width:100%}.fare-q{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.fare-q .btn{font:600 15px var(--mono);min-height:44px}.fare-v{display:block;min-height:1.3em;margin-top:6px;text-align:center;font-weight:700;color:var(--ok)}.fare-v.bad{color:var(--bad)}
 tr.dd-bad td{background:color-mix(in srgb,var(--bad) 8%,transparent)}td .pill{white-space:normal;line-height:1.4}
 .ln-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}tr.ln-off td{opacity:.55}
+.ent-nav{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:0 0 10px}.ent-day{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}.ent-day input{font:inherit;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:inherit}
+.ent-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}.ent-c{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--panel);display:flex;flex-direction:column;gap:8px;min-width:0}.ent-c h4{margin:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ent-g{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ent-g label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}.ent-g input{font:600 20px var(--mono);text-align:center;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:inherit;width:100%;min-width:0}
+.ent-g input.saved{border-color:var(--ok);box-shadow:0 0 0 2px color-mix(in srgb,var(--ok) 25%,transparent)}.ent-g input.err-in{border-color:var(--bad)}.ent-v{color:var(--ok);font-weight:700;min-height:1em}
+.ent-lg{list-style:none;margin:0;padding:0;font-size:13px;display:flex;flex-direction:column;gap:2px}.ent-tot{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line);text-align:center}
+.ent-foot{position:sticky;bottom:0;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 0;padding-bottom:max(10px,env(safe-area-inset-bottom,0px));background:var(--bg);margin-top:10px}#en-st{font-weight:700}#en-st.ok{color:var(--ok)}
 .rc-day{margin:0 0 18px}.rc-dh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px;margin:0 0 8px;padding:8px 12px;border-radius:10px;background:var(--panel2,var(--panel));border:1px solid var(--line);font-size:16px}.rc-dh small{font-weight:400;font-size:13px}
 .rcpt{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px;overflow:hidden}
 .rcpt summary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
@@ -562,7 +568,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091258";
+const BUILD="202611091301";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1567,6 +1573,7 @@ function adminShell(){
        <button role="tab" data-t="sched">الحجوزات <span class="tbadge" id="sc-n" hidden></span></button>
        <button role="tab" data-t="routes">الطرق</button>
        <button role="tab" data-t="inv">📦 الجرد</button>
+       <button role="tab" data-t="entry">📝 تسجيل يومي</button>
        <button role="tab" data-t="rcp">🧾 الاستلامات</button>
        <button role="tab" data-t="lines">🛣 الخطوط</button>
        <button role="tab" data-t="daily">التقرير اليومي</button>
@@ -1584,7 +1591,7 @@ function adminShell(){
   $("#tripBtn").onclick=()=>tripForm();
   $("#out").onclick=()=>{sess.del("taxi_pin");PIN=null;ME=null;clearInterval(pollT);clearInterval(evT);adminGate()};
   if(!FULL()) document.querySelectorAll(".tabs button").forEach(b=>{if(MONEY_TABS.includes(b.dataset.t))b.remove()});
-  if(!OWNER()){const ib=document.querySelector('.tabs [data-t="inv"]');if(ib)ib.remove();if(tab==="inv")tab="live"}
+  if(!OWNER()){["inv","entry"].forEach(k=>{const ib=document.querySelector(`.tabs [data-t="${k}"]`);if(ib)ib.remove()});if(tab==="inv"||tab==="entry")tab="live"}
   document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderTab()});
   document.addEventListener("pointerdown",()=>{try{audioCtx=audioCtx||new AudioContext()}catch{}},{once:true});
   renderTab(); poll(); pollT=setInterval(poll,5000);
@@ -1775,6 +1782,7 @@ function renderTab(){
   if(tab==="routes") renderRoutes();
   if(tab==="daily") renderDaily();
   if(tab==="inv") renderInventory();
+  if(tab==="entry") renderEntry();
   if(tab==="rcp") renderReceipts();
   if(tab==="lines") renderLines();
   if(tab==="sched") renderSched();
@@ -2439,6 +2447,70 @@ async function driverLedger(x){
       try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{id:it?it.id:"",car_id:staff?"":x.id,person_id:staff?x.person_id:"",kind,amount:$("#lf-a",f).value,day:$("#lf-d",f).value,note:$("#lf-n",f).value,from_cash:s?s.value==="1":true}});f.remove();changed=true;toast("انحفظ");load()}catch(e){btn.disabled=false;$("#lf-e",f).textContent=e.message}}};
   $("#lg-exp",m).onclick=()=>form(null,"expense"); $("#lg-adv",m).onclick=()=>form(null,"advance");
   load();
+}
+/* ---------- day-by-day accounts entry: pick a date, fill it, move to the next one ---------- */
+let entDay=null, entPending=null;
+const entNum=v=>{let n=parseInt(String(v||"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/\D/g,""),10)||0;if(n>0&&n<=100)n*=1000;return n};
+async function renderEntry(){
+  const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10); entDay=entDay||today;
+  const shift=n=>{const d=new Date(entDay+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+  const dl=new Date(entDay+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  $("#view").innerHTML=`<div class="wrap" id="ev"><div class="bar"><h2>📝 تسجيل الحسابات</h2></div>
+    <div class="ent-nav"><button class="btn" id="en-p" aria-label="اليوم السابق">‹ ${dLbl(shift(-1))}</button>
+      <label class="ent-day"><input type="date" id="en-d" value="${entDay}" max="${today}"><b>${dl}</b></label>
+      <button class="btn" id="en-n" ${entDay>=today?"disabled":""} aria-label="اليوم الجاي">${entDay>=today?"اليوم":dLbl(shift(1))+" ›"}</button></div>
+    <p class="note" style="margin:0 0 10px">اكتب لكل سائق شكد <b>جاب</b> بهذا اليوم وشكد <b>استلمت</b> منه. ينحفظ وحده أول ما تطلع من الخانة، وكل يوم بحساباته.</p>
+    <div id="enb"><div class="empty">جارٍ التحميل…</div></div>
+    <div class="ent-foot"><span id="en-st" aria-live="polite"></span>${entDay<today?`<button class="btn primary" id="en-next">✓ خلصت هذا اليوم، روح لـ ${dLbl(shift(1))} ›</button>`:""}</div></div>`;
+  const go=async d=>{if(entPending)await entPending; entDay=d; renderEntry()};
+  $("#en-p").onclick=()=>go(shift(-1)); $("#en-n").onclick=()=>entDay<today&&go(shift(1));
+  $("#en-d").onchange=e=>e.target.value&&go(e.target.value>today?today:e.target.value);
+  if($("#en-next"))$("#en-next").onclick=()=>go(shift(1));
+  let G, LG, DY;
+  try{[G,LG,DY]=await Promise.all([rpc("taxi_admin_manual_get",{p_pin:PIN,p_from:entDay,p_to:entDay}),rpc("taxi_admin_ledger_range",{p_pin:PIN,p_car:null,p_from:entDay,p_to:entDay}),rpc("taxi_admin_daily",{p_pin:PIN,p_day:entDay}).catch(()=>null)])}
+  catch(e){$("#enb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const oT={},oC={}; G.entries.forEach(e=>oT[e.car_id]=e.amount); (G.cash||[]).forEach(e=>oC[e.car_id]=e.amount);
+  const app={}; ((DY&&DY.drivers)||[]).forEach(d=>app[d.id]=d);
+  const st=$("#en-st"), say=(t,ok)=>{st.textContent=t;st.className=ok?"ok":""};
+  const card=c=>{const a=app[c.id], appF=a?Math.max(0,(a.fares||0)-(oT[c.id]||0)):0, appN=a?a.done-(oT[c.id]?1:0):0, lg=LG.filter(i=>i.car_id===c.id);
+    return `<section class="ent-c" data-car="${c.id}"><h4>${plateHTML(c.plate)} ${esc(c.driver_name)}${appN>0?`<small class="pill s-idle">من التطبيق: ${appN} سفرة · ${fmt(appF)}</small>`:""}</h4>
+      <div class="ent-g"><label><span>جاب 🚕</span><input inputmode="numeric" data-k="t" value="${oT[c.id]||""}" placeholder="0"><small class="ent-v"></small>${appN>0?`<small style="color:var(--muted);font-weight:400">سفرات التطبيق محسوبة، اكتب بس اللي ما انسجل</small>`:""}</label>
+        <label><span>استلمت 💵</span><input inputmode="numeric" data-k="c" value="${oC[c.id]||""}" placeholder="0"><small class="ent-v"></small></label></div>
+      ${lg.length?`<ul class="ent-lg">${lg.map(i=>`<li>${i.kind==="advance"?"🤝 سلفة":"💸 مصروف"} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:""}
+      <div class="row" style="justify-content:flex-start;gap:6px"><button class="btn sm" data-q="expense">+ مصروف</button><button class="btn sm" data-q="advance">+ سلفة</button></div></section>`};
+  const people=await rpc("taxi_admin_ledger_people",{p_pin:PIN}).catch(()=>[]);
+  const plg=LG.filter(i=>i.staff);
+  $("#enb").innerHTML=`<div class="ent-list">${G.cars.map(card).join("")}</div>
+    ${people.length?`<h3 style="margin:14px 0 6px">الموظفين</h3><div class="ent-list">${people.map(pp=>`<section class="ent-c" data-person="${pp.id}"><h4>👤 ${esc(pp.name)}</h4>
+      ${plg.filter(i=>i.person_id===pp.id).length?`<ul class="ent-lg">${plg.filter(i=>i.person_id===pp.id).map(i=>`<li>${i.kind==="advance"?"🤝 سلفة":"💸 مصروف"} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:`<small class="note">ماكو شي بهذا اليوم</small>`}
+      <div class="row" style="justify-content:flex-start;gap:6px"><button class="btn sm" data-q="expense">+ مصروف</button><button class="btn sm" data-q="advance">+ سلفة</button></div></section>`).join("")}</div>`:""}
+    <div class="ent-tot" id="en-tot"></div>`;
+  const tot=()=>{let t=0,k=0;$("#enb").querySelectorAll("input[data-k]").forEach(i=>{const v=entNum(i.value);if(i.dataset.k==="t")t+=v;else k+=v});
+    const ex=LG.filter(i=>i.kind==="expense").reduce((a,i)=>a+i.amount,0), av=LG.filter(i=>i.kind==="advance").reduce((a,i)=>a+i.amount,0);
+    $("#en-tot").innerHTML=`مجموع هذا اليوم: جابوا <b>${fmt(t)}</b> · استلمت <b>${fmt(k)}</b>${ex?` · مصاريف ${fmt(ex)}`:""}${av?` · سلف ${fmt(av)}`:""}`};
+  $("#enb").querySelectorAll("input[data-k]").forEach(i=>{const car=i.closest("[data-car]").dataset.car, o=i.dataset.k==="t"?oT:oC, v=i.parentNode.querySelector(".ent-v");
+    const show=()=>{const raw=(i.value||"").replace(/\D/g,"");v.textContent=raw&&+raw<=100&&+raw>0?`= ${fmt(entNum(i.value))}`:""};
+    i.oninput=()=>{show();tot();i.classList.remove("saved")};
+    i.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();const all=[...$("#enb").querySelectorAll("input[data-k]")];const n=all[all.indexOf(i)+1];n?n.focus():i.blur()}};
+    i.onchange=()=>{const val=entNum(i.value);if(val===(o[car]||0))return;
+      const job=(async()=>{say("جارٍ الحفظ…");try{
+        if(i.dataset.k==="t"){await rpc("taxi_admin_manual_set",{p_pin:PIN,p_car:car,p_day:entDay,p_amount:val,p_received:false});
+          if(oC[car]) await rpc("taxi_admin_manual_cash_set",{p_pin:PIN,p_car:car,p_day:entDay,p_amount:oC[car]})}
+        else await rpc("taxi_admin_manual_cash_set",{p_pin:PIN,p_car:car,p_day:entDay,p_amount:val});
+        o[car]=val;i.value=val||"";show();i.classList.add("saved");say("✓ انحفظ",true)}catch(e){i.classList.add("err-in");say("⚠️ "+e.message)}})();
+      entPending=job; job.finally(()=>{if(entPending===job)entPending=null})};
+    show()});
+  $("#enb").querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{const sec=b.closest("section"), car=sec.dataset.car||"", per=sec.dataset.person||"", kind=b.dataset.q, adv=kind==="advance";
+    const f=modal(`<h3>${adv?"🤝 سلفة":"💸 مصروف"} · ${esc(sec.querySelector("h4").textContent.trim())}</h3><p class="note" style="margin:0">بتاريخ ${dLbl(entDay)}</p>
+      <div class="field"><label for="eq-a">المبلغ (دينار)</label><input id="eq-a" inputmode="numeric" style="font:600 22px var(--mono);text-align:center"></div>
+      <div class="field"><label for="eq-n">ملاحظة</label><input id="eq-n" maxlength="200" placeholder="${adv?"مثال: سلفة لظرف عائلي":"مثال: بانزين، غسل، تصليح إطار"}"></div>
+      ${car?`<fieldset class="md-rec"><legend>${adv?"منين أخذها؟":"منو دفعه؟"}</legend><label><input type="radio" name="eq-s" value="0" checked> ${adv?"من المكتب":"انصرف من المبلغ اللي سلّمه للإدارة"}</label><label><input type="radio" name="eq-s" value="1"> ${adv?"من الكاش اللي بيده":"السائق صرفه من الكاش اللي بيده"}</label></fieldset>`:""}
+      <div class="err" id="eq-e"></div><div class="row"><button class="btn" id="eq-x">رجوع</button><button class="btn primary" id="eq-ok">حفظ</button></div>`);
+    $("#eq-x",f).onclick=()=>f.remove(); setTimeout(()=>$("#eq-a",f).focus(),50);
+    $("#eq-ok",f).onclick=async e=>{const btn=e.currentTarget;if(btn.disabled)return;btn.disabled=true;const s=f.querySelector('[name="eq-s"]:checked');
+      try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{car_id:car,person_id:per,kind,amount:$("#eq-a",f).value,day:entDay,note:$("#eq-n",f).value,from_cash:s?s.value==="1":false}});f.remove();toast("انحفظ");go(entDay)}
+      catch(er){btn.disabled=false;$("#eq-e",f).textContent=er.message}}});
+  tot();
 }
 // days before the system was used: per driver, boxes for what he brought each day and what we received from him
 async function manualDays(){
