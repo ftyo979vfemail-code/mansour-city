@@ -20,6 +20,9 @@ android {
             storePassword 'taxi1234'
             keyAlias 'taxi'
             keyPassword 'taxi1234'
+            // v1 too, so older phones and some file managers / installers accept it
+            enableV1Signing true
+            enableV2Signing true
         }
     }
 
