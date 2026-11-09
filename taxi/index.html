@@ -507,7 +507,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091026";
+const BUILD="202611091037";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2590,11 +2590,12 @@ function showTrip(t,force){
       $("#tr-zones").innerHTML=L.map(z=>`<button type="button" role="radio" aria-checked="${drvZone===z.id}" class="zchip${drvZone===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}<small>${fmt(z.price)}</small></button>`).join("")
         +`<button type="button" role="radio" aria-checked="${drvZone===0}" class="zchip other${drvZone===0?" on":""}" data-z="0">✏️ منطقة أخرى</button>`;
       $("#tr-zones").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{drvZone=+b.dataset.z;$("#tr-to-f").hidden=drvZone!==0;if(drvZone===0)setTimeout(()=>$("#tr-to").focus(),30);drawZ()});
-      const z=zs.find(x=>x.id===drvZone);$("#tr-start").textContent=z?`🚕 بدء سفرة لـ ${z.name}`:drvZone===0?"🚕 بدء سفرة":"اختار المنطقة وابدأ السفرة";$("#tr-start").disabled=drvZone==null};
+      const z=zs.find(x=>x.id===drvZone);$("#tr-start").textContent=z?`🚕 بدء سفرة لـ ${z.name}`:"🚕 بدء سفرة"};
     drawZ();
     $("#tr-zq").oninput=e=>{drvQ=e.target.value;drawZ()};
     $("#tr-to").oninput=e=>{drvTo=e.target.value};
-    $("#tr-start").onclick=()=>{const p={zone_id:drvZone||"",dropoff:drvZone===0?$("#tr-to").value:""};if(drvZone===0&&p.dropoff.trim().length<2){toast("اكتب اسم المكان");return}
+    $("#tr-start").onclick=()=>{if(drvZone==null) return zonePicker(zs);
+      const p={zone_id:drvZone||"",dropoff:drvZone===0?$("#tr-to").value:""};if(drvZone===0&&p.dropoff.trim().length<2){toast("اكتب اسم المكان");return}
       drvZone=null;drvQ="";drvTo="";tripAct("start",p)};
     $("#tr-sp").onclick=()=>specialForm(null);
     $("#tr-line").onclick=()=>lineForm(B);
@@ -2681,6 +2682,22 @@ function noshowForm(t){
     const b=$("#ns-ok",m);b.disabled=true;
     try{await rpc("taxi_driver_trip",{p_code:CODE,p_action:"noshow",p:{note:n}});m.remove();toast("انرسل للإدارة");curTrip=undefined;if(EXT)setExt(true);else await refreshTrip()}
     catch(e){$("#ns-e",m).textContent=e.message;b.disabled=false}};
+}
+// "بدء سفرة" without a zone picked: a full screen of zone buttons, one tap starts the trip
+function zonePicker(zs){
+  const m=modal(`<h3>🚕 وين رايح؟</h3><p style="margin:0">اضغط على المنطقة وتبدي السفرة.</p>
+    <input id="zp-q" type="search" placeholder="🔎 ابحث عن منطقة" autocomplete="off">
+    <div class="zones dz" id="zp-z" role="list" style="max-height:55vh"></div>
+    <div class="field" id="zp-of" hidden><label for="zp-o">اسم المكان</label><input id="zp-o"></div>
+    <div class="row"><button class="btn" id="zp-x">رجوع</button><button class="btn primary" id="zp-ok" hidden>🚕 بدء سفرة</button></div>`);
+  const go=p=>{m.remove();drvZone=null;drvQ="";drvTo="";tripAct("start",p)};
+  const draw=()=>{const q=$("#zp-q",m).value.trim();
+    $("#zp-z",m).innerHTML=zs.filter(z=>!q||z.name.includes(q)).map(z=>`<button type="button" class="zchip" data-z="${z.id}">${esc(z.name)}<small>${fmt(z.price)}</small></button>`).join("")+`<button type="button" class="zchip other" data-z="0">✏️ منطقة أخرى</button>`;
+    $("#zp-z",m).querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const id=+b.dataset.z;
+      if(id){go({zone_id:id,dropoff:""});return}
+      $("#zp-of",m).hidden=false;$("#zp-ok",m).hidden=false;$("#zp-o",m).focus()})};
+  draw(); $("#zp-q",m).oninput=draw; $("#zp-x",m).onclick=()=>m.remove();
+  $("#zp-ok",m).onclick=()=>{const t=$("#zp-o",m).value.trim();if(t.length<2){toast("اكتب اسم المكان");return}go({zone_id:"",dropoff:t})};
 }
 // "خط": the driver goes to deliver a line; the return (مرجع) is always the compound
 function lineForm(B){

@@ -469,9 +469,7 @@ public class MainActivity extends Activity {
                 }
                 int k = ids.indexOf(selZone);
                 if (selZone > 0 && k < 0) selZone = -1;
-                go.setText(selZone < 0 ? "اختار المنطقة وابدأ السفرة" : selZone == 0 ? "🚕 بدء سفرة" : "🚕 بدء سفرة لـ " + labels.get(k).replaceAll(" — [0-9,]+$", ""));
-                go.setEnabled(selZone >= 0);
-                go.setAlpha(selZone >= 0 ? 1f : 0.5f);
+                go.setText(selZone <= 0 ? "🚕 بدء سفرة" : "🚕 بدء سفرة لـ " + labels.get(k).replaceAll(" — [0-9,]+$", ""));
                 to.setVisibility(selZone == 0 ? View.VISIBLE : View.GONE);
             };
             LinearLayout zrow = null;
@@ -496,7 +494,7 @@ public class MainActivity extends Activity {
             card.addView(space(8));
             paint.run();
             go.setOnClickListener(v -> {
-                if (selZone < 0) return;
+                if (selZone < 0) { zonePicker(labels, ids); return; }
                 JSONObject p = obj("dropoff", selZone == 0 ? to.getText().toString() : "");
                 if (selZone == 0 && to.getText().toString().trim().length() < 2) { android.widget.Toast.makeText(this, "اكتب اسم المكان", android.widget.Toast.LENGTH_LONG).show(); return; }
                 try { if (selZone > 0) p.put("zone_id", selZone); } catch (Exception ignored) {}
@@ -847,6 +845,47 @@ public class MainActivity extends Activity {
             card.addView(space(8));
         }
         return st.equals("pending");
+    }
+
+    // "بدء سفرة" with no zone picked: a dialog full of zone buttons, one tap starts the trip
+    private void zonePicker(java.util.List<String> labels, java.util.List<Integer> ids) {
+        android.widget.ScrollView sv = new android.widget.ScrollView(this);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(dp(12), dp(8), dp(12), dp(8));
+        sv.addView(list);
+        final android.app.AlertDialog dlg = new android.app.AlertDialog.Builder(this).setTitle("🚕 وين رايح؟ اضغط على المنطقة")
+                .setView(sv).setNegativeButton("رجوع", null).create();
+        LinearLayout r = null;
+        for (int i = 0; i < labels.size(); i++) {
+            final int zid = ids.get(i);
+            if (i % 2 == 0) { r = new LinearLayout(this); r.setOrientation(LinearLayout.HORIZONTAL); list.addView(r, full()); }
+            Button b = button(zid == 0 ? "✏️ منطقة أخرى" : labels.get(i).replace(" — ", "\n"), false);
+            b.setMinHeight(dp(58));
+            b.setOnClickListener(v -> {
+                dlg.dismiss();
+                if (zid == 0) {
+                    final EditText other = input("اسم المكان", InputType.TYPE_CLASS_TEXT);
+                    new android.app.AlertDialog.Builder(this).setTitle("وين رايح؟").setView(other)
+                            .setNegativeButton("رجوع", null)
+                            .setPositiveButton("🚕 بدء سفرة", (d, w) -> {
+                                String t = other.getText().toString().trim();
+                                if (t.length() < 2) { android.widget.Toast.makeText(this, "اكتب اسم المكان", android.widget.Toast.LENGTH_LONG).show(); return; }
+                                selZone = -1; tripAction("start", obj("dropoff", t));
+                            }).show();
+                    return;
+                }
+                JSONObject p = obj("dropoff", "");
+                try { p.put("zone_id", zid); } catch (Exception ignored) {}
+                selZone = -1;
+                tripAction("start", p);
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+            lp.setMargins(dp(3), dp(3), dp(3), dp(3));
+            r.addView(b, lp);
+        }
+        if (labels.size() % 2 == 1 && r != null) r.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
+        dlg.show();
     }
 
     static double km(double a1, double o1, double a2, double o2) {
