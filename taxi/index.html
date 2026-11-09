@@ -271,6 +271,7 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 @media(max-width:560px){.lgl li{grid-template-columns:1fr}}
 .fare-in input{font:600 26px var(--mono);text-align:center;width:100%}.fare-q{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.fare-q .btn{font:600 15px var(--mono);min-height:44px}.fare-v{display:block;min-height:1.3em;margin-top:6px;text-align:center;font-weight:700;color:var(--ok)}.fare-v.bad{color:var(--bad)}
 tr.dd-bad td{background:color-mix(in srgb,var(--bad) 8%,transparent)}td .pill{white-space:normal;line-height:1.4}
+.ln-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}tr.ln-off td{opacity:.55}
 .rc-day{margin:0 0 18px}.rc-dh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px;margin:0 0 8px;padding:8px 12px;border-radius:10px;background:var(--panel2,var(--panel));border:1px solid var(--line);font-size:16px}.rc-dh small{font-weight:400;font-size:13px}
 .rcpt{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px;overflow:hidden}
 .rcpt summary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
@@ -561,7 +562,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091253";
+const BUILD="202611091255";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1567,6 +1568,7 @@ function adminShell(){
        <button role="tab" data-t="routes">الطرق</button>
        <button role="tab" data-t="inv">📦 الجرد</button>
        <button role="tab" data-t="rcp">🧾 الاستلامات</button>
+       <button role="tab" data-t="lines">🛣 الخطوط</button>
        <button role="tab" data-t="daily">التقرير اليومي</button>
        <button role="tab" data-t="fb">التقييم والشكاوي <span class="tbadge" id="fb-n" hidden></span></button>
        <button role="tab" data-t="week">التسوية الأسبوعية</button>
@@ -1774,6 +1776,7 @@ function renderTab(){
   if(tab==="daily") renderDaily();
   if(tab==="inv") renderInventory();
   if(tab==="rcp") renderReceipts();
+  if(tab==="lines") renderLines();
   if(tab==="sched") renderSched();
   if(tab==="fb") renderFeedback();
 }
@@ -2240,6 +2243,55 @@ function rangePicker(f,t,marks,done){
   $("#cl-p",m).onclick=()=>shift(-1); $("#cl-n",m).onclick=()=>shift(1);
   $("#cl-x",m).onclick=()=>m.remove(); $("#cl-ok",m).onclick=()=>{m.remove();done(a<=b?a:b,a<=b?b:a)};
   draw();
+}
+/* ---------- line subscriptions: students, how many, monthly amount, building / floor / flat ---------- */
+let linesQ="", linesData=[];
+async function renderLines(){
+  $("#view").innerHTML=`<div class="wrap" id="lv"><div class="bar"><h2>🛣 الخطوط (اشتراك شهري)</h2>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><input id="ln-q" class="btn sm" placeholder="🔎 بحث: اسم، عمارة، مدرسة…" value="${esc(linesQ)}" style="min-width:200px"><button class="btn sm" id="ln-c">📋 نسخ</button><button class="btn sm primary" id="ln-add">➕ إضافة طالب</button></div></div>
+    <div id="lnb"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  $("#ln-add").onclick=()=>lineSubForm(null);
+  try{linesData=await rpc("taxi_admin_line_subs",{p_pin:PIN})}catch(e){$("#lnb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const draw=()=>{const q=linesQ.trim(), L=linesData.filter(x=>!q||[x.students,x.building,x.floor,x.apt,x.dest,x.driver_name,x.note].join(" ").includes(q));
+    const act=L.filter(x=>x.active), N=act.reduce((a,x)=>a+x.n,0), A=act.reduce((a,x)=>a+x.amount,0);
+    const blds=[...new Set(act.map(x=>x.building||"بدون عمارة"))];
+    $("#lnb").innerHTML=`<div class="kpis"><div class="kpi"><small>اشتراكات فعّالة</small><b>${act.length}</b><small>${blds.length} عمارة</small></div>
+      <div class="kpi"><small>عدد الطلاب</small><b>${N}</b></div><div class="kpi"><small>مجموع المبالغ الشهرية</small><b>${dinar(A)}</b></div></div>
+      ${L.length?`<div class="tbl-wrap"><table class="ln-t"><thead><tr><th>الطالب / الطلاب</th><th>العدد</th><th>المبلغ</th><th>العمارة</th><th>الطابق</th><th>الشقة</th><th>لوين</th><th>السائق</th><th></th></tr></thead><tbody>
+        ${L.map(x=>`<tr class="${x.active?"":"ln-off"}"><td><b>${esc(x.students)}</b>${x.note?`<br><small>${esc(x.note)}</small>`:""}${x.active?"":` <span class="pill s-idle">موقوف</span>`}</td><td class="num">${x.n}</td><td class="num">${fmt(x.amount)}</td><td>${esc(x.building||"—")}</td><td>${esc(x.floor||"—")}</td><td>${esc(x.apt||"—")}</td><td>${esc(x.dest||"—")}</td><td>${x.driver_name?esc(x.driver_name):"—"}</td>
+          <td class="acts"><button class="btn sm" data-le="${x.id}">✏️ تعديل</button></td></tr>`).join("")}
+      </tbody><tfoot><tr><th>المجموع (الفعّالة)</th><th class="num">${N}</th><th class="num">${fmt(A)}</th><th colspan="6"></th></tr></tfoot></table></div>`:`<p class="note">${q?"ماكو نتيجة للبحث.":"لسه ما ضايف طلاب. دوس «➕ إضافة طالب»."}</p>`}`;
+    $("#lnb").querySelectorAll("[data-le]").forEach(b=>b.onclick=()=>lineSubForm(linesData.find(x=>x.id===+b.dataset.le)))};
+  draw();
+  $("#ln-q").oninput=e=>{linesQ=e.target.value;draw()};
+  $("#ln-c").onclick=()=>{const act=linesData.filter(x=>x.active);copy([`🛣 خطوط المنصور تاكسي`,...act.map(x=>`- ${x.students} (${x.n}) · عمارة ${x.building||"—"} ط${x.floor||"—"} ش${x.apt||"—"}${x.dest?` · ${x.dest}`:""} · ${fmt(x.amount)}${x.driver_name?` · ${x.driver_name}`:""}`),
+    `المجموع: ${act.reduce((a,x)=>a+x.n,0)} طالب · ${fmt(act.reduce((a,x)=>a+x.amount,0))} د.ع شهريًا`].join("\n"))};
+}
+function lineSubForm(x){
+  const ed=!!x;
+  const m=modal(`<h3>${ed?"✏️ تعديل اشتراك":"➕ طالب جديد بالخط"}</h3>
+    <div class="field"><label for="ls-s">اسم الطالب (أو الطلاب)</label><input id="ls-s" maxlength="300" value="${ed?esc(x.students):""}" placeholder="مثال: علي وزينب أحمد"></div>
+    <div class="ln-g">
+      <div class="field"><label for="ls-n">العدد</label><input id="ls-n" inputmode="numeric" value="${ed?x.n:1}"></div>
+      <div class="field"><label for="ls-a">المبلغ الشهري (دينار)</label><input id="ls-a" inputmode="numeric" value="${ed&&x.amount?x.amount:""}" placeholder="مثال: 75000 أو 75"><small id="ls-av" class="fare-v"></small></div>
+      <div class="field"><label for="ls-b">العمارة</label><input id="ls-b" maxlength="40" value="${ed?esc(x.building):""}" placeholder="مثال: 12"></div>
+      <div class="field"><label for="ls-f">الطابق</label><input id="ls-f" maxlength="20" value="${ed?esc(x.floor):""}" placeholder="مثال: 3"></div>
+      <div class="field"><label for="ls-p">الشقة</label><input id="ls-p" maxlength="20" value="${ed?esc(x.apt):""}" placeholder="مثال: 7"></div>
+      <div class="field"><label for="ls-d">لوين (المدرسة / المنطقة) — اختياري</label><input id="ls-d" maxlength="120" value="${ed?esc(x.dest):""}"></div>
+    </div>
+    <div class="field"><label for="ls-c">السائق — اختياري</label><select id="ls-c" class="btn" style="width:100%;min-height:46px;text-align:start"><option value="">—</option>${cars.filter(c=>c.active).map(c=>`<option value="${c.id}" ${ed&&x.car_id===c.id?"selected":""}>${esc(c.driver_name)}</option>`).join("")}</select></div>
+    <div class="field"><label for="ls-o">ملاحظة — اختياري</label><input id="ls-o" maxlength="300" value="${ed?esc(x.note):""}"></div>
+    ${ed?`<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ls-act" ${x.active?"checked":""}> الاشتراك فعّال</label>`:""}
+    <div class="err" id="ls-e"></div>
+    <div class="row">${ed&&OWNER()?`<button class="btn danger" id="ls-del">🗑 حذف</button>`:""}<button class="btn" id="ls-x">رجوع</button><button class="btn primary" id="ls-ok">حفظ</button></div>`);
+  const av=()=>{const raw=($("#ls-a",m).value||"").replace(/\D/g,"");let v=+raw||0;if(v>=1&&v<=500)v*=1000;$("#ls-av",m).textContent=raw?`= ${dinar(v)}`:""};
+  $("#ls-a",m).oninput=av; av();
+  $("#ls-x",m).onclick=()=>m.remove();
+  const del=$("#ls-del",m); if(del) del.onclick=()=>{if(del.dataset.sure!=="1"){del.dataset.sure="1";del.textContent="متأكد؟";return}
+    rpc("taxi_admin_line_sub_delete",{p_pin:PIN,p_id:x.id}).then(()=>{m.remove();toast("انحذف");renderLines()}).catch(e=>$("#ls-e",m).textContent=e.message)};
+  $("#ls-ok",m).onclick=async()=>{const g=id=>$(id,m).value;
+    try{await rpc("taxi_admin_line_sub_save",{p_pin:PIN,p:{id:ed?x.id:"",students:g("#ls-s"),n:g("#ls-n"),amount:g("#ls-a"),building:g("#ls-b"),floor:g("#ls-f"),apt:g("#ls-p"),dest:g("#ls-d"),car_id:g("#ls-c"),note:g("#ls-o"),active:ed?$("#ls-act",m).checked:true}});
+      m.remove();toast("انحفظ");renderLines()}catch(e){$("#ls-e",m).textContent=e.message}};
 }
 /* ---------- receipts: every amount received, with the trips it paid for ---------- */
 let rcpF=null, rcpT=null, rcpCar="";

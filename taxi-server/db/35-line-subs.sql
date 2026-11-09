@@ -1,0 +1,3 @@
+-- 35: "الخطوط" — monthly line subscriptions: students, how many, amount, building / floor / flat, optional destination and driver.
+-- Applied as migration taxi_line_subs: table taxi_line_subs + taxi_admin_line_subs (list), taxi_admin_line_sub_save (any manager),
+-- taxi_admin_line_sub_delete (owner only). Amounts 1..500 are read as thousands.
