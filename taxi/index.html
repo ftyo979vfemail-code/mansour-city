@@ -246,7 +246,7 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 .hb i{display:block;height:12px;border-radius:6px;background:var(--amber);min-width:4px}
 .kpi.warn{border-color:var(--amber)}
 .spbar,.depbar{flex-direction:column;align-items:stretch}
-.ro [data-fc],.ro [data-cash],.ro #dfcash,.ro [data-cdel],.ro [data-settle],.ro [data-dok],.ro [data-dno],.ro #dd-ok,.ro #dd-no,.ro [data-pg],.ro #dd-a,.ro [data-te],.ro [data-tdel]{display:none!important}
+.ro [data-cdel],.ro [data-pg],.ro [data-te],.ro [data-tdel]{display:none!important}
 .waitbox.locked{border-color:var(--muted);background:color-mix(in srgb,var(--muted) 10%,var(--panel))}
 .pushcard{display:flex;align-items:center;gap:10px;border:2px dashed var(--amber);border-radius:14px;padding:10px 12px}
 .pushcard span{flex:1;min-width:0}
@@ -508,7 +508,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091048";
+const BUILD="202611091059";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1465,7 +1465,7 @@ const MONEY_TABS=["set"];
 const OWNER=()=>!!(ME&&(ME.owner||ME.id===0));
 function adminShell(){
   if(!ME){rpc("taxi_admin_me",{p_pin:PIN}).then(m=>{ME=m;adminShell()}).catch(()=>{ME={perms:"full",name:""};adminShell()});return}
-  setTimeout(()=>{const w=$("#who");if(w&&ME.name){w.hidden=false;w.textContent="👤 "+ME.name+(OWNER()?"":" · الحسابات للمشاهدة بس")}},0);
+  setTimeout(()=>{const w=$("#who");if(w&&ME.name){w.hidden=false;w.textContent="👤 "+ME.name+(OWNER()?"":" · يستلم المبالغ، بدون تعديل كراوي")}},0);
   document.body.classList.toggle("ro",!OWNER());
   if(!FULL()&&MONEY_TABS.includes(tab)) tab="live";
   $("#app").innerHTML=`<div class="shell">

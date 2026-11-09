@@ -92,3 +92,7 @@ begin
     end loop;
   end loop;
 end $$;
+
+-- update (migration taxi_managers_receive_money): every manager can receive money again —
+-- taxi_admin_cash 'add', deposit_decide, deposit_settle and settle use taxi_chk; deleting a cash entry,
+-- points, fares settings and fare edit/delete stay owner-only.
