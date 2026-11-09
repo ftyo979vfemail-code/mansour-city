@@ -568,7 +568,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091301";
+const BUILD="202611091308";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2117,21 +2117,32 @@ async function loadAccounts(){
     <td class="num">${r.km_total}</td>
     <td>${r.unlogged?`<span class="pill s-bad">${r.unlogged} مرة · ${r.unlogged_km} كم</span>${base?`<br><small style="color:var(--muted)">≈ ${dinar(est(r))}</small>`:""}`:`<span class="pill s-ok">ماكو</span>`}</td>
     <td class="num">${r.online_hours}</td><td class="num">${r.rejected?`<b style="color:var(--bad)">${r.rejected}</b>`:0}</td><td class="num">${r.cutoffs?`<b style="color:var(--bad)">${r.cutoffs}</b>`:0}</td>
-    <td><div class="acts"><button class="btn sm primary" data-cash="${r.id}">استلام مبلغ</button><button class="btn sm" data-det="${r.id}">التفاصيل</button></div></td></tr>`).join("")}
+    <td><div class="acts"><button class="btn sm primary" data-cash="${r.id}">✅ تم الاستلام</button><button class="btn sm" data-det="${r.id}">التفاصيل</button></div></td></tr>`).join("")}
   </tbody></table></div>`;
   box.querySelectorAll("[data-cash]").forEach(b=>b.onclick=()=>cashForm(accRows.find(r=>r.id===b.dataset.cash)));
   box.querySelectorAll("[data-det]").forEach(b=>b.onclick=()=>driverDetail(accRows.find(r=>r.id===b.dataset.det)));
 }
 function cashForm(r){
-  const m=modal(`<h3>استلام مبلغ من ${esc(r.driver_name)}</h3>
-   <p style="margin:0">الباقي بذمّته هذا الشهر: <b>${dinar(r.fares-r.paid)}</b></p>
+  const m=modal(`<h3>✅ تم الاستلام من ${esc(r.driver_name)}</h3>
+   <div class="calc" id="cf-b"><div><span>بذمّته هسه</span><b>…</b></div></div>
    <form id="cf2" style="display:flex;flex-direction:column;gap:12px">
-    <div class="field"><label for="cm">المبلغ المستلَم (دينار)</label><input id="cm" inputmode="numeric" required value="${Math.max(r.fares-r.paid,0)||""}"></div>
+    <div class="field"><label for="cm">المبلغ اللي استلمته (دينار)</label><input id="cm" inputmode="numeric" required autocomplete="off" placeholder="مثال: 28000 أو 28" style="font:600 26px var(--mono);text-align:center"><small id="cm-v" class="fare-v" aria-live="polite"></small>
+      <div class="row" style="justify-content:flex-start;gap:6px;flex-wrap:wrap" id="cm-q"></div></div>
     <div class="field"><label for="cn2">ملاحظة</label><input id="cn2" placeholder="اختياري"></div>
     <div class="err" id="cme"></div>
-    <div class="row"><button type="button" class="btn" id="cmc">إلغاء</button><button class="btn primary">تسجيل الاستلام</button></div></form>`);
-  $("#cmc",m).onclick=()=>m.remove();
-  $("#cf2",m).onsubmit=async e=>{e.preventDefault();try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p:{car_id:r.id,amount:$("#cm",m).value,note:$("#cn2",m).value}});m.remove();toast("انسجل الاستلام");loadAccounts()}catch(err){$("#cme",m).textContent=err.message}};
+    <div class="row"><button type="button" class="btn" id="cmc">رجوع</button><button class="btn primary" id="cm-ok">✅ تم الاستلام</button></div></form>`);
+  $("#cmc",m).onclick=()=>m.remove(); setTimeout(()=>$("#cm",m).focus(),60);
+  const val=()=>{const n=parseInt(($("#cm",m).value||"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/\D/g,""),10)||0;return n>0&&n<=100?n*1000:n};
+  let hand=null;
+  const show=()=>{const v=val(),raw=($("#cm",m).value||"").replace(/\D/g,"");$("#cm-v",m).className="fare-v"+(hand!=null&&v>hand?" bad":"");
+    $("#cm-v",m).textContent=!raw?"":`= ${dinar(v)}`+(hand!=null&&v>0?(v>hand?` · أكثر من اللي بذمّته بـ ${fmt(v-hand)} (يصير رصيد إله)`:` · يبقى بذمّته ${fmt(hand-v)}`):"")};
+  $("#cm",m).oninput=show;
+  rpc("taxi_admin_balance",{p_pin:PIN,p_car:r.id}).then(b=>{hand=Math.max(0,b.in_hand);
+    $("#cf-b",m).innerHTML=`<div><span>جمع من السفرات (كل الفترات)</span><b>${dinar(b.cash)}</b></div><div><span>استلمنا منه</span><b>${dinar(b.collected)}</b></div>${b.ledger?`<div><span>صرفه من الكاش (مصاريف/سلف)</span><b>− ${dinar(b.ledger)}</b></div>`:""}${b.pending?`<div><span>إيداع ينتظر الموافقة</span><b>${dinar(b.pending)}</b></div>`:""}<div class="tot"><span>بذمّته هسه</span><b>${dinar(b.in_hand)}</b></div>`;
+    if(hand>0)$("#cm-q",m).innerHTML=`<button type="button" class="btn sm" data-v="${hand}">كل المبلغ ${fmt(hand)}</button>`;
+    $("#cm-q",m).querySelectorAll("[data-v]").forEach(x=>x.onclick=()=>{$("#cm",m).value=x.dataset.v;show()});show()}).catch(e=>{$("#cf-b",m).innerHTML=`<div><span>${esc(e.message)}</span></div>`});
+  $("#cf2",m).onsubmit=async e=>{e.preventDefault();const v=val(),btn=$("#cm-ok",m);if(btn.disabled)return;if(!v){$("#cme",m).textContent="اكتب المبلغ اللي استلمته";return}
+    btn.disabled=true;try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p:{car_id:r.id,amount:String(v),note:$("#cn2",m).value}});m.remove();toast(`✅ انسجل استلام ${dinar(v)} من ${r.driver_name}`);loadAccounts()}catch(err){btn.disabled=false;$("#cme",m).textContent=err.message}};
 }
 async function driverDetail(r){
   const m=modal(`<h3>${esc(r.driver_name)} · ${esc(r.plate)}</h3><div id="dd"><div class="empty">جارٍ التحميل…</div></div><div class="row"><button class="btn" id="ddc">سدّ</button></div>`);
