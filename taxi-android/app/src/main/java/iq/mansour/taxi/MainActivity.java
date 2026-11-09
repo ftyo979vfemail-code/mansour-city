@@ -457,8 +457,7 @@ public class MainActivity extends Activity {
             ids.add(0);
             card.addView(text("إلى وين؟ اضغط على المنطقة", 13, MUTED, true));
             // zones as big buttons, two per row: one tap picks it
-            final android.widget.GridLayout grid = new android.widget.GridLayout(this);
-            grid.setColumnCount(2);
+            // zones as big buttons, two per row (plain rows of weighted buttons: renders the same on every phone)
             final java.util.List<Button> zbtns = new java.util.ArrayList<>();
             final EditText to = input("اسم المكان", InputType.TYPE_CLASS_TEXT);
             to.setVisibility(selZone == 0 ? View.VISIBLE : View.GONE);
@@ -469,25 +468,30 @@ public class MainActivity extends Activity {
                     zbtns.get(i).setBackground(box(on ? 0xFFFFF4DC : CARD, on ? AMBER : LINE, 12));
                 }
                 int k = ids.indexOf(selZone);
+                if (selZone > 0 && k < 0) selZone = -1;
                 go.setText(selZone < 0 ? "اختار المنطقة وابدأ السفرة" : selZone == 0 ? "🚕 بدء سفرة" : "🚕 بدء سفرة لـ " + labels.get(k).replaceAll(" — [0-9,]+$", ""));
                 go.setEnabled(selZone >= 0);
                 go.setAlpha(selZone >= 0 ? 1f : 0.5f);
                 to.setVisibility(selZone == 0 ? View.VISIBLE : View.GONE);
             };
+            LinearLayout zrow = null;
             for (int i = 0; i < labels.size(); i++) {
                 final int zid = ids.get(i);
+                if (i % 2 == 0) {
+                    zrow = new LinearLayout(this);
+                    zrow.setOrientation(LinearLayout.HORIZONTAL);
+                    card.addView(zrow, full());
+                }
                 Button zb = button(zid == 0 ? "✏️ منطقة أخرى" : labels.get(i).replace(" — ", "\n"), false);
                 zb.setTextSize(15);
                 zb.setMinHeight(dp(58));
                 zb.setOnClickListener(v -> { selZone = zid; paint.run(); if (zid == 0) to.requestFocus(); });
-                android.widget.GridLayout.LayoutParams gl = new android.widget.GridLayout.LayoutParams(
-                        android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f), android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f));
-                gl.width = 0;
-                gl.setMargins(dp(3), dp(3), dp(3), dp(3));
-                grid.addView(zb, gl);
+                LinearLayout.LayoutParams zl = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+                zl.setMargins(dp(3), dp(3), dp(3), dp(3));
+                zrow.addView(zb, zl);
                 zbtns.add(zb);
             }
-            card.addView(grid, full());
+            if (labels.size() % 2 == 1 && zrow != null) zrow.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
             card.addView(to, full());
             card.addView(space(8));
             paint.run();
