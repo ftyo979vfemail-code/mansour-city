@@ -120,6 +120,22 @@ public class MainActivity extends Activity {
     // live waiting timer / fare on the running trip card
     private int waitBase; private long waitFrom; private boolean waitRunning; private JSONObject waitTrip;
     private EditText waitFare; private TextView waitClock, waitNote, waitTotal;
+    private TextView fareHint;
+    // what the driver typed, per trip, so a screen refresh doesn't wipe it
+    private final java.util.HashMap<Long, String> fareDraft = new java.util.HashMap<>();
+    private static final int[] FARE_Q = {3000, 5000, 7000, 10000, 15000, 20000};
+    /** "5" means 5,000; 101..499 or more than a million is a typo (-1); empty is 0. Arabic digits accepted. */
+    static int fareVal(String x) {
+        if (x == null) return 0;
+        StringBuilder b = new StringBuilder();
+        for (char ch : x.toCharArray()) { if (ch >= '0' && ch <= '9') b.append(ch); else if (ch >= '\u0660' && ch <= '\u0669') b.append((char) ('0' + ch - '\u0660')); }
+        if (b.length() == 0 || b.length() > 9) return b.length() == 0 ? 0 : -1;
+        int n = Integer.parseInt(b.toString());
+        if (n == 0) return 0;
+        if (n <= 100) return n * 1000;
+        if (n < 500 || n > 1000000) return -1;
+        return n;
+    }
     private final Runnable waitTick = new Runnable() { @Override public void run() { updateWait(); if (waitRunning) h.postDelayed(this, 1000); } };
     // free clock while the driver waits for the customer at pickup (no money)
     private int pwBase; private long pwFrom; private TextView pwClock;
@@ -160,7 +176,16 @@ public class MainActivity extends Activity {
         }
         int base;
         if (waitFare == null) base = t.optInt("base_fare", t.optInt("fare"));
-        else { try { base = Integer.parseInt(waitFare.getText().toString().replaceAll("\\D", "")); } catch (Exception e) { base = 0; } }
+        else {
+            String raw = waitFare.getText().toString().replaceAll("\\D", "");
+            int v = fareVal(waitFare.getText().toString());
+            base = Math.max(v, 0);
+            if (fareHint != null) {
+                fareHint.setTextColor(v < 0 ? BAD : OK);
+                fareHint.setText(raw.isEmpty() ? "" : v < 0 ? "المبلغ مو مضبوط، اكتبه كامل (5000) أو بالآلاف (5)"
+                        : "= " + String.format(java.util.Locale.US, "%,d", v) + " د.ع" + (!raw.equals(String.valueOf(v)) ? "  (كتبت " + raw + ")" : ""));
+            }
+        }
         int rf = t.optBoolean("round_trip") ? Math.round(base * t.optInt("round_trip_pct", 100) / 100f) : 0;
         int[][] T = tiers(t);
         int wf = waitFee(ws, T);
@@ -659,34 +684,66 @@ public class MainActivity extends Activity {
                 addDestChange(card, t, st, waiting);
                 card.addView(space(8));
                 if (fixed) {
+                    fareHint = null;
                     waitTotal = text("", 20, FG, true);
                     waitTotal.setGravity(Gravity.CENTER);
                     waitTotal.setBackground(box(0xFFFFF4DC, AMBER, 12));
                     waitTotal.setPadding(dp(12), dp(12), dp(12), dp(12));
                     card.addView(waitTotal, full());
                 } else {
-                    int base = st.optInt("fare_base", 0);
-                    if (base > 0) fare.setText(String.valueOf(base));
-                    fare.setTextSize(22);
+                    final long tid = t.optLong("id");
+                    String dr = fareDraft.get(tid);
+                    if (dr != null) fare.setText(dr);
+                    fare.setHint("اكتب المبلغ، مثال 5000 أو 5");
+                    fare.setTextSize(24);
                     fare.setGravity(Gravity.CENTER);
-                    card.addView(text("الأجرة (دينار)", 13, MUTED, true));
+                    card.addView(text("💰 الأجرة اللي استلمتها (دينار)", 14, FG, true));
                     card.addView(fare, full());
+                    for (int r = 0; r < 2; r++) {
+                        LinearLayout qr = row();
+                        for (int c = 0; c < 3; c++) {
+                            final int v = FARE_Q[r * 3 + c];
+                            Button q = button(String.format(java.util.Locale.US, "%,d", v), false);
+                            q.setOnClickListener(x -> { fare.setText(String.valueOf(v)); fare.setSelection(fare.length()); });
+                            LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+                            if (c > 0) ql.setMarginStart(dp(6));
+                            qr.addView(q, ql);
+                        }
+                        LinearLayout.LayoutParams rl2 = full(); rl2.topMargin = dp(6);
+                        card.addView(qr, rl2);
+                    }
+                    fareHint = text("", 15, OK, true);
+                    fareHint.setGravity(Gravity.CENTER);
+                    card.addView(fareHint, full());
                     waitTotal = text("", 16, FG, true);
                     waitTotal.setGravity(Gravity.CENTER);
                     card.addView(waitTotal, full());
                     fare.addTextChangedListener(new android.text.TextWatcher() {
                         public void beforeTextChanged(CharSequence a, int b, int c, int d) {}
                         public void onTextChanged(CharSequence a, int b, int c, int d) {}
-                        public void afterTextChanged(android.text.Editable e) { updateWait(); }
+                        public void afterTextChanged(android.text.Editable e) { fareDraft.put(tid, e.toString()); updateWait(); }
                     });
                 }
                 updateWait();
                 if (waiting) h.postDelayed(waitTick, 1000);
                 card.addView(space(8));
+                final long endTid = t.optLong("id");
                 Button end = button("إنهاء السفرة", true);
                 end.setEnabled(!waiting && !spPending);
                 if (waiting || spPending) end.setAlpha(0.45f);
-                end.setOnClickListener(v -> tripAction("end", obj("fare", fare.getText().toString())));
+                end.setOnClickListener(v -> {
+                    if (fixed) { tripAction("end", obj("fare", "")); return; }
+                    int fv = fareVal(fare.getText().toString());
+                    if (fv <= 0) {
+                        fare.requestFocus();
+                        if (fareHint != null) { fareHint.setTextColor(BAD); fareHint.setText(fv < 0 ? "المبلغ مو مضبوط، اكتبه كامل (5000) أو بالآلاف (5)" : "اكتب الأجرة أو اختار مبلغ من الأزرار"); }
+                        return;
+                    }
+                    new android.app.AlertDialog.Builder(this).setTitle("تنهي السفرة؟")
+                            .setMessage("الأجرة: " + String.format(java.util.Locale.US, "%,d", fv) + " د.ع")
+                            .setNegativeButton("رجوع", null)
+                            .setPositiveButton("✅ نعم، إنهاء", (d, w) -> { fareDraft.remove(endTid); tripAction("end", obj("fare", String.valueOf(fv))); }).show();
+                });
                 card.addView(end, full());
             }
         }
