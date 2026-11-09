@@ -270,6 +270,7 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 .lg-why{font-weight:600}
 @media(max-width:560px){.lgl li{grid-template-columns:1fr}}
 .fare-in input{font:600 26px var(--mono);text-align:center;width:100%}.fare-q{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.fare-q .btn{font:600 15px var(--mono);min-height:44px}.fare-v{display:block;min-height:1.3em;margin-top:6px;text-align:center;font-weight:700;color:var(--ok)}.fare-v.bad{color:var(--bad)}
+tr.dd-bad td{background:color-mix(in srgb,var(--bad) 8%,transparent)}td .pill{white-space:normal;line-height:1.4}
 .rc-day{margin:0 0 18px}.rc-dh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px;margin:0 0 8px;padding:8px 12px;border-radius:10px;background:var(--panel2,var(--panel));border:1px solid var(--line);font-size:16px}.rc-dh small{font-weight:400;font-size:13px}
 .rcpt{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px;overflow:hidden}
 .rcpt summary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
@@ -560,7 +561,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091246";
+const BUILD="202611091250";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2439,14 +2440,41 @@ async function renderDaily(){
       <div class="kpi ${r.complaints.new||r.ratings.low?"warn":""}"><small>رضا الزباين</small><b>${r.ratings.avg?`⭐ ${r.ratings.avg}`:"—"}</b><small>${r.ratings.count} تقييم${r.ratings.low?` · ${r.ratings.low} واطي`:""} · ${r.complaints.new} شكوى جديدة · ${r.new_customers} زبون جديد</small></div>
     </div>
     <h3>كل سائق</h3>
-    <div class="tbl-wrap"><table><thead><tr><th>السائق</th><th>سفرات</th><th>الأجرة</th><th>كاش بيده</th><th>استلمنا منه</th><th>كم</th><th>رفض</th><th>انقطاع</th><th>تقييم</th><th>أول/آخر نشاط</th></tr></thead><tbody>
-      ${r.drivers.map(d=>`<tr><td>${plateHTML(d.plate)} ${esc(d.driver_name)}</td><td class="num">${d.done}</td><td class="num">${fmt(d.fares)}</td><td class="num">${fmt(d.cash)}</td><td class="num">${fmt(d.received)}</td><td class="num">${d.km}</td><td class="num">${d.rejected?`<span class="pill s-bad">${d.rejected}</span>`:0}</td><td class="num">${d.lost?`<span class="pill s-warn">${d.lost}</span>`:0}</td><td>${d.stars?`⭐ ${d.stars}`:"—"}</td><td class="num"><small>${d.span&&d.span.first?`${hm2(d.span.first)} – ${hm2(d.span.last)}`:"—"}</small></td></tr>`).join("")}
+    <div class="tbl-wrap"><table><thead><tr><th>السائق</th><th>سفرات</th><th>الأجرة</th><th>كاش بيده</th><th>استلمنا منه</th><th>كم</th><th>رفض</th><th>انقطاع</th><th>تقييم</th><th>أول/آخر نشاط</th><th></th></tr></thead><tbody>
+      ${r.drivers.map(d=>`<tr><td>${plateHTML(d.plate)} ${esc(d.driver_name)}</td><td class="num">${d.done}</td><td class="num">${fmt(d.fares)}</td><td class="num">${fmt(d.cash)}</td><td class="num">${fmt(d.received)}</td><td class="num">${d.km}</td><td class="num">${d.rejected?`<span class="pill s-bad">${d.rejected}</span>`:0}</td><td class="num">${d.lost?`<span class="pill s-warn">${d.lost}</span>`:0}</td><td>${d.stars?`⭐ ${d.stars}`:"—"}</td><td class="num"><small>${d.span&&d.span.first?`${hm2(d.span.first)} – ${hm2(d.span.last)}`:"—"}</small></td><td><button class="btn sm" data-dd="${d.id}">🔍 تفاصيل يومه</button></td></tr>`).join("")}
     </tbody></table></div>
     <div class="grid2" style="margin-top:16px">
       <div><h3>الطلب حسب الساعة</h3>${r.hours.length?`<div class="hbars">${r.hours.map(h=>`<div class="hb"><span class="num">${h.h}:00</span><i style="width:${Math.round(h.n*100/maxH)}%"></i><b class="num">${h.n}</b></div>`).join("")}</div>`:`<p class="note">ماكو طلبات.</p>`}</div>
       <div><h3>أكثر المناطق</h3>${r.zones.length?`<ul class="log">${r.zones.map(z=>`<li><span>${esc(z.name)}</span><b class="num">${z.n}</b></li>`).join("")}</ul>`:`<p class="note">ماكو سفرات.</p>`}
         <h3>التنبيهات</h3><p class="note" style="margin:0">انقطاع إرسال: ${r.alerts.lost} · GPS مطفي/تطبيق مسكّر: ${r.alerts.off} · حركة بدون سفرة: ${r.alerts.unlogged} · رفض سفرات: ${r.alerts.rejected}</p></div>
     </div>`;
+  $("#dbody").querySelectorAll("[data-dd]").forEach(b=>b.onclick=()=>driverDay(b.dataset.dd,r.day));
+}
+/* ---------- one driver's day: trips with warnings + every time he left the compound with no trip open ---------- */
+async function driverDay(car,day){
+  const m=modal(`<div id="ddb"><div class="empty">جارٍ التحميل…</div></div><div class="row"><button class="btn" id="dd-c">📋 نسخ</button><button class="btn" id="dd-x">سدّ</button></div>`);
+  m.classList.add("wide"); $("#dd-x",m).onclick=()=>m.remove();
+  let r; try{r=await rpc("taxi_admin_driver_day",{p_pin:PIN,p_car:car,p_day:day})}catch(e){$("#ddb",m).innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const h=ts=>ts?new Date(ts).toLocaleTimeString("ar-IQ",{hour:"numeric",minute:"2-digit"}):"—";
+  const T=r.totals, bad=r.trips.filter(t=>t.flags.length).length, un=r.outings.filter(o=>o.kind==="unlogged");
+  const KIND={unlogged:["🚨","طلع بدون سفرة","s-bad"],before_trip:["🕒","طلع قبل لا يفتح السفرة","s-warn"],return:["↩","رجعة من سفرة","s-idle"]};
+  const map=o=>`https://www.google.com/maps?q=${o.lat},${o.lng}`;
+  const dl=new Date(r.day+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"long",day:"numeric",month:"numeric"});
+  $("#ddb",m).innerHTML=`<h3>${plateHTML(r.plate)} ${esc(r.driver_name)} · ${dl}</h3>
+    <div class="kpis"><div class="kpi"><small>سفرات خلصت</small><b>${T.done}</b><small>${T.paid} بأجرة · ${T.lines} خط${T.running?` · ${T.running} شغّالة هسه`:""}</small></div>
+      <div class="kpi"><small>مجموع الأجرة</small><b>${dinar(T.fares)}</b></div>
+      <div class="kpi ${bad?"warn":""}"><small>سفرات بيها ملاحظة</small><b>${bad}</b></div>
+      <div class="kpi ${un.length?"warn":""}"><small>طلعات بدون سفرة</small><b>${un.length}</b><small>${un.reduce((a,o)=>a+o.minutes,0)} دقيقة بالمجموع</small></div></div>
+    <h3>السفرات</h3>
+    ${r.trips.length?`<div class="tbl-wrap"><table><thead><tr><th>الوقت</th><th>لوين</th><th>الأجرة</th><th>المدة</th><th>كم</th><th>ملاحظة</th></tr></thead><tbody>
+      ${r.trips.map(t=>`<tr${t.flags.length?' class="dd-bad"':""}><td class="num">${h(t.started_at||t.accepted_at)}${t.ended_at?`–${h(t.ended_at)}`:""}</td><td>${t.trip_kind==="line"?"🛣 خط ":""}${esc(t.dropoff||"—")}${t.status!=="done"?` <span class="pill s-warn">شغّالة</span>`:""}${t.special_status==="approved"?" ⭐":""}</td><td class="num">${t.trip_kind==="line"?"—":fmt(t.fare||0)}</td><td class="num">${t.minutes!=null?t.minutes+" د":"—"}</td><td class="num">${t.km??"—"}</td><td>${t.flags.map(f=>`<span class="pill s-bad">⚠️ ${esc(f)}</span>`).join(" ")||"✓"}</td></tr>`).join("")}
+    </tbody></table></div>`:`<p class="note">ما سجّل سفرات.</p>`}
+    <h3>وين راح (من الـGPS)</h3>
+    <p class="note" style="margin-top:0">كل مرة ابتعد عن المجمع أكثر من كيلومتر وما جان فاتح سفرة.</p>
+    ${r.outings.length?`<ul class="log">${r.outings.map(o=>{const k=KIND[o.kind];return `<li><span class="pill ${k[2]}">${k[0]} ${k[1]}</span><span><b>${h(o.from)} – ${h(o.to)}</b> · ${o.minutes} دقيقة · وصل ${o.max_km} كم بعيد<br><small>قريب من <b>${esc(o.near||"—")}</b> · <a href="${map(o)}" target="_blank" rel="noopener">📍 شوف المكان</a></small></span></li>`}).join("")}</ul>`:`<p class="note">ما طلع من المجمع بدون سفرة. 👍</p>`}`;
+  $("#dd-c",m).onclick=()=>copy([`🔍 ${r.driver_name} · ${r.day}`,`سفرات: ${T.done} (${T.paid} بأجرة، ${T.lines} خط) · المجموع ${fmt(T.fares)}`,
+    ...r.trips.map(t=>`- ${h(t.started_at||t.accepted_at)} ${t.trip_kind==="line"?"خط ":""}${t.dropoff||""} ${t.trip_kind==="line"?"":fmt(t.fare||0)}${t.flags.length?" ⚠️ "+t.flags.join("، "):""}`),
+    un.length?"طلعات بدون سفرة:":"", ...un.map(o=>`- ${h(o.from)}–${h(o.to)} (${o.minutes} د) قريب ${o.near||""} ${map(o)}`)].filter(Boolean).join("\n"));
 }
 function dailyText(r){const T=r.totals;return [`📊 تقرير المنصور تاكسي ليوم ${r.day}`,`سفرات خلصت: ${T.done} (طلبات أونلاين ${T.requests}، ملغية ${T.cancelled}، مرفوضة ${T.rejected})`,
   `مجموع الأجرة: ${fmt(T.fares)} د.ع · كاش بيد السواق: ${fmt(T.cash)} د.ع`,`استلمت الإدارة: ${fmt(r.received)} د.ع`,
