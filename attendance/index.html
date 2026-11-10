@@ -860,7 +860,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='9069b95bd3';
+const APP_BUILD='ffacfbcff8';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -4333,17 +4333,17 @@ function newReqForm(pre){
    <div class="l" style="font-size:13px;font-weight:500">الأولوية<div class="seg">${Object.entries(PRI).map(([k,v],i)=>`<label><input type="radio" name="pri" value="${k}" ${i?'':'checked'}>${v[0]}</label>`).join('')}</div></div>
    <div class="fr">${fileField('fProd','صورة المنتج المطلوب','صوّر القطعة القديمة أو لوحة المواصفات',true)}${fileField('fSite','صورة مكان العمل','تُقرأ إحداثيات GPS من صورة الهاتف تلقائياً',true)}</div>
    <label class="l">إحداثيات مكان العمل <em>(تُملأ من الصورة أو الصقها من خرائط Google)</em><div class="gps"><input id="fGps" class="in num" placeholder="33.3152, 44.3661"><button type="button" class="btn" id="fGpsBtn">موقعي الحالي</button></div><span class="note" id="fGpsN"></span></label>
-   ${S.role==='project'?`<div class="sec" style="padding:10px 12px"><div class="seg"><label><input type="radio" name="fRoute" value="buy" checked>مباشرة للمشتريات</label><label><input type="radio" name="fRoute" value="store_check">فحص المخزن أولاً</label></div><p class="note" style="margin:6px 0 0">بصفتك مدير المشروع، يمكن إرسال الطلب مباشرة لمندوبي المشتريات بدون مراحل الموافقة.</p></div>`:isSt?`<p class="note" style="margin:0">طلبك يروح مباشرة لمدير المشروع للموافقة، وبعدها لمندوبي المشتريات. من يوصل المادة تستلمها أنت بالباركود.</p>`:''}
+   ${S.role==='project'?`<div class="sec" style="padding:10px 12px"><div class="seg"><label><input type="radio" name="fRoute" value="buy" checked>مباشرة للمشتريات</label><label><input type="radio" name="fRoute" value="store_check">فحص المخزن أولاً</label></div><p class="note" style="margin:6px 0 0">بصفتك مدير المشروع، يمكن إرسال الطلب مباشرة لمندوبي المشتريات بدون مراحل الموافقة.</p></div>`:isSt?`<p class="note" style="margin:0">طلبك يروح مباشرة لمندوبي المشتريات. من يوصل المادة تستلمها أنت بالباركود.</p>`:''}
    <label class="l">ملاحظات<textarea id="fNotes" class="in" placeholder="سبب الطلب، المواصفات، رقم الماكنة…">${esc(pre.notes||'')}</textarea></label>
    <div class="err" id="fErr"></div>
-   <div class="acts"><button class="btn pri" type="submit" id="fSub">${isSt?'إرسال لمدير المشروع':'إرسال الطلب للمخزن'}</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div>
+   <div class="acts"><button class="btn pri" type="submit" id="fSub">${isSt?'إرسال للمشتريات':'إرسال الطلب للمخزن'}</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div>
    <datalist id="units">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist><datalist id="areas">${AREAS.map(u=>`<option value="${u}">`).join('')}</datalist></form>`;
   overlay('new','طلب مواد جديد',b);
   bindPreview('fProd');
   bindPreview('fSite',async f=>{const g=await exifGps(f);const n=$('#fGpsN');if(g){$('#fGps').value=g.lat+', '+g.lng;n.className='note ok';n.textContent='تم أخذ الموقع من الصورة: '+g.lat+', '+g.lng}else{n.className='note';n.textContent='الصورة لا تحمل موقعاً (بعض الهواتف تحذفه). استخدم "موقعي الحالي" أو الصق الإحداثيات.'}});
   bindGps('fGpsBtn','fGps','fGpsN');
   const moreRow=()=>`<div class="ivl fm"><div class="ivh"><input class="in fmN" data-sug="items" autocomplete="off" placeholder="اسم المادة"><button type="button" class="btn sm ghost fmX" aria-label="حذف">×</button></div><div class="ivg" style="grid-template-columns:1fr 1fr"><label class="l">الكمية<input class="in num fmQ" type="number" min="0" step="any" value="1"></label><label class="l">الوحدة<input class="in fmU" list="units" value="قطعة"></label></div></div>`;
-  const updMore=()=>{const n=document.querySelectorAll('#fMore .fm').length;$('#fSub').textContent=n?`إرسال ${n+1} مواد`:(isSt?'إرسال لمدير المشروع':'إرسال الطلب للمخزن')};
+  const updMore=()=>{const n=document.querySelectorAll('#fMore .fm').length;$('#fSub').textContent=n?`إرسال ${n+1} مواد`:(isSt?'إرسال للمشتريات':'إرسال الطلب للمخزن')};
   $('#fAddMore').addEventListener('click',()=>{$('#fMore').insertAdjacentHTML('beforeend',moreRow());$('#fMore .fm:last-child .fmN').focus();updMore()});
   $('#fMore').addEventListener('click',e=>{if(e.target.classList.contains('fmX')){e.target.closest('.fm').remove();updMore()}});
   $('#fNew').addEventListener('submit',async e=>{e.preventDefault();const sub=$('#fSub'),err=$('#fErr');err.textContent='';sub.disabled=true;sub.textContent='جارِ الرفع…';
@@ -4353,14 +4353,14 @@ function newReqForm(pre){
       const _m=$('#fMach')?.value||null,_d=$('#fDept').value;const r={id:uid(),code:code(),machineId:_m,wh:isSt?myWh(S.role):(_m||_d==='الآليات'||['machines','mstore','keeper','operator','mechanic','fueler','supply'].includes(S.role))?'mach':'main',by:S.role,dept:_d,item:$('#fItem').value.trim(),qty:+$('#fQty').value||0,unit:$('#fUnit').value.trim()||'قطعة',area:$('#fArea').value.trim(),priority:document.querySelector('input[name=pri]:checked').value,notes:$('#fNotes').value.trim(),
         productImg:prod?.ref||null,siteImg:site?.ref||null,site:coords,siteLink:!coords&&/^https?:/.test(gv)?gv:null,status:'store_check',createdAt:Date.now(),log:[{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أنشأ الطلب',note:''}]};
       const direct=S.role==='project'&&document.querySelector('input[name=fRoute]:checked')?.value==='buy';
-      if(isSt){r.status='proj';r.log.push({t:Date.now(),role:S.role,uid:S.me?.id||null,a:'طلب تعبئة مخزون — أُرسل لمدير المشروع',note:''})}
+      if(isSt){r.status='buy';r.log.push({t:Date.now(),role:S.role,uid:S.me?.id||null,a:'طلب مباشر من المخزن — أُرسل للمشتريات',note:''})}
       if(direct){r.status='buy';r.log.push({t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أرسل الطلب مباشرة للمشتريات (أولوية مدير المشروع)',note:''})}
       const extra=[...document.querySelectorAll('#fMore .fm')].map(x=>({item:x.querySelector('.fmN').value.trim(),qty:+x.querySelector('.fmQ').value||0,unit:x.querySelector('.fmU').value.trim()||'قطعة'})).filter(x=>x.item);
       if(extra.length){r.batch='M-'+r.code}
       await putReq(r);
       for(const x of extra){sub.textContent='جارِ إرسال '+x.item+'…';const r2={...clean(r),id:uid(),code:code(),item:x.item,qty:x.qty,unit:x.unit,createdAt:Date.now(),log:r.log.map(l=>({...l,t:Date.now()}))};await putReq(r2)}
-      closeOv();toast((extra.length?'أُرسلت '+(extra.length+1)+' مواد':'أُرسل الطلب #'+r.code)+(direct?' إلى مندوبي المشتريات':isSt?' إلى مدير المشروع للموافقة':' إلى المخزن'));
-    }catch(x){err.textContent='تعذر الإرسال: '+(x.message||x.code||'خطأ');sub.disabled=false;sub.textContent=isSt?'إرسال لمدير المشروع':'إرسال الطلب للمخزن'}});
+      closeOv();toast((extra.length?'أُرسلت '+(extra.length+1)+' مواد':'أُرسل الطلب #'+r.code)+(direct||isSt?' إلى مندوبي المشتريات':' إلى المخزن'));
+    }catch(x){err.textContent='تعذر الإرسال: '+(x.message||x.code||'خطأ');sub.disabled=false;sub.textContent=isSt?'إرسال للمشتريات':'إرسال الطلب للمخزن'}});
 }
 const COND={orig:'أصلي',comm:'تجاري',used:'مستعمل/مجدد'};
 function canQuote(r){return(ROLES[S.role]?.kind==='purchase'||S.role==='project')&&['pur_ok','buy','buying'].includes(r.status)}
