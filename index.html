@@ -504,6 +504,8 @@ button.orow:hover{background:var(--sunk)}
 <script>
 const SB_URL='https://azvpzlsgzaglerapuayc.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF6dnB6bHNnemFnbGVyYXB1YXljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNDAxNzMsImV4cCI6MjEwODYxNjE3M30.B8QkhoKbFqPOB4OTPArMrGtMXjVsHXQYVvO8aGLCXIY',EMAIL_DOMAIN='staff.mansourcity.app';
 const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+const AI_NOCREDIT='القراءة الذكية متوقفة حالياً لأن رصيد الذكاء الاصطناعي خلص — لازم المدير يشحن الرصيد. لحد ذاك سجّلها يدوي.';
+{const _inv=sb.functions.invoke.bind(sb.functions);sb.functions.invoke=async(n,o)=>{const r=await _inv(n,o);if(n==='scan-list'&&r.error){try{const j=await r.error.context.clone().json();if(/credit balance|billing/i.test(j.detail||'')){S.aiNoCredit=1;try{toast('⚠️ '+AI_NOCREDIT)}catch(e){}}}catch(e){}}else if(n==='scan-list'&&!r.error)S.aiNoCredit=0;return r}}
 /* ---------- constants ---------- */
 const ROLES={
   machines:{name:'مدير الآليات',dept:'الآليات',kind:'dept',mono:'آل'},
@@ -857,7 +859,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='f0c9f3b0fb';
+const APP_BUILD='82f543df80';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -1405,7 +1407,7 @@ async function analyzePaper(){
       const big=await compress(f,1800,.82);const b64=(await blobToData(big)).split(',')[1];
       const {data,error}=await sb.functions.invoke('scan-list',{body:{image:b64,mime:'image/jpeg',dept:P.dept,stock}});
       let code=data?.code;if(error){try{code=(await error.context.json()).code}catch(x){code='upstream'}}
-      if(code)throw new Error({no_key:'قراءة الورق تحتاج تفعيل مفتاح الذكاء الاصطناعي. راجع مطوّر النظام.',rate_limited:'طلبات كثيرة، حاول بعد دقيقة.',bad_image:'الصورة غير واضحة أو كبيرة جداً.',forbidden:'غير متاح لصفتك.'}[code]||'تعذرت قراءة الورقة، حاول بصورة أوضح.');
+      if(code)throw new Error({no_key:'قراءة الورق تحتاج تفعيل مفتاح الذكاء الاصطناعي. راجع مطوّر النظام.',rate_limited:'طلبات كثيرة، حاول بعد دقيقة.',bad_image:'الصورة غير واضحة أو كبيرة جداً.',forbidden:'غير متاح لصفتك.'}[code]||(S.aiNoCredit?AI_NOCREDIT:'تعذرت قراءة الورقة، حاول بصورة أوضح.'));
       (data.items||[]).forEach(x=>P.items.push({...x,on:true,id:uid()}));Object.assign(P.header,data.header||{});if(data.unreadable)P.unread.push(data.unreadable);
       const ref=await saveFile(f);if(ref)P.refs.push(ref.ref)}
     if(!P.items.length)throw new Error('ما لكيت مواد مكتوبة بالورقة. تأكد إن الصورة واضحة.');
@@ -3129,7 +3131,7 @@ async function ctAiRead(f,prog,mode='contractors'){const sheet=/\.(xlsx|xls|xlsm
   const out=new Array(bodies.length);let done=0,next=0,fail=null;prog(`جزء 0 من ${bodies.length}…`);
   const one=async b=>{for(let t=0;t<3;t++){const {data,error}=await sb.functions.invoke('scan-list',{body:b});let code=data?.code;if(error){try{const j=await error.context.json();code=j.code;if(/credit balance|billing/i.test(j.detail||'')){S.aiNoCredit=1;throw new Error('nocredit')}}catch(x){if(x.message==='nocredit')break;code='upstream'}}
       if(!code)return data;if(['no_key','forbidden','bad_image'].includes(code))throw new Error({no_key:'القراءة تحتاج تفعيل مفتاح الذكاء الاصطناعي.',forbidden:'غير متاح لصفتك.',bad_image:'الملف كبير أو تالف.'}[code]);await new Promise(r=>setTimeout(r,(t+1)*4000))}
-    throw new Error(S.aiNoCredit?'خدمة القراءة الذكية متوقفة لأن رصيد الذكاء الاصطناعي خلص — لازم يتعبّى الرصيد.':'تعذرت قراءة جزء من الملف. حاول مرة ثانية.')};
+    throw new Error(S.aiNoCredit?AI_NOCREDIT:'تعذرت قراءة جزء من الملف. حاول مرة ثانية.')};
   await Promise.all(Array.from({length:Math.min(3,bodies.length)},async()=>{while(next<bodies.length&&!fail){const i=next++;try{out[i]=await one(bodies[i])}catch(e){fail=e}done++;prog(`انقرا ${done} من ${bodies.length} جزء…`)}}));if(fail)throw fail;
   return{entries:out.flatMap(d=>d.entries||[]),notes:out.flatMap(d=>d.notes||[]),trunc:out.some(d=>d.truncated),raw}}
 function ctaRows(){const O=S.cti;return O.entries.filter((x,i)=>!O.skip.has(i)).map(x=>{const usd=x.cur==='USD';return{name:x.name,day:x.day,kind:x.kind,amount:Math.round(usd?x.amount*O.rate:x.amount),building:x.building,floors:x.floors||flFromText(x.work+' '+x.note),work:x.work,engineer:x.engineer,trade:x.trade,note:[usd?'$'+nf.format(x.amount)+' × '+nf.format(O.rate):'',x.note].filter(Boolean).join(' · ')}})}
@@ -5146,9 +5148,9 @@ function guardPhoto(id,kind,opt){const inp=$('#'+id);if(!inp)return;const drop=i
     const okFree=m=>{inp.dataset.ok='1';inp.dataset.hash=h||'';inp.dataset.kind=kind;note.className='note';note.textContent=m};
     let v=null;try{if(isPdf&&f.size>9e6){if(sub)sub.disabled=false;return okFree('📎 الملف كبير للقراءة التلقائية — عبّي البيانات يدوي.')}const big=isPdf?f:await compress(f,1600,.82);const b64=(await blobToData(big)).split(',')[1];const {data,error}=await sb.functions.invoke('scan-list',{body:{mode:'verify',image:b64,mime:isPdf?'application/pdf':'image/jpeg',dept:INV_KIND[kind]||''}});
       let code=data?.code;if(error){try{code=(await error.context.json()).code}catch(x){code='upstream'}}
-      if(code&&free){if(sub)sub.disabled=false;return okFree('📎 انرفع الملف — ما انقرا تلقائياً، عبّي البيانات يدوي.')}
+      if(code&&(free||code!=='rate_limited')){if(sub)sub.disabled=false;return okFree(S.aiNoCredit?'📎 انرفعت الصورة — الفحص التلقائي متوقف حالياً (رصيد الذكاء الاصطناعي خلص)، عبّي البيانات يدوي.':'📎 انرفع الملف — ما انقرا تلقائياً، عبّي البيانات يدوي.')}
       if(code){if(sub)sub.disabled=false;note.className='err';return bad(code==='no_key'?'فحص الفواتير يحتاج تفعيل مفتاح الذكاء الاصطناعي. راجع مطوّر النظام.':code==='rate_limited'?'الفحص مشغول، حاول بعد دقيقة.':'تعذر فحص الصورة. تأكد من الإنترنت وصوّرها مرة ثانية.')}
-      v=data}catch(x){if(sub)sub.disabled=false;if(free)return okFree('📎 انرفع الملف — ما انقرا تلقائياً، عبّي البيانات يدوي.');note.className='err';return bad('تعذر فحص الصورة. تأكد من الإنترنت وصوّرها مرة ثانية.')}
+      v=data}catch(x){if(sub)sub.disabled=false;if(free||navigator.onLine!==false)return okFree('📎 انرفع الملف — ما انقرا تلقائياً، عبّي البيانات يدوي.');note.className='err';return bad('تعذر فحص الصورة. تأكد من الإنترنت وصوّرها مرة ثانية.')}
     if(sub)sub.disabled=false;note.className='err';
     if(free&&(!v.is_invoice||!v.complete||!v.readable)){okFree('📎 انرفع الملف'+(!v.readable?' — الكتابة مو واضحة، راجع الأرقام':'')+'.');if(opt&&opt.onRead)try{opt.onRead(v)}catch(e){}return}
     if(!v.is_invoice)return bad('📄 هاي مو صورة فاتورة أو وصل. صوّر الفاتورة نفسها بس.');
