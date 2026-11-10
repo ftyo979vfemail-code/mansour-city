@@ -859,7 +859,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='fb191f9fd2';
+const APP_BUILD='95e85bb240';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -1023,7 +1023,7 @@ function coForm(kind,c){const pay=kind==='pay';
     if(r.error){$('#coE').textContent=r.error.message;return}closeOv();coLoad(true);if(pay&&typeof cashLoad==='function')cashLoad();toast(pay?'✓ انسجل التسديد بالصندوق':'✓ انحفظ')})}
 
 /* ===== 🛒 مشترياتي: كل اللي انشترى للمخزن ===== */
-const PL_ROLES=['owner','project','admin1','admin2','accountant'];
+const PL_ROLES=['owner','project','admin1','admin2','accountant','payer'];
 function plLoad(force){if(S.plBusy||(S.plAt&&!force))return;S.plBusy=1;const all=[];const pg=o=>sb.from('pur_ledger').select('id,holder,day,cur,kind,amount,note,seq').order('day').order('seq').range(o,o+999).then(({data,error})=>{if(error){S.plBusy=0;S.pl=[];S.plAt=Date.now();return}all.push(...(data||[]));if((data||[]).length===1000&&o<20000)return pg(o+1000);S.pl=all;S.plAt=Date.now();S.plBusy=0;if(S.tab==='pur')render()},e=>{S.plBusy=0;S.pl=[];S.plAt=Date.now()});pg(0)}
 function plSection(){if(!PL_ROLES.includes(S.me?.role))return'';plLoad();if(!S.pl)return'<div class="sec"><b>📒 دفتر صندوق المشتريات</b> <span class="muted small">جارِ التحميل…</span></div>';if(!S.pl.length)return'';
   const H=[...new Set(S.pl.map(x=>x.holder))],h=S.plH&&H.includes(S.plH)?S.plH:H[0],cur=S.plC||'IQD',y=S.plY||'',q=arn(S.plQ||'');
@@ -1038,19 +1038,19 @@ function plSection(){if(!PL_ROLES.includes(S.me?.role))return'';plLoad();if(!S.p
    <div class="tbl-wrap" style="max-height:60vh"><table class="attbl atsmall"><thead><tr><th>التاريخ</th><th>البيان</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody>${show.slice().reverse().map(x=>`<tr><td class="num small">${x.day}</td><td class="small">${esc(x.note||'—')}</td><td class="num" style="color:var(--ok)">${x.kind==='in'?fm(+x.amount):''}</td><td class="num">${x.kind==='out'?fm(+x.amount):''}</td><td class="num small muted">${fm(x.run)}</td></tr>`).join('')}</tbody></table></div>
    ${L.length>show.length?`<button class="btn sm ghost" data-a="plAll" style="margin-top:6px">عرض كل الحركات (${L.length})</button>`:''}</div>`}
 function purView(role){return plSection()+purView0(role)}
-function purView0(role){const wh=['store','receiver'].includes(role)?'main':['mstore','keeper'].includes(role)?'mach':(S.purWh||''),per=S.purP||'month',q=arn(S.purQ||'');
+function purView0(role){const wh=['store','receiver'].includes(role)?'main':['mstore','keeper'].includes(role)?'mach':(S.purWh||''),per=S.purP||(role==='payer'?'all':'month'),q=arn(S.purQ||'');
   const inP=t=>per==='all'||(per==='today'?sameDayT(t):sameMonthT(t));
   const L=S.requests.filter(r=>r.purchase&&!r.demo&&(!wh||whOf(r)===wh)&&inP(+r.purchase.at||+r.updatedAt)&&(!q||arn([r.item,r.purchase.supplier,r.purchase.invoiceNo,r.code].join(' ')).includes(q))).sort((a,b)=>(+b.purchase.at||0)-(+a.purchase.at||0));
   const tot=L.reduce((a,r)=>a+(+r.purchase.total||0),0),cr=L.filter(r=>r.purchase.credit).reduce((a,r)=>a+(+r.purchase.total||0),0);
   const bySup={};L.forEach(r=>{const k=r.purchase.supplier||'—';bySup[k]=(bySup[k]||0)+(+r.purchase.total||0)});
-  return`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">🛒 مشترياتي</h3><p class="muted" style="margin:2px 0 0">كل المواد اللي انشترت${wh?' لـ'+whName(wh):''}: المورد، السعر، الفاتورة، وإذا آجل.</p></div></div>
+  return`<div class="head" style="margin-top:6px"><div><h3 style="margin:0">${role==='payer'?'🧾 وصولات المشتريات':'🛒 مشترياتي'}</h3><p class="muted" style="margin:2px 0 0">كل المواد اللي انشترت${wh?' لـ'+whName(wh):''}: المورد، السعر، الفاتورة، وإذا آجل.${role==='payer'?' اضغطي على أي مادة تطلع صورة الوصل.':''}</p></div></div>
    <div class="filters">${['store','receiver','mstore','keeper'].includes(role)?'':`<select id="purWh" class="in" style="flex:1 1 140px"><option value="">كل المخازن</option><option value="main" ${wh==='main'?'selected':''}>المخزن الرئيسي</option><option value="mach" ${wh==='mach'?'selected':''}>مخزن الآليات</option></select>`}
     <div class="seg" style="flex:1 1 220px">${[['today','اليوم'],['month','هذا الشهر'],['all','الكل']].map(([k,t])=>`<label><input type="radio" name="purP" value="${k}" ${per===k?'checked':''}>${t}</label>`).join('')}</div>
     <input id="purQ" class="in" type="search" placeholder="بحث بالمادة أو المورد أو رقم الفاتورة" value="${esc(S.purQ||'')}" style="flex:2 1 200px"></div>
    <div class="stats"><div class="stat"><b class="num">${L.length}</b><span>مادة انشترت</span></div><div class="stat"><b class="num" style="font-size:16px">${money(tot)}</b><span>المجموع</span></div>${cr?`<div class="stat hot"><b class="num" style="font-size:16px">${money(cr)}</b><span>آجل (دين)</span></div>`:''}</div>
    ${(()=>{const D={};(S.invoices||[]).filter(v=>v.credit&&!v.paid&&(!wh||v.wh===wh)).forEach(v=>{const k=v.supplier||'—';D[k]=(D[k]||0)+(+v.total||0)});const e=Object.entries(D);return e.length?`<div class="note" style="margin:8px 0">💳 ديون آجلة (حسب الفواتير): ${e.map(([k,v])=>`<b>${esc(k)}</b> <b class="num">${money(v)}</b>`).join(' · ')}</div>`:''})()}
    ${Object.keys(bySup).length>1?`<div class="small" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">${Object.entries(bySup).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span class="pill p-mute">${esc(k)}: <b class="num">${money(v)}</b></span>`).join('')}</div>`:''}
-   ${L.length?`<div class="list">${L.map(r=>{const p=r.purchase;return`<button class="card" data-a="open" data-v="${r.id}">${r.productImg?imgTag(r.productImg,'thumb'):'<div class="thumb">🛒</div>'}<div class="mid"><div class="t">${esc(r.item)}</div><div class="meta"><span class="num">#${esc(r.code)}</span><span><span class="num">${nf.format(r.qty)}</span> ${esc(r.unit||'')}</span><span>${esc(p.supplier||'—')}</span>${p.invoiceNo?`<span class="num">فاتورة ${esc(p.invoiceNo)}</span>`:''}${p.credit?'<span class="pill p-warn">آجل</span>':''}</div></div><div class="end"><b class="num">${money(+p.total||0)}</b><span class="small muted">${p.at?dt(+p.at):''}</span><span class="pill p-${ST[r.status]?.c||'mute'}">${ST[r.status]?.t||''}</span></div></button>`}).join('')}</div>`:'<div class="empty"><b>ماكو مشتريات بهاي الفترة</b></div>'}`}
+   ${L.length?`<div class="list">${L.map(r=>{const p=r.purchase;return`<button class="card" data-a="open" data-v="${r.id}">${r.productImg?imgTag(r.productImg,'thumb'):'<div class="thumb">🛒</div>'}<div class="mid"><div class="t">${esc(r.item)}</div><div class="meta"><span class="num">#${esc(r.code)}</span><span><span class="num">${nf.format(r.qty)}</span> ${esc(r.unit||'')}</span><span>${esc(p.supplier||'—')}</span>${p.invoiceNo?`<span class="num">فاتورة ${esc(p.invoiceNo)}</span>`:''}${p.credit?'<span class="pill p-warn">آجل</span>':''}${p.invoice?'<span class="pill p-ok">📎 الوصل مرفق</span>':'<span class="pill p-mute">بدون وصل</span>'}${(()=>{const l=(r.log||[]).find(x=>/أكد الشراء/.test(x.a||'')),n=l&&S.staff.find(x=>x.id===l.uid)?.full_name;return n?`<span>🛒 ${esc(n)}</span>`:''})()}</div></div><div class="end"><b class="num">${money(+p.total||0)}</b><span class="small muted">${p.at?dt(+p.at):''}</span><span class="pill p-${ST[r.status]?.c||'mute'}">${ST[r.status]?.t||''}</span></div></button>`}).join('')}</div>`:'<div class="empty"><b>ماكو مشتريات بهاي الفترة</b></div>'}`}
 /* ===== 📈 تاريخ أسعار المواد ===== */
 const pKey=n=>arn(n).replace(/\s+/g,' ').trim();
 function priceRows(){if(S._prC&&S._prC.r===S.requests&&S._prC.v===S.invoices)return S._prC.rows;const R=[];
@@ -2291,7 +2291,7 @@ function tabsFor0(role){
   const k=ROLES[role].kind,q=queueFor(role);
   if(k==='sales')return[['units','الوحدات',0],['book','الحجوزات والأقساط',(S.contracts||[]).filter(c=>c.kind==='sale'&&c.status!=='cancelled'&&kState(c).over>0).length],['rent','المستأجرين',(S.contracts||[]).filter(c=>c.kind==='rent'&&c.status==='active'&&kState(c).over>0).length],['svc','الخدمات',(S.contracts||[]).filter(c=>svcLive(c)&&svcState(c).over>0).length],['kdocs','العقود',(S.contracts||[]).filter(c=>c.status!=='cancelled'&&!(c.docs||[]).length).length],['sales','الاستلامات',0],...(role==='sales'?[['team','الموظفين',myCrew().length]]:[])];
   if(k==='hr')return[['att','الحضور والغياب',attAlertN()],['team','الكوادر',myCrew().length]];
-  if(role==='payer')return[['pinv','فواتير الآليات والمشتريات',pinvCount()],['pay','صندوقي',0]];
+  if(role==='payer')return[['pinv','فواتير الآليات والمشتريات',pinvCount()],['pur','وصولات المشتريات',0],['pay','صندوقي',0]];
   if(role==='cpayer')return[['cpreq','سلف المقاولين',(S.epr||[]).filter(x=>['pending','approved'].includes(x.status)).length],['creg','سجل المقاولين',0],['pay','صندوقي',0]];
   if(role==='site_eng')return[['erep','التقرير اليومي',(S.srep||[]).some(r=>r.uid===S.me?.id&&r.day===bgDay())?0:1],['econ','المقاولين',0],['prog','نسبة الإنجاز',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(k==='acct')return[['acc','المحاسبة',0],['daftar','الدفتر',0],['cash','الصندوق',0],['pbx','صناديق الصرف',0],['sup','الشركات',0],['cos','المقاولين',0],['acsum','الملخص الشهري',0]];
