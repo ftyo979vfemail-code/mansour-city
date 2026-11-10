@@ -859,7 +859,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='82f543df80';
+const APP_BUILD='9069b95bd3';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -1425,20 +1425,20 @@ function reviewPaper(){const P=S.paper;
   order.forEach(c=>{h+=`<div class="sec ppg"><h4>${esc(c)} <span class="num">(${groups[c].length})</span></h4>${groups[c].map(it=>{const st=stockFor(it);
     return`<div class="pprow ${it.confidence<.6?'low':''} ${it.on?'':'off'}" data-id="${it.id}"><input type="checkbox" class="ppOn" ${it.on?'checked':''} aria-label="تضمين">
      <input class="in ppName" value="${esc(it.name)}"><input class="in num ppQty" type="number" min="0" step="any" value="${it.qty}"><input class="in ppUnit" list="units4" value="${esc(it.unit)}">
-     <div class="ppmeta">${st&&+st.qty>0?`<span class="pill p-ok">متوفر بالمخزن: <span class="num">${nf.format(+st.qty)}</span> ${esc(st.unit)}</span>`:st?'<span class="pill p-warn">مسجلة بالمخزن والرصيد صفر</span>':'<span class="pill p-mute">غير متوفر بالمخزن</span>'}${it.confidence<.6?'<span class="pill p-warn">تأكد من القراءة</span>':''}${it.notes?`<span class="muted small">${esc(it.notes)}</span>`:''}<button class="btn sm ghost ppDel" type="button">حذف</button></div></div>`}).join('')}</div>`});
-  h+=`<datalist id="units4">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist><div class="acts"><button class="btn" data-a="ppAdd">+ إضافة سطر</button></div>
+     <div class="ppmeta">${st&&+st.qty>0?`<span class="pill p-ok">متوفر بالمخزن: <span class="num">${nf.format(+st.qty)}</span> ${esc(st.unit)}</span>`:st?'<span class="pill p-warn">مسجلة بالمخزن والرصيد صفر</span>':'<span class="pill p-mute">غير متوفر بالمخزن</span>'}${it.confidence<.6?'<span class="pill p-warn">تأكد من القراءة</span>':''}<button class="btn sm ghost ppDel" type="button">حذف</button></div><input class="in ppNote" style="flex-basis:100%;margin-top:4px" placeholder="ملاحظة على هذي المادة (اختياري)" value="${esc(it.notes||'')}"></div>`}).join('')}</div>`});
+  h+=`<label class="l" style="margin-top:6px">ملاحظة عامة للورقة كلها <em>(اختياري)</em><textarea id="ppGN" class="in" rows="2" maxlength="500" placeholder="مثلاً: مستعجل، للماكنة الفلانية، تسليم لفلان…">${esc(S.paper.gnote||'')}</textarea></label><datalist id="units4">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist><div class="acts"><button class="btn" data-a="ppAdd">+ إضافة سطر</button></div>
    <div class="err" id="ppErr2"></div><div class="acts" style="position:sticky;bottom:0;background:var(--bg);padding-block:10px"><button class="btn pri" data-a="ppSend" id="ppSend">إرسال ${n} طلب للمخزن</button><button class="btn ghost" data-a="close">إلغاء</button></div>`;
   $('#ovroot .sh-b').innerHTML=h;
   $('#ovroot .sh-b').addEventListener('input',paperSync);$('#ovroot .sh-b').addEventListener('change',paperSync);
   $('#ovroot .sh-b').querySelectorAll('.ppDel').forEach(b=>b.addEventListener('click',()=>{const id=b.closest('.pprow').dataset.id;P.items=P.items.filter(i=>i.id!==id);reviewPaper()}))}
-function paperSync(e){const row=e.target.closest('.pprow');if(!row)return;const it=S.paper.items.find(i=>i.id===row.dataset.id);if(!it)return;
-  it.on=row.querySelector('.ppOn').checked;it.name=row.querySelector('.ppName').value;it.qty=+row.querySelector('.ppQty').value||0;it.unit=row.querySelector('.ppUnit').value;
+function paperSync(e){if(e.target.id==='ppGN'){S.paper.gnote=e.target.value;return}const row=e.target.closest('.pprow');if(!row)return;const it=S.paper.items.find(i=>i.id===row.dataset.id);if(!it)return;
+  it.on=row.querySelector('.ppOn').checked;it.name=row.querySelector('.ppName').value;it.qty=+row.querySelector('.ppQty').value||0;it.unit=row.querySelector('.ppUnit').value;const pn=row.querySelector('.ppNote');if(pn)it.notes=pn.value;
   row.classList.toggle('off',!it.on);const n=S.paper.items.filter(i=>i.on&&i.name.trim()).length;const b=$('#ppSend');if(b)b.textContent=`إرسال ${n} طلب للمخزن`}
 async function sendPaper(){const P=S.paper,list=P.items.filter(i=>i.on&&i.name.trim()&&i.qty>0);const btn=$('#ppSend');
   if(!list.length){$('#ppErr2').textContent='اختر مادة واحدة على الأقل';return}
   btn.disabled=true;const batch='P-'+code();let ok=0;
   for(const it of list){btn.textContent=`جارِ الإرسال ${ok+1} من ${list.length}…`;
-    const r={id:uid(),code:code(),machineId:P.mach||null,wh:P.wh,by:S.role,dept:P.dept,item:it.name.trim(),qty:it.qty,unit:it.unit||'قطعة',area:P.area,priority:P.pri,notes:[it.category,it.notes].filter(Boolean).join(' — '),
+    const r={id:uid(),code:code(),machineId:P.mach||null,wh:P.wh,by:S.role,dept:P.dept,item:it.name.trim(),qty:it.qty,unit:it.unit||'قطعة',area:P.area,priority:P.pri,notes:[it.category,it.notes,S.paper.gnote].map(x=>String(x||'').trim()).filter(Boolean).join(' — '),
       paperImg:P.refs[0]||null,batch,status:'store_check',createdAt:Date.now(),log:[{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أنشأ الطلب من ورقة مرفوعة',note:batch}]};
     try{await putReq(r);ok++}catch(x){$('#ppErr2').textContent='تعذر إرسال '+it.name+': '+x.message;btn.disabled=false;btn.textContent='إعادة المحاولة';P.items=P.items.filter(i=>!list.slice(0,ok).includes(i));return}}
   await invLog('رفع ورقة طلبات '+batch,ok+' مادة · '+P.dept);closeOv();render();toast(`أُرسلت ${ok} مادة للمخزن من ورقة ${batch}`)}
@@ -2403,7 +2403,7 @@ function card(r){
   const st=ST[r.status],p=PRI[r.priority]||PRI.normal,wh=reqWhere(r);
   return`<button class="card ${r.priority==='critical'?'crit':r.priority==='urgent'?'urg':''}" data-a="open" data-v="${r.id}">
    ${r.productImg?imgTag(r.productImg,'thumb'):`<div class="thumb">${esc((r.unit||'').slice(0,4))}</div>`}
-   <div class="mid"><div class="t">${esc(r.item)}</div><div class="meta"><span class="num">#${esc(r.code)}</span><span>${esc(r.dept)}</span><span><span class="num">${nf.format(r.qty)}</span> ${esc(r.unit)}</span>${r.area?`<span>${esc(r.area)}</span>`:''}${r.site?'<span>📍 GPS</span>':''}${r.batch?'<span class="pill p-mute">ورقة '+esc(r.batch)+'</span>':''}${r.demo?'<span class="tag-demo">تجريبي</span>':''}</div>${wh||stuckD(r)?`<div class="meta">${wh?`<span style="color:var(--accent);font-weight:600">${esc(wh)}</span>`:''}${stuckD(r)?`<span class="pill p-bad">⏰ واقف ${stuckD(r)} يوم</span>`:''}</div>`:''}</div>
+   <div class="mid"><div class="t">${esc(r.item)}</div><div class="meta"><span class="num">#${esc(r.code)}</span><span>${esc(r.dept)}</span><span><span class="num">${nf.format(r.qty)}</span> ${esc(r.unit)}</span>${r.area?`<span>${esc(r.area)}</span>`:''}${r.site?'<span>📍 GPS</span>':''}${r.batch?'<span class="pill p-mute">ورقة '+esc(r.batch)+'</span>':''}${r.demo?'<span class="tag-demo">تجريبي</span>':''}</div>${wh||stuckD(r)?`<div class="meta">${wh?`<span style="color:var(--accent);font-weight:600">${esc(wh)}</span>`:''}${stuckD(r)?`<span class="pill p-bad">⏰ واقف ${stuckD(r)} يوم</span>`:''}</div>`:''}${(()=>{const ln=(r.log||[]).slice().reverse().find(l=>l.note&&String(l.note).trim()&&!/^P-/.test(l.note));const t=r.notes||ln?.note;return t?`<div class="meta" style="display:block"><span class="small" style="white-space:normal">📝 ${esc(String(t).slice(0,110))}${String(t).length>110?'…':''}</span></div>`:''})()}</div>
    <div class="end"><span class="pill p-${st.c}">${st.t}</span><span class="small muted">${r.priority!=='normal'?`<span class="pill p-${p[1]}">${p[0]}</span> `:''}${ago(r.updatedAt||r.createdAt)}</span></div></button>`;
 }
 function tabBody(role){
@@ -4612,8 +4612,8 @@ document.addEventListener('click',async e=>{
     case'exitMinSet':e.preventDefault();exitMinSet();break;
     case'assignOpen':if(!S.staff?.length)await loadAll('staff');assignView(v);break;
     case'postPick':{setPost(v);const t=S._postThen;S._postThen=null;closeOv();render();t&&t();break}
-    case'gateGo2':{const m=S.machines.find(x=>x.id===v);if(!m)break;overlay('gate','تفاصيل الخروج — '+esc(m.name),`<form class="f" id="fG2"><label class="l">الوجهة / السبب<input id="g2T" class="in" data-sug="dests" autocomplete="off" required></label><label class="l">السائق<input id="g2D" class="in" data-sug="drivers" autocomplete="off" value="${esc(m.gate?.driver||m.operator||'')}"></label><div class="acts"><button class="btn pri" type="submit">حفظ</button><button class="btn ghost" type="button" data-a="close">لاحقاً</button></div></form>`);
-      $('#fG2').addEventListener('submit',async e=>{e.preventDefault();const nm=clean(S.machines.find(x=>x.id===v));const to=$('#g2T').value.trim(),d=$('#g2D').value.trim();nm.gate={...nm.gate,to,driver:d};const last=(nm.moves||[]).length-1;if(last>=0&&nm.moves[last].k==='out'){nm.moves[last]={...nm.moves[last],to,driver:d}}await putMachine(nm);closeOv();render();toast('حُفظت الوجهة')});break}
+    case'gateGo2':{const m=S.machines.find(x=>x.id===v);if(!m)break;overlay('gate','تفاصيل الخروج — '+esc(m.name),`<form class="f" id="fG2"><label class="l">الوجهة / السبب<input id="g2T" class="in" data-sug="dests" autocomplete="off" required></label><label class="l">السائق<input id="g2D" class="in" data-sug="drivers" autocomplete="off" value="${esc(m.gate?.driver||m.operator||'')}"></label><label class="l">ملاحظة <em>(اختياري)</em><input id="g2N" class="in" maxlength="200"></label><div class="acts"><button class="btn pri" type="submit">حفظ</button><button class="btn ghost" type="button" data-a="close">لاحقاً</button></div></form>`);
+      $('#fG2').addEventListener('submit',async e=>{e.preventDefault();const nm=clean(S.machines.find(x=>x.id===v));const to=$('#g2T').value.trim(),d=$('#g2D').value.trim(),gn=$('#g2N').value.trim()||undefined;nm.gate={...nm.gate,to,driver:d,note:gn};const last=(nm.moves||[]).length-1;if(last>=0&&nm.moves[last].k==='out'){nm.moves[last]={...nm.moves[last],to,driver:d,note:gn}}await putMachine(nm);closeOv();render();toast('حُفظت الوجهة')});break}
     case'gateScan':gateScan();break;
     case'gateLog':gateLogView();break;
     case'gateDur':gateDurView();break;
