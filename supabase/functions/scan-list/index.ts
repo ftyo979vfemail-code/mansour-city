@@ -62,6 +62,14 @@ const PB_PROMPT = (hint: string) => `أمامك سجل صندوق صرف (عهد
 لا تحسب أسطر المجموع أو الرصيد أو المدور كحركات. اختصر: لا تكتب أي حقل فارغ، واكتب JSON مضغوط بدون مسافات.
 أجب بـ JSON فقط: {"entries":[{"kind":"exp","amount":0,"cur":"IQD","day":"","party":"","category":"","ref":"","note":""}],"notes":[]}`;
 
+const BK_PROMPT = (hint: string) => `أمامك ملف حجز شقة/وحدة سكنية من نظام قديم لمجمع سكني (عقد حجز، استمارة، كشف حساب مشتري، وصولات قبض، جدول أقساط — Excel أو PDF أو صورة، عربي أو إنكليزي، مطبوع أو بخط اليد). ${hint}
+استخرج بيانات الحجز وكل الدفعات المدفوعة فعلاً بدون استثناء:
+- buyer: name (اسم المشتري الكامل), phone, id_no (رقم الهوية/البطاقة), address.
+- plan: total (السعر الكلي بعد الخصم), down (المقدمة), handover (دفعة الاستلام), monthly (القسط الشهري), months (عدد الأقساط), start_month (أول قسط YYYY-MM-DD), signed_on (تاريخ الحجز/العقد YYYY-MM-DD), area (المساحة م2), price_m (سعر المتر), unit (رقم الشقة/الوحدة كما مكتوب).
+- payments: كل مبلغ مستلم من المشتري: day (YYYY-MM-DD), amount (رقم بالدينار بدون فواصل), cur ("IQD" أو "USD"), ref (رقم الوصل), note (عن شنو: مقدمة، قسط 3، دفعة استلام...).
+لا تحسب الأقساط المستقبلية غير المدفوعة كدفعات. لا تكرر نفس الوصل. أسطر المجموع والرصيد ليست دفعات. إذا الحقل مو موجود اتركه فارغ.
+أجب بـ JSON فقط ومضغوط: {"buyer":{"name":"","phone":"","id_no":"","address":""},"plan":{"total":0,"down":0,"handover":0,"monthly":0,"months":0,"start_month":"","signed_on":"","area":0,"price_m":0,"unit":""},"payments":[{"day":"","amount":0,"cur":"IQD","ref":"","note":""}],"notes":[]}`;
+
 const TABLE_PROMPT = `أمامك ملف أو صورة فيها جدول بيانات (قوائم مشترين أو مستأجرين أو حجوزات أو عقود أو وحدات سكنية) من نظام قديم. قد يكون بالعربي أو الإنكليزي، مطبوع أو بخط اليد.
 انقل الجدول كما هو حرفياً: سطر العناوين ثم كل سطر بيانات. لا تترجم ولا تغيّر الأسماء أو الأرقام، ولا تحذف أي سطر بيانات، ولا تضف أسطر المجاميع.
 إذا الجدول ممتد على عدة صفحات اجمعها كلها بنفس الأعمدة. إذا خلية فارغة اكتب "".
@@ -161,6 +169,34 @@ Deno.serve(async (req) => {
         lines: (Array.isArray(fj.lines) ? fj.lines : []).slice(0, 3000).map((x: Record<string, unknown>) => ({ date: str(x.date, 20), liters: num(x.liters), price: num(x.price), amount: num(x.amount), ref: str(x.ref, 40), vehicle: str(x.vehicle, 80), fuel: str(x.fuel, 20), note: str(x.note, 160), fixed: Array.isArray(x._fixed) ? x._fixed : undefined, added: x._added ? true : undefined })).filter((x: { liters: number | null; amount: number | null }) => x.liters || x.amount),
         payments: (Array.isArray(fj.payments) ? fj.payments : []).slice(0, 200).map((x: Record<string, unknown>) => ({ date: str(x.date, 20), amount: num(x.amount), note: str(x.note, 120) })),
         total_liters: num(fj.total_liters), total_amount: num(fj.total_amount), balance: num(fj.balance) });
+    }
+    if (mode === "booking") {
+      const isPdfB = mime === "application/pdf";
+      let block: Record<string, unknown>;
+      if (typeof srcText === "string" && srcText.trim().length > 5) block = { type: "text", text: "محتوى الملف (منسوخ من Excel):\n" + srcText.slice(0, 150_000) };
+      else if (typeof image === "string" && image.length >= 200 && image.length <= (isPdfB ? 30_000_000 : 7_000_000)) block = isPdfB ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } } : { type: "image", source: { type: "base64", media_type: ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mime) ? mime : "image/jpeg", data: image } };
+      else return json({ code: "bad_image" }, 400);
+      const rb = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 16000, messages: [{ role: "user", content: [block, { type: "text", text: BK_PROMPT(String(dept || "")) }] }] }),
+      });
+      if (rb.status === 429) return json({ code: "rate_limited" }, 429);
+      if (!rb.ok) return json({ code: "upstream", detail: (await rb.text()).slice(0, 300) }, 502);
+      const o = await rb.json();
+      const tx: string = (o.content || []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("");
+      let bj: Record<string, any> = {};
+      const mm = tx.match(/\{[\s\S]*\}/);
+      try { bj = JSON.parse(mm ? mm[0] : "{}"); } catch { bj = {}; }
+      const num = (x: unknown) => { const n = Number(String(x ?? "").replace(/[^\d.]/g, "")); return isFinite(n) && n > 0 ? n : 0; };
+      const st = (x: unknown, n: number) => String(x ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+      const dy = (x: unknown) => /^\d{4}-\d{2}-\d{2}$/.test(String(x || "")) ? String(x) : "";
+      const b = bj.buyer || {}, pl = bj.plan || {};
+      return json({
+        buyer: { name: st(b.name, 120), phone: st(b.phone, 30), id_no: st(b.id_no, 40), address: st(b.address, 200) },
+        plan: { total: num(pl.total), down: num(pl.down), handover: num(pl.handover), monthly: num(pl.monthly), months: Math.round(num(pl.months)), start_month: dy(pl.start_month), signed_on: dy(pl.signed_on), area: num(pl.area), price_m: num(pl.price_m), unit: st(pl.unit, 40) },
+        payments: (Array.isArray(bj.payments) ? bj.payments : []).slice(0, 1000).map((p: Record<string, unknown>) => ({ day: dy(p.day), amount: num(p.amount), cur: /usd|\$|دولار/i.test(String(p.cur || "")) ? "USD" : "IQD", ref: st(p.ref, 40), note: st(p.note, 200) })).filter((p: { amount: number }) => p.amount > 0),
+        notes: (Array.isArray(bj.notes) ? bj.notes : []).slice(0, 10).map((x: unknown) => st(x, 300)), truncated: o.stop_reason === "max_tokens" });
     }
     if (mode === "contractors" || mode === "pbox") {
       const isPdfC = mime === "application/pdf";
