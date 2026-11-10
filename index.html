@@ -859,7 +859,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='977348ecc2';
+const APP_BUILD='bb753a9a1c';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -3884,7 +3884,39 @@ async function kNoticePdf(c){const {desc,amt}=kDueText(c),u=unitOf(c.unit_id),nm
    <table style="width:100%;border-collapse:collapse;margin-top:22px;font-size:14px">${[['الوحدة',u?unitLabel(u):'—'],['الهاتف',c.phone||'—'],['المبلغ المستحق',nf.format(Math.round(amt))+' دينار']].map(([k,v])=>`<tr><th style="border:1px solid #bbb;background:#f6f1ea;padding:7px 10px;width:30%;text-align:right">${k}</th><td style="border:1px solid #bbb;padding:7px 10px">${esc(v)}</td></tr>`).join('')}</table>`;
   const f=await htmlToPdf(docShell('إشعار بمبالغ مستحقة',no,body,`<div style="text-align:left;font-size:16px;font-weight:700">قسم الحسابات<br>إدارة ${esc(nm)}</div>`),'مطالبة - '+c.name+'.pdf');
   return sharePdf(f,c.phone,kMsg(c))}
-async function kReceiptPdf(c,x){const u=unitOf(c.unit_id),s=kState(c),t=(INV_SRC[x.src]||['وصل'])[0].replace(/^\S+\s/,'');
+/* تفقيط: رقم ← كلمات عربية (دينار) */
+function tafqeet(n){n=Math.floor(Math.abs(+n||0));if(!n)return'صفر';const O=['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة','عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'],T=['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'],H=['','مئة','مئتان','ثلاثمئة','أربعمئة','خمسمئة','ستمئة','سبعمئة','ثمانمئة','تسعمئة'];
+  const u3=x=>{const h=Math.floor(x/100),r=x%100,p=[];if(h)p.push(H[h]);if(r){if(r<20)p.push(O[r]);else{const o=r%10,t=Math.floor(r/10);p.push(o?O[o]+' و'+T[t]:T[t])}}return p.join(' و')};
+  const S=[[1e9,'مليار','ملياران','مليارات'],[1e6,'مليون','مليونان','ملايين'],[1e3,'ألف','ألفان','آلاف']];const parts=[];
+  for(const [v,one,two,many] of S){const k=Math.floor(n/v);n%=v;if(!k)continue;parts.push(k===1?one:k===2?two:k<=10?u3(k)+' '+many:u3(k)+' '+one)}
+  if(n)parts.push(u3(n));return parts.join(' و')}
+/* سند قبض مجمع تيجان — على القالب الأصلي (A5) */
+async function tijanReceiptPdf(c,x){const u=unitOf(c.unit_id),s=kState(c);
+  const [PL,tpl]=await Promise.all([loadPDFLib(),fetch('tijan-receipt.pdf',{cache:'force-cache'}).then(r=>{if(!r.ok)throw new Error('تعذر تحميل قالب السند');return r.arrayBuffer()})]);
+  await loadLibOnce('h2c','https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  const d=String(x.day||bgDay()).replace(/-/g,'/'),amt=Math.round(+x.amount||0),how=x.src==='wuse'?'استقطاع من محفظة الزبون':x.src==='wdep'?'إيداع بمحفظة الزبون (نقداً)':'نقداً';
+  const L1=[x.note||(INV_SRC[x.src]||['دفعة'])[0].replace(/^\S+\s/,''),how].filter(Boolean).join(' — ');
+  const L2=`المسدد لحد الآن ${nf.format(Math.round(s.paid))} د.ع`+(c.kind==='sale'?` · المتبقي ${nf.format(Math.round(s.left))} د.ع`:'')+(wBal(c)?` · رصيد المحفظة ${nf.format(Math.round(wBal(c)))} د.ع`:'');
+  const F=(l,t,w,h,v,o)=>`<div style="position:absolute;left:${l}pt;top:${t}pt;width:${w}pt;height:${h}pt;display:flex;align-items:flex-end;justify-content:${o?.al||'center'};font-size:${o?.fs||10.5}pt;font-weight:700;color:#0d2e6e;white-space:nowrap;overflow:hidden;line-height:1.15">${esc(String(v??''))}</div>`;
+  const M=(l,t,w,h)=>`<div style="position:absolute;left:${l}pt;top:${t}pt;width:${w}pt;height:${h}pt;background:#fff"></div>`;
+  const LB=(r,t,v)=>`<div style="position:absolute;right:${r}pt;top:${t}pt;font-size:12pt;color:#231f20;white-space:nowrap;font-weight:500">${v}</div>`;
+  const html=`<div style="position:relative;width:595.28pt;height:419.53pt;direction:rtl;font-family:var(--body),Tahoma,sans-serif">
+    ${LB(595.28-575,247.5,'وذلك مقابل :')}
+    ${LB(595.28-136,306.5,'المساحة')}
+    ${F(449,132,85,15,d,{fs:11})}
+    ${F(470,113,63,14,x.ref||'',{fs:10})}
+    ${F(84,165,390,17,c.name,{fs:12.5})}
+    <div style="position:absolute;left:42pt;top:209pt;width:430pt;height:24pt;display:flex;align-items:center;justify-content:center;gap:8pt;color:#0d2e6e;white-space:nowrap;overflow:hidden"><b style="font-size:13pt" dir="ltr">${nf.format(amt)} IQD</b><span style="font-size:10pt;font-weight:700">( ${esc(tafqeet(amt))} دينار عراقي لا غير )</span></div>
+    ${F(36,242,456,15,L1,{fs:10.5})}
+    ${F(36,269,536,15,L2,{fs:9.5})}
+    ${F(450,299,56,15,u?.apt||u?.code||'',{fs:11})}${F(312,299,48,15,u?.floor||'',{fs:11})}${F(172,299,63,15,u?.building||'',{fs:11})}${F(34,299,62,15,u?.area?nf.format(+u.area)+' م²':'',{fs:10.5})}
+    ${x.voided?'<div style="position:absolute;left:180pt;top:140pt;font-size:46pt;font-weight:900;color:rgba(200,0,0,.35);transform:rotate(-18deg)">ملغي</div>':''}
+  </div>`;
+  const box=document.createElement('div');box.style.cssText='position:fixed;left:-10000px;top:0;background:transparent';box.innerHTML=html;document.body.appendChild(box);
+  try{if(document.fonts?.ready)await document.fonts.ready;const cv=await html2canvas(box.firstElementChild,{scale:4,backgroundColor:null,logging:false});
+    const doc=await PL.PDFDocument.load(tpl),pg=doc.getPage(0),{width:W,height:H}=pg.getSize();const wr=(l,t,w,h)=>pg.drawRectangle({x:l,y:H-t-h,width:w,height:h,color:PL.rgb(1,1,1),borderWidth:0});wr(503,247,76,22);wr(99,306,40,20);wr(449,135,88,17);const png=await doc.embedPng(cv.toDataURL('image/png'));pg.drawImage(png,{x:0,y:0,width:W,height:H});
+    return new File([await doc.save()],'سند قبض '+(x.ref||x.day)+' - '+c.name+'.pdf',{type:'application/pdf'})}finally{box.remove()}}
+async function kReceiptPdf(c,x){if(curBranch()==='mansour'&&x.src!=='wref'){const f=await tijanReceiptPdf(c,x);return sharePdf(f,c.phone,kInvText(c,x))}const u=unitOf(c.unit_id),s=kState(c),t=(INV_SRC[x.src]||['وصل'])[0].replace(/^\S+\s/,'');
   const R=[['استلمنا من السيد/ة',c.name],['الوحدة',u?unitLabel(u):'—'],['المبلغ',nf.format(Math.round(x.amount))+' دينار عراقي'],['وذلك عن',x.note||t],['طريقة الدفع',x.src==='wuse'?'استقطاع من محفظة الزبون':x.src==='wdep'?'نقداً — إيداع بالمحفظة':x.src==='wref'?'إرجاع نقدي للزبون':'نقداً'],['تاريخ الاستلام',x.day],['مجموع المسدد لحد الآن',nf.format(Math.round(s.paid))+' دينار'],...(c.kind==='sale'?[['المتبقي على العقد',nf.format(Math.round(s.left))+' دينار']]:[]),...(wBal(c)?[['رصيد المحفظة',nf.format(Math.round(wBal(c)))+' دينار']]:[])];
   const body=`<table style="width:100%;border-collapse:collapse;font-size:17px">${R.map(([k,v],i)=>`<tr><th style="border:1px solid #bbb;background:#f6f1ea;padding:10px 12px;width:34%;text-align:right">${k}</th><td style="border:1px solid #bbb;padding:10px 12px;${i===2?'font-size:21px;font-weight:800':''}">${esc(String(v))}</td></tr>`).join('')}</table>${x.voided?'<div style="margin-top:16px;color:#b00;font-weight:800;font-size:20px;text-align:center">— ملغي —</div>':''}`;
   const f=await htmlToPdf(docShell(x.src==='wref'?'وصل صرف':'وصل قبض',x.ref||'',body,docSign('توقيع المستلم','توقيع المحاسب')),'وصل '+(x.ref||x.day)+' - '+c.name+'.pdf');
