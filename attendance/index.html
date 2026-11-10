@@ -860,7 +860,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='5e2756b2e6';
+const APP_BUILD='8d7d7344d9';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -4174,23 +4174,56 @@ async function wiRun(){const R=wiPlan(),b=$('#wiGo'),E=$('#wiE');b.disabled=true
 
 /* ===== مسؤول المبيعات: رفع ملف النظام القديم (Excel / CSV / PDF / صورة) ===== */
 const SI_F=[['','— تجاهل —'],['name','الاسم',/اسم|المشتري|الزبون|المستاجر|العميل|صاحب/],['phone','الهاتف',/هاتف|موبايل|جوال|تلفون|رقم الهاتف|الرقم|phone|mobile/],['unit','الوحدة كاملة (مثل T2-12-3)',/^(الوحده|العقار|الشقه والعماره|الموقع|العنوان)$/],['building','العمارة',/عماره|برج|بنايه|بلوك|tower|block/],['floor','الطابق',/طابق|floor/],['apt','الشقة',/شقه|apt|flat/],['code','رقم الوحدة / الدار',/رقم الوحده|رقم الدار|الدار|رقم العقار|كود/],['area','المساحة',/مساحه|م2|area/],['price_m','سعر المتر',/سعر المتر/],['total','السعر الكلي',/سعر|القيمه|المبلغ الكلي|الكلي|اجمالي|total/],['down','المقدمة',/مقدم|عربون/],['handover','دفعة الاستلام',/استلام/],['monthly','القسط الشهري',/قسط شهري|القسط|الشهري|monthly/],['months','عدد الأقساط',/عدد الاقساط|عدد الاشهر|المده|الاشهر/],['paid','المدفوع لحد الآن',/مدفوع|مسدد|واصل|المستلم|paid/],['remain','المتبقي (للمعلومة)',/متبقي|باقي|الباقي|remain/],['date','تاريخ الحجز / العقد',/^(?!.*(اول|بدايه|بدء)).*تاريخ/],['start','أول قسط / بداية الإيجار',/اول قسط|بدايه|بدء/],['type','النوع (بيع/إيجار)',/نوع|بيع|type/],['status','الحالة',/حاله|status/],['rent','الإيجار الشهري',/ايجار|rent/],['deposit','التأمينات',/تامين|deposit/],['notes','ملاحظات',/ملاحظ|تفاصيل|notes/]];
-function siImport(){const inp=document.createElement('input');inp.type='file';inp.accept='.xlsx,.xls,.xlsm,.ods,.csv,.pdf,image/*,application/pdf';inp.hidden=true;document.body.appendChild(inp);
-  inp.addEventListener('change',async()=>{const f=inp.files[0];inp.remove();if(!f)return;
-    overlay('simp','رفع ملف النظام القديم',`<div class="rcbox"><div class="spin"></div><b>جارِ قراءة الملف…</b><span class="note">${/\.(xlsx|xls|xlsm|ods|csv)$/i.test(f.name)?'':'الـPDF والصور تنقرا بالذكاء الاصطناعي، ممكن تاخذ دقيقة'}</span></div>`);
-    try{const t=await siRead(f);if(!t.rows.length)throw new Error('ما لكيت بيانات بالملف.');S.si={...t,file:f.name,map:t.header.map(()=>'' ),pay:true,area:176};siGuess();siDraw()}
-    catch(e){$('#ovroot .sh-b').innerHTML=`<div class="err">${esc(e.message)}</div>`}});inp.click()}
-async function siRead(f){const sheet=/\.(xlsx|xls|xlsm|ods|csv)$/i.test(f.name)||/sheet|excel|csv/.test(f.type);
-  const cl=r=>(r||[]).map(c=>c instanceof Date?c:typeof c==='number'?c:String(c??'').replace(/\s+/g,' ').trim());
-  const pick=rows=>{rows=rows.map(cl).filter(r=>r.some(c=>c!==''));let hi=0;for(let i=0;i<Math.min(rows.length,15);i++){if(rows[i].filter(c=>typeof c==='string'&&c&&!/^[\d.,\-\/ ]+$/.test(normDigits(c))).length>=3){hi=i;break}}
-    const header=rows[hi]||[],n=Math.max(header.length,...rows.slice(hi+1).map(r=>r.length));return{header:Array.from({length:n},(_,i)=>String(header[i]??'')||'عمود '+(i+1)),rows:rows.slice(hi+1).map(r=>Array.from({length:n},(_,i)=>r[i]??''))}};
-  if(sheet){const X=await loadXLSX();const wb=/\.csv$/i.test(f.name)||f.type==='text/csv'?X.read(new TextDecoder('utf-8').decode(await f.arrayBuffer()).replace(/^﻿/,''),{type:'string',raw:true}):X.read(new Uint8Array(await f.arrayBuffer()),{type:'array',cellDates:true});
-    let best=null;for(const n of wb.SheetNames){const rows=X.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true});const r=pick(rows);if(!best||r.rows.length>best.rows.length)best=r}return best||{header:[],rows:[]}}
-  const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);if(isPdf&&f.size>20*1024*1024)throw new Error('ملف الـPDF كبير (أكثر من 20 ميغا). قسّمه أو صوّر الصفحات.');
-  const blob=isPdf?f:await compress(f,2400,.88);const b64=(await blobToData(blob)).split(',')[1];
-  const {data,error}=await sb.functions.invoke('scan-list',{body:{mode:'table',image:b64,mime:isPdf?'application/pdf':'image/jpeg'}});
-  let code=data?.code;if(error){try{code=(await error.context.json()).code}catch(x){code='upstream'}}
-  if(code)throw new Error({no_key:'القراءة تحتاج تفعيل مفتاح الذكاء الاصطناعي. راجع مطوّر النظام.',rate_limited:'طلبات كثيرة، حاول بعد دقيقة.',bad_image:'الملف كبير أو تالف.',forbidden:'غير متاح لصفتك.'}[code]||'تعذرت قراءة الملف. جرّب صورة أوضح أو ملف Excel.');
-  return pick([data.header||[],...(data.rows||[])])}
+const SI_ACCEPT='.xlsx,.xls,.xlsm,.xlsb,.ods,.numbers,.csv,.tsv,.txt,.htm,.html,.json,.docx,.pdf,image/*,application/pdf,text/*';
+function siImport(){const inp=document.createElement('input');inp.type='file';inp.accept=SI_ACCEPT;inp.multiple=true;inp.hidden=true;document.body.appendChild(inp);
+  inp.addEventListener('change',async()=>{const fs=[...inp.files];inp.remove();if(!fs.length)return;const t0=Date.now();
+    overlay('simp','رفع ملف النظام القديم',`<div class="rcbox"><div class="spin"></div><b>جارِ قراءة ${fs.length>1?fs.length+' ملفات':'الملف'}…</b><span class="note" id="siPr">${fs.every(f=>SI_SHEET.test(f.name))?'ثواني وتخلص':'الـPDF والصور تنقرا بالذكاء الاصطناعي — الصفحات تنقرا سوية حتى تخلص أسرع'}</span><button class="btn sm ghost" data-a="close" style="margin-top:10px">إلغاء</button></div>`);
+    const P=t=>{const e=$('#siPr');if(e)e.textContent=t};const ok=[],bad=[];
+    for(const [k,f] of fs.entries()){try{const t=await siRead(f,m=>P((fs.length>1?`ملف ${k+1} من ${fs.length} (${f.name}) — `:'')+m));if(t.rows.length)ok.push(t);else bad.push(f.name+': ما بيه بيانات')}catch(e){bad.push(f.name+': '+e.message)}if(!$('#siPr'))return}
+    if(!ok.length){$('#ovroot .sh-b').innerHTML=`<div class="err">${bad.map(esc).join('<br>')||'ما لكيت بيانات بالملف.'}</div><div class="acts" style="margin-top:12px"><button class="btn" data-a="siImp">جرّب ملف ثاني</button><button class="btn ghost" data-a="close">إغلاق</button></div>`;return}
+    const t=siMerge(ok);S.si={...t,file:fs.map(f=>f.name).join('، '),map:t.header.map(()=>'' ),pay:true,area:176,skipped:bad};siGuess();siDraw();
+    if(bad.length)toast('⚠️ ما انقرا: '+bad.join(' · '));else toast(`✓ انقرا ${nf.format(t.rows.length)} سطر بـ ${Math.max(1,Math.round((Date.now()-t0)/1000))} ثانية`)});inp.click()}
+/* قارئ ملفات شامل: Excel (كل الأوراق) / CSV / TSV / TXT / HTML / Word / JSON / PDF (مقسّم صفحات) / صور — يرجع جدول واحد */
+const SI_SHEET=/\.(xlsx|xls|xlsm|xlsb|ods|fods|numbers|csv|tsv|txt|htm|html|xml|dif|sylk|slk|prn|dbf)$/i;
+function siClean(r){return(r||[]).map(c=>c instanceof Date?c:typeof c==='number'?c:String(c??'').replace(/\s+/g,' ').trim())}
+function siPick(rows){rows=(rows||[]).map(siClean).filter(r=>r.some(c=>c!==''));let hi=0;for(let i=0;i<Math.min(rows.length,15);i++){if(rows[i].filter(c=>typeof c==='string'&&c&&!/^[\d.,\-\/ ]+$/.test(normDigits(c))).length>=3){hi=i;break}}
+  const header=rows[hi]||[],n=Math.max(header.length,0,...rows.slice(hi+1).map(r=>r.length));return{header:Array.from({length:n},(_,i)=>String(header[i]??'')||'عمود '+(i+1)),rows:rows.slice(hi+1).map(r=>Array.from({length:n},(_,i)=>r[i]??''))}}
+/* يدمج عدة جداول: الأعمدة بنفس الاسم تنجمع، والجديدة تنضاف */
+function siMerge(list){list=list.filter(t=>t&&t.rows&&t.rows.length);if(!list.length)return{header:[],rows:[]};if(list.length===1)return list[0];
+  const key=h=>arn(String(h||'')).replace(/\s+/g,'');const H=[],idx={};const add=h=>{const k=key(h)||'#'+H.length;if(!(k in idx)){idx[k]=H.length;H.push(h)}return idx[k]};
+  const maps=list.map(t=>t.header.map(add));const rows=[];list.forEach((t,j)=>t.rows.forEach(r=>{const o=new Array(H.length).fill('');r.forEach((c,i)=>{if(maps[j][i]!=null)o[maps[j][i]]=c});rows.push(o)}));
+  return{header:H,rows:rows.map(r=>r.concat(new Array(H.length-r.length).fill('')))}}
+/* يجمع أوراق Excel المتشابهة (نفس العناوين) ويتجاهل الأوراق الفاضية */
+function siSheets(tables){tables=tables.filter(t=>t.rows.length);if(!tables.length)return{header:[],rows:[]};tables.sort((a,b)=>b.rows.length-a.rows.length);const base=tables[0],bk=new Set(base.header.map(h=>arn(h).replace(/\s+/g,'')));
+  const same=tables.filter(t=>t===base||t.header.filter(h=>bk.has(arn(h).replace(/\s+/g,''))).length>=Math.max(2,Math.ceil(t.header.length*.5)));return siMerge(same)}
+async function siText(f){const buf=await f.arrayBuffer();let t=new TextDecoder('utf-8').decode(buf);if((t.match(/�/g)||[]).length>3){try{t=new TextDecoder('windows-1256').decode(buf)}catch(e){}}return t.replace(/^﻿/,'')}
+async function siDocx(f){if(!window.JSZip)await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=ok;s.onerror=()=>no(new Error('تعذر تحميل قارئ ملفات Word'));document.head.appendChild(s)});
+  const z=await JSZip.loadAsync(await f.arrayBuffer()),x=await z.file('word/document.xml')?.async('string');if(!x)throw new Error('ملف Word تالف');const d=new DOMParser().parseFromString(x,'application/xml');const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const tbls=[...d.getElementsByTagNameNS(W,'tbl')].map(tb=>[...tb.getElementsByTagNameNS(W,'tr')].map(tr=>[...tr.getElementsByTagNameNS(W,'tc')].map(tc=>[...tc.getElementsByTagNameNS(W,'t')].map(t=>t.textContent).join(' '))));
+  if(!tbls.length)throw new Error('ملف الـWord ما بيه جدول. انسخ البيانات بجدول أو حوّله Excel.');return siSheets(tbls.map(siPick))}
+async function siAiTable(body,prog){for(let t=0;t<4;t++){const {data,error}=await sb.functions.invoke('scan-list',{body});let code=data?.code;if(error){try{code=(await error.context.clone().json()).code}catch(x){code='upstream'}}
+    if(!code)return data;if(S.aiNoCredit)throw new Error(AI_NOCREDIT);if(['no_key','forbidden','bad_image'].includes(code))throw new Error({no_key:'القراءة تحتاج تفعيل مفتاح الذكاء الاصطناعي. راجع مطوّر النظام.',bad_image:'الملف كبير أو تالف.',forbidden:'غير متاح لصفتك.'}[code]);
+    prog&&prog('إعادة المحاولة…');await new Promise(r=>setTimeout(r,(t+1)*(code==='rate_limited'?8000:3000)))}throw new Error('تعذرت قراءة جزء من الملف بعد عدة محاولات. حاول مرة ثانية.')}
+async function siRead(f,prog){const name=f.name||'';prog=prog||(()=>{});
+  if(/\.docx$/i.test(name))return siDocx(f);
+  if(/\.json$/i.test(name)){let j=JSON.parse(await siText(f));if(!Array.isArray(j))j=Object.values(j).find(Array.isArray)||[j];if(!j.length)return{header:[],rows:[]};if(Array.isArray(j[0]))return siPick(j);const H=[...new Set(j.flatMap(o=>Object.keys(o||{})))];return{header:H,rows:j.map(o=>H.map(h=>o?.[h]??''))}}
+  if(/\.doc$|\.ppt|\.pptx$|\.zip$|\.rar$/i.test(name))throw new Error('نوع الملف ('+name.split('.').pop()+') ما يتقرا مباشرة. احفظه PDF أو Excel وارفعه.');
+  const sheet=SI_SHEET.test(name)||/sheet|excel|csv|tab-separated|text\/plain|html|opendocument\.spreadsheet/.test(f.type);
+  if(sheet){const X=await loadXLSX();const txt=/\.(csv|tsv|txt|prn)$/i.test(name)||/^text\/(csv|plain|tab)/.test(f.type);
+    const wb=txt?X.read(await siText(f),{type:'string',raw:true,FS:/\.tsv$/i.test(name)?'\t':undefined}):X.read(new Uint8Array(await f.arrayBuffer()),{type:'array',cellDates:true});
+    return siSheets(wb.SheetNames.map(n=>siPick(X.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true,blankrows:false}))))}
+  const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(name);const isImg=/^image\//.test(f.type)||/\.(jpe?g|png|webp|gif|bmp|heic|heif|tiff?)$/i.test(name);
+  if(!isPdf&&!isImg){try{const X=await loadXLSX();const wb=X.read(new Uint8Array(await f.arrayBuffer()),{type:'array',cellDates:true});const t=siSheets(wb.SheetNames.map(n=>siPick(X.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true}))));if(t.rows.length)return t}catch(e){}
+    throw new Error('ما گدرت أقرا هذا النوع من الملفات. ارفعه Excel أو PDF أو صورة.')}
+  const bodies=[];
+  if(isPdf){let parts=[f];try{const PL=await loadPDFLib(),src=await PL.PDFDocument.load(await f.arrayBuffer(),{ignoreEncryption:true}),n=src.getPageCount();
+      if(n>2){parts=[];for(let i=0;i<n;i+=2){const d=await PL.PDFDocument.create();(await d.copyPages(src,Array.from({length:Math.min(2,n-i)},(_,k)=>i+k))).forEach(p=>d.addPage(p));parts.push(new Blob([await d.save()],{type:'application/pdf'}))}}}catch(e){parts=[f]}
+    if(parts.length===1&&f.size>28*1024*1024)throw new Error('ملف الـPDF كبير جداً. قسّمه لملفات أصغر.');
+    for(const b of parts)bodies.push({mode:'table',image:(await blobToData(b)).split(',')[1],mime:'application/pdf'})}
+  else{let blob;try{blob=await compress(f,2400,.88)}catch(e){throw new Error('ما گدرت أفتح الصورة ('+name+'). صوّرها JPG أو PNG.')}bodies.push({mode:'table',image:(await blobToData(blob)).split(',')[1],mime:'image/jpeg'})}
+  const out=new Array(bodies.length);let next=0,done=0;prog(bodies.length>1?`صفحات 0 من ${bodies.length}…`:'جارِ القراءة…');
+  await Promise.all(Array.from({length:Math.min(3,bodies.length)},async()=>{while(next<bodies.length){const i=next++;out[i]=await siAiTable(bodies[i],prog);done++;if(bodies.length>1)prog(`انقرا ${done} من ${bodies.length} جزء…`)}}));
+  return siMerge(out.map(d=>siPick([d.header||[],...(d.rows||[])])))}
 function siGuess(){const t=S.si,used=new Set();t.header.forEach((h,i)=>{const a=arn(h).trim();if(!a)return;
   const hit=SI_F.find(x=>x[2]&&!used.has(x[0])&&(x[0]!=='total'||!/متر|مقدم|قسط|استلام|مدفوع|متبقي|ايجار/.test(a))&&(x[0]!=='phone'||!/وحده|دار|عقار|شقه|طابق|عماره|قسط|عقد|وصل/.test(a))&&(x[0]!=='paid'||!/متبقي|باقي/.test(a))&&x[2].test(a));if(hit){t.map[i]=hit[0];used.add(hit[0])}})}
 const siNum=v=>{if(typeof v==='number')return v;const s=normDigits(String(v??''));if(!s.trim())return null;const m=s.replace(/[٬,\s]/g,'').match(/\d+(\.\d+)?/);if(!m)return null;let n=+m[0];if(/مليار/.test(s))n*=1e9;else if(/مليون/.test(s))n*=1e6;else if(/(الف|ألف)/.test(s)&&n<1e6)n*=1e3;return n};
