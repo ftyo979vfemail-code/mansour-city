@@ -860,7 +860,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='72b7434aa0';
+const APP_BUILD='651e93b3b7';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -1082,8 +1082,19 @@ function prOpen(k){const g=priceGroups().find(x=>x.k===k);if(!g)return;
    <div class="sec"><h4>كل مرات الشراء</h4><div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>المورد</th><th>الكمية</th><th>سعر الوحدة</th><th>المصدر</th></tr></thead><tbody>${[...g.h].reverse().map(x=>`<tr${x.src==='r'?` data-a="open" data-v="${x.id}" style="cursor:pointer"`:''}><td class="num">${dt(x.at)}</td><td>${esc(x.sup||'—')}</td><td class="num">${nf.format(x.q||0)} ${esc(x.unit)}</td><td class="num">${money(x.up)}</td><td class="small">${x.src==='r'?'طلب':'فاتورة'}</td></tr>`).join('')}</tbody></table></div></div>`)}
 
 /* ===== 📲 تذكير المتأخرين + كشف حساب المشتري ===== */
-function kMsg(c){const s=kState(c),u=unitOf(c.unit_id),sale=c.kind==='sale';
-  return sale?`السلام عليكم ${c.name}، نذكّركم بقسط ${s.next?s.next.label+(s.next.d?' المستحق يوم '+dayName(s.next.d):''):''} عن الوحدة ${u?.code||''} بمبلغ ${iqd((s.next?.a||0)-(s.next?.paid||0))} دينار${s.over?'، والمتأخر الكلي '+iqd(s.over)+' دينار':''}. ${brName()}`:`السلام عليكم ${c.name}، نذكّركم بإيجار الوحدة ${u?.code||''}${s.over?' والمتأخر '+iqd(s.over)+' دينار':''}. ${brName()}`}
+const COMPLEX={mansour:'مجمع تيجان السكني'};
+function kDueText(c){const s=kState(c),now=bgDay(),sale=c.kind==='sale';
+  const late=s.sch.filter(r=>r.paid<r.a&&(r.k==='hand'?['delivered','done'].includes(c.status):r.d&&r.d<=now));
+  const rows=late.length?late:s.next?[s.next]:[];if(!rows.length)return{desc:'',amt:0};
+  const amt=rows.reduce((a,r)=>a+(r.a-(r.paid||0)),0);
+  const inst=rows.filter(r=>r.k==='inst'||r.k==='rent');let desc;
+  if(rows.length===1)desc=rows[0].label+(rows[0].d?' المستحقة بتاريخ '+dayName(rows[0].d):'');
+  else if(inst.length===rows.length){const n=inst.length,f=inst[0],l=inst[n-1];desc=(sale?`الأقساط من (${f.label}) إلى (${l.label})`:`الإيجار من ${monName(f.m)} إلى ${monName(l.m)}`)+` (دفعة ${n===2?'شهرين':n>10?n+' شهر':n+' أشهر'})`}
+  else desc=rows.map(r=>r.label).join(' + ');
+  return{desc,amt}}
+function kMsg(c){const {desc,amt}=kDueText(c),nm=COMPLEX[curBranch()]||brName();
+  if(!amt)return`السيد/ة [ ${c.name} ] المحترم/ة\nتحية طيبة وتقدير..\n\nنود إعلامكم بعدم وجود مبالغ مستحقة بذمتكم حالياً لصالح ${nm}.\n\nشاكرين كريم تعاونكم.\nقسم الحسابات - إدارة ${nm}`;
+  return`السيد/ة [ ${c.name} ] المحترم/ة\nتحية طيبة وتقدير..\n\nنود إعلامكم بوجود مبالغ مستحقة بذمتكم لصالح ${nm} عن ${desc} وبإجمالي قدره ([ ${nf.format(Math.round(amt))} ] دينار).\n\nنرجو منكم تفضل المراجعة قسم الحسابات لتسديد ما بذمتكم.\n\nشاكرين كريم تعاونكم وتفهمكم.\nقسم الحسابات - إدارة ${nm}`}
 const waGet=()=>{try{return JSON.parse(localStorage.getItem('waSent')||'{}')}catch(e){return{}}};
 window.waMark=id=>{try{const o=waGet();o[id]=Date.now();localStorage.setItem('waSent',JSON.stringify(o))}catch(e){}setTimeout(()=>{if(S.tab==='book'||S.tab==='rent')render()},400)};
 function lateRemindBox(kind){const L=(S.contracts||[]).filter(c=>c.kind===kind&&!['cancelled','done'].includes(c.status)).map(c=>({c,s:kState(c)})).filter(x=>x.s.over>0).sort((a,b)=>b.s.over-a.s.over);if(!L.length)return'';const W=waGet();
@@ -3762,7 +3773,7 @@ function rentForm(c0){const edit=!!c0;const av=(S.units||[]).filter(u=>['availab
     await salesLoad();closeOv();render();toast('انحفظ')})}
 function kOpen(id){const c=(S.contracts||[]).find(x=>x.id===id);if(!c)return;const u=unitOf(c.unit_id),s=kState(c),w=writesSales(),sale=c.kind==='sale';
   const pays=(S.cash||[]).filter(x=>x.contract_id===c.id).sort((a,b)=>a.day<b.day?1:-1);const nm=x=>esc(S.staff.find(p=>p.id===x)?.full_name||'—');
-  const msg=sale?`السلام عليكم ${c.name}، نذكّركم بقسط ${s.next?s.next.label+(s.next.d?' المستحق يوم '+dayName(s.next.d):''):''} عن الوحدة ${u?.code||''} بمبلغ ${iqd((s.next?.a||0)-(s.next?.paid||0))} دينار${s.over?'، والمتأخر الكلي '+iqd(s.over)+' دينار':''}. ${brName()}`:`السلام عليكم ${c.name}، نذكّركم بإيجار الوحدة ${u?.code||''}${s.over?' والمتأخر '+iqd(s.over)+' دينار':''}. ${brName()}`;
+  const msg=kMsg(c);
   overlay('kv',(sale?'حجز ':'إيجار ')+esc(c.name),`<div class="sec"><div class="small" style="display:grid;grid-template-columns:auto 1fr;gap:5px 14px">
     <span class="muted">الوحدة</span><b>${u&&u.building&&u.floor?`عمارة ${esc(u.building)} · طابق ${esc(u.floor)} · شقة ${esc(u.apt||'')}`:esc(u?.code||'—')} ${u?`<span class="muted">(${nf.format(+u.area)} م²)</span>`:''}${u?.share==='investor'?' <span class="pill p-info">حصة المستثمر</span>':''}</b><span class="muted">الهاتف</span><b class="num">${esc(c.phone||'—')}</b><span class="muted">الحالة</span><b>${KST[c.status][0]}</b>
     ${sale?`<span class="muted">السعر الكلي</span><b class="num">${iqd(c.total)}</b><span class="muted">الخطة</span><b class="num">مقدمة ${iqd(c.down)}${kPartsTxt(c,'down')} · استلام ${iqd(c.handover)}${kPartsTxt(c,'hand')} · ${c.months} قسط × ${iqd(c.monthly)}</b><span class="muted">التواريخ</span><b class="num">الحجز ${dayName(kSigned(c))} · أول قسط ${dayName(fullD(c.start_month)||'')} · الأقساط يوم ${+(fullD(c.start_month)||'').slice(8,10)||1} من كل شهر</b>`:`<span class="muted">الإيجار</span><b class="num">${iqd(c.rent)} شهرياً${c.deposit?' · تأمينات '+iqd(c.deposit):''}</b><span class="muted">المدة</span><b class="num">${c.rent_start} ← ${c.rent_end||'مفتوح'}</b>`}
