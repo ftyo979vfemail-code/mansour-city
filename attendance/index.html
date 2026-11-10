@@ -860,7 +860,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='95e85bb240';
+const APP_BUILD='15f09e27c9';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -1025,8 +1025,10 @@ function coForm(kind,c){const pay=kind==='pay';
 
 /* ===== 🛒 مشترياتي: كل اللي انشترى للمخزن ===== */
 const PL_ROLES=['owner','project','admin1','admin2','accountant','payer'];
+/* وصولات المشتريات عند الصرف: تبارك فقط */
+const PUR_RC_UIDS=['eee5f58b-1f2f-4992-9b05-774c9d83122e'];
 function plLoad(force){if(S.plBusy||(S.plAt&&!force))return;S.plBusy=1;const all=[];const pg=o=>sb.from('pur_ledger').select('id,holder,day,cur,kind,amount,note,seq').order('day').order('seq').range(o,o+999).then(({data,error})=>{if(error){S.plBusy=0;S.pl=[];S.plAt=Date.now();return}all.push(...(data||[]));if((data||[]).length===1000&&o<20000)return pg(o+1000);S.pl=all;S.plAt=Date.now();S.plBusy=0;if(S.tab==='pur')render()},e=>{S.plBusy=0;S.pl=[];S.plAt=Date.now()});pg(0)}
-function plSection(){if(!PL_ROLES.includes(S.me?.role))return'';plLoad();if(!S.pl)return'<div class="sec"><b>📒 دفتر صندوق المشتريات</b> <span class="muted small">جارِ التحميل…</span></div>';if(!S.pl.length)return'';
+function plSection(){if(!PL_ROLES.includes(S.me?.role)||(S.me?.role==='payer'&&!PUR_RC_UIDS.includes(S.me?.id)))return'';plLoad();if(!S.pl)return'<div class="sec"><b>📒 دفتر صندوق المشتريات</b> <span class="muted small">جارِ التحميل…</span></div>';if(!S.pl.length)return'';
   const H=[...new Set(S.pl.map(x=>x.holder))],h=S.plH&&H.includes(S.plH)?S.plH:H[0],cur=S.plC||'IQD',y=S.plY||'',q=arn(S.plQ||'');
   const A=S.pl.filter(x=>x.holder===h&&x.cur===cur);let run=0;const R=A.map(x=>{run+=x.kind==='in'?+x.amount:-x.amount;return{...x,run}});
   const years=[...new Set(A.map(x=>x.day.slice(0,4)))].sort().reverse();
@@ -2292,7 +2294,7 @@ function tabsFor0(role){
   const k=ROLES[role].kind,q=queueFor(role);
   if(k==='sales')return[['units','الوحدات',0],['book','الحجوزات والأقساط',(S.contracts||[]).filter(c=>c.kind==='sale'&&c.status!=='cancelled'&&kState(c).over>0).length],['rent','المستأجرين',(S.contracts||[]).filter(c=>c.kind==='rent'&&c.status==='active'&&kState(c).over>0).length],['svc','الخدمات',(S.contracts||[]).filter(c=>svcLive(c)&&svcState(c).over>0).length],['kdocs','العقود',(S.contracts||[]).filter(c=>c.status!=='cancelled'&&!(c.docs||[]).length).length],['sales','الاستلامات',0],...(role==='sales'?[['team','الموظفين',myCrew().length]]:[])];
   if(k==='hr')return[['att','الحضور والغياب',attAlertN()],['team','الكوادر',myCrew().length]];
-  if(role==='payer')return[['pinv','فواتير الآليات والمشتريات',pinvCount()],['pur','وصولات المشتريات',0],['pay','صندوقي',0]];
+  if(role==='payer')return[['pinv','فواتير الآليات والمشتريات',pinvCount()],...(PUR_RC_UIDS.includes(S.me?.id)?[['pur','وصولات المشتريات',0]]:[]),['pay','صندوقي',0]];
   if(role==='cpayer')return[['cpreq','سلف المقاولين',(S.epr||[]).filter(x=>['pending','approved'].includes(x.status)).length],['creg','سجل المقاولين',0],['pay','صندوقي',0]];
   if(role==='site_eng')return[['erep','التقرير اليومي',(S.srep||[]).some(r=>r.uid===S.me?.id&&r.day===bgDay())?0:1],['econ','المقاولين',0],['prog','نسبة الإنجاز',0],['mine','طلباتي',mine(role).filter(r=>!['done','rejected'].includes(r.status)).length]];
   if(k==='acct')return[['acc','المحاسبة',0],['daftar','الدفتر',0],['cash','الصندوق',0],['pbx','صناديق الصرف',0],['sup','الشركات',0],['cos','المقاولين',0],['acsum','الملخص الشهري',0]];
@@ -2442,7 +2444,7 @@ function tabBody(role){
   if(t==='dinv')return dlvInvView();
   if(t==='outs')return outsView(role);
   if(t==='prices')return prSees()?pricesView():'';
-  if(t==='pur')return purView(role);
+  if(t==='pur')return S.me?.role==='payer'&&!PUR_RC_UIDS.includes(S.me?.id)?'':purView(role);
   if(t==='cos')return CASH_SEE.includes(S.me?.role)?cosView():'';
   if(t==='sup')return CASH_SEE.includes(S.me?.role)?supView():'';
   if(t==='bcost')return ['project','admin1','admin2','accountant','owner'].includes(S.me?.role)?bcostView():'';
