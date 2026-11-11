@@ -1,0 +1,4 @@
+-- 45 (data fix 2026-11-11): the daily-entry screen was used on 11/11 to type each driver's handed-over amount as both
+-- "جاب" and "استلمت" (595,500), on top of the app's trips and receipts — doubling both. Removed manual trips 203,204,207,208
+-- and manual receipts 31,32,36,37 (backups: taxi_backup.dup_1111_trips / dup_1111_cash). The entry screen now locks those
+-- fields on days that have app trips, until "فتح الخانات" is pressed.

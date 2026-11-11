@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611111829";
+const BUILD="202611111837";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2579,8 +2579,10 @@ async function renderEntry(){
   const st=$("#en-st"), say=(t,ok)=>{st.textContent=t;st.className=ok?"ok":""};
   const card=c=>{const a=app[c.id], appF=a?Math.max(0,(a.fares||0)-(oT[c.id]||0)):0, appN=a?a.done-(oT[c.id]?1:0):0, lg=LG.filter(i=>i.car_id===c.id);
     return `<section class="ent-c" data-car="${c.id}"><h4>${plateHTML(c.plate)} ${esc(c.driver_name)}${appN>0?`<small class="pill s-idle">من التطبيق: ${appN} سفرة · ${fmt(appF)}</small>`:""}</h4>
-      <div class="ent-g"><label><span>جاب 🚕</span><input inputmode="numeric" data-k="t" value="${oT[c.id]||""}" placeholder="0"><small class="ent-v"></small>${appN>0?`<small style="color:var(--muted);font-weight:400">سفرات التطبيق محسوبة، اكتب بس اللي ما انسجل</small>`:""}</label>
-        <label><span>استلمت 💵</span><input inputmode="numeric" data-k="c" value="${oC[c.id]||""}" placeholder="0"><small class="ent-v"></small></label></div>
+      ${appN>0&&!oT[c.id]&&!oC[c.id]?`<p class="note ent-lock" style="margin:0">🔒 هذا اليوم حساباته من التطبيق: السفرات تنحسب وحدها، والاستلام يتسجّل من <b>✅ تم الاستلام</b> أو <b>🧮 المحاسبة</b>. هاي الخانات بس لمبلغ ما انسجل بالتطبيق.
+        <button type="button" class="btn sm" data-unlock>فتح الخانات</button></p>`:""}
+      <div class="ent-g" ${appN>0&&!oT[c.id]&&!oC[c.id]?"hidden":""}><label><span>جاب 🚕 ${appN>0?"(زيادة على التطبيق)":""}</span><input inputmode="numeric" data-k="t" value="${oT[c.id]||""}" placeholder="0"><small class="ent-v"></small>${appN>0?`<small style="color:var(--bad);font-weight:600">لا تكتب مجموع اليوم، سفرات التطبيق (${fmt(appF)}) محسوبة. اكتب بس اللي ما انسجل.</small>`:""}</label>
+        <label><span>استلمت 💵 ${appN>0?"(خارج التطبيق)":""}</span><input inputmode="numeric" data-k="c" value="${oC[c.id]||""}" placeholder="0"><small class="ent-v"></small>${appN>0?`<small style="color:var(--bad);font-weight:600">الاستلامات اللي انسجلت بالتطبيق محسوبة. لا تكررها هنا.</small>`:""}</label></div>
       ${lg.length?`<ul class="ent-lg">${lg.map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="debt"?"🧾 دين على زبون":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:""}
       <div class="row" style="justify-content:flex-start;gap:6px"><button class="btn sm" data-q="expense">+ مصروف</button><button class="btn sm" data-q="advance">+ سلفة</button></div></section>`};
   const people=await rpc("taxi_admin_ledger_people",{p_pin:PIN}).catch(()=>[]);
@@ -2605,6 +2607,7 @@ async function renderEntry(){
         o[car]=val;i.value=val||"";show();i.classList.add("saved");say("✓ انحفظ",true)}catch(e){i.classList.add("err-in");say("⚠️ "+e.message)}})();
       entPending=job; job.finally(()=>{if(entPending===job)entPending=null})};
     show()});
+  $("#enb").querySelectorAll("[data-unlock]").forEach(b=>b.onclick=()=>{const sec=b.closest("section");sec.querySelector(".ent-g").hidden=false;b.closest(".ent-lock").remove()});
   $("#enb").querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{const sec=b.closest("section"), car=sec.dataset.car||"", per=sec.dataset.person||"", kind=b.dataset.q, adv=kind==="advance";
     const f=modal(`<h3>${adv?"🤝 سلفة":"💸 مصروف"} · ${esc(sec.querySelector("h4").textContent.trim())}</h3><p class="note" style="margin:0">بتاريخ ${dLbl(entDay)}</p>
       <div class="field"><label for="eq-a">المبلغ (دينار)</label><input id="eq-a" inputmode="numeric" style="font:600 22px var(--mono);text-align:center"></div>
