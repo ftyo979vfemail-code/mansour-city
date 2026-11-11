@@ -1,0 +1,3 @@
+-- 42: a trip belongs to the day it STARTED (a night trip that ends after midnight stays on its day), matching how drivers count.
+-- Patched in place: taxi_period_json, taxi_admin_month_days (incl. its month range), taxi_admin_record_days —
+-- (ended_at at time zone 'Asia/Baghdad')::date  →  (coalesce(started_at, ended_at) at time zone 'Asia/Baghdad')::date
