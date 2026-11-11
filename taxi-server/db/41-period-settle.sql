@@ -1,0 +1,6 @@
+-- 41: settlement screen (🧮 المحاسبة). Applied as migration taxi_period_settle:
+--  taxi_period_json(car, from, to)  — a driver's period: per-day trips/fares/lines, trips, receipts, ledger, totals,
+--                                      balance for the period (fares − receipts − from_cash ledger), all-time balance, last closing.
+--  taxi_admin_period(pin, from, to)  — every active driver (any manager).
+--  taxi_admin_close(pin, car, from, to, mode keep|cash|settle, note) — owner only: what's left is recorded as cash received,
+--                                      as a 'settle' ledger row, or kept; then the period is stored in taxi_closings.
