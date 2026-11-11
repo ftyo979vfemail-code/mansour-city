@@ -1,0 +1,3 @@
+-- 43: advances are taken back from the driver's salary. taxi_ledger.deducted_at / deducted_by mark an advance as taken back.
+-- taxi_admin_advances_open(pin) lists open advances (drivers and staff); taxi_admin_advances_deduct(pin, ids[]) — owner only.
+-- Data 2026-11-11: Ali's 25,000 internet-balance expense moved to 8/11 (old accounts).

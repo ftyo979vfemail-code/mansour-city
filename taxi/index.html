@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611111808";
+const BUILD="202611111819";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2465,7 +2465,7 @@ async function renderSettle(){
   $("#st-f").onchange=e=>{stF=e.target.value||stF;if(stF>stT)stT=stF;re()}; $("#st-t").onchange=e=>{stT=e.target.value||stT;if(stF>stT)stF=stT;re()};
   document.querySelectorAll("[data-sq]").forEach(b=>b.onclick=()=>{stT=today;stF=b.dataset.sq==="m"?today.slice(0,8)+"01":sh(today,-2);re()});
   $("#st-h").onclick=()=>closingsList();
-  let r; try{r=await rpc("taxi_admin_period",{p_pin:PIN,p_from:stF,p_to:stT})}catch(e){$("#stb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  let r, AV=[]; try{[r,AV]=await Promise.all([rpc("taxi_admin_period",{p_pin:PIN,p_from:stF,p_to:stT}),rpc("taxi_admin_advances_open",{p_pin:PIN}).catch(()=>[])])}catch(e){$("#stb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
   const C=r.cars, T={f:0,k:0,c:0,b:0};
   C.forEach(c=>{T.f+=c.fares;T.k+=c.received;T.c+=c.from_cash;T.b+=c.balance});
   const card=c=>{const closed=c.last_closing&&c.last_closing.to>=stT, by=d=>c.trips.filter(t=>t.day===d&&!t.line);
@@ -2475,13 +2475,20 @@ async function renderSettle(){
         <div class="st-sum"><span>المجموع</span><span>${c.trips_n} سفرة${c.lines_n?` · ${c.lines_n} خط`:""}</span><b>${fmt(c.fares)}</b></div></div>`:`<p class="note">ما عنده سفرات بهاي الفترة.</p>`}
       <div class="calc"><div><span>جاب</span><b>${dinar(c.fares)}</b></div>
         ${c.receipts.map(k=>`<div><span>− استلام ${dl(k.day)}${k.note&&k.note.includes("استلمه")?` (${esc(k.note.split("استلمه").pop().trim())})`:""}</span><b>${fmt(k.amount)}</b></div>`).join("")}
-        ${c.ledger.filter(i=>i.from_cash).map(i=>`<div><span>− ${i.kind==="settle"?"تسوية":i.kind==="advance"?"سلفة من الكاش":"مصروف/دين"} ${dl(i.day)}${i.note?` · ${esc(i.note)}`:""}</span><b>${fmt(i.amount)}</b></div>`).join("")}
+        ${c.ledger.filter(i=>i.from_cash).map(i=>`<div><span>− ${i.kind==="settle"?"تسوية":i.kind==="advance"?"سلفة من الكاش (تنخصم من الراتب)":"مصروف/دين"} ${dl(i.day)}${i.note?` · ${esc(i.note)}`:""}</span><b>${fmt(i.amount)}</b></div>`).join("")}
         <div class="tot"><span>${c.balance>=0?"الباقي بذمّته":"إله"}</span><b>${dinar(Math.abs(c.balance))}</b></div></div>
       ${c.ledger.filter(i=>!i.from_cash).length?`<p class="note" style="margin:4px 0">من المكتب: ${c.ledger.filter(i=>!i.from_cash).map(i=>`${i.kind==="advance"?"سلفة":"مصروف"} ${fmt(i.amount)}${i.note?` (${esc(i.note)})`:""}`).join("، ")}</p>`:""}
       ${c.balance_all!==c.balance?`<p class="note" style="margin:4px 0;color:var(--warn)">حسابه الكلّي (كل الفترات): ${c.balance_all>=0?"بذمّته":"إله"} ${fmt(Math.abs(c.balance_all))}</p>`:""}
       ${OWNER()?`<div class="row" style="justify-content:flex-start"><button class="btn ${closed?"":"primary"} sm" data-close="${c.id}">✅ صفّر وخزّن المحاسبة</button></div>`:""}</section>`};
   $("#stb").innerHTML=`<div class="kpis"><div class="kpi"><small>جابوا</small><b>${dinar(T.f)}</b><small>${dl(stF)} → ${dl(stT)}</small></div><div class="kpi"><small>استلمنا</small><b>${dinar(T.k)}</b></div>${T.c?`<div class="kpi"><small>سلف/مصاريف/تسويات من الكاش</small><b>${dinar(T.c)}</b></div>`:""}<div class="kpi ${T.b>0?"warn":""}"><small>الباقي بذمّة السواق</small><b>${dinar(T.b)}</b></div></div>
-    <div class="st-list">${C.map(card).join("")}</div>`;
+    <div class="st-list">${C.map(card).join("")}</div>
+    <section class="st-c" style="margin-top:12px"><h3>🤝 سلف تنخصم من الراتب</h3>
+      ${AV.length?(()=>{const G={};AV.forEach(a=>{(G[a.name]=G[a.name]||[]).push(a)});
+        return Object.entries(G).map(([n,L])=>`<details open><summary><b>${esc(n)}</b> · ${L.length} ${L.length===1?"سلفة":"سلف"} · <b>${fmt(L.reduce((x,a)=>x+a.amount,0))}</b></summary><ul class="st-tr">${L.map(a=>`<li><label style="display:flex;gap:8px;align-items:center">${OWNER()?`<input type="checkbox" data-av="${a.id}">`:""}<span>${dl(a.day)}${a.note?` · ${esc(a.note)}`:""}</span></label><b>${fmt(a.amount)}</b></li>`).join("")}</ul></details>`).join("")
+          +`<p class="note" style="margin:6px 0">المجموع: <b>${fmt(AV.reduce((x,a)=>x+a.amount,0))}</b> · تبقى هنا لحد ما تنخصم من الراتب.</p>`
+          +(OWNER()?`<div class="row" style="justify-content:flex-start"><button class="btn sm primary" id="av-ok">✓ انخصمت من الراتب (المأشّرة)</button></div>`:"")})():`<p class="note">ماكو سلف مفتوحة.</p>`}</section>`;
+  if($("#av-ok"))$("#av-ok").onclick=async e=>{const ids=[...document.querySelectorAll("[data-av]:checked")].map(x=>+x.dataset.av);if(!ids.length)return toast("أشّر السلف اللي انخصمت");
+    const btn=e.currentTarget;btn.disabled=true;try{await rpc("taxi_admin_advances_deduct",{p_pin:PIN,p_ids:ids});toast("انسجلت مخصومة من الراتب");renderSettle()}catch(er){btn.disabled=false;toast(er.message)}};
   $("#st-c").onclick=()=>copy([`🧮 محاسبة ${dl(stF)} → ${dl(stT)}`,...C.map(c=>[`\n${c.driver_name}: جاب ${fmt(c.fares)} (${c.trips_n} سفرة)`,...c.days.map(d=>`- ${dl(d.d)}: ${fmt(d.fares)} (${d.trips} سفرة)`),`استلمنا ${fmt(c.received)}${c.from_cash?` · من الكاش ${fmt(c.from_cash)}`:""} · ${c.balance>=0?"الباقي":"إله"} ${fmt(Math.abs(c.balance))}`].join("\n"))].join("\n"));
   $("#stb").querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const c=C.find(x=>x.id===b.dataset.close);
     const m=modal(`<h3>✅ محاسبة ${esc(c.driver_name)}</h3><p class="note" style="margin:0">${dl(stF)} → ${dl(stT)} · جاب ${fmt(c.fares)} · استلمنا ${fmt(c.received)}</p>
