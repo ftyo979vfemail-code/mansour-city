@@ -1,0 +1,2 @@
+-- 44: taxi_ledger.kind 'debt' (دين على زبون): a fare the driver didn't collect. from_cash (lowers what he must hand over) and
+-- stays open with the advances (taxi_admin_advances_open) until marked received (taxi_admin_advances_deduct). Haidar's 10,000 → debt.

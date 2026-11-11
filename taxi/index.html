@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611111819";
+const BUILD="202611111824";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2368,13 +2368,13 @@ async function renderReceipts(){
     LG.filter(i=>i.car_id===car).forEach(i=>{const sp=Object.keys(spent).find(id=>spent[id].some(x=>x.id===i.id));
       const r=sp?rs.find(k=>k.id===+sp):rs.find(k=>kDay(k)>=i.day);
       if(r){(att[r.id]=att[r.id]||[]).push(i);attOf[i.id]=r.id}})});
-  const lgItem=i=>`<li class="${i.kind}"><span class="lg-amt">${(i.kind==="settle"?"⚖️":i.kind==="advance"?"🤝":"💸")} ${fmt(i.amount)}</span>
-      <span><b>${(i.kind==="settle"?"تسوية":i.kind==="advance"?"سلفة":"مصروف")} · ${esc(i.driver_name)}</b>${i.staff?` <span class="pill s-idle">موظف</span>`:""}<br><span class="lg-why">${i.note?esc(i.note):"<i>بدون سبب</i>"}</span><br><small style="color:var(--muted)">${i.kind==="settle"?"انحسبت مستلمة بالمحاسبة (ما داخلة بمجموع الاستلامات)":i.staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده (انخصمت من اللي لازم يسلّمه)":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده (انخصم من اللي لازم يسلّمه)":unsp[i.id]?`ينخصم من أول استلام إله من هذا اليوم وطالع${unsp[i.id]<i.amount?` (باقي ${fmt(unsp[i.id])})`:""}`:"انصرف من استلام هذا اليوم")}${i.car_id&&!attOf[i.id]?` · <b>تنتظر التسوية الجاية</b>`:""}</small></span>
+  const lgItem=i=>`<li class="${i.kind}"><span class="lg-amt">${(i.kind==="settle"?"⚖️":i.kind==="debt"?"🧾":i.kind==="advance"?"🤝":"💸")} ${fmt(i.amount)}</span>
+      <span><b>${(i.kind==="settle"?"تسوية":i.kind==="debt"?"دين على زبون":i.kind==="advance"?"سلفة":"مصروف")} · ${esc(i.driver_name)}</b>${i.staff?` <span class="pill s-idle">موظف</span>`:""}<br><span class="lg-why">${i.note?esc(i.note):"<i>بدون سبب</i>"}</span><br><small style="color:var(--muted)">${i.kind==="settle"?"انحسبت مستلمة بالمحاسبة (ما داخلة بمجموع الاستلامات)":i.staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده (انخصمت من اللي لازم يسلّمه)":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده (انخصم من اللي لازم يسلّمه)":unsp[i.id]?`ينخصم من أول استلام إله من هذا اليوم وطالع${unsp[i.id]<i.amount?` (باقي ${fmt(unsp[i.id])})`:""}`:"انصرف من استلام هذا اليوم")}${i.car_id&&!attOf[i.id]?` · <b>تنتظر التسوية الجاية</b>`:""}</small></span>
       <span class="acts"><button class="btn sm" ${i.staff?`data-lgp="${i.person_id}"`:`data-lgo="${i.car_id}"`}>${OWNER()?"تعديل":"التفاصيل"}</button></span></li>`;
   const rcItem=k=>{const tr=k.trips, first=tr[0], last=tr[tr.length-1];
       const sp=spent[k.id]||[], spT=sp.reduce((a,x)=>a+x.amount,0), A=att[k.id]||[];
       const fc=A.filter(i=>i.from_cash), fcT=fc.reduce((a,i)=>a+i.amount,0), oa=A.filter(i=>!i.from_cash&&i.kind==="advance"), oaT=oa.reduce((a,i)=>a+i.amount,0);
-      const lab=i=>i.kind==="settle"?"⚖️ تسوية بالمحاسبة":i.kind==="advance"?(i.from_cash?"🤝 سلفة من الكاش":"🤝 سلفة من المكتب"):(i.from_cash?"💸 مصروف من الكاش":"💸 مصروف من المبلغ");
+      const lab=i=>i.kind==="settle"?"⚖️ تسوية بالمحاسبة":i.kind==="debt"?"🧾 دين على زبون (ما استلمه)":i.kind==="advance"?(i.from_cash?"🤝 سلفة من الكاش":"🤝 سلفة من المكتب"):(i.from_cash?"💸 مصروف من الكاش":"💸 مصروف من المبلغ");
       return `<details class="rcpt"><summary><span class="rc-amt">💵 ${dinar(k.amount)}${spT?`<small class="rc-net">− صرف ${fmt(spT)}<br>= صافي <b>${fmt(k.amount-spT)}</b></small>`:""}${A.length?`<small class="pill s-warn" style="margin-top:4px">ويّاها ${A.length} ${A.some(i=>i.kind==="advance")?"سلف/مصاريف":"مصاريف"}</small>`:""}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>${k.manual_day?"استلام قديم (إدخال يدوي)":tm(k.at)}${who(k.note)&&!k.manual_day?` · استلمه ${esc(who(k.note))}`:""}</small></span>
         <span class="rc-cov">${tr.length?`غطّى ${tr.length} ${tr.length===1?"سفرة":"سفرات"}<br><small>${dD(first.ended_at)}${tr.length>1&&dD(first.ended_at)!==dD(last.ended_at)?` — ${dD(last.ended_at)}`:""}</small>`:"ما غطّى سفرات"}${k.unallocated>0?`<br><small style="color:var(--ok)">+ ${fmt(k.unallocated)} زيادة (رصيد إله)</small>`:""}</span></summary>
         <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الوقت</th><th>من ← إلى</th><th>الكروة</th><th>انحسب من هذا الاستلام</th></tr></thead><tbody>
@@ -2475,20 +2475,20 @@ async function renderSettle(){
         <div class="st-sum"><span>المجموع</span><span>${c.trips_n} سفرة${c.lines_n?` · ${c.lines_n} خط`:""}</span><b>${fmt(c.fares)}</b></div></div>`:`<p class="note">ما عنده سفرات بهاي الفترة.</p>`}
       <div class="calc"><div><span>جاب</span><b>${dinar(c.fares)}</b></div>
         ${c.receipts.map(k=>`<div><span>− استلام ${dl(k.day)}${k.note&&k.note.includes("استلمه")?` (${esc(k.note.split("استلمه").pop().trim())})`:""}</span><b>${fmt(k.amount)}</b></div>`).join("")}
-        ${c.ledger.filter(i=>i.from_cash).map(i=>`<div><span>− ${i.kind==="settle"?"تسوية":i.kind==="advance"?"سلفة من الكاش (تنخصم من الراتب)":"مصروف/دين"} ${dl(i.day)}${i.note?` · ${esc(i.note)}`:""}</span><b>${fmt(i.amount)}</b></div>`).join("")}
+        ${c.ledger.filter(i=>i.from_cash).map(i=>`<div><span>− ${i.kind==="settle"?"تسوية":i.kind==="debt"?"دين على زبون (يبقى لحد ما ينستلم)":i.kind==="advance"?"سلفة من الكاش (تنخصم من الراتب)":"مصروف"} ${dl(i.day)}${i.note?` · ${esc(i.note)}`:""}</span><b>${fmt(i.amount)}</b></div>`).join("")}
         <div class="tot"><span>${c.balance>=0?"الباقي بذمّته":"إله"}</span><b>${dinar(Math.abs(c.balance))}</b></div></div>
       ${c.ledger.filter(i=>!i.from_cash).length?`<p class="note" style="margin:4px 0">من المكتب: ${c.ledger.filter(i=>!i.from_cash).map(i=>`${i.kind==="advance"?"سلفة":"مصروف"} ${fmt(i.amount)}${i.note?` (${esc(i.note)})`:""}`).join("، ")}</p>`:""}
       ${c.balance_all!==c.balance?`<p class="note" style="margin:4px 0;color:var(--warn)">حسابه الكلّي (كل الفترات): ${c.balance_all>=0?"بذمّته":"إله"} ${fmt(Math.abs(c.balance_all))}</p>`:""}
       ${OWNER()?`<div class="row" style="justify-content:flex-start"><button class="btn ${closed?"":"primary"} sm" data-close="${c.id}">✅ صفّر وخزّن المحاسبة</button></div>`:""}</section>`};
   $("#stb").innerHTML=`<div class="kpis"><div class="kpi"><small>جابوا</small><b>${dinar(T.f)}</b><small>${dl(stF)} → ${dl(stT)}</small></div><div class="kpi"><small>استلمنا</small><b>${dinar(T.k)}</b></div>${T.c?`<div class="kpi"><small>سلف/مصاريف/تسويات من الكاش</small><b>${dinar(T.c)}</b></div>`:""}<div class="kpi ${T.b>0?"warn":""}"><small>الباقي بذمّة السواق</small><b>${dinar(T.b)}</b></div></div>
     <div class="st-list">${C.map(card).join("")}</div>
-    <section class="st-c" style="margin-top:12px"><h3>🤝 سلف تنخصم من الراتب</h3>
+    <section class="st-c" style="margin-top:12px"><h3>🤝 السلف والديون المفتوحة</h3><p class="note" style="margin:0">تبقى بالنظام لحد ما تنستلم: السلف تنخصم من الراتب، والديون من تدفعها الزبائن.</p>
       ${AV.length?(()=>{const G={};AV.forEach(a=>{(G[a.name]=G[a.name]||[]).push(a)});
-        return Object.entries(G).map(([n,L])=>`<details open><summary><b>${esc(n)}</b> · ${L.length} ${L.length===1?"سلفة":"سلف"} · <b>${fmt(L.reduce((x,a)=>x+a.amount,0))}</b></summary><ul class="st-tr">${L.map(a=>`<li><label style="display:flex;gap:8px;align-items:center">${OWNER()?`<input type="checkbox" data-av="${a.id}">`:""}<span>${dl(a.day)}${a.note?` · ${esc(a.note)}`:""}</span></label><b>${fmt(a.amount)}</b></li>`).join("")}</ul></details>`).join("")
-          +`<p class="note" style="margin:6px 0">المجموع: <b>${fmt(AV.reduce((x,a)=>x+a.amount,0))}</b> · تبقى هنا لحد ما تنخصم من الراتب.</p>`
-          +(OWNER()?`<div class="row" style="justify-content:flex-start"><button class="btn sm primary" id="av-ok">✓ انخصمت من الراتب (المأشّرة)</button></div>`:"")})():`<p class="note">ماكو سلف مفتوحة.</p>`}</section>`;
+        return Object.entries(G).map(([n,L])=>`<details open><summary><b>${esc(n)}</b> · <b>${fmt(L.reduce((x,a)=>x+a.amount,0))}</b></summary><ul class="st-tr">${L.map(a=>`<li><label style="display:flex;gap:8px;align-items:center">${OWNER()?`<input type="checkbox" data-av="${a.id}">`:""}<span>${a.kind==="debt"?"🧾 دين على زبون":"🤝 سلفة"} · ${dl(a.day)}${a.note?` · ${esc(a.note)}`:""}</span></label><b>${fmt(a.amount)}</b></li>`).join("")}</ul></details>`).join("")
+          +`<p class="note" style="margin:6px 0">سلف: <b>${fmt(AV.filter(a=>a.kind!=="debt").reduce((x,a)=>x+a.amount,0))}</b> · ديون: <b>${fmt(AV.filter(a=>a.kind==="debt").reduce((x,a)=>x+a.amount,0))}</b> · المجموع: <b>${fmt(AV.reduce((x,a)=>x+a.amount,0))}</b></p>`
+          +(OWNER()?`<div class="row" style="justify-content:flex-start"><button class="btn sm primary" id="av-ok">✓ انستلمت (المأشّرة)</button></div>`:"")})():`<p class="note">ماكو سلف ولا ديون مفتوحة.</p>`}</section>`;
   if($("#av-ok"))$("#av-ok").onclick=async e=>{const ids=[...document.querySelectorAll("[data-av]:checked")].map(x=>+x.dataset.av);if(!ids.length)return toast("أشّر السلف اللي انخصمت");
-    const btn=e.currentTarget;btn.disabled=true;try{await rpc("taxi_admin_advances_deduct",{p_pin:PIN,p_ids:ids});toast("انسجلت مخصومة من الراتب");renderSettle()}catch(er){btn.disabled=false;toast(er.message)}};
+    const btn=e.currentTarget;btn.disabled=true;try{await rpc("taxi_admin_advances_deduct",{p_pin:PIN,p_ids:ids});toast("انسجلت مستلمة");renderSettle()}catch(er){btn.disabled=false;toast(er.message)}};
   $("#st-c").onclick=()=>copy([`🧮 محاسبة ${dl(stF)} → ${dl(stT)}`,...C.map(c=>[`\n${c.driver_name}: جاب ${fmt(c.fares)} (${c.trips_n} سفرة)`,...c.days.map(d=>`- ${dl(d.d)}: ${fmt(d.fares)} (${d.trips} سفرة)`),`استلمنا ${fmt(c.received)}${c.from_cash?` · من الكاش ${fmt(c.from_cash)}`:""} · ${c.balance>=0?"الباقي":"إله"} ${fmt(Math.abs(c.balance))}`].join("\n"))].join("\n"));
   $("#stb").querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const c=C.find(x=>x.id===b.dataset.close);
     const m=modal(`<h3>✅ محاسبة ${esc(c.driver_name)}</h3><p class="note" style="margin:0">${dl(stF)} → ${dl(stT)} · جاب ${fmt(c.fares)} · استلمنا ${fmt(c.received)}</p>
@@ -2514,7 +2514,7 @@ async function closingsList(){
       <p class="note" style="margin:8px 14px">${esc(k.note)}</p>
       <div class="calc" style="margin:0 14px"><div><span>جاب</span><b>${dinar(k.fares)}</b></div>${k.advances?`<div><span>− سلف من الكاش</span><b>${dinar(k.advances)}</b></div>`:""}${k.expenses?`<div><span>− مصاريف</span><b>${dinar(k.expenses)}</b></div>`:""}${k.debts?`<div><span>− دين على زبائن</span><b>${dinar(k.debts)}</b></div>`:""}<div class="tot"><span>استلمنا كاش</span><b>${dinar(k.received)}</b></div></div>
       ${T.length?`<div class="tbl-wrap"><table><thead><tr><th>اليوم</th><th>الوقت</th><th>لوين</th><th>الكروة</th></tr></thead><tbody>${T.map(t=>`<tr><td>${d(t.day)}</td><td>${esc(t.time||"")}</td><td>${esc(t.to||"—")}</td><td class="num">${fmt(t.fare)}</td></tr>`).join("")}</tbody></table></div>`:""}
-      ${G.length?`<ul class="rc-sp">${G.map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b> · ${d(i.day)} · ${esc(i.note||"")}</li>`).join("")}</ul>`:""}
+      ${G.length?`<ul class="rc-sp">${G.map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="debt"?"🧾 دين على زبون":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b> · ${d(i.day)} · ${esc(i.note||"")}</li>`).join("")}</ul>`:""}
       ${R.length?`<p class="note" style="margin:6px 14px">الدفعات: ${R.map(r=>fmt(r.amount)).join(" + ")}</p>`:""}</details>`}).join(""):`<p class="note">لسه ماكو محاسبات مخزونة.</p>`;
 }
 async function openPerson(id){let P=[];try{P=await rpc("taxi_admin_ledger_people",{p_pin:PIN})}catch(e){return toast(e.message)}
@@ -2524,7 +2524,7 @@ async function driverLedger(x){
   const staff=!!x.person_id;
   const m=modal(`<h3>${staff?"👤":plateHTML(x.plate)} ${esc(x.driver_name)}${staff?` <span class="pill s-idle">موظف</span>`:""}</h3>
     ${x.cash==null?"":`<div class="calc"><div><span>جمع (كاش)</span><b>${dinar(x.cash)}</b></div><div><span>مصاريف</span><b>${dinar(x.expenses||0)}</b></div><div><span>سلف بهاي الفترة</span><b>${dinar(x.advances||0)}</b></div><div><span>استلمنا</span><b>${dinar(x.received)}</b></div><div class="tot"><span>الباقي بذمّته</span><b>${dinar(x.closing)}</b></div></div>`}
-    <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button class="btn primary" id="lg-exp">💸 مصروف</button><button class="btn primary" id="lg-adv">🤝 سلفة</button>${OWNER()&&!staff?`<button class="btn" id="lg-days">✍️ تعديل الأيام القديمة</button>`:""}</div>
+    <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button class="btn primary" id="lg-exp">💸 مصروف</button><button class="btn primary" id="lg-adv">🤝 سلفة</button>${staff?"":`<button class="btn" id="lg-debt">🧾 دين على زبون</button>`}${OWNER()&&!staff?`<button class="btn" id="lg-days">✍️ تعديل الأيام القديمة</button>`:""}</div>
     <div id="lg-list"><div class="empty">جارٍ التحميل…</div></div>
     <div class="row"><button class="btn" id="lg-x">سدّ</button></div>`);
   m.classList.add("wide");
@@ -2533,21 +2533,21 @@ async function driverLedger(x){
   const load=async()=>{let r;try{r=staff?await rpc("taxi_admin_ledger_person_list",{p_pin:PIN,p_person:x.person_id}):await rpc("taxi_admin_ledger_list",{p_pin:PIN,p_car:x.id})}catch(e){$("#lg-list",m).innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
     const dd=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
     $("#lg-list",m).innerHTML=`<p class="note" style="margin:0">كل السلف عليه: <b>${dinar(r.advances_total)}</b> · كل المصاريف: <b>${dinar(r.expenses_total)}</b></p>
-      ${r.items.length?`<ul class="log">${r.items.map(i=>`<li><span class="pill ${i.kind==="advance"?"s-warn":"s-idle"}">${(i.kind==="settle"?"⚖️ تسوية":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")}</span><span><b class="num">${fmt(i.amount)}</b> · ${dd(i.day)}${i.note?`<br><small>${esc(i.note)}</small>`:""}<br><small style="color:var(--muted)">${staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده":"انصرف من المبلغ المسلّم")}</small></span>${OWNER()?`<span class="acts"><button class="btn sm" data-le="${i.id}">تعديل</button><button class="btn sm danger" data-ld="${i.id}">حذف</button></span>`:`<small style="color:var(--muted)">${esc(i.by||"")}</small>`}</li>`).join("")}</ul>`:`<p class="note">ماكو مصاريف ولا سلف.</p>`}`;
+      ${r.items.length?`<ul class="log">${r.items.map(i=>`<li><span class="pill ${i.kind==="advance"?"s-warn":"s-idle"}">${(i.kind==="settle"?"⚖️ تسوية":i.kind==="debt"?"🧾 دين على زبون":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")}</span><span><b class="num">${fmt(i.amount)}</b> · ${dd(i.day)}${i.note?`<br><small>${esc(i.note)}</small>`:""}<br><small style="color:var(--muted)">${staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده":"انصرف من المبلغ المسلّم")}</small></span>${OWNER()?`<span class="acts"><button class="btn sm" data-le="${i.id}">تعديل</button><button class="btn sm danger" data-ld="${i.id}">حذف</button></span>`:`<small style="color:var(--muted)">${esc(i.by||"")}</small>`}</li>`).join("")}</ul>`:`<p class="note">ماكو مصاريف ولا سلف.</p>`}`;
     $("#lg-list",m).querySelectorAll("[data-le]").forEach(b=>b.onclick=()=>form(r.items.find(i=>i.id===+b.dataset.le)));
     $("#lg-list",m).querySelectorAll("[data-ld]").forEach(b=>b.onclick=async()=>{if(b.dataset.sure!=="1"){b.dataset.sure="1";b.textContent="متأكد؟";return}
       try{await rpc("taxi_admin_ledger_delete",{p_pin:PIN,p_id:+b.dataset.ld});changed=true;toast("انحذف");load()}catch(e){toast(e.message)}})};
-  const form=(it,kind)=>{kind=it?it.kind:kind;const adv=kind==="advance";
-    const f=modal(`<h3>${adv?"🤝 سلفة":"💸 مصروف"} · ${esc(x.driver_name)}</h3>
+  const form=(it,kind)=>{kind=it?it.kind:kind;const adv=kind==="advance", debt=kind==="debt";
+    const f=modal(`<h3>${debt?"🧾 دين على زبون":adv?"🤝 سلفة":"💸 مصروف"} · ${esc(x.driver_name)}</h3>${debt?`<p class="note" style="margin:0">كروة ما استلمها السائق من الزبون. تنخصم من اللي لازم يسلّمه، وتبقى مفتوحة بالمحاسبة لحد ما تنستلم.</p>`:""}
       <div class="field"><label for="lf-a">المبلغ (دينار)</label><input id="lf-a" inputmode="numeric" value="${it?it.amount:""}" style="font:600 22px var(--mono);text-align:center"></div>
       <div class="field"><label for="lf-d">التاريخ</label><input id="lf-d" type="date" value="${it?it.day:today}" max="${today}"></div>
-      <div class="field"><label for="lf-n">ملاحظة</label><input id="lf-n" maxlength="200" value="${it?esc(it.note):""}" placeholder="${adv?"مثال: سلفة لظرف عائلي":"مثال: بانزين، غسل، تصليح إطار"}"></div>
-      ${staff?"":adv?`<fieldset class="md-rec"><legend>منين أخذها؟</legend><label><input type="radio" name="lf-s" value="1" ${!it||it.from_cash?"checked":""}> من الكاش اللي بيده (تنخصم من اللي لازم يسلّمه)</label><label><input type="radio" name="lf-s" value="0" ${it&&!it.from_cash?"checked":""}> من المكتب</label></fieldset>`:`<fieldset class="md-rec"><legend>منو دفعه؟</legend><label><input type="radio" name="lf-s" value="0" ${!it||!it.from_cash?"checked":""}> انصرف من المبلغ اللي سلّمه للإدارة (حسابه ما يتغيّر، ينقص صافي الإدارة)</label><label><input type="radio" name="lf-s" value="1" ${it&&it.from_cash?"checked":""}> السائق صرفه من الكاش اللي بيده (ينخصم من اللي لازم يسلّمه)</label></fieldset>`}
+      <div class="field"><label for="lf-n">ملاحظة</label><input id="lf-n" maxlength="200" value="${it?esc(it.note):""}" placeholder="${debt?"مثال: اسم الزبون أو مكانه":adv?"مثال: سلفة لظرف عائلي":"مثال: بانزين، غسل، تصليح إطار"}"></div>
+      ${staff||debt?"":adv?`<fieldset class="md-rec"><legend>منين أخذها؟</legend><label><input type="radio" name="lf-s" value="1" ${!it||it.from_cash?"checked":""}> من الكاش اللي بيده (تنخصم من اللي لازم يسلّمه)</label><label><input type="radio" name="lf-s" value="0" ${it&&!it.from_cash?"checked":""}> من المكتب</label></fieldset>`:`<fieldset class="md-rec"><legend>منو دفعه؟</legend><label><input type="radio" name="lf-s" value="0" ${!it||!it.from_cash?"checked":""}> انصرف من المبلغ اللي سلّمه للإدارة (حسابه ما يتغيّر، ينقص صافي الإدارة)</label><label><input type="radio" name="lf-s" value="1" ${it&&it.from_cash?"checked":""}> السائق صرفه من الكاش اللي بيده (ينخصم من اللي لازم يسلّمه)</label></fieldset>`}
       <div class="err" id="lf-e"></div><div class="row"><button class="btn" id="lf-x">رجوع</button><button class="btn primary" id="lf-ok">حفظ</button></div>`);
     $("#lf-x",f).onclick=()=>f.remove();
     $("#lf-ok",f).onclick=async e=>{const btn=e.currentTarget;if(btn.disabled)return;btn.disabled=true;const s=f.querySelector('[name="lf-s"]:checked');
       try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{id:it?it.id:"",car_id:staff?"":x.id,person_id:staff?x.person_id:"",kind,amount:$("#lf-a",f).value,day:$("#lf-d",f).value,note:$("#lf-n",f).value,from_cash:s?s.value==="1":true}});f.remove();changed=true;toast("انحفظ");load()}catch(e){btn.disabled=false;$("#lf-e",f).textContent=e.message}}};
-  $("#lg-exp",m).onclick=()=>form(null,"expense"); $("#lg-adv",m).onclick=()=>form(null,"advance");
+  $("#lg-exp",m).onclick=()=>form(null,"expense"); $("#lg-adv",m).onclick=()=>form(null,"advance"); if($("#lg-debt",m))$("#lg-debt",m).onclick=()=>form(null,"debt");
   load();
 }
 /* ---------- day-by-day accounts entry: pick a date, fill it, move to the next one ---------- */
@@ -2580,13 +2580,13 @@ async function renderEntry(){
     return `<section class="ent-c" data-car="${c.id}"><h4>${plateHTML(c.plate)} ${esc(c.driver_name)}${appN>0?`<small class="pill s-idle">من التطبيق: ${appN} سفرة · ${fmt(appF)}</small>`:""}</h4>
       <div class="ent-g"><label><span>جاب 🚕</span><input inputmode="numeric" data-k="t" value="${oT[c.id]||""}" placeholder="0"><small class="ent-v"></small>${appN>0?`<small style="color:var(--muted);font-weight:400">سفرات التطبيق محسوبة، اكتب بس اللي ما انسجل</small>`:""}</label>
         <label><span>استلمت 💵</span><input inputmode="numeric" data-k="c" value="${oC[c.id]||""}" placeholder="0"><small class="ent-v"></small></label></div>
-      ${lg.length?`<ul class="ent-lg">${lg.map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:""}
+      ${lg.length?`<ul class="ent-lg">${lg.map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="debt"?"🧾 دين على زبون":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:""}
       <div class="row" style="justify-content:flex-start;gap:6px"><button class="btn sm" data-q="expense">+ مصروف</button><button class="btn sm" data-q="advance">+ سلفة</button></div></section>`};
   const people=await rpc("taxi_admin_ledger_people",{p_pin:PIN}).catch(()=>[]);
   const plg=LG.filter(i=>i.staff);
   $("#enb").innerHTML=`<div class="ent-list">${G.cars.map(card).join("")}</div>
     ${people.length?`<h3 style="margin:14px 0 6px">الموظفين</h3><div class="ent-list">${people.map(pp=>`<section class="ent-c" data-person="${pp.id}"><h4>👤 ${esc(pp.name)}</h4>
-      ${plg.filter(i=>i.person_id===pp.id).length?`<ul class="ent-lg">${plg.filter(i=>i.person_id===pp.id).map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:`<small class="note">ماكو شي بهذا اليوم</small>`}
+      ${plg.filter(i=>i.person_id===pp.id).length?`<ul class="ent-lg">${plg.filter(i=>i.person_id===pp.id).map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="debt"?"🧾 دين على زبون":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:`<small class="note">ماكو شي بهذا اليوم</small>`}
       <div class="row" style="justify-content:flex-start;gap:6px"><button class="btn sm" data-q="expense">+ مصروف</button><button class="btn sm" data-q="advance">+ سلفة</button></div></section>`).join("")}</div>`:""}
     <div class="ent-tot" id="en-tot"></div>`;
   const tot=()=>{let t=0,k=0;$("#enb").querySelectorAll("input[data-k]").forEach(i=>{const v=entNum(i.value);if(i.dataset.k==="t")t+=v;else k+=v});
