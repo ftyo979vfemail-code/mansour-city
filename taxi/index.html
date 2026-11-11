@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611111837";
+const BUILD="202611111856";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2450,7 +2450,7 @@ async function openLedger(id){const c=cars.find(z=>z.id===id);if(!c)return;
   if(OWNER()){try{const r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_day:null,p_period:"month"});const x=r.rows.find(z=>z.id===id);if(x)return driverLedger(x)}catch{}}
   driverLedger({id:c.id,plate:c.plate,driver_name:c.driver_name})}
 /* ---------- settlement: every driver's accounts for a period, each day apart, then close it ---------- */
-let stF=null, stT=null;
+let stF=null, stT=null, stShift="all";
 async function renderSettle(){
   const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10);
   const sh=(d,n)=>{const x=new Date(d+"T12:00:00Z");x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
@@ -2459,18 +2459,21 @@ async function renderSettle(){
   $("#view").innerHTML=`<div class="wrap" id="stv"><div class="bar"><h2>🧮 المحاسبة</h2>
     <div class="row" style="gap:6px;flex-wrap:wrap;align-items:center"><label>من <input type="date" id="st-f" value="${stF}" max="${today}"></label><label>لحد <input type="date" id="st-t" value="${stT}" max="${today}"></label>
       <button class="btn sm" data-sq="3">آخر 3 أيام</button><button class="btn sm" data-sq="m">هذا الشهر</button><button class="btn sm" id="st-c">📋 نسخ</button><button class="btn sm" id="st-h">📚 المحاسبات المخزونة</button></div></div>
-    <p class="note" style="margin:0 0 10px">حساب كل سائق بهاي الفترة، كل يوم بروحه. الخطوط ما تنحسب بالمبالغ.</p>
+    <div class="seg" role="radiogroup" aria-label="الدوام" style="margin:0 0 8px">${[["all","الكل"],["morning","☀️ الصباحي (ينتهي 7)"],["evening","🌙 المسائي (ينتهي 11)"]].map(([k,t])=>`<button type="button" role="radio" aria-checked="${stShift===k}" class="btn sm${stShift===k?" primary":""}" data-ssh="${k}">${t}</button>`).join("")}</div>
+    <p class="note" style="margin:0 0 10px">حساب كل سائق بهاي الفترة، كل يوم بروحه. يوم الشغل يخلص الساعة 5 الصبح: السفرة بعد نص الليل تنحسب على مسائي اليوم اللي قبله. الخطوط ما تنحسب بالمبالغ.</p>
     <div id="stb"><div class="empty">جارٍ التحميل…</div></div></div>`;
   const re=()=>renderSettle();
   $("#st-f").onchange=e=>{stF=e.target.value||stF;if(stF>stT)stT=stF;re()}; $("#st-t").onchange=e=>{stT=e.target.value||stT;if(stF>stT)stF=stT;re()};
   document.querySelectorAll("[data-sq]").forEach(b=>b.onclick=()=>{stT=today;stF=b.dataset.sq==="m"?today.slice(0,8)+"01":sh(today,-2);re()});
   $("#st-h").onclick=()=>closingsList();
+  document.querySelectorAll("[data-ssh]").forEach(b=>b.onclick=()=>{stShift=b.dataset.ssh;re()});
   let r, AV=[]; try{[r,AV]=await Promise.all([rpc("taxi_admin_period",{p_pin:PIN,p_from:stF,p_to:stT}),rpc("taxi_admin_advances_open",{p_pin:PIN}).catch(()=>[])])}catch(e){$("#stb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
-  const C=r.cars, T={f:0,k:0,c:0,b:0};
+  const C=r.cars.filter(c=>stShift==="all"||(c.shift||"morning")===stShift), T={f:0,k:0,c:0,b:0};
   C.forEach(c=>{T.f+=c.fares;T.k+=c.received;T.c+=c.from_cash;T.b+=c.balance});
   const card=c=>{const closed=c.last_closing&&c.last_closing.to>=stT, by=d=>c.trips.filter(t=>t.day===d&&!t.line);
     const st=c.balance===0?`<span class="pill s-ok">✓ الحساب صفر</span>`:c.balance>0?`<span class="pill s-bad">بذمّته ${fmt(c.balance)}</span>`:`<span class="pill s-warn">إله ${fmt(-c.balance)}</span>`;
-    return `<section class="st-c"><h3>${plateHTML(c.plate)} ${esc(c.driver_name)} ${st}${closed?` <span class="pill s-idle">📚 متحاسب ${dl(c.last_closing.to)}</span>`:""}</h3>
+    const sh=c.shift==="evening"?`<button type="button" class="pill s-idle" data-shf="${c.id}" title="غيّر الدوام">🌙 مسائي</button>`:`<button type="button" class="pill s-idle" data-shf="${c.id}" title="غيّر الدوام">☀️ صباحي</button>`;
+    return `<section class="st-c"><h3>${plateHTML(c.plate)} ${esc(c.driver_name)} ${sh} ${st}${closed?` <span class="pill s-idle">📚 متحاسب ${dl(c.last_closing.to)}</span>`:""}</h3>
       ${c.days.length?`<div class="st-days">${c.days.map(d=>`<details><summary><span>${dl(d.d)}</span><span>${d.trips} سفرة${d.lines?` · ${d.lines} خط`:""}</span><b>${fmt(d.fares)}</b></summary><ul class="st-tr">${by(d.d).map(t=>`<li><span>${esc(t.time)} · ${esc(t.to||"—")}${t.quick?" ⚠️":""}</span><b>${fmt(t.fare)}</b></li>`).join("")}</ul></details>`).join("")}
         <div class="st-sum"><span>المجموع</span><span>${c.trips_n} سفرة${c.lines_n?` · ${c.lines_n} خط`:""}</span><b>${fmt(c.fares)}</b></div></div>`:`<p class="note">ما عنده سفرات بهاي الفترة.</p>`}
       <div class="calc"><div><span>جاب</span><b>${dinar(c.fares)}</b></div>
@@ -2490,6 +2493,8 @@ async function renderSettle(){
   if($("#av-ok"))$("#av-ok").onclick=async e=>{const ids=[...document.querySelectorAll("[data-av]:checked")].map(x=>+x.dataset.av);if(!ids.length)return toast("أشّر السلف اللي انخصمت");
     const btn=e.currentTarget;btn.disabled=true;try{await rpc("taxi_admin_advances_deduct",{p_pin:PIN,p_ids:ids});toast("انسجلت مستلمة");renderSettle()}catch(er){btn.disabled=false;toast(er.message)}};
   $("#st-c").onclick=()=>copy([`🧮 محاسبة ${dl(stF)} → ${dl(stT)}`,...C.map(c=>[`\n${c.driver_name}: جاب ${fmt(c.fares)} (${c.trips_n} سفرة)`,...c.days.map(d=>`- ${dl(d.d)}: ${fmt(d.fares)} (${d.trips} سفرة)`),`استلمنا ${fmt(c.received)}${c.from_cash?` · من الكاش ${fmt(c.from_cash)}`:""} · ${c.balance>=0?"الباقي":"إله"} ${fmt(Math.abs(c.balance))}`].join("\n"))].join("\n"));
+  $("#stb").querySelectorAll("[data-shf]").forEach(b=>b.onclick=async()=>{const c=r.cars.find(x=>x.id===b.dataset.shf);const to=c.shift==="evening"?"morning":"evening";
+    try{await rpc("taxi_admin_car_shift",{p_pin:PIN,p_car:c.id,p_shift:to});toast(`${c.driver_name}: صار ${to==="evening"?"🌙 مسائي":"☀️ صباحي"}`);re()}catch(e){toast(e.message)}});
   $("#stb").querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const c=C.find(x=>x.id===b.dataset.close);
     const m=modal(`<h3>✅ محاسبة ${esc(c.driver_name)}</h3><p class="note" style="margin:0">${dl(stF)} → ${dl(stT)} · جاب ${fmt(c.fares)} · استلمنا ${fmt(c.received)}</p>
       ${c.balance>0?`<fieldset class="md-rec"><legend>الباقي ${fmt(c.balance)} شنو يصير بيه؟</legend>
@@ -2885,6 +2890,7 @@ function carForm(c){
      <div class="field"><label for="f-color">اللون</label><input id="f-color" value="${esc(v.color)}" placeholder="أبيض"></div>
      <div class="field"><label for="f-driver">اسم السائق *</label><input id="f-driver" required value="${esc(v.driver_name)}"></div>
      <div class="field"><label for="f-phone">هاتف السائق</label><input id="f-phone" inputmode="tel" dir="ltr" value="${esc(v.driver_phone)}" placeholder="07xx xxx xxxx"></div>
+     <div class="field"><label for="f-shift">الدوام</label><select id="f-shift" class="btn" style="width:100%;min-height:46px;text-align:start"><option value="morning" ${v.shift!=="evening"?"selected":""}>☀️ صباحي (ينتهي 7 المسا)</option><option value="evening" ${v.shift==="evening"?"selected":""}>🌙 مسائي (ينتهي 11 بالليل)</option></select></div>
     </div>
     <div class="err" id="fe"></div>
     <div class="row"><button type="button" class="btn" id="fc">إلغاء</button><button class="btn primary">${c?"حفظ التعديل":"إضافة السيارة"}</button></div>
@@ -2893,7 +2899,9 @@ function carForm(c){
   $("#cf",m).onsubmit=async e=>{e.preventDefault();
     const p={plate:$("#f-plate",m).value,model:$("#f-model",m).value,year:$("#f-year",m).value,color:$("#f-color",m).value,driver_name:$("#f-driver",m).value,driver_phone:$("#f-phone",m).value};
     if(c){p.id=c.id;p.active=c.active}
-    try{const r=await rpc("taxi_admin_save",{p_pin:PIN,p});m.remove();await poll();
+    try{const r=await rpc("taxi_admin_save",{p_pin:PIN,p});const sh=$("#f-shift",m).value, cid=c?c.id:r.id;
+      if(cid&&(!c||c.shift!==sh)) await rpc("taxi_admin_car_shift",{p_pin:PIN,p_car:cid,p_shift:sh}).catch(()=>{});
+      m.remove();await poll();
       if(!c) showCode(r); else toast("تم الحفظ");
     }catch(err){$("#fe",m).textContent=err.message}};
 }

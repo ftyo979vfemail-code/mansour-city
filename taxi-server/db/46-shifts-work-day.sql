@@ -1,0 +1,4 @@
+-- 46: shifts. taxi_cars.shift 'morning' (ends 7 PM) | 'evening' (ends 11 PM); set via taxi_admin_car_shift(pin, car, shift).
+-- Work day: taxi_work_day(ts) = Baghdad date of (ts − day_cutoff_hour [setting, default 5]) — a trip after midnight belongs to the
+-- evening of the day before. Used by taxi_period_json, taxi_admin_month_days, taxi_admin_record_days; taxi_admin_period returns shift.
+-- Applied as migration taxi_shifts_work_day.
