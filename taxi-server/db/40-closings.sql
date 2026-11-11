@@ -2,3 +2,7 @@
 -- advances, expenses, customer debts, balance after, note, full detail of trips/receipts/ledger). taxi_admin_closings lists them.
 -- 2026-11-11: حيدر settled for 9–11/11: 153,000 brought − 25,000 advances from cash = 118,000 cash + 10,000 customer debt; balance 0.
 -- (receipt #29 43,000 → 13,000; duplicate advance #13 removed; backups in taxi_backup.haidar_*_20261111)
+-- taxi_ledger.kind now also allows 'settle' (تسوية): closes part of a balance at a settlement without counting as cash
+-- received, an expense or an advance. 2026-11-11: وسام settled 9–11/11: 278,500 brought, 183,500 recorded as received,
+-- 95,000 received off the books (settle). A duplicate 95,000 receipt + closing made by another session were removed
+-- (backup taxi_backup.wisam_dup_20261111).

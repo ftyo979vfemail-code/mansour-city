@@ -570,7 +570,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611111755";
+const BUILD="202611111800";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2362,13 +2362,13 @@ async function renderReceipts(){
     LG.filter(i=>i.car_id===car).forEach(i=>{const sp=Object.keys(spent).find(id=>spent[id].some(x=>x.id===i.id));
       const r=sp?rs.find(k=>k.id===+sp):rs.find(k=>kDay(k)>=i.day);
       if(r){(att[r.id]=att[r.id]||[]).push(i);attOf[i.id]=r.id}})});
-  const lgItem=i=>`<li class="${i.kind}"><span class="lg-amt">${i.kind==="advance"?"🤝":"💸"} ${fmt(i.amount)}</span>
-      <span><b>${i.kind==="advance"?"سلفة":"مصروف"} · ${esc(i.driver_name)}</b>${i.staff?` <span class="pill s-idle">موظف</span>`:""}<br><span class="lg-why">${i.note?esc(i.note):"<i>بدون سبب</i>"}</span><br><small style="color:var(--muted)">${i.staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده (انخصمت من اللي لازم يسلّمه)":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده (انخصم من اللي لازم يسلّمه)":unsp[i.id]?`ينخصم من أول استلام إله من هذا اليوم وطالع${unsp[i.id]<i.amount?` (باقي ${fmt(unsp[i.id])})`:""}`:"انصرف من استلام هذا اليوم")}${i.car_id&&!attOf[i.id]?` · <b>تنتظر التسوية الجاية</b>`:""}</small></span>
+  const lgItem=i=>`<li class="${i.kind}"><span class="lg-amt">${(i.kind==="settle"?"⚖️":i.kind==="advance"?"🤝":"💸")} ${fmt(i.amount)}</span>
+      <span><b>${(i.kind==="settle"?"تسوية":i.kind==="advance"?"سلفة":"مصروف")} · ${esc(i.driver_name)}</b>${i.staff?` <span class="pill s-idle">موظف</span>`:""}<br><span class="lg-why">${i.note?esc(i.note):"<i>بدون سبب</i>"}</span><br><small style="color:var(--muted)">${i.kind==="settle"?"انحسبت مستلمة بالمحاسبة (ما داخلة بمجموع الاستلامات)":i.staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده (انخصمت من اللي لازم يسلّمه)":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده (انخصم من اللي لازم يسلّمه)":unsp[i.id]?`ينخصم من أول استلام إله من هذا اليوم وطالع${unsp[i.id]<i.amount?` (باقي ${fmt(unsp[i.id])})`:""}`:"انصرف من استلام هذا اليوم")}${i.car_id&&!attOf[i.id]?` · <b>تنتظر التسوية الجاية</b>`:""}</small></span>
       <span class="acts"><button class="btn sm" ${i.staff?`data-lgp="${i.person_id}"`:`data-lgo="${i.car_id}"`}>${OWNER()?"تعديل":"التفاصيل"}</button></span></li>`;
   const rcItem=k=>{const tr=k.trips, first=tr[0], last=tr[tr.length-1];
       const sp=spent[k.id]||[], spT=sp.reduce((a,x)=>a+x.amount,0), A=att[k.id]||[];
       const fc=A.filter(i=>i.from_cash), fcT=fc.reduce((a,i)=>a+i.amount,0), oa=A.filter(i=>!i.from_cash&&i.kind==="advance"), oaT=oa.reduce((a,i)=>a+i.amount,0);
-      const lab=i=>i.kind==="advance"?(i.from_cash?"🤝 سلفة من الكاش":"🤝 سلفة من المكتب"):(i.from_cash?"💸 مصروف من الكاش":"💸 مصروف من المبلغ");
+      const lab=i=>i.kind==="settle"?"⚖️ تسوية بالمحاسبة":i.kind==="advance"?(i.from_cash?"🤝 سلفة من الكاش":"🤝 سلفة من المكتب"):(i.from_cash?"💸 مصروف من الكاش":"💸 مصروف من المبلغ");
       return `<details class="rcpt"><summary><span class="rc-amt">💵 ${dinar(k.amount)}${spT?`<small class="rc-net">− صرف ${fmt(spT)}<br>= صافي <b>${fmt(k.amount-spT)}</b></small>`:""}${A.length?`<small class="pill s-warn" style="margin-top:4px">ويّاها ${A.length} ${A.some(i=>i.kind==="advance")?"سلف/مصاريف":"مصاريف"}</small>`:""}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>${k.manual_day?"استلام قديم (إدخال يدوي)":tm(k.at)}${who(k.note)&&!k.manual_day?` · استلمه ${esc(who(k.note))}`:""}</small></span>
         <span class="rc-cov">${tr.length?`غطّى ${tr.length} ${tr.length===1?"سفرة":"سفرات"}<br><small>${dD(first.ended_at)}${tr.length>1&&dD(first.ended_at)!==dD(last.ended_at)?` — ${dD(last.ended_at)}`:""}</small>`:"ما غطّى سفرات"}${k.unallocated>0?`<br><small style="color:var(--ok)">+ ${fmt(k.unallocated)} زيادة (رصيد إله)</small>`:""}</span></summary>
         <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الوقت</th><th>من ← إلى</th><th>الكروة</th><th>انحسب من هذا الاستلام</th></tr></thead><tbody>
@@ -2455,7 +2455,7 @@ async function closingsList(){
       <p class="note" style="margin:8px 14px">${esc(k.note)}</p>
       <div class="calc" style="margin:0 14px"><div><span>جاب</span><b>${dinar(k.fares)}</b></div>${k.advances?`<div><span>− سلف من الكاش</span><b>${dinar(k.advances)}</b></div>`:""}${k.expenses?`<div><span>− مصاريف</span><b>${dinar(k.expenses)}</b></div>`:""}${k.debts?`<div><span>− دين على زبائن</span><b>${dinar(k.debts)}</b></div>`:""}<div class="tot"><span>استلمنا كاش</span><b>${dinar(k.received)}</b></div></div>
       ${T.length?`<div class="tbl-wrap"><table><thead><tr><th>اليوم</th><th>الوقت</th><th>لوين</th><th>الكروة</th></tr></thead><tbody>${T.map(t=>`<tr><td>${d(t.day)}</td><td>${esc(t.time||"")}</td><td>${esc(t.to||"—")}</td><td class="num">${fmt(t.fare)}</td></tr>`).join("")}</tbody></table></div>`:""}
-      ${G.length?`<ul class="rc-sp">${G.map(i=>`<li>${i.kind==="advance"?"🤝 سلفة":"💸 مصروف"} <b>${fmt(i.amount)}</b> · ${d(i.day)} · ${esc(i.note||"")}</li>`).join("")}</ul>`:""}
+      ${G.length?`<ul class="rc-sp">${G.map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b> · ${d(i.day)} · ${esc(i.note||"")}</li>`).join("")}</ul>`:""}
       ${R.length?`<p class="note" style="margin:6px 14px">الدفعات: ${R.map(r=>fmt(r.amount)).join(" + ")}</p>`:""}</details>`}).join(""):`<p class="note">لسه ماكو محاسبات مخزونة.</p>`;
 }
 async function openPerson(id){let P=[];try{P=await rpc("taxi_admin_ledger_people",{p_pin:PIN})}catch(e){return toast(e.message)}
@@ -2474,7 +2474,7 @@ async function driverLedger(x){
   const load=async()=>{let r;try{r=staff?await rpc("taxi_admin_ledger_person_list",{p_pin:PIN,p_person:x.person_id}):await rpc("taxi_admin_ledger_list",{p_pin:PIN,p_car:x.id})}catch(e){$("#lg-list",m).innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
     const dd=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
     $("#lg-list",m).innerHTML=`<p class="note" style="margin:0">كل السلف عليه: <b>${dinar(r.advances_total)}</b> · كل المصاريف: <b>${dinar(r.expenses_total)}</b></p>
-      ${r.items.length?`<ul class="log">${r.items.map(i=>`<li><span class="pill ${i.kind==="advance"?"s-warn":"s-idle"}">${i.kind==="advance"?"🤝 سلفة":"💸 مصروف"}</span><span><b class="num">${fmt(i.amount)}</b> · ${dd(i.day)}${i.note?`<br><small>${esc(i.note)}</small>`:""}<br><small style="color:var(--muted)">${staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده":"انصرف من المبلغ المسلّم")}</small></span>${OWNER()?`<span class="acts"><button class="btn sm" data-le="${i.id}">تعديل</button><button class="btn sm danger" data-ld="${i.id}">حذف</button></span>`:`<small style="color:var(--muted)">${esc(i.by||"")}</small>`}</li>`).join("")}</ul>`:`<p class="note">ماكو مصاريف ولا سلف.</p>`}`;
+      ${r.items.length?`<ul class="log">${r.items.map(i=>`<li><span class="pill ${i.kind==="advance"?"s-warn":"s-idle"}">${(i.kind==="settle"?"⚖️ تسوية":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")}</span><span><b class="num">${fmt(i.amount)}</b> · ${dd(i.day)}${i.note?`<br><small>${esc(i.note)}</small>`:""}<br><small style="color:var(--muted)">${staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده":"انصرف من المبلغ المسلّم")}</small></span>${OWNER()?`<span class="acts"><button class="btn sm" data-le="${i.id}">تعديل</button><button class="btn sm danger" data-ld="${i.id}">حذف</button></span>`:`<small style="color:var(--muted)">${esc(i.by||"")}</small>`}</li>`).join("")}</ul>`:`<p class="note">ماكو مصاريف ولا سلف.</p>`}`;
     $("#lg-list",m).querySelectorAll("[data-le]").forEach(b=>b.onclick=()=>form(r.items.find(i=>i.id===+b.dataset.le)));
     $("#lg-list",m).querySelectorAll("[data-ld]").forEach(b=>b.onclick=async()=>{if(b.dataset.sure!=="1"){b.dataset.sure="1";b.textContent="متأكد؟";return}
       try{await rpc("taxi_admin_ledger_delete",{p_pin:PIN,p_id:+b.dataset.ld});changed=true;toast("انحذف");load()}catch(e){toast(e.message)}})};
@@ -2521,13 +2521,13 @@ async function renderEntry(){
     return `<section class="ent-c" data-car="${c.id}"><h4>${plateHTML(c.plate)} ${esc(c.driver_name)}${appN>0?`<small class="pill s-idle">من التطبيق: ${appN} سفرة · ${fmt(appF)}</small>`:""}</h4>
       <div class="ent-g"><label><span>جاب 🚕</span><input inputmode="numeric" data-k="t" value="${oT[c.id]||""}" placeholder="0"><small class="ent-v"></small>${appN>0?`<small style="color:var(--muted);font-weight:400">سفرات التطبيق محسوبة، اكتب بس اللي ما انسجل</small>`:""}</label>
         <label><span>استلمت 💵</span><input inputmode="numeric" data-k="c" value="${oC[c.id]||""}" placeholder="0"><small class="ent-v"></small></label></div>
-      ${lg.length?`<ul class="ent-lg">${lg.map(i=>`<li>${i.kind==="advance"?"🤝 سلفة":"💸 مصروف"} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:""}
+      ${lg.length?`<ul class="ent-lg">${lg.map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:""}
       <div class="row" style="justify-content:flex-start;gap:6px"><button class="btn sm" data-q="expense">+ مصروف</button><button class="btn sm" data-q="advance">+ سلفة</button></div></section>`};
   const people=await rpc("taxi_admin_ledger_people",{p_pin:PIN}).catch(()=>[]);
   const plg=LG.filter(i=>i.staff);
   $("#enb").innerHTML=`<div class="ent-list">${G.cars.map(card).join("")}</div>
     ${people.length?`<h3 style="margin:14px 0 6px">الموظفين</h3><div class="ent-list">${people.map(pp=>`<section class="ent-c" data-person="${pp.id}"><h4>👤 ${esc(pp.name)}</h4>
-      ${plg.filter(i=>i.person_id===pp.id).length?`<ul class="ent-lg">${plg.filter(i=>i.person_id===pp.id).map(i=>`<li>${i.kind==="advance"?"🤝 سلفة":"💸 مصروف"} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:`<small class="note">ماكو شي بهذا اليوم</small>`}
+      ${plg.filter(i=>i.person_id===pp.id).length?`<ul class="ent-lg">${plg.filter(i=>i.person_id===pp.id).map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:`<small class="note">ماكو شي بهذا اليوم</small>`}
       <div class="row" style="justify-content:flex-start;gap:6px"><button class="btn sm" data-q="expense">+ مصروف</button><button class="btn sm" data-q="advance">+ سلفة</button></div></section>`).join("")}</div>`:""}
     <div class="ent-tot" id="en-tot"></div>`;
   const tot=()=>{let t=0,k=0;$("#enb").querySelectorAll("input[data-k]").forEach(i=>{const v=entNum(i.value);if(i.dataset.k==="t")t+=v;else k+=v});
