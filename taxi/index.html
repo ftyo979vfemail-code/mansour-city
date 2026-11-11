@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611111917";
+const BUILD="202611111937";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2469,7 +2469,7 @@ async function renderSettle(){
   document.querySelectorAll("[data-ssh]").forEach(b=>b.onclick=()=>{stShift=b.dataset.ssh;re()});
   let r, AV=[]; try{[r,AV]=await Promise.all([rpc("taxi_admin_period",{p_pin:PIN,p_from:stF,p_to:stT}),rpc("taxi_admin_advances_open",{p_pin:PIN}).catch(()=>[])])}catch(e){$("#stb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
   const C=r.cars.filter(c=>stShift==="all"||(c.shift||"morning")===stShift), T={f:0,k:0,c:0,b:0};
-  C.forEach(c=>{T.f+=c.fares;T.k+=c.received;T.c+=c.from_cash;T.b+=c.balance});
+  T.o=0; C.forEach(c=>{T.f+=c.fares;T.k+=c.received;T.c+=c.from_cash;T.b+=c.balance;T.o+=c.ledger.filter(i=>!i.from_cash&&(i.kind==="advance"||i.kind==="expense")).reduce((a,i)=>a+i.amount,0)});
   const card=c=>{const closed=c.last_closing&&c.last_closing.to>=stT, by=d=>c.trips.filter(t=>t.day===d&&!t.line);
     const st=c.balance===0?`<span class="pill s-ok">✓ الحساب صفر</span>`:c.balance>0?`<span class="pill s-bad">بذمّته ${fmt(c.balance)}</span>`:`<span class="pill s-warn">إله ${fmt(-c.balance)}</span>`;
     const sh=c.shift==="evening"?`<button type="button" class="pill s-idle" data-shf="${c.id}" title="غيّر الدوام">🌙 مسائي</button>`:`<button type="button" class="pill s-idle" data-shf="${c.id}" title="غيّر الدوام">☀️ صباحي</button>`;
@@ -2483,7 +2483,7 @@ async function renderSettle(){
       ${c.ledger.filter(i=>!i.from_cash).length?`<p class="note" style="margin:4px 0">من المكتب: ${c.ledger.filter(i=>!i.from_cash).map(i=>`${i.kind==="advance"?"سلفة":"مصروف"} ${fmt(i.amount)}${i.note?` (${esc(i.note)})`:""}`).join("، ")}</p>`:""}
       ${c.balance_all!==c.balance?`<p class="note" style="margin:4px 0;color:var(--warn)">حسابه الكلّي (كل الفترات): ${c.balance_all>=0?"بذمّته":"إله"} ${fmt(Math.abs(c.balance_all))}</p>`:""}
       ${OWNER()?`<div class="row" style="justify-content:flex-start"><button class="btn ${closed?"":"primary"} sm" data-close="${c.id}">✅ صفّر وخزّن المحاسبة</button></div>`:""}</section>`};
-  $("#stb").innerHTML=`<div class="kpis"><div class="kpi"><small>جابوا</small><b>${dinar(T.f)}</b><small>${dl(stF)} → ${dl(stT)}</small></div><div class="kpi"><small>استلمنا</small><b>${dinar(T.k)}</b></div>${T.c?`<div class="kpi"><small>سلف/مصاريف/تسويات من الكاش</small><b>${dinar(T.c)}</b></div>`:""}<div class="kpi ${T.b>0?"warn":""}"><small>الباقي بذمّة السواق</small><b>${dinar(T.b)}</b></div></div>
+  $("#stb").innerHTML=`<div class="kpis"><div class="kpi"><small>جابوا</small><b>${dinar(T.f)}</b><small>${dl(stF)} → ${dl(stT)}</small></div><div class="kpi"><small>استلمنا</small><b>${dinar(T.k)}</b></div>${T.o?`<div class="kpi"><small>💵 بإيد الإدارة</small><b>${dinar(T.k-T.o)}</b><small>استلمنا − سلف ومصاريف طلعت من المكتب ${fmt(T.o)}</small></div>`:""}${T.c?`<div class="kpi"><small>سلف/مصاريف/تسويات من الكاش</small><b>${dinar(T.c)}</b></div>`:""}<div class="kpi ${T.b>0?"warn":""}"><small>الباقي بذمّة السواق</small><b>${dinar(T.b)}</b></div></div>
     <div class="st-list">${C.map(card).join("")}</div>
     <section class="st-c" style="margin-top:12px"><h3>🤝 السلف والديون المفتوحة</h3><p class="note" style="margin:0">تبقى بالنظام لحد ما تنستلم: السلف تنخصم من الراتب، والديون من تدفعها الزبائن.</p>
       ${AV.length?(()=>{const G={};AV.forEach(a=>{(G[a.name]=G[a.name]||[]).push(a)});
