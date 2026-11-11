@@ -66,9 +66,10 @@ const BK_PROMPT = (hint: string) => `أمامك ملف حجز شقة/وحدة س
 استخرج بيانات الحجز وكل الدفعات المدفوعة فعلاً بدون استثناء:
 - buyer: name (اسم المشتري الكامل), phone, id_no (رقم الهوية/البطاقة), address.
 - plan: total (السعر الكلي بعد الخصم), down (المقدمة), handover (دفعة الاستلام), monthly (القسط الشهري), months (عدد الأقساط), start_month (أول قسط YYYY-MM-DD), signed_on (تاريخ الحجز/العقد YYYY-MM-DD), area (المساحة م2), price_m (سعر المتر), unit (رقم الشقة/الوحدة كما مكتوب).
+- schedule: جدول خطة الدفع المتفق عليها كامل (كل استحقاق بالخطة، مدفوع أو لا) بالترتيب: due (تاريخ الاستحقاق YYYY-MM-DD أو فارغ إذا عند الاستلام)، amount، kind ("down" للمقدمة ودفعاتها والدفعات الكبيرة الدورية مثل دفعة كل 3 أشهر، "monthly" للقسط الشهري، "hand" لدفعة الاستلام/التسليم، "other")، label (مثل: الدفعة الثانية، قسط 5). إذا الجدول مكتوب كقاعدة (مثلاً 36 قسط × 2,500,000 تبدأ 2025-03-01) فكّه لأسطر.
 - payments: كل مبلغ مستلم من المشتري: day (YYYY-MM-DD), amount (رقم بالدينار بدون فواصل), cur ("IQD" أو "USD"), ref (رقم الوصل), note (عن شنو: مقدمة، قسط 3، دفعة استلام...).
 لا تحسب الأقساط المستقبلية غير المدفوعة كدفعات. لا تكرر نفس الوصل. أسطر المجموع والرصيد ليست دفعات. إذا الحقل مو موجود اتركه فارغ.
-أجب بـ JSON فقط ومضغوط: {"buyer":{"name":"","phone":"","id_no":"","address":""},"plan":{"total":0,"down":0,"handover":0,"monthly":0,"months":0,"start_month":"","signed_on":"","area":0,"price_m":0,"unit":""},"payments":[{"day":"","amount":0,"cur":"IQD","ref":"","note":""}],"notes":[]}`;
+أجب بـ JSON فقط ومضغوط: {"buyer":{"name":"","phone":"","id_no":"","address":""},"plan":{"total":0,"down":0,"handover":0,"monthly":0,"months":0,"start_month":"","signed_on":"","area":0,"price_m":0,"unit":""},"schedule":[{"due":"","amount":0,"kind":"monthly","label":""}],"payments":[{"day":"","amount":0,"cur":"IQD","ref":"","note":""}],"notes":[]}`;
 
 const TABLE_PROMPT = `أمامك ملف أو صورة فيها جدول بيانات (قوائم مشترين أو مستأجرين أو حجوزات أو عقود أو وحدات سكنية) من نظام قديم. قد يكون بالعربي أو الإنكليزي، مطبوع أو بخط اليد.
 انقل الجدول كما هو حرفياً: سطر العناوين ثم كل سطر بيانات. لا تترجم ولا تغيّر الأسماء أو الأرقام، ولا تحذف أي سطر بيانات، ولا تضف أسطر المجاميع.
@@ -195,6 +196,7 @@ Deno.serve(async (req) => {
       return json({
         buyer: { name: st(b.name, 120), phone: st(b.phone, 30), id_no: st(b.id_no, 40), address: st(b.address, 200) },
         plan: { total: num(pl.total), down: num(pl.down), handover: num(pl.handover), monthly: num(pl.monthly), months: Math.round(num(pl.months)), start_month: dy(pl.start_month), signed_on: dy(pl.signed_on), area: num(pl.area), price_m: num(pl.price_m), unit: st(pl.unit, 40) },
+        schedule: (Array.isArray(bj.schedule) ? bj.schedule : []).slice(0, 600).map((x: Record<string, unknown>) => ({ due: dy(x.due), amount: num(x.amount), kind: ["down", "monthly", "hand"].includes(String(x.kind)) ? String(x.kind) : "other", label: st(x.label, 80) })).filter((x: { amount: number }) => x.amount > 0),
         payments: (Array.isArray(bj.payments) ? bj.payments : []).slice(0, 1000).map((p: Record<string, unknown>) => ({ day: dy(p.day), amount: num(p.amount), cur: /usd|\$|دولار/i.test(String(p.cur || "")) ? "USD" : "IQD", ref: st(p.ref, 40), note: st(p.note, 200) })).filter((p: { amount: number }) => p.amount > 0),
         notes: (Array.isArray(bj.notes) ? bj.notes : []).slice(0, 10).map((x: unknown) => st(x, 300)), truncated: o.stop_reason === "max_tokens" });
     }

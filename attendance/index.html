@@ -860,7 +860,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='2760bd2186';
+const APP_BUILD='af7bd91e85';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -3599,9 +3599,9 @@ const dayName=d=>d?(+d.slice(8,10))+' '+monName(d.slice(0,7)):'';
 const kSigned=c=>fullD(c.signed_on)||(c.created_at||'').slice(0,10)||bgDay();
 function kSchedule(c){const R=[],P=(k,label,d,a)=>R.push({k,label,d,m:d?d.slice(0,7):null,a});
   if(c.kind==='rent'){const s=fullD(c.rent_start)||bgDay(),e=c.rent_end?ym(c.rent_end):ym(),n=Math.max(0,monDiff(ym(s),e)+1);for(let i=0;i<n;i++){const d=addMD(s,i);P('rent','إيجار '+monName(d.slice(0,7)),d,+c.rent||0)}return R}
-  const dp=kParts(c,'down');if(dp)dp.forEach((p,i)=>P('down','المقدمة — دفعة '+(i+1)+' من '+dp.length,fullD(p.m)||kSigned(c),+p.a||0));else if(+c.down)P('down','المقدمة',kSigned(c),+c.down);
+  const dp=kParts(c,'down');if(dp)dp.forEach((p,i)=>P('down',p.l||('المقدمة — دفعة '+(i+1)+' من '+dp.length),fullD(p.m)||kSigned(c),+p.a||0));else if(+c.down)P('down','المقدمة',kSigned(c),+c.down);
   const st=fullD(c.start_month)||addMD(kSigned(c),1);for(let i=0;i<(+c.months||0);i++)P('inst','قسط '+(i+1),addMD(st,i),i===(+c.months-1)?(+c.total-(+c.down||0)-(+c.handover||0)-(+c.monthly)*(+c.months-1)):+c.monthly);
-  const hp=kParts(c,'hand');if(hp)hp.forEach((p,i)=>P(p.m?'handm':'hand','دفعة الاستلام — '+(i+1)+' من '+hp.length,fullD(p.m),+p.a||0));else if(+c.handover)P('hand','دفعة الاستلام',null,+c.handover);
+  const hp=kParts(c,'hand');if(hp)hp.forEach((p,i)=>P(p.m?'handm':'hand',p.l||('دفعة الاستلام — '+(i+1)+' من '+hp.length),fullD(p.m),+p.a||0));else if(+c.handover)P('hand','دفعة الاستلام',null,+c.handover);
   const key=r=>r.d||'9999-99-99';R.sort((a,b)=>key(a)<key(b)?-1:key(a)>key(b)?1:0);return R}
 const kParts=(c,k)=>{const P=c.parts?.[k];return Array.isArray(P)&&P.length>1?P:Array.isArray(P)&&P.length===1&&k==='down'?P:null};
 const kPartsTxt=(c,k)=>{const P=kParts(c,k);return P&&P.length>1?` (${P.length} دفعات)`:''};
@@ -3731,27 +3731,28 @@ function plansForm(){const P=JSON.parse(JSON.stringify(salesPlans()));while(P.le
   $('#plGo').onclick=async()=>{const g=k=>document.querySelector(`[data-pf="${k}"]`)?.value;const out=P.map((t,i)=>{const n=x=>+normDigits(String(g(i+'.'+x)||'')).replace(/[^\d.]/g,'')||0;return{name:(g(i+'.name')||'').trim()||'قالب '+(i+1),downT:g(i+'.downT'),down:n('down'),downN:Math.max(1,Math.min(24,n('downN')||1)),downIv:+g(i+'.downIv')||1,handT:g(i+'.handT'),hand:n('hand'),months:Math.max(1,Math.min(240,n('months')||1))}});
     if(out.some(t=>(t.downT==='pct'&&t.down>100)||(t.handT==='pct'&&t.hand>100))){$('#plE').textContent='النسبة ما تكون أكثر من 100%';return}
     const {error}=await sb.rpc('set_sales_plans',{p:out});if(error){$('#plE').textContent=error.message;return}S.settings={...S.settings,salesPlans:out};closeOv();render();toast('✓ انحفظت القوالب')}}
-function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const DRE=/(?:^|\s*·\s*)خصم [\d,]+ من [\d,]+(?: \([^)]*\))?(?: — ([^·]*))?/;const dm=(c0?.notes||'').match(DRE),notes0=(c0?.notes||'').replace(DRE,'').replace(/^\s*·\s*/,'').trim(),why0=(dm?.[1]||'').trim();const av=(S.units||[]).filter(u=>u.status==='available'||u.id===unitId||u.id===c0?.unit_id);
+function bookForm(unitId,c0,pre){const p=plan0(),edit=!!c0,c1=c0||pre||null;const DRE=/(?:^|\s*·\s*)خصم [\d,]+ من [\d,]+(?: \([^)]*\))?(?: — ([^·]*))?/;const dm=(c0?.notes||'').match(DRE),notes0=(c0?.notes||'').replace(DRE,'').replace(/^\s*·\s*/,'').trim(),why0=(dm?.[1]||'').trim();const av=(S.units||[]).filter(u=>u.status==='available'||u.id===unitId||u.id===c0?.unit_id);
   if(!av.length){toast('ماكو وحدات متاحة. ضيف وحدة أول.');return}
   const u0=unitOf(unitId||c0?.unit_id)||av[0];const M=(id,l,v,h)=>`<label class="l">${l}${h?` <em>${h}</em>`:''}<input id="${id}" class="in num" dir="ltr" inputmode="numeric" value="${v?nf.format(v):''}"></label>`;
-  overlay('book',edit?'تعديل الحجز':'حجز جديد',`<form class="f" id="fBk">
+  overlay('book',edit?'تعديل الحجز':pre?'📥 حجز من ملف — راجع الخطة':'حجز جديد',`<form class="f" id="fBk">${pre?bkPreTop(pre):''}${edit&&c0.plan_draft?'<div class="banner">📥 خطة مستوردة وما مثبتة بعد — التعديل يتحفظ مباشرة بدون موافقة.</div>':''}
    <div class="fr"><label class="l">العمارة<select id="bkB" class="in"></select></label><label class="l" id="bkFL">الطابق<select id="bkF" class="in"></select></label></div>
    <label class="l"><span id="bkUL">الشقة</span><select id="bkU" class="in"></select></label>
-   <div class="fr"><label class="l">اسم المشتري<input id="bkN" class="in" required maxlength="80" value="${esc(c0?.name||'')}"></label><label class="l">الهاتف<input id="bkPh" class="in num" dir="ltr" inputmode="tel" placeholder="07xxxxxxxxx" value="${esc(c0?.phone||'')}"></label></div>
+   <div class="fr"><label class="l">اسم المشتري<input id="bkN" class="in" required maxlength="80" value="${esc(c1?.name||'')}"></label><label class="l">الهاتف<input id="bkPh" class="in num" dir="ltr" inputmode="tel" placeholder="07xxxxxxxxx" value="${esc(c1?.phone||'')}"></label></div>
    <div class="fr">${M('bkA','المساحة م²',+u0.area)}${M('bkPm','سعر المتر',+u0.price_m||p.price_m)}</div>
    <div class="fr"><label class="l">نوع الخصم<select id="bkDk" class="in"><option value="amt">مبلغ من السعر الكلي</option><option value="pct">نسبة %</option><option value="m">على سعر المتر</option></select></label><label class="l">الخصم <em>(اختياري)</em><input id="bkDs" class="in num" dir="ltr" inputmode="decimal" placeholder="0"></label></div><div class="fr"><label class="l">سبب الخصم<input id="bkDr" class="in" maxlength="120" placeholder="مثال: دفع نقدي، عرض" value="${esc(why0)}"></label></div>
-   ${M('bkT','السعر بعد الخصم',c0?.total||Math.round(u0.area*(u0.price_m||p.price_m)))}<p class="small muted" id="bkBase" style="margin:-6px 0 0"></p>
-   <div class="sec" style="margin:4px 0"><b>📋 اختار خطة السداد</b>${edit?' <span class="small" style="color:var(--warn)">— الحجز مثبت: أي تعديل على الخطة يروح لموافقة الإدارة والمشرف العام</span>':''}<div class="acts" style="margin-top:6px;gap:6px;flex-wrap:wrap">${salesPlans().map((t,i)=>`<button type="button" class="btn sm" data-tpl="${i}" title="${esc(tplDesc(t))}">${esc(t.name)}</button>`).join('')}</div><p class="small muted" id="bkTplD" style="margin:4px 0 0">اختار قالب والأرقام تنملي لحالها — وتكدر تعدّل أي رقم بعدها.</p></div>
-   <div class="fr">${M('bkD','المقدمة',c0?.down??p.down)}${M('bkH','دفعة الاستلام',c0?.handover??p.handover)}</div>
+   ${M('bkT','السعر بعد الخصم',c1?.total||Math.round(u0.area*(u0.price_m||p.price_m)))}<p class="small muted" id="bkBase" style="margin:-6px 0 0"></p>
+   <div class="sec" style="margin:4px 0"><b>📋 ${pre?'خطة السداد (مقروءة من الملف — عدّل إذا بيها خلل)':'اختار خطة السداد'}</b>${edit&&!c0.plan_draft?' <span class="small" style="color:var(--warn)">— الحجز مثبت: أي تعديل على الخطة يروح لموافقة الإدارة والمشرف العام</span>':''}<div class="acts" style="margin-top:6px;gap:6px;flex-wrap:wrap">${salesPlans().map((t,i)=>`<button type="button" class="btn sm" data-tpl="${i}" title="${esc(tplDesc(t))}">${esc(t.name)}</button>`).join('')}</div><p class="small muted" id="bkTplD" style="margin:4px 0 0">اختار قالب والأرقام تنملي لحالها — وتكدر تعدّل أي رقم بعدها.</p></div>
+   <div class="fr">${M('bkD','المقدمة',c1?.down??p.down)}${M('bkH','دفعة الاستلام',c1?.handover??p.handover)}</div>
    <div class="acts" style="margin:-4px 0 0;gap:6px"><button type="button" class="btn sm ghost" id="bkDsp">✂ تقسيم المقدمة على دفعات</button><button type="button" class="btn sm ghost" id="bkHsp">✂ تقسيم الاستلام على دفعات</button></div><div id="bkDP"></div><div id="bkHP"></div>
-   ${M('bkM','القسط الشهري',c0?.monthly??p.monthly)}
-   <div class="fr"><label class="l">تاريخ الحجز / العقد<input id="bkSd" class="in num" type="date" value="${c0?kSigned(c0):bgDay()}"></label><label class="l">أول قسط بتاريخ<input id="bkS" class="in num" type="date" value="${fullD(c0?.start_month)||addMD(bgDay(),1)}"></label></div><p class="small muted" id="bkSn" style="margin:-6px 0 0"></p>
+   ${M('bkM','القسط الشهري',c1?.monthly??p.monthly)}
+   <div class="fr"><label class="l">تاريخ الحجز / العقد<input id="bkSd" class="in num" type="date" value="${c0?kSigned(c0):pre?.signed_on||bgDay()}"></label><label class="l">أول قسط بتاريخ<input id="bkS" class="in num" type="date" value="${fullD(c1?.start_month)||addMD(bgDay(),1)}"></label></div><p class="small muted" id="bkSn" style="margin:-6px 0 0"></p>
    <div class="sec" id="bkCalc" style="margin:4px 0"></div>
    <div class="fr"><label class="l">الحالة<select id="bkSt" class="in">${(edit?['reserved','active','delivered','done']:['reserved','active']).map(k=>`<option value="${k}" ${(c0?.status||'reserved')===k?'selected':''}>${KST[k][0]}</option>`).join('')}</select></label>
-   ${edit?'':`<label class="l">مبلغ مستلم الآن <em>(عربون أو المقدمة)</em><input id="bkPay" class="in num" dir="ltr" inputmode="numeric" placeholder="0"></label>`}</div>
+   ${edit||pre?'':`<label class="l">مبلغ مستلم الآن <em>(عربون أو المقدمة)</em><input id="bkPay" class="in num" dir="ltr" inputmode="numeric" placeholder="0"></label>`}</div>
    <label class="l">ملاحظات<input id="bkNo" class="in" maxlength="400" value="${esc(notes0)}" placeholder="مثال: كفيل، اتفاق خاص…"></label>
-   ${edit&&!isOwner()?`<label class="l">سبب تعديل الخطة <em>(يروح وياه طلب الموافقة إذا غيّرت أرقام الخطة)</em><input id="bkWhy" class="in" maxlength="200" placeholder="مثال: اتفاق جديد ويه الزبون على تقليل القسط"></label>`:''}
-   <div class="err" id="bkE"></div><div class="acts"><button class="btn pri" type="submit">${edit?'حفظ':'تسجيل الحجز'}</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
+   ${pre?bkPrePays(pre):''}
+   ${edit&&!isOwner()&&!c0.plan_draft?`<label class="l">سبب تعديل الخطة <em>(يروح وياه طلب الموافقة إذا غيّرت أرقام الخطة)</em><input id="bkWhy" class="in" maxlength="200" placeholder="مثال: اتفاق جديد ويه الزبون على تقليل القسط"></label>`:''}
+   <div class="err" id="bkE"></div><div class="acts"><button class="btn pri" type="submit">${edit?'حفظ':pre?'📌 تسجيل الحجز وتثبيت الخطة':'تسجيل الحجز'}</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
   const v=id=>cashAmt($('#'+id)?.value)||0;
   const area=()=>+normDigits($('#bkA').value).replace(/,/g,'')||0,base=()=>Math.round(area()*v('bkPm'));
   const disc=()=>{const x=+normDigits($('#bkDs').value).replace(/[^\d.]/g,'')||0,k=$('#bkDk').value,b=base();return Math.max(0,Math.min(b,Math.round(k==='pct'?b*Math.min(x,100)/100:k==='m'?x*area():x)))};
@@ -3776,9 +3777,9 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const DRE=/(?:^|\s*·\s*)
   $('#bkB').addEventListener('change',()=>{drawB($('#bkB').value);$('#bkU').dispatchEvent(new Event('change'))});
   $('#bkF').addEventListener('change',()=>{drawB($('#bkB').value,$('#bkF').value);$('#bkU').dispatchEvent(new Event('change'))});
   $('#bkU').addEventListener('change',()=>{const u=unitOf($('#bkU').value);if(!u)return;$('#bkA').value=nf.format(+u.area);$('#bkPm').value=nf.format(+u.price_m||p.price_m);setT();calc()});
-  $('#bkS').addEventListener('change',calc);if(!edit)setT();else{const d=base()-(+c0.total||0);if(d>0)$('#bkDs').value=nf.format(d);baseTxt()}calc();
+  $('#bkS').addEventListener('change',calc);if(pre&&area()>0&&pre.total>0){$('#bkPm').value=nf.format(Math.round(pre.total/area()))}if(!c1)setT();else{const d=base()-(+c1.total||0);if(d>0)$('#bkDs').value=nf.format(d);baseTxt()}calc();
   /* تقسيم المقدمة / الاستلام على أكثر من دفعة */
-  const cp=k=>{const P=c0?.parts?.[k];return Array.isArray(P)&&P.length>1?P.map(x=>({a:+x.a||0,m:fullD(x.m)||''})):null};
+  const cp=k=>{const P=c1?.parts?.[k];return Array.isArray(P)&&P.length>1?P.map(x=>({a:+x.a||0,m:fullD(x.m)||'',...(x.l?{l:x.l}:{})})):null};
   const PT={down:cp('down'),hand:cp('hand')},PC={down:{n:PT.down?.length||3,iv:1,st:PT.down?.[0]?.m||$('#bkSd').value||bgDay()},hand:{n:PT.hand?.length||2,iv:1,st:PT.hand?.[0]?.m||''}};
   const ptAmt=k=>v(k==='down'?'bkD':'bkH');
   const ptSplit=k=>{const t=ptAmt(k),n=Math.max(2,Math.min(24,+normDigits(PC[k].n)||2)),each=Math.floor(t/n/1000)*1000;PC[k].n=n;PT[k]=Array.from({length:n},(_,i)=>({a:i===n-1?t-each*(n-1):each,m:PC[k].st?addMD(PC[k].st,i*PC[k].iv):''}))};
@@ -3789,7 +3790,7 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const DRE=/(?:^|\s*·\s*)
      ${PT[k].map((x,i)=>`<div class="fr"><label class="l">الدفعة ${i+1}<input class="in num" dir="ltr" inputmode="numeric" data-pt="a" data-k="${k}" data-i="${i}" value="${x.a?nf.format(x.a):''}"></label><label class="l">التاريخ${hm}<input class="in num" type="date" data-pt="m" data-k="${k}" data-i="${i}" value="${x.m||''}"></label></div>`).join('')}
      <p class="small" id="pt_${k}" style="margin:0"></p></div>`;ptSum(k)};
   const ptOn=k=>{if(!(ptAmt(k)>0)){$('#bkE').textContent='اكتب مبلغ '+(k==='down'?'المقدمة':'دفعة الاستلام')+' أول';return}$('#bkE').textContent='';if(k==='down')PC.down.st=$('#bkSd').value||bgDay();ptSplit(k);ptDraw(k);setTimeout(()=>autoS(),0)};
-  let sTouched=edit;const autoS=()=>{const n=$('#bkSn'),st=$('#bkS').value;if(!sTouched){const ds=(PT.down||[]).map(x=>x.m).filter(Boolean).sort(),last=ds.length?ds[ds.length-1]:$('#bkSd').value||bgDay();$('#bkS').value=addMD(last,1)}
+  let sTouched=edit||!!pre?.start_month;const autoS=()=>{const n=$('#bkSn'),st=$('#bkS').value;if(!sTouched){const ds=(PT.down||[]).map(x=>x.m).filter(Boolean).sort(),last=ds.length?ds[ds.length-1]:$('#bkSd').value||bgDay();$('#bkS').value=addMD(last,1)}
     const d=+($('#bkS').value||'').slice(8,10);if(n)n.textContent=d?`الأقساط تستحق يوم ${d} من كل شهر${sTouched?'':' — تلقائياً بعد شهر من '+((PT.down||[]).some(x=>x.m)?'آخر دفعة من المقدمة':'تاريخ الحجز')+'، وتكدر تغيّره'}`:'';calc()};
   $('#bkS').addEventListener('change',()=>{sTouched=true;autoS()});$('#bkSd').addEventListener('change',autoS);$('#fBk').addEventListener('change',e=>{if(e.target.dataset.pt)setTimeout(autoS,0)});
   $('#bkDsp').onclick=()=>ptOn('down');$('#bkHsp').onclick=()=>ptOn('hand');ptDraw('down');ptDraw('hand');autoS();
@@ -3806,18 +3807,21 @@ function bookForm(unitId,c0){const p=plan0(),edit=!!c0;const DRE=/(?:^|\s*·\s*)
   const ptCheck=()=>{for(const k of ['down','hand']){if(!PT[k])continue;const nm=k==='down'?'المقدمة':'دفعة الاستلام';if(PT[k].some(x=>!(+x.a>0)))return'كل دفعة من تقسيم '+nm+' لازم بيها مبلغ';
       if(PT[k].reduce((a,x)=>a+x.a,0)!==ptAmt(k))return'مجموع دفعات '+nm+' لازم يساوي '+iqd(ptAmt(k));if(k==='down'&&PT[k].some(x=>!x.m))return'حدد تاريخ كل دفعة من المقدمة'}return''};
   $('#fBk').addEventListener('submit',async e=>{e.preventDefault();const c=calc();if(v('bkD')+v('bkH')>v('bkT')||!(v('bkT')>0))return;
-    const o={unit_id:$('#bkU').value,name:$('#bkN').value.trim(),phone:normDigits($('#bkPh').value).replace(/\D/g,'')||null,notes:[$('#bkNo').value.trim(),base()-v('bkT')>0?`خصم ${iqd(base()-v('bkT'))} من ${iqd(base())} (${((base()-v('bkT'))/base()*100).toFixed(1)}%)${$('#bkDr').value.trim()?' — '+$('#bkDr').value.trim().replace(/·/g,'-'):''}`:''].filter(Boolean).join(' · ')||null,total:v('bkT'),down:v('bkD'),handover:v('bkH'),monthly:c.monthly,months:c.months,start_month:$('#bkS').value||addMD(bgDay(),1),signed_on:$('#bkSd').value||bgDay(),status:$('#bkSt').value};
-    const pe=ptCheck();if(pe){$('#bkE').textContent=pe;return}o.parts=PT.down||PT.hand?{...(PT.down?{down:PT.down.map(x=>({a:+x.a,m:x.m||''}))}:{}),...(PT.hand?{hand:PT.hand.map(x=>({a:+x.a,m:x.m||''}))}:{})}:c0?.parts?.down?.length===1&&+c0.parts.down[0].a===v('bkD')?{down:c0.parts.down}:null;
-    if(edit&&!isOwner()){const chg=snap()!==B0;
+    const o={unit_id:$('#bkU').value,name:$('#bkN').value.trim(),phone:normDigits($('#bkPh').value).replace(/\D/g,'')||null,notes:[$('#bkNo').value.trim(),!pre&&base()-v('bkT')>0?`خصم ${iqd(base()-v('bkT'))} من ${iqd(base())} (${((base()-v('bkT'))/base()*100).toFixed(1)}%)${$('#bkDr').value.trim()?' — '+$('#bkDr').value.trim().replace(/·/g,'-'):''}`:''].filter(Boolean).join(' · ')||null,total:v('bkT'),down:v('bkD'),handover:v('bkH'),monthly:c.monthly,months:c.months,start_month:$('#bkS').value||addMD(bgDay(),1),signed_on:$('#bkSd').value||bgDay(),status:$('#bkSt').value};
+    const pe=ptCheck();if(pe){$('#bkE').textContent=pe;return}const pm=x=>({a:+x.a,m:x.m||'',...(x.l?{l:x.l}:{})});o.parts=PT.down||PT.hand?{...(PT.down?{down:PT.down.map(pm)}:{}),...(PT.hand?{hand:PT.hand.map(pm)}:{})}:c0?.parts?.down?.length===1&&+c0.parts.down[0].a===v('bkD')?{down:c0.parts.down}:null;
+    if(pre){o.id_no=pre.id_no||null;o.address=pre.address||null;o.plan_draft=true;o.notes=[o.notes,'مستورد من ملف: '+pre.fname].filter(Boolean).join(' · ')}
+    if(edit&&!isOwner()&&!c0.plan_draft){const chg=snap()!==B0;
       if(chg){const why=$('#bkWhy')?.value.trim();if(!why){$('#bkE').textContent='اكتب سبب تعديل الخطة — يروح للموافقة';$('#bkWhy')?.focus();return}
         const {error}=await sb.rpc('contract_change_req',{p_k:c0.id,p_new:o,p_reason:why});if(error){$('#bkE').textContent=error.message;return}
         const o2={name:o.name,phone:o.phone,notes:o.notes};await sb.from('contracts').update(o2).eq('id',c0.id);await kchLoad();await salesLoad();closeOv();render();toast('✍ انرسل طلب تعديل الخطة لموافقة الإدارة والمشرف العام');kOpen(c0.id);return}}
-    let r;if(edit)r=await sb.from('contracts').update(isOwner()?o:{name:o.name,phone:o.phone,notes:o.notes,status:o.status}).eq('id',c0.id).select().single();else r=await sb.from('contracts').insert({...o,kind:'sale',branch:curBranch()}).select().single();
+    let r;if(edit)r=await sb.from('contracts').update(isOwner()||c0.plan_draft?o:{name:o.name,phone:o.phone,notes:o.notes,status:o.status}).eq('id',c0.id).select().single();else r=await sb.from('contracts').insert({...o,kind:'sale',branch:curBranch()}).select().single();
     if(r.error){$('#bkE').textContent=r.error.message;return}const k=r.data;
     const us=['delivered','done','active'].includes(o.status)?'sold':'reserved';await sb.from('units').update({status:us,updated_at:new Date().toISOString()}).eq('id',o.unit_id);
     if(edit&&c0.unit_id!==o.unit_id)await sb.from('units').update({status:'available'}).eq('id',c0.unit_id);
+    if(pre){const sb0=$('#fBk button[type=submit]');try{const n=await bkPreSave(pre,k,t=>{sb0.textContent=t});toast('✓ تسجل الحجز وانحفظت '+n+' دفعة سابقة')}catch(x){$('#bkE').textContent='الحجز انحفظ، بس الدفعات: '+(x.message||x);return}}
     const pay=v('bkPay');if(!edit&&pay>0)await sb.from('cash').insert({branch:curBranch(),by_uid:S.me.id,kind:'in',amount:pay,category:SALES_CAT,party:o.name,note:'مقدمة / عربون حجز — '+(unitOf(o.unit_id)?.code||''),contract_id:k.id,day:bgDay()});
-    await cashLoad();await salesLoad();closeOv();render();toast(edit?'انحفظ':'تسجل الحجز');kOpen(k.id)})}
+    await cashLoad();await salesLoad();closeOv();render();if(!pre)toast(edit?'انحفظ':'تسجل الحجز');kOpen(k.id)});
+  if(pre)bkPreWire(pre)}
 function rentForm(c0){const edit=!!c0;const av=(S.units||[]).filter(u=>['available','rented'].includes(u.status)||u.id===c0?.unit_id);if(!av.length){toast('ماكو وحدات متاحة للإيجار');return}
   overlay('rent',edit?'تعديل عقد الإيجار':'مستأجر جديد',`<form class="f" id="fRt"><label class="l">الوحدة<select id="rtU" class="in">${av.map(u=>`<option value="${u.id}" ${u.id===c0?.unit_id?'selected':''}>${esc(u.code)} — ${UST[u.status][0]}</option>`).join('')}</select></label>
    <div class="fr"><label class="l">اسم المستأجر<input id="rtN" class="in" required maxlength="80" value="${esc(c0?.name||'')}"></label><label class="l">الهاتف<input id="rtPh" class="in num" dir="ltr" inputmode="tel" value="${esc(c0?.phone||'')}"></label></div>
@@ -3834,7 +3838,7 @@ function rentForm(c0){const edit=!!c0;const av=(S.units||[]).filter(u=>['availab
 function kOpen(id){const c=(S.contracts||[]).find(x=>x.id===id);if(!c)return;const u=unitOf(c.unit_id),s=kState(c),w=writesSales(),sale=c.kind==='sale';
   const pays=(S.cash||[]).filter(x=>x.contract_id===c.id).sort((a,b)=>a.day<b.day?1:-1);const nm=x=>esc(S.staff.find(p=>p.id===x)?.full_name||'—');
   const msg=kMsg(c);
-  overlay('kv',(sale?'حجز ':'إيجار ')+esc(c.name),`<div class="sec"><div class="small" style="display:grid;grid-template-columns:auto 1fr;gap:5px 14px">
+  overlay('kv',(sale?'حجز ':'إيجار ')+esc(c.name),`${sale&&c.plan_draft?`<div class="banner" style="display:block">📥 <b>الخطة مستوردة من ملف وما مثبتة بعد.</b> راجع الجدول تحت — إذا بيها خلل عدّلها مباشرة (بدون موافقة)، وإذا صحيحة ثبّتها كخطة أساسية. بعد التثبيت أي تعديل يحتاج موافقة الإدارة.${w?`<div class="acts" style="margin-top:6px"><button class="btn sm" data-a="kDraftEd" data-v="${c.id}">✏ تعديل الخطة</button><button class="btn sm pri" data-a="kDraftOk" data-v="${c.id}">📌 تثبيت كخطة أساسية</button></div>`:''}</div>`:''}<div class="sec"><div class="small" style="display:grid;grid-template-columns:auto 1fr;gap:5px 14px">
     <span class="muted">الوحدة</span><b>${u&&u.building&&u.floor?`عمارة ${esc(u.building)} · طابق ${esc(u.floor)} · شقة ${esc(u.apt||'')}`:esc(u?.code||'—')} ${u?`<span class="muted">(${nf.format(+u.area)} م²)</span>`:''}${u?.share==='investor'?' <span class="pill p-info">حصة المستثمر</span>':''}</b><span class="muted">الهاتف</span><b class="num">${esc(c.phone||'—')}</b><span class="muted">الحالة</span><b>${KST[c.status][0]}</b>
     ${sale?`<span class="muted">السعر الكلي</span><b class="num">${iqd(c.total)}</b><span class="muted">الخطة</span><b class="num">مقدمة ${iqd(c.down)}${kPartsTxt(c,'down')} · استلام ${iqd(c.handover)}${kPartsTxt(c,'hand')} · ${c.months} قسط × ${iqd(c.monthly)}</b><span class="muted">التواريخ</span><b class="num">الحجز ${dayName(kSigned(c))} · أول قسط ${dayName(fullD(c.start_month)||'')} · الأقساط يوم ${+(fullD(c.start_month)||'').slice(8,10)||1} من كل شهر</b>`:`<span class="muted">الإيجار</span><b class="num">${iqd(c.rent)} شهرياً${c.deposit?' · تأمينات '+iqd(c.deposit):''}</b><span class="muted">المدة</span><b class="num">${c.rent_start} ← ${c.rent_end||'مفتوح'}</b>`}
     <span class="muted">المستلم</span><b class="num" style="color:var(--ok)">${iqd(s.paid)}</b>${sale?`<span class="muted">المتبقي</span><b class="num">${iqd(s.left)}</b>`:''}<span class="muted">المتأخر</span><b class="num" style="color:var(--bad)">${iqd(s.over)}</b>${c.notes?`<span class="muted">ملاحظات</span><b>${esc(c.notes)}</b>`:''}</div>
@@ -3876,10 +3880,10 @@ function payForm(c){const s=kState(c),sale=c.kind==='sale',u=unitOf(c.unit_id);
   catch(x){$('#kpE').textContent=x.message;b.disabled=false}})}
 /* ===== رفع ملف الحجز والدفعات السابقة — من داخل الشقة ===== */
 const BK_ACCEPT='.xlsx,.xls,.xlsm,.ods,.csv,.pdf,image/*';
-function bkMerge(parts){const B={name:'',phone:'',id_no:'',address:''},P={total:0,down:0,handover:0,monthly:0,months:0,start_month:'',signed_on:'',area:0,price_m:0,unit:''},pays=[],notes=[];let trunc=false;
-  for(const d of parts){if(!d)continue;for(const k in B)if(!B[k]&&d.buyer?.[k])B[k]=d.buyer[k];for(const k in P)if(!P[k]&&d.plan?.[k])P[k]=d.plan[k];pays.push(...(d.payments||[]));notes.push(...(d.notes||[]));trunc=trunc||!!d.truncated}
+function bkMerge(parts){const B={name:'',phone:'',id_no:'',address:''},P={total:0,down:0,handover:0,monthly:0,months:0,start_month:'',signed_on:'',area:0,price_m:0,unit:''},pays=[],notes=[],sch=[];let trunc=false;
+  for(const d of parts){if(!d)continue;for(const k in B)if(!B[k]&&d.buyer?.[k])B[k]=d.buyer[k];for(const k in P)if(!P[k]&&d.plan?.[k])P[k]=d.plan[k];pays.push(...(d.payments||[]));sch.push(...(d.schedule||[]));notes.push(...(d.notes||[]));trunc=trunc||!!d.truncated}
   const seen=new Set(),L=[];for(const p of pays){const k=p.ref?'r'+p.ref:'d'+p.day+'|'+p.amount;if(seen.has(k))continue;seen.add(k);L.push({...p})}
-  L.sort((a,b)=>(a.day||'9999')<(b.day||'9999')?-1:1);return{buyer:B,plan:P,payments:L,notes,trunc}}
+  L.sort((a,b)=>(a.day||'9999')<(b.day||'9999')?-1:1);const sk=new Set(),SC=sch.filter(x=>{const k=x.due+'|'+x.amount+'|'+x.kind;if(sk.has(k))return false;sk.add(k);return true});return{buyer:B,plan:P,payments:L,schedule:SC,notes,trunc}}
 const bkDup=(c,p)=>!!c&&kInvoices(c).some(x=>!x.voided&&((p.ref&&x.ref===p.ref)||(x.day===p.day&&Math.round(x.amount)===Math.round(p.amount))));
 function bkImport(unitId,cid){const u=unitOf(unitId),c=cid?(S.contracts||[]).find(x=>x.id===cid):null;
   overlay('bki','📥 رفع ملف الحجز والدفعات — '+esc(u?.code||''),`<div class="sec"><p class="small" style="margin-top:0">ارفع ملف هاي الشقة من النظام السابق — <b>Excel أو PDF أو صورة</b> (تكدر تختار أكثر من ملف سوية).<br>${c?`راح ينقرا كل الدفعات السابقة وتنضاف على حجز <b>${esc(c.name)}</b> — المكررة تنعلّم تلقائياً.`:'راح ينقرا اسم المشتري وخطة الدفع وكل الدفعات السابقة، وتراجعها وتعدلها قبل الحفظ.'}</p>
@@ -3888,7 +3892,7 @@ function bkImport(unitId,cid){const u=unitOf(unitId),c=cid?(S.contracts||[]).fin
     try{for(let i=0;i<fs.length;i++){const f=fs[i],pre=fs.length>1?`ملف ${i+1} من ${fs.length} (${f.name}): `:'';$('#bkiP').textContent=pre+'جارِ القراءة…';
         const r=await ctAiRead(f,t=>{$('#bkiP').textContent=pre+t},'booking');parts.push(...(r.parts||[]))}
       const M=bkMerge(parts);if(!M.payments.length&&!M.buyer.name&&!M.plan.total)throw new Error('ما لكيت بيانات حجز أو دفعات بالملف. تأكد إنه ملف هاي الشقة.');
-      M.payments.forEach(p=>{p.dup=bkDup(c,p)});S.bki={uid:unitId,cid:c?.id||null,...M,skip:new Set(M.payments.map((p,i)=>p.dup?i:-1).filter(i=>i>=0)),rate:fxRate()||1310,files:fs,fname:fs.map(f=>f.name).join('، ').slice(0,120)};bkiDraw()}
+      M.payments.forEach(p=>{p.dup=bkDup(c,p)});if(!c){closeOv();bookForm(unitId,null,bkPre(M,fs));return}S.bki={uid:unitId,cid:c?.id||null,...M,skip:new Set(M.payments.map((p,i)=>p.dup?i:-1).filter(i=>i>=0)),rate:fxRate()||1310,files:fs,fname:fs.map(f=>f.name).join('، ').slice(0,120)};bkiDraw()}
     catch(x){$('#bkiE').textContent=x.message||String(x);$('#bkiF').disabled=false;$('#bkiP').textContent=''}}}
 function bkiAmt(p){const O=S.bki;return Math.round(p.cur==='USD'?p.amount*O.rate:p.amount)}
 function bkiDraw(){const O=S.bki,u=unitOf(O.uid),c=O.cid?(S.contracts||[]).find(x=>x.id===O.cid):null,B=O.buyer,P=O.plan,L=O.payments;
@@ -3931,8 +3935,61 @@ function bkiDraw(){const O=S.bki,u=unitOf(O.uid),c=O.cid?(S.contracts||[]).find(
         if(add.length)await sb.from('contracts').update({docs:[...(k.docs||[]),...add]}).eq('id',k.id)}catch(_){}
       S.cash=null;await salesLoad();S.bki=null;closeOv();render();kOpen(k.id);toast(`✓ انحفظ${c?'ت':' الحجز و'} ${rows.length} دفعة سابقة`)}
     catch(x){E.textContent=x.message||String(x);b.disabled=false;b.textContent='✓ حفظ'}}}
+/* ===== التعرف على خطة الدفع من جدول الملف ===== */
+function bkFit(sch,P){const out={total:+P.total||0,down:+P.down||0,handover:+P.handover||0,monthly:+P.monthly||0,months:+P.months||0,start_month:P.start_month||'',parts:null,msgs:[],fromSch:false};
+  const L=(sch||[]).filter(x=>+x.amount>0).map(x=>({a:Math.round(+x.amount),d:/^\d{4}-\d{2}-\d{2}$/.test(x.due||'')?x.due:'',k:x.kind||'',l:x.label||''})).sort((a,b)=>(a.d||'9999')<(b.d||'9999')?-1:(a.d||'9999')>(b.d||'9999')?1:0);
+  if(L.length<2)return out;
+  const isH=x=>x.k==='hand'||/استلام|تسليم|handover/i.test(x.l),H=L.filter(isH),O=L.filter(x=>!isH(x));
+  /* أطول سلسلة أقساط شهرية متساوية (تتحمل وجود دفعات ثانية بنفس الفترة) */
+  let best=null;const amts=[...new Set(O.filter(x=>x.d).map(x=>x.a))];
+  for(const a of amts){const C=O.filter(x=>x.d&&Math.abs(x.a-a)<=1000);for(let i=0;i<C.length;i++){const run=[C[i]];for(let j=i+1;j<C.length;j++){const g=monDiff(ym(run[run.length-1].d),ym(C[j].d));if(g===1)run.push(C[j]);else if(g>1)break}
+      if(run.length>=3&&(!best||run.length>best.run.length||(run.length===best.run.length&&run.some(x=>x.k==='monthly'))))best={a,run}}}
+  if(best){const used=new Set(best.run);const lastD=best.run[best.run.length-1].d,tail=O.find(x=>!used.has(x)&&x.d&&x.a<best.a&&monDiff(ym(lastD),ym(x.d))===1&&x.k!=='down');if(tail){best.run.push(tail);used.add(tail)}
+    out.monthly=best.a;out.months=best.run.length;out.start_month=best.run[0].d;const D=O.filter(x=>!used.has(x));
+    out.down=D.reduce((t,x)=>t+x.a,0);out.handover=H.reduce((t,x)=>t+x.a,0);out.fromSch=true;
+    const pd=D.length>1?D.map((x,i)=>({a:x.a,m:x.d||'',...(x.l&&!/^مقدم/.test(x.l)?{l:x.l}:{})})):null,ph=H.length>1?H.map(x=>({a:x.a,m:x.d||''})):null;
+    if(pd&&pd.some(x=>!x.m))out.msgs.push('بعض دفعات المقدمة بدون تاريخ — حدّدها');
+    out.parts=pd||ph?{...(pd?{down:pd}:{}),...(ph?{hand:ph}:{})}:null}
+  else if(!out.monthly){out.down=O.reduce((t,x)=>t+x.a,0);out.handover=H.reduce((t,x)=>t+x.a,0);out.fromSch=true;out.parts=O.length>1?{down:O.map(x=>({a:x.a,m:x.d||'',...(x.l?{l:x.l}:{})}))}:null;out.msgs.push('ما لكيت أقساط شهرية منتظمة — كل الدفعات انحطت كدفعات مجدولة')}
+  const sum=L.reduce((t,x)=>t+x.a,0);if(!out.total)out.total=sum;else if(Math.abs(sum-out.total)>1000)out.msgs.push(`مجموع جدول الخطة بالملف ${iqd(sum)} يختلف عن السعر الكلي ${iqd(out.total)} — راجع الأرقام`);
+  return out}
+function bkPre(M,fs){const B=M.buyer,P=M.plan,F=bkFit(M.schedule,P);
+  if(!F.fromSch&&P.total&&!(P.months>0)&&P.monthly)F.months=Math.ceil(Math.max(0,P.total-P.down-P.handover)/P.monthly);
+  const pays=M.payments.map(p=>({...p}));
+  return{name:B.name,phone:normDigits(B.phone||'').replace(/\D/g,''),id_no:B.id_no,address:B.address,total:F.total,down:F.down,handover:F.handover,monthly:F.monthly,months:F.months,start_month:F.start_month||'',signed_on:P.signed_on||pays[0]?.day||'',parts:F.parts,
+    fromSch:F.fromSch,schN:(M.schedule||[]).length,msgs:[...F.msgs,...(M.trunc?['الملف طويل — ممكن قسم ما انقرا']:[]),...M.notes].slice(0,8),pays,skip:new Set(),rate:fxRate()||1310,files:fs,fname:fs.map(f=>f.name).join('، ').slice(0,120),unitTxt:P.unit}}
+function bkPreTop(pre){const pd=pre.parts?.down,ph=pre.parts?.hand;
+  return`<div class="sec" style="border-color:var(--ok);margin-top:0"><b>📥 النظام تعرّف على الخطة من الملف</b> <span class="small muted">(${esc(pre.fname)})</span>
+   <div class="small" style="margin-top:6px;display:grid;grid-template-columns:auto 1fr;gap:3px 12px"><span class="muted">السعر الكلي</span><b class="num">${iqd(pre.total)}</b>
+    <span class="muted">المقدمة</span><b class="num">${iqd(pre.down)}${pd?` — ${pd.length} دفعات`:''}</b>${pre.months?`<span class="muted">الأقساط</span><b class="num">${pre.months} قسط × ${iqd(pre.monthly)}${pre.start_month?' تبدأ '+esc(pre.start_month):''}</b>`:''}
+    <span class="muted">الاستلام</span><b class="num">${iqd(pre.handover)}${ph?` — ${ph.length} دفعات`:''}</b>${pre.fromSch?`<span class="muted">المصدر</span><b>جدول الخطة بالملف (${pre.schN} استحقاق)</b>`:''}</div>
+   ${pre.msgs.length?`<div class="small" style="color:var(--warn);margin-top:6px">⚠ ${pre.msgs.map(esc).join('<br>⚠ ')}</div>`:''}
+   <p class="small muted" style="margin:6px 0 0">كل الأرقام تحت منملية من الملف وتتعدل. لما تسجل، هاي تصير <b>الخطة الأساسية</b> — وإذا بعدين طلع بيها خلل تكدر تعدلها مباشرة لحد ما تثبتها.</p></div>`}
+function bkPreAmt(pre,p){return Math.round(p.cur==='USD'?p.amount*pre.rate:p.amount)}
+function bkPrePays(pre){const L=pre.pays,hasUsd=L.some(p=>p.cur==='USD');
+  return`<div class="sec" id="bkpBox"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>💵 الدفعات السابقة من الملف (${L.length})</b>${hasUsd?`<label class="l" style="margin:0">سعر الدولار<input id="bkpR" class="in num" dir="ltr" style="width:110px" value="${nf.format(pre.rate)}"></label>`:''}</div>
+   <div class="small muted" style="margin:4px 0">تنسجل بالفواتير وتنحسب على الأقساط، بس ما تدخل برصيد الصندوق الحالي (أرشيف).</div>
+   ${L.length?`<div class="tbl-wrap" style="max-height:300px;overflow:auto"><table style="min-width:0"><thead><tr><th></th><th>التاريخ</th><th>المبلغ</th><th>الوصل</th><th>عن</th></tr></thead><tbody>${L.map((p,i)=>`<tr style="${pre.skip.has(i)?'opacity:.45':''}"><td><input type="checkbox" data-bkps="${i}" ${pre.skip.has(i)?'':'checked'}></td><td><input class="in num" type="date" data-bkpd="${i}" value="${esc(p.day)}" style="min-width:130px"></td><td class="num" id="bkpA${i}">${p.cur==='USD'?'$'+nf.format(p.amount)+'<div class="small muted">'+iqd(bkPreAmt(pre,p))+'</div>':iqd(p.amount)}</td><td class="num small">${esc(p.ref||'—')}</td><td class="small">${esc(p.note||'')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="small muted" style="margin:0">ما بالملف دفعات مستلمة.</p>'}
+   <div class="small" id="bkpSum" style="margin-top:6px"></div></div>`}
+function bkPreWire(pre){const L=pre.pays,sum=()=>{const sel=L.filter((p,i)=>!pre.skip.has(i)),t=sel.reduce((a,p)=>a+bkPreAmt(pre,p),0),T=cashAmt($('#bkT')?.value)||0;const el=$('#bkpSum');if(el)el.innerHTML=L.length?`المختار <b class="num">${sel.length}</b> دفعة بمجموع <b class="num">${iqd(t)}</b>${T?` من <b class="num">${iqd(T)}</b>${t>T?' <span style="color:var(--bad)">⚠ أكثر من السعر الكلي</span>':''}`:''}`:''};
+  document.querySelectorAll('[data-bkps]').forEach(x=>x.onchange=()=>{const i=+x.dataset.bkps;x.checked?pre.skip.delete(i):pre.skip.add(i);x.closest('tr').style.opacity=x.checked?'':'.45';sum()});
+  document.querySelectorAll('[data-bkpd]').forEach(x=>x.onchange=()=>{L[+x.dataset.bkpd].day=x.value});
+  $('#bkpR')?.addEventListener('input',e=>{const d=normDigits(e.target.value).replace(/\D/g,'');e.target.value=d?nf.format(+d):'';pre.rate=+d||pre.rate;L.forEach((p,i)=>{if(p.cur==='USD'){const el=$('#bkpA'+i);if(el)el.innerHTML='$'+nf.format(p.amount)+'<div class="small muted">'+iqd(bkPreAmt(pre,p))+'</div>'}});sum()});
+  $('#bkT')?.addEventListener('input',sum);sum();
+  /* تحقق الدفعات قبل الحفظ */
+  $('#fBk').addEventListener('submit',e=>{const sel=L.filter((p,i)=>!pre.skip.has(i)),bad=sel.find(p=>!/^\d{4}-\d{2}-\d{2}$/.test(p.day||''))?'كل دفعة سابقة مختارة لازم بيها تاريخ — كمّل التاريخ أو شيل علامتها':sel.find(p=>p.day>bgDay())?'بيها دفعة سابقة تاريخها بالمستقبل — صحّحه':'';
+    if(bad){e.preventDefault();e.stopImmediatePropagation();$('#bkE').textContent=bad;$('#bkpBox').scrollIntoView({block:'center'})}},true)}
+async function bkPreSave(pre,k,prog){const u=unitOf(k.unit_id),sel=pre.pays.filter((p,i)=>!pre.skip.has(i));
+  const rows=sel.map((p,j)=>({branch:curBranch(),by_uid:S.me.id,kind:'in',amount:bkPreAmt(pre,p),day:p.day,category:SALES_CAT,party:k.name,note:['دفعة سابقة',p.note,p.cur==='USD'?'$'+nf.format(p.amount)+' × '+nf.format(pre.rate):'','من ملف '+pre.fname.slice(0,60)].filter(Boolean).join(' — ')+' — '+(u?.code||''),ref:p.ref||('س-'+p.day.replace(/-/g,'').slice(2)+'-'+String(j+1).padStart(3,'0')),contract_id:k.id,legacy:true}));
+  for(let i=0;i<rows.length;i+=200){prog(`جارِ حفظ الدفعات ${Math.min(i+200,rows.length)} من ${rows.length}…`);const r=await sb.from('cash').insert(rows.slice(i,i+200));if(r.error)throw new Error((i?`انحفظت ${i}، والباقي: `:'')+r.error.message)}
+  try{const add=[];for(const f of pre.files.filter(f=>f.type==='application/pdf'||/^image\//.test(f.type)||/\.pdf$/i.test(f.name))){const r=await saveFile(f,'ملف حجز · '+k.name);if(r?.ref)add.push({ref:r.ref,label:'ملف الحجز والدفعات (النظام السابق)',name:f.name.slice(0,80),at:Date.now(),uid:S.me?.id||null})}
+    if(add.length)await sb.from('contracts').update({docs:[...(k.docs||[]),...add]}).eq('id',k.id)}catch(_){}
+  S.cash=null;return rows.length}
+async function kDraftOk(id){const c=(S.contracts||[]).find(x=>x.id===id);if(!c)return;const s=kState(c);
+  if(!confirm(`تثبيت خطة ${c.name} كخطة أساسية؟\n${iqd(c.total)} — مقدمة ${iqd(c.down)} · ${c.months} قسط × ${iqd(c.monthly)} · استلام ${iqd(c.handover)}\nبعد التثبيت أي تعديل يحتاج موافقة الإدارة والمشرف العام.`))return;
+  const {error}=await sb.from('contracts').update({plan_draft:false}).eq('id',id);if(error){toast(error.message);return}c.plan_draft=false;await salesLoad();toast('📌 انثبتت الخطة كخطة أساسية');kOpen(id)}
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,v=el.dataset.v;
-  if(a==='uNew')unitForm();else if(a==='bkImp'){const [x,y]=String(v).split('|');bkImport(x,y||null)}else if(a==='siImp')siImport();else if(a==='uBulk')unitBulk();else if(a==='planSet')planSet();else if(a==='plansT')plansForm();else if(a==='kchOk'||a==='kchNo'){(async()=>{const {data,error}=await sb.rpc('contract_change_decide',{p_id:v,p_ok:a==='kchOk',p_note:$('#kchN')?.value.trim()||null});if(error){toast(error.message);return}const r=(S.kchg||[]).find(x=>x.id===v);await kchLoad();await salesLoad();render();if(r)kOpen(r.contract_id);toast(data==='approved'?'✓ انطبق التعديل على العقد':data==='mgmt_ok'?'✓ وافقت الإدارة — بانتظار المشرف العام':'انرفض الطلب')})()}else if(a==='bookNew')bookForm();else if(a==='rentNew')rentForm();else if(a==='kOpen')kOpen(v);else if(a==='uF'){S.uF=v;render()}
+  if(a==='uNew')unitForm();else if(a==='kDraftEd'){const c=(S.contracts||[]).find(x=>x.id===v);if(c)bookForm(c.unit_id,c)}else if(a==='kDraftOk')kDraftOk(v);else if(a==='bkImp'){const [x,y]=String(v).split('|');bkImport(x,y||null)}else if(a==='siImp')siImport();else if(a==='uBulk')unitBulk();else if(a==='planSet')planSet();else if(a==='plansT')plansForm();else if(a==='kchOk'||a==='kchNo'){(async()=>{const {data,error}=await sb.rpc('contract_change_decide',{p_id:v,p_ok:a==='kchOk',p_note:$('#kchN')?.value.trim()||null});if(error){toast(error.message);return}const r=(S.kchg||[]).find(x=>x.id===v);await kchLoad();await salesLoad();render();if(r)kOpen(r.contract_id);toast(data==='approved'?'✓ انطبق التعديل على العقد':data==='mgmt_ok'?'✓ وافقت الإدارة — بانتظار المشرف العام':'انرفض الطلب')})()}else if(a==='bookNew')bookForm();else if(a==='rentNew')rentForm();else if(a==='kOpen')kOpen(v);else if(a==='uF'){S.uF=v;render()}
   else if(a==='uOpen'){const u=unitOf(v);if(!u)return;const k=(S.contracts||[]).find(c=>c.unit_id===u.id&&!['cancelled','done'].includes(c.status));if(k)kOpen(k.id);else if(writesSales()&&u.status==='available'){overlay('uact',esc(u.code),`<div class="acts" style="flex-direction:column;align-items:stretch"><button class="btn pri" id="uaB">حجز هذه الوحدة</button><button class="btn" id="uaR">تأجيرها</button><button class="btn ok" data-a="bkImp" data-v="${u.id}">📥 رفع ملف الحجز والدفعات السابقة</button>${managesSales()?'<button class="btn ghost" id="uaE">تعديل الوحدة</button>':''}</div>`);$('#uaB').onclick=()=>bookForm(u.id);$('#uaE')&&($('#uaE').onclick=()=>unitForm(u));$('#uaR').onclick=()=>{rentForm();setTimeout(()=>{const s=$('#rtU');if(s)s.value=u.id},30)}}else if(managesSales())unitForm(u)}});
 document.addEventListener('change',e=>{const t=e.target;if(t.id==='kF'){S['kF'+t.dataset.k]=t.value;render()}else if(t.id==='kQ'){S.kQ=t.value;render()}else if(t.id==='prQ'){S.prQ=t.value;render()}else if(t.id==='purQ'){S.purQ=t.value;render()}else if(t.id==='kdQ'){S.kdQ=t.value;render()}else if(t.id==='purWh'){S.purWh=t.value;render()}else if(t.id==='uQ'){S.uQ=t.value;render()}});
 
@@ -4530,7 +4587,7 @@ function siPlan(){const t=S.si,p=plan0(),col=k=>t.map.indexOf(k),g=(r,k)=>{const
       const down=siNum(g(r,'down'))??Math.min(p.down,total),hand=siNum(g(r,'handover'))??Math.min(p.handover,Math.max(0,total-down));
       let monthly=siNum(g(r,'monthly')),months=siNum(g(r,'months'));const rest=Math.max(0,total-down-hand);
       if(monthly>0&&!(months>0))months=Math.ceil(rest/monthly);else if(months>0&&!(monthly>0))monthly=Math.ceil(rest/months/1000)*1000;else if(!(monthly>0)){const c=planCalc(total,down,hand,p.monthly,p.max);monthly=c.monthly;months=c.months}
-      k={kind:'sale',name,phone:ph||null,notes,total,down,handover:hand,monthly:Math.round(monthly)||0,months:Math.round(months)||0,start_month:start||addMD(date||bgDay(),1),status};if(date)k.signed_on=date}
+      k={kind:'sale',plan_draft:true,name,phone:ph||null,notes,total,down,handover:hand,monthly:Math.round(monthly)||0,months:Math.round(months)||0,start_month:start||addMD(date||bgDay(),1),status};if(date)k.signed_on=date}
     if(date)k.created_at=date+'T09:00:00Z';k._u=u;k._line=line;k._paid=Math.max(0,siNum(g(r,'paid'))||0);k._day=date||bgDay();if(t.pay)R.paid+=k._paid;
     R.k.push(k);if(k.status!=='cancelled')taken.set(u.id,k)});
   return R}
