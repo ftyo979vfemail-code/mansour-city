@@ -1,0 +1,6 @@
+-- 47: areas the captains type by hand become zones. taxi_zones.driver_added / added_by / added_at.
+-- taxi_norm_ar / taxi_zone_key normalise Arabic spelling (أإآ→ا، ة→ه، ى→ي، ظ→ض, drop ال/حي/منطقة/شارع, brackets, spaces)
+-- so "كاضمية" = "الكاظمية". Trigger taxi_trip_zone (before update on taxi_trips): when a driver trip ends with a typed
+-- destination and no zone, link it to the matching zone or create one priced at that trip's base fare (event 'zone_added').
+-- Backfilled 2026-11-11: 10 new zones; الطوبحي merged into الطوبجي; names tidied. taxi_admin_zones returns driver_added/added_by.
+-- Applied as migration taxi_driver_zones.

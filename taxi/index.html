@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611111911";
+const BUILD="202611111917";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1841,7 +1841,7 @@ async function renderZones(){
   const box=$("#zbox"); if(!box) return;
   const zs=await loadZones(true);
   box.innerHTML=`<div class="tbl-wrap"><table style="min-width:520px"><thead><tr><th>المنطقة</th><th>السعر</th><th>سعر الازدحام</th><th>الازدحام</th><th>على الخريطة</th><th></th></tr></thead><tbody>
-   ${zs.map(z=>`<tr><td><b>${esc(z.name)}</b></td><td class="num">${fmt(z.price)}</td><td class="num">${z.rush_price?fmt(z.rush_price):"—"}</td>
+   ${zs.map(z=>`<tr><td><b>${esc(z.name)}</b>${z.driver_added?` <span class="pill s-warn" title="${esc(z.added_by||"")}">🆕 أضافها ${esc((z.added_by||"سائق").split(" ")[0])}، راجع السعر</span>`:""}</td><td class="num">${fmt(z.price)}</td><td class="num">${z.rush_price?fmt(z.rush_price):"—"}</td>
    <td>${z.rush_price?`<label class="chk"><input type="checkbox" data-rush="${z.id}" ${z.rush_on?"checked":""}> ${z.rush_on?"<b style='color:var(--warn)'>مفعّل</b>":"لا"}</label>`:""}</td>
    <td>${z.lat?`<a href="https://maps.google.com/?q=${z.lat},${z.lng}" target="_blank" rel="noopener">📍 محدد</a>`:`<span style="color:var(--warn)">غير محدد</span>`}</td>
    <td><div class="acts"><button class="btn sm" data-ze="${z.id}">تعديل</button><button class="btn sm danger" data-zd="${z.id}">حذف</button></div></td></tr>`).join("")}
