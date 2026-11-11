@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611111904";
+const BUILD="202611111911";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2460,7 +2460,7 @@ async function renderSettle(){
     <div class="row" style="gap:6px;flex-wrap:wrap;align-items:center"><label>من <input type="date" id="st-f" value="${stF}" max="${today}"></label><label>لحد <input type="date" id="st-t" value="${stT}" max="${today}"></label>
       <button class="btn sm" data-sq="3">آخر 3 أيام</button><button class="btn sm" data-sq="m">هذا الشهر</button><button class="btn sm" id="st-c">📋 نسخ</button><button class="btn sm" id="st-h">📚 المحاسبات المخزونة</button></div></div>
     <div class="seg" role="radiogroup" aria-label="الدوام" style="margin:0 0 8px">${[["all","الكل"],["morning","☀️ الصباحي (7 ص – 7 م)"],["evening","🌙 المسائي (لحد 10 م أو للصبح)"]].map(([k,t])=>`<button type="button" role="radio" aria-checked="${stShift===k}" class="btn sm${stShift===k?" primary":""}" data-ssh="${k}">${t}</button>`).join("")}</div>
-    <p class="note" style="margin:0 0 10px">حساب كل سائق بهاي الفترة، كل يوم بروحه. يوم الشغل يبدي الساعة 7 الصبح: أي سفرة بالليل لحد 7 الصبح تنحسب على اليوم اللي قبله (للمسائي اللي يكمل للصبح). الخطوط ما تنحسب بالمبالغ.</p>
+    <p class="note" style="margin:0 0 10px">حساب كل سائق بهاي الفترة، كل يوم بروحه. كل سفرة تنحسب على اليوم اللي بدت بيه: اللي تبدي قبل نص الليل تبقى على يومها حتى لو خلصت بعده، واللي بعد نص الليل على اليوم الجديد. الخطوط ما تنحسب بالمبالغ.</p>
     <div id="stb"><div class="empty">جارٍ التحميل…</div></div></div>`;
   const re=()=>renderSettle();
   $("#st-f").onchange=e=>{stF=e.target.value||stF;if(stF>stT)stT=stF;re()}; $("#st-t").onchange=e=>{stT=e.target.value||stT;if(stF>stT)stF=stT;re()};

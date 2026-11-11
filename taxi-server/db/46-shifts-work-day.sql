@@ -3,3 +3,4 @@
 -- evening of the day before. Used by taxi_period_json, taxi_admin_month_days, taxi_admin_record_days; taxi_admin_period returns shift.
 -- Applied as migration taxi_shifts_work_day.
 -- 2026-11-11: day_cutoff_hour = 7 (morning shift 7 AM–7 PM; evening Farouq/Wisam until 10 PM, one continues overnight). Farouq & Wisam set evening.
+-- 2026-11-11 (later): day_cutoff_hour = 0 — a trip counts on the calendar day it STARTED (owner: Wisam's 1:38 AM / 6:03 AM trips are day 11). Wisam's 95,000 'settle' (#16) removed after he handed 105,500 (receipt #39); backup taxi_backup.wisam_settle_20261111.
