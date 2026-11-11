@@ -859,7 +859,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='90375200d8';
+const APP_BUILD='6ebcc9c28c';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -4009,10 +4009,10 @@ function schChain(i0){const R=S.sed.rows;for(let i=Math.max(0,i0);i<R.length;i++
 function schFix(i){const R=S.sed.rows;let p=null;for(let j=i-1;j>=0;j--)if(R[j].m){p=R[j].m;break}const G=schGap(p,R[i].m);R[i].g=G.g;R[i].u=G.u}
 function schDraw(){const E=S.sed,c=(S.contracts||[]).find(x=>x.id===E.cid);const paid=kPaid(c);
   const sum=()=>E.rows.reduce((t,x)=>t+(+x.a||0),0);
-  overlay('sed','✏ جدول الدفعات — '+esc(c.name),`<div class="small muted" style="margin:0 0 8px">نفس فكرة الإكسل: كل دفعة <b>الفترة</b> مالتها من الدفعة اللي قبلها (0 يوم = نفس اليوم، 1 شهر = بعد شهر) والتاريخ يتحسب لحاله. غيّر الفترة أو التاريخ والدفعات اللي بعدها تمشي وياه. التعديل يتحفظ مباشرة.</div>
+  overlay('sed','✏ جدول الدفعات — '+esc(c.name),`<div class="small muted" style="margin:0 0 8px">نفس فكرة الإكسل: كل دفعة <b>الفترة</b> مالتها من الدفعة اللي قبلها (0 يوم = نفس اليوم، 1 شهر = بعد شهر) والتاريخ يتحسب لحاله. غيّر الفترة أو التاريخ والدفعات اللي بعدها تمشي وياه. التعديل يتحفظ مباشرة. <b>لنقل دفعة:</b> اضغط مطوّلاً على ⠿ واسحبها لمكانها.</div>
    <div class="acts" style="gap:6px;margin:0 0 8px;flex-wrap:wrap"><button class="btn sm" id="sedSer">＋ سلسلة أقساط</button><button class="btn sm ghost" id="sedAdd">＋ دفعة وحدة</button><button class="btn sm ghost" id="sedShift">📅 تأجيل من سطر</button></div>
    <div class="tbl-wrap" style="max-height:54vh;overflow:auto"><table style="min-width:0"><thead><tr><th>#</th><th>الفترة</th><th>الوصف</th><th>المبلغ</th><th>التاريخ</th><th>النوع</th><th></th></tr></thead><tbody>
-   ${E.rows.map((x,i)=>`<tr><td class="num small muted">${i+1}</td>
+   ${E.rows.map((x,i)=>`<tr data-r="${i}"><td class="num small muted" data-h="${i}" title="اضغط مطوّلاً واسحب حتى تنقل الدفعة" style="cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;white-space:nowrap">⠿ ${i+1}</td>
      <td style="white-space:nowrap"><input class="in num" data-se="g" data-i="${i}" inputmode="numeric" value="${x.u==='h'?'':x.g??''}" ${x.u==='h'?'disabled':''} style="width:56px;display:inline-block"> <select class="in" data-se="u" data-i="${i}" style="width:auto;display:inline-block">${[['d','يوم'],['m','شهر'],['h','عند الاستلام']].map(([k,t])=>`<option value="${k}" ${x.u===k?'selected':''}>${t}</option>`).join('')}</select></td>
      <td><input class="in" data-se="l" data-i="${i}" value="${esc(x.l)}" style="min-width:150px"></td>
      <td><input class="in num" dir="ltr" inputmode="numeric" data-se="a" data-i="${i}" value="${x.a?nf.format(x.a):''}" style="min-width:110px"></td>
@@ -4036,6 +4036,20 @@ function schDraw(){const E=S.sed,c=(S.contracts||[]).find(x=>x.id===E.cid);const
   $('#sedSer').onclick=()=>{const n=+normDigits(prompt('كم دفعة؟','12')||'').replace(/\D/g,'');if(!n)return;const a=+normDigits(prompt('مبلغ كل دفعة؟','2000000')||'').replace(/\D/g,'');if(!a)return;const g=+normDigits(prompt('كل كم شهر؟','1')||'1').replace(/\D/g,'')||1;
     const h=E.rows.findIndex(x=>x.u==='h'),at=h<0?E.rows.length:h,lbl=`دفعة ${g===1?'شهرية':'كل '+g+' أشهر'} ${mShort(a)}`;E.rows.splice(at,0,...Array.from({length:Math.min(n,240)},()=>({k:'inst',l:lbl,m:'',a,g,u:'m'})));schChain(at);schDraw();const t=box.querySelector('.tbl-wrap');t.scrollTop=t.scrollHeight};
   $('#sedShift').onclick=()=>{const from=prompt('من يا سطر نبدي التأجيل؟ (رقم السطر)');if(!from)return;const k=+normDigits(prompt('كم شهر نأجل؟ (رقم سالب للتقديم)','1')||'0').replace(/[^\d-]/g,'')||0,i0=(+normDigits(from)||0)-1,R=E.rows;if(i0<0||!R[i0]||!k||!R[i0].m)return;R[i0].m=addMD(R[i0].m,k);schFix(i0);schChain(i0+1);redraw()};
+  /* سحب وإفلات: ضغط مطوّل على ⠿ ثم سحب */
+  const wrap=box.querySelector('.tbl-wrap');let drag=null,timer=null,sy=0;
+  const rowsEl=()=>[...box.querySelectorAll('tbody tr[data-r]')];
+  const mark=to=>rowsEl().forEach((r,j)=>{r.style.boxShadow=j===to&&to!==drag.i?(to<drag.i?'inset 0 3px 0 var(--accent)':'inset 0 -3px 0 var(--accent)'):''});
+  const move=e=>{if(!drag){if(timer&&Math.abs(e.clientY-sy)>8){clearTimeout(timer);timer=null}return}e.preventDefault();
+    const W=wrap.getBoundingClientRect();if(e.clientY<W.top+40)wrap.scrollTop-=12;else if(e.clientY>W.bottom-40)wrap.scrollTop+=12;
+    let to=drag.i;rowsEl().forEach((r,j)=>{const b=r.getBoundingClientRect();if(e.clientY>=b.top&&e.clientY<b.bottom)to=j});if(e.clientY<rowsEl()[0].getBoundingClientRect().top)to=0;drag.to=to;mark(to)};
+  const end=()=>{clearTimeout(timer);timer=null;document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',end);document.removeEventListener('pointercancel',end);
+    if(!drag)return;const {i,to}=drag;drag=null;if(to===i){redraw();return}const R=E.rows,[x]=R.splice(i,1);R.splice(to,0,x);
+    if(x.u!=='h'&&to===0){x.g=0;x.u='d'}let qn=0;R.forEach(r=>{if(/^قسط \d+$/.test(r.l||''))r.l='قسط '+(++qn)});schChain(Math.min(i,to));redraw();toast(`انتقلت الدفعة من ${i+1} إلى ${to+1}`)};
+  box.querySelectorAll('[data-h]').forEach(h=>h.addEventListener('pointerdown',e=>{const i=+h.dataset.h,tr=h.closest('tr');sy=e.clientY;
+    document.addEventListener('pointermove',move,{passive:false});document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);
+    timer=setTimeout(()=>{drag={i,to:i};tr.style.opacity='.55';tr.style.background='var(--line)';h.style.cursor='grabbing';try{navigator.vibrate&&navigator.vibrate(25)}catch(_){}},280)}));
+  box.querySelectorAll('[data-h]').forEach(h=>h.addEventListener('contextmenu',e=>e.preventDefault()));
   upd();
   $('#sedGo').onclick=async()=>{const er=$('#sedE');er.textContent='';const R0=E.rows.filter(x=>+x.a>0);
     if(!R0.length)return er.textContent='الجدول فارغ';if(R0.some(x=>x.u!=='h'&&!x.m))return er.textContent='كل دفعة (غير اللي عند الاستلام) لازم بيها تاريخ';
