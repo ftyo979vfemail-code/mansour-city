@@ -1,0 +1,4 @@
+-- 40: taxi_closings — the stored record of every settlement (محاسبة) with a driver (period, trips, fares, cash received,
+-- advances, expenses, customer debts, balance after, note, full detail of trips/receipts/ledger). taxi_admin_closings lists them.
+-- 2026-11-11: حيدر settled for 9–11/11: 153,000 brought − 25,000 advances from cash = 118,000 cash + 10,000 customer debt; balance 0.
+-- (receipt #29 43,000 → 13,000; duplicate advance #13 removed; backups in taxi_backup.haidar_*_20261111)

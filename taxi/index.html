@@ -570,7 +570,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611111721";
+const BUILD="202611111755";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2323,9 +2323,11 @@ async function renderReceipts(){
     <div class="row" style="gap:8px;flex-wrap:wrap"><select id="rc-car" class="btn sm" aria-label="السائق"><option value="">كل السواق</option>${cars.filter(c=>c.active).map(c=>`<option value="${c.id}" ${rcpCar===c.id?"selected":""}>${esc(c.driver_name)}</option>`).join("")}</select>
     <button class="btn sm primary" id="rc-cal">📅 ${rcpF===rcpT?dLbl(rcpF):`${dLbl(rcpF)} — ${dLbl(rcpT)}`}</button>
     <button class="btn sm" id="rc-lg">💸 مصروف / سلفة</button>
+    <button class="btn sm" id="rc-cl">📚 سجل المحاسبات</button>
     <button class="btn sm" data-rq="day">اليوم</button><button class="btn sm" data-rq="week">هذا الأسبوع</button><button class="btn sm" data-rq="month">هذا الشهر</button></div></div>
     <div id="rcb"><div class="empty">جارٍ التحميل…</div></div></div>`;
   $("#rc-car").onchange=e=>{rcpCar=e.target.value;renderReceipts()};
+  $("#rc-cl").onclick=()=>closingsList();
   $("#rc-lg").onclick=()=>{const act=cars.filter(c=>c.active);if(rcpCar)return openLedger(rcpCar);
     const m=modal(`<h3>💸 مصروف أو سلفة لمنو؟</h3><h4 style="margin:0">السواق</h4><div class="zones">${act.map(c=>`<button type="button" class="btn" data-lc="${c.id}">${esc(c.driver_name)}</button>`).join("")}</div>
       <h4 style="margin:0">الموظفين</h4><div class="zones" id="lc-p"><small class="note">…</small></div><div class="row"><button class="btn" id="lc-x">رجوع</button></div>`);
@@ -2441,6 +2443,21 @@ async function renderInventory(){
 async function openLedger(id){const c=cars.find(z=>z.id===id);if(!c)return;
   if(OWNER()){try{const r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_day:null,p_period:"month"});const x=r.rows.find(z=>z.id===id);if(x)return driverLedger(x)}catch{}}
   driverLedger({id:c.id,plate:c.plate,driver_name:c.driver_name})}
+/* the stored settlements (محاسبات) with each driver */
+async function closingsList(){
+  const m=modal(`<h3>📚 سجل المحاسبات</h3><div id="clb"><div class="empty">جارٍ التحميل…</div></div><div class="row"><button class="btn" id="cl-x">سدّ</button></div>`);
+  m.classList.add("wide"); $("#cl-x",m).onclick=()=>m.remove();
+  let L; try{L=await rpc("taxi_admin_closings",{p_pin:PIN,p_car:null})}catch(e){$("#clb",m).innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const d=x=>new Date(x+"T12:00:00Z").toLocaleDateString("ar-IQ",{day:"numeric",month:"numeric"});
+  $("#clb",m).innerHTML=L.length?L.map(k=>{const D=k.detail||{}, T=(D.trips||[]).filter(t=>!t.line), R=D.receipts||[], G=D.ledger||[];
+    return `<details class="rcpt"><summary><span class="rc-amt">✅ ${dinar(k.received)}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>من ${d(k.from)} لحد ${d(k.to)} · سجّلها ${esc(k.by)}</small></span>
+      <span class="rc-cov">جاب ${fmt(k.fares)} (${k.trips} سفرة)${k.advances?`<br><small>سلف ${fmt(k.advances)}</small>`:""}${k.debts?`<br><small>دين ${fmt(k.debts)}</small>`:""}<br><small style="color:${k.balance_after?"var(--bad)":"var(--ok)"}">${k.balance_after?`الباقي ${fmt(k.balance_after)}`:"الحساب صفر ✓"}</small></span></summary>
+      <p class="note" style="margin:8px 14px">${esc(k.note)}</p>
+      <div class="calc" style="margin:0 14px"><div><span>جاب</span><b>${dinar(k.fares)}</b></div>${k.advances?`<div><span>− سلف من الكاش</span><b>${dinar(k.advances)}</b></div>`:""}${k.expenses?`<div><span>− مصاريف</span><b>${dinar(k.expenses)}</b></div>`:""}${k.debts?`<div><span>− دين على زبائن</span><b>${dinar(k.debts)}</b></div>`:""}<div class="tot"><span>استلمنا كاش</span><b>${dinar(k.received)}</b></div></div>
+      ${T.length?`<div class="tbl-wrap"><table><thead><tr><th>اليوم</th><th>الوقت</th><th>لوين</th><th>الكروة</th></tr></thead><tbody>${T.map(t=>`<tr><td>${d(t.day)}</td><td>${esc(t.time||"")}</td><td>${esc(t.to||"—")}</td><td class="num">${fmt(t.fare)}</td></tr>`).join("")}</tbody></table></div>`:""}
+      ${G.length?`<ul class="rc-sp">${G.map(i=>`<li>${i.kind==="advance"?"🤝 سلفة":"💸 مصروف"} <b>${fmt(i.amount)}</b> · ${d(i.day)} · ${esc(i.note||"")}</li>`).join("")}</ul>`:""}
+      ${R.length?`<p class="note" style="margin:6px 14px">الدفعات: ${R.map(r=>fmt(r.amount)).join(" + ")}</p>`:""}</details>`}).join(""):`<p class="note">لسه ماكو محاسبات مخزونة.</p>`;
+}
 async function openPerson(id){let P=[];try{P=await rpc("taxi_admin_ledger_people",{p_pin:PIN})}catch(e){return toast(e.message)}
   const p=P.find(z=>z.id===id); if(p) driverLedger({person_id:p.id,driver_name:p.name})}
 async function driverLedger(x){
