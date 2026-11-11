@@ -859,7 +859,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='def6a85afc';
+const APP_BUILD='060e8c697c';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -3990,7 +3990,7 @@ async function bkPreSave(pre,k,prog){const u=unitOf(k.unit_id),sel=pre.pays.filt
 /* ===== تعديل جدول الدفعات سطر سطر ===== */
 const SCH_K={down:'مقدمة/دفعة',inst:'قسط شهري',hand:'استلام'};
 function schEdit(cid){const c=(S.contracts||[]).find(x=>x.id===cid);if(!c)return;if(kchOpen(c)){toast('أكو طلب تعديل سابق بانتظار الموافقة على هذا العقد');return}
-  const direct=isOwner()||c.plan_draft;
+  const direct=true;
   S.sed={cid,rows:kSchedule(c).map(r=>({k:r.k==='handm'?'hand':r.k==='down'?'down':r.k==='hand'?'hand':'inst',l:r.label,m:r.d||'',a:r.a})),total:+c.total||0};schDraw(direct)}
 function schDraw(direct){const E=S.sed,c=(S.contracts||[]).find(x=>x.id===E.cid);const paid=kPaid(c);
   const sum=()=>E.rows.reduce((t,x)=>t+(+x.a||0),0);
@@ -3999,7 +3999,7 @@ function schDraw(direct){const E=S.sed,c=(S.contracts||[]).find(x=>x.id===E.cid)
    <div class="tbl-wrap" style="max-height:52vh;overflow:auto"><table style="min-width:0"><thead><tr><th>#</th><th>الدفعة</th><th>النوع</th><th>الاستحقاق</th><th>المبلغ</th><th></th></tr></thead><tbody>
    ${E.rows.map((x,i)=>`<tr><td class="num small muted">${i+1}</td><td><input class="in" data-se="l" data-i="${i}" value="${esc(x.l)}" style="min-width:110px"></td><td><select class="in" data-se="k" data-i="${i}">${Object.entries(SCH_K).map(([k,t])=>`<option value="${k}" ${x.k===k?'selected':''}>${t}</option>`).join('')}</select></td><td><input class="in num" type="date" data-se="m" data-i="${i}" value="${esc(x.m)}" style="min-width:130px"></td><td><input class="in num" dir="ltr" inputmode="numeric" data-se="a" data-i="${i}" value="${x.a?nf.format(x.a):''}" style="min-width:110px"></td><td><button class="btn sm ghost" data-sedx="${i}" title="حذف">✕</button></td></tr>`).join('')}</tbody></table></div>
    <div class="sec" style="margin-top:8px"><div class="small" id="sedSum"></div><label class="l" style="margin-top:6px"><span><input type="checkbox" id="sedT"> خلي السعر الكلي = مجموع الجدول</span></label></div>
-   ${direct?'':`<label class="l">سبب التعديل <em>(يروح ويه طلب الموافقة)</em><input id="sedWhy" class="in" maxlength="200" placeholder="مثال: الزبون طلب تأجيل قسط شهر 3"></label>`}
+   <label class="l">ملاحظة على التعديل <em>(اختياري — تنحفظ بسجل العقد)</em><input id="sedWhy" class="in" maxlength="200" placeholder="مثال: الزبون طلب تأجيل قسط شهر 3"></label>
    <div class="err" id="sedE"></div><div class="acts"><button class="btn pri" id="sedGo">${direct?'✓ حفظ الجدول':'✍ إرسال للموافقة'}</button><button class="btn ghost" data-a="kOpen" data-v="${c.id}">رجوع</button></div>`);
   const upd=()=>{const t=sum(),d=t-E.total,el=$('#sedSum');el.innerHTML=`مجموع الجدول <b class="num">${iqd(t)}</b> · السعر الكلي <b class="num">${iqd(E.total)}</b> · ${d===0?'<b style="color:var(--ok)">✓ مطابق</b>':`<b style="color:var(--bad)">${d>0?'زايد':'ناقص'} ${iqd(Math.abs(d))}</b>`} · المدفوع لحد الآن <b class="num">${iqd(paid)}</b>`};
   const box=$('#ovroot');
@@ -4016,7 +4016,7 @@ function schDraw(direct){const E=S.sed,c=(S.contracts||[]).find(x=>x.id===E.cid)
     const o={total:useT?t:E.total,down:rows.filter(x=>x.k==='down').reduce((a,x)=>a+x.a,0),handover:rows.filter(x=>x.k==='hand').reduce((a,x)=>a+x.a,0),monthly:mon,months:ins.length,start_month:ins[0]?.m||c.start_month,
       parts:{...(c.parts||{}),sched:rows.map(x=>({k:x.k,l:String(x.l||'').slice(0,60),m:x.m||'',a:Math.round(+x.a)}))}};
     const b=$('#sedGo');b.disabled=true;
-    if(direct){const {error}=await sb.from('contracts').update(o).eq('id',c.id);if(error){er.textContent=error.message;b.disabled=false;return}await salesLoad();S.sed=null;toast('✓ انحفظ جدول الدفعات');kOpen(c.id);return}
+    if(direct){const {error}=await sb.rpc('contract_sched_set',{p_k:c.id,p_new:o,p_note:$('#sedWhy').value.trim()||null});if(error){er.textContent=error.message;b.disabled=false;return}await salesLoad();S.sed=null;toast('✓ انحفظ جدول الدفعات');kOpen(c.id);return}
     const why=$('#sedWhy').value.trim();if(!why){er.textContent='اكتب سبب التعديل';b.disabled=false;$('#sedWhy').focus();return}
     const {error}=await sb.rpc('contract_change_req',{p_k:c.id,p_new:o,p_reason:'تعديل جدول الدفعات: '+why});if(error){er.textContent=error.message;b.disabled=false;return}
     await kchLoad();await salesLoad();S.sed=null;toast('✍ انرسل تعديل الجدول لموافقة الإدارة والمشرف العام');kOpen(c.id)}}
