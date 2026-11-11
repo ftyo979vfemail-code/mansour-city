@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611111824";
+const BUILD="202611111829";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2493,9 +2493,10 @@ async function renderSettle(){
   $("#stb").querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const c=C.find(x=>x.id===b.dataset.close);
     const m=modal(`<h3>✅ محاسبة ${esc(c.driver_name)}</h3><p class="note" style="margin:0">${dl(stF)} → ${dl(stT)} · جاب ${fmt(c.fares)} · استلمنا ${fmt(c.received)}</p>
       ${c.balance>0?`<fieldset class="md-rec"><legend>الباقي ${fmt(c.balance)} شنو يصير بيه؟</legend>
-        <label><input type="radio" name="cm" value="cash" checked> استلمته منه، سجّله استلام</label>
-        <label><input type="radio" name="cm" value="settle"> استلمته بس لا تسجّله بالاستلامات (تسوية)</label>
-        <label><input type="radio" name="cm" value="keep"> ما استلمته، يبقى بذمّته</label></fieldset>`:`<p>${c.balance===0?"الحساب صفر ✓":`إله ${fmt(-c.balance)}، يبقى إله للمحاسبة الجاية`}</p>`}
+        <label><input type="radio" name="cm" value="keep" checked> ما سلّمه بعد، يبقى بذمّته لحد ما يسلّمه</label>
+        <label><input type="radio" name="cm" value="cash"> سلّمه هسه، سجّله استلام</label>
+        <label><input type="radio" name="cm" value="settle"> سلّمه بس لا تسجّله بالاستلامات (تسوية)</label></fieldset>
+        <p class="note" style="margin:0">المحاسبة تصفّر بس اللي سلّمه. الباقي يبقى بذمّته ويطلع بالمحاسبة الجاية.</p>`:`<p>${c.balance===0?"الحساب صفر ✓":`إله ${fmt(-c.balance)}، يبقى إله للمحاسبة الجاية`}</p>`}
       <div class="field"><label for="cn">ملاحظة</label><input id="cn" maxlength="400" placeholder="اختياري"></div>
       <div class="err" id="ce"></div><div class="row"><button class="btn" id="cx">رجوع</button><button class="btn primary" id="cok">خزّن المحاسبة</button></div>`);
     $("#cx",m).onclick=()=>m.remove();
