@@ -4,3 +4,4 @@
 --  taxi_admin_period(pin, from, to)  — every active driver (any manager).
 --  taxi_admin_close(pin, car, from, to, mode keep|cash|settle, note) — owner only: what's left is recorded as cash received,
 --                                      as a 'settle' ledger row, or kept; then the period is stored in taxi_closings.
+-- 2026-11-11: final settlement 9→11/11 stored for all four (balances 0); earlier closings backed up in taxi_backup.closings_20261111.
