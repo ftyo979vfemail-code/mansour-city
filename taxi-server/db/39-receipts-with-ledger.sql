@@ -1,0 +1,4 @@
+-- 39: expenses/advances the driver took from the cash in his hand go WITH the settlement that closes them
+-- (his first receipt on that day or later). taxi_admin_receipts now counts them with that receipt when covering trips
+-- (eff = amount + from_cash ledger), returns 'from_cash' per receipt, and owed_after matches taxi_balance_row.
+-- Applied as migration taxi_receipts_with_ledger (full function there).

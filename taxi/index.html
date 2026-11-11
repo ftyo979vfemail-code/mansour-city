@@ -570,7 +570,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611091937";
+const BUILD="202611111721";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2350,30 +2350,43 @@ async function renderReceipts(){
   [...new Set(LG.filter(i=>i.car_id).map(i=>i.car_id))].forEach(car=>{
     const rs=L.filter(k=>k.car_id===car).sort((a,b)=>kDay(a)<kDay(b)?-1:kDay(a)>kDay(b)?1:new Date(a.at)-new Date(b.at)).map(k=>({k,d:kDay(k),left:k.amount}));
     LG.filter(i=>i.car_id===car&&i.kind==="expense"&&!i.from_cash).sort((a,b)=>a.day<b.day?-1:a.day>b.day?1:a.id-b.id).forEach(i=>{let need=i.amount;
-      for(const r of rs){if(need<=0)break;if(r.d<i.day)continue;const take=Math.min(r.left,need);if(take<=0)continue;r.left-=take;need-=take;(spent[r.k.id]=spent[r.k.id]||[]).push({amount:take,note:i.note,day:i.day,full:i.amount})}
+      for(const r of rs){if(need<=0)break;if(r.d<i.day)continue;const take=Math.min(r.left,need);if(take<=0)continue;r.left-=take;need-=take;(spent[r.k.id]=spent[r.k.id]||[]).push({id:i.id,amount:take,note:i.note,day:i.day,full:i.amount})}
       if(need>0)unsp[i.id]=need})});
+  // every expense / advance goes WITH the settlement that closes its period: the driver's first receipt on that day or after it.
+  // Anything not settled yet waits on its own day.
+  const att={}, attOf={};
+  [...new Set(LG.filter(i=>i.car_id).map(i=>i.car_id))].forEach(car=>{
+    const rs=L.filter(k=>k.car_id===car).sort((a,b)=>kDay(a)<kDay(b)?-1:kDay(a)>kDay(b)?1:new Date(a.at)-new Date(b.at));
+    LG.filter(i=>i.car_id===car).forEach(i=>{const sp=Object.keys(spent).find(id=>spent[id].some(x=>x.id===i.id));
+      const r=sp?rs.find(k=>k.id===+sp):rs.find(k=>kDay(k)>=i.day);
+      if(r){(att[r.id]=att[r.id]||[]).push(i);attOf[i.id]=r.id}})});
   const lgItem=i=>`<li class="${i.kind}"><span class="lg-amt">${i.kind==="advance"?"🤝":"💸"} ${fmt(i.amount)}</span>
-      <span><b>${i.kind==="advance"?"سلفة":"مصروف"} · ${esc(i.driver_name)}</b>${i.staff?` <span class="pill s-idle">موظف</span>`:""}<br><span class="lg-why">${i.note?esc(i.note):"<i>بدون سبب</i>"}</span><br><small style="color:var(--muted)">${i.staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده (انخصمت من اللي لازم يسلّمه)":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده (انخصم من اللي لازم يسلّمه)":unsp[i.id]?`ينخصم من أول استلام إله من هذا اليوم وطالع${unsp[i.id]<i.amount?` (باقي ${fmt(unsp[i.id])})`:""}`:"انصرف من استلام هذا اليوم")}</small></span>
+      <span><b>${i.kind==="advance"?"سلفة":"مصروف"} · ${esc(i.driver_name)}</b>${i.staff?` <span class="pill s-idle">موظف</span>`:""}<br><span class="lg-why">${i.note?esc(i.note):"<i>بدون سبب</i>"}</span><br><small style="color:var(--muted)">${i.staff?"من المكتب":i.kind==="advance"?(i.from_cash?"أخذها من الكاش اللي بيده (انخصمت من اللي لازم يسلّمه)":"من المكتب"):(i.from_cash?"صرفه من الكاش اللي بيده (انخصم من اللي لازم يسلّمه)":unsp[i.id]?`ينخصم من أول استلام إله من هذا اليوم وطالع${unsp[i.id]<i.amount?` (باقي ${fmt(unsp[i.id])})`:""}`:"انصرف من استلام هذا اليوم")}${i.car_id&&!attOf[i.id]?` · <b>تنتظر التسوية الجاية</b>`:""}</small></span>
       <span class="acts"><button class="btn sm" ${i.staff?`data-lgp="${i.person_id}"`:`data-lgo="${i.car_id}"`}>${OWNER()?"تعديل":"التفاصيل"}</button></span></li>`;
   const rcItem=k=>{const tr=k.trips, first=tr[0], last=tr[tr.length-1];
-      const sp=spent[k.id]||[], spT=sp.reduce((a,x)=>a+x.amount,0);
-      return `<details class="rcpt"><summary><span class="rc-amt">💵 ${dinar(k.amount)}${spT?`<small class="rc-net">− صرف ${fmt(spT)}<br>= صافي <b>${fmt(k.amount-spT)}</b></small>`:""}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>${k.manual_day?"استلام قديم (إدخال يدوي)":tm(k.at)}${who(k.note)&&!k.manual_day?` · استلمه ${esc(who(k.note))}`:""}</small></span>
+      const sp=spent[k.id]||[], spT=sp.reduce((a,x)=>a+x.amount,0), A=att[k.id]||[];
+      const fc=A.filter(i=>i.from_cash), fcT=fc.reduce((a,i)=>a+i.amount,0), oa=A.filter(i=>!i.from_cash&&i.kind==="advance"), oaT=oa.reduce((a,i)=>a+i.amount,0);
+      const lab=i=>i.kind==="advance"?(i.from_cash?"🤝 سلفة من الكاش":"🤝 سلفة من المكتب"):(i.from_cash?"💸 مصروف من الكاش":"💸 مصروف من المبلغ");
+      return `<details class="rcpt"><summary><span class="rc-amt">💵 ${dinar(k.amount)}${spT?`<small class="rc-net">− صرف ${fmt(spT)}<br>= صافي <b>${fmt(k.amount-spT)}</b></small>`:""}${A.length?`<small class="pill s-warn" style="margin-top:4px">ويّاها ${A.length} ${A.some(i=>i.kind==="advance")?"سلف/مصاريف":"مصاريف"}</small>`:""}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>${k.manual_day?"استلام قديم (إدخال يدوي)":tm(k.at)}${who(k.note)&&!k.manual_day?` · استلمه ${esc(who(k.note))}`:""}</small></span>
         <span class="rc-cov">${tr.length?`غطّى ${tr.length} ${tr.length===1?"سفرة":"سفرات"}<br><small>${dD(first.ended_at)}${tr.length>1&&dD(first.ended_at)!==dD(last.ended_at)?` — ${dD(last.ended_at)}`:""}</small>`:"ما غطّى سفرات"}${k.unallocated>0?`<br><small style="color:var(--ok)">+ ${fmt(k.unallocated)} زيادة (رصيد إله)</small>`:""}</span></summary>
         <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الوقت</th><th>من ← إلى</th><th>الكروة</th><th>انحسب من هذا الاستلام</th></tr></thead><tbody>
         ${tr.map(t=>`<tr><td>${dD(t.ended_at)}</td><td>${t.manual?"—":tm(t.ended_at)}</td><td>${t.manual?"إدخال يدوي (مجموع اليوم)":`${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}${t.line?" · خط":""}`}</td><td class="num">${fmt(t.cash)}</td><td class="num">${t.covered<t.cash?`<span class="pill s-warn">${fmt(t.covered)} من ${fmt(t.cash)}</span>`:fmt(t.covered)}</td></tr>`).join("")}
         </tbody></table></div>
-        ${sp.length?`<ul class="rc-sp">${sp.map(x=>`<li>💸 انصرف <b>${fmt(x.amount)}</b>${x.amount<x.full?` (من مصروف ${fmt(x.full)})`:""} · ${dD(x.day+"T12:00:00Z")} · <span class="lg-why">${x.note?esc(x.note):"بدون سبب"}</span></li>`).join("")}<li class="tot">الاستلام ${fmt(k.amount)} − الصرف ${fmt(spT)} = <b>${fmt(k.amount-spT)}</b> صافي</li></ul>`:""}
+        ${A.length?`<h4 style="margin:10px 14px 4px">مع هذه التسوية</h4><ul class="rc-sp">${A.map(i=>{const part=sp.find(x=>x.id===i.id);return `<li>${lab(i)} <b>${fmt(i.amount)}</b>${part&&part.amount<i.amount?` (انخصم منها ${fmt(part.amount)} هنا)`:""} · ${dD(i.day+"T12:00:00Z")} · <span class="lg-why">${i.note?esc(i.note):"بدون سبب"}</span>${OWNER()?` <button class="btn sm" data-lgo="${i.car_id}">تعديل</button>`:""}</li>`}).join("")}
+          ${fcT?`<li class="tot">قبل لا يسلّم خصم من الكاش اللي بيده <b>${fmt(fcT)}</b> (سلف ومصاريف)</li>`:""}
+          ${spT?`<li class="tot">الاستلام ${fmt(k.amount)} − الصرف ${fmt(spT)} = <b>${fmt(k.amount-spT)}</b> صافي</li>`:""}
+          ${oaT?`<li class="tot">سلف انطيناها من المكتب: <b>${fmt(oaT)}</b></li>`:""}</ul>`:""}
         <div class="row rc-acts" style="justify-content:flex-start;gap:8px;flex-wrap:wrap;padding:10px 14px 0">${OWNER()?`<button class="btn sm" data-rce="${k.id}">✏️ تعديل المبلغ</button><button class="btn sm danger" data-rcd="${k.id}">🗑 حذف الاستلام</button>`:""}<button class="btn sm" data-rcl="${k.car_id}">💸 مصاريف وسلف ${esc(k.driver_name.split(" ")[0])}</button></div>
         <p class="note" style="margin:6px 0 0">${k.owed_after>0?`بعد هذا الاستلام بقى بذمّته <b>${dinar(k.owed_after)}</b> من السفرات اللي قبله.`:k.owed_after<0?`بعد هذا الاستلام صار إله رصيد <b>${dinar(-k.owed_after)}</b>.`:`بعد هذا الاستلام ما بقى عليه شي من السفرات اللي قبله.`}</p></details>`};
-  const days=[...new Set([...L.map(kDay),...LG.map(i=>i.day)])].sort().reverse();
-  const dayHTML=d=>{const ks=L.filter(k=>kDay(k)===d), ls=LG.filter(i=>i.day===d);
-    const rec=ks.reduce((a,k)=>a+k.amount,0), sp=ks.reduce((a,k)=>a+(spent[k.id]||[]).reduce((x,y)=>x+y.amount,0),0), ex=ls.filter(i=>i.kind==="expense").reduce((a,i)=>a+i.amount,0), av=ls.filter(i=>i.kind==="advance").reduce((a,i)=>a+i.amount,0);
+  const days=[...new Set([...L.map(kDay),...LG.filter(i=>!attOf[i.id]).map(i=>i.day)])].sort().reverse();
+  const dayHTML=d=>{const ks=L.filter(k=>kDay(k)===d), ls=LG.filter(i=>i.day===d&&!attOf[i.id]), all=[...ls,...ks.flatMap(k=>att[k.id]||[])];
+    const rec=ks.reduce((a,k)=>a+k.amount,0), sp=ks.reduce((a,k)=>a+(spent[k.id]||[]).reduce((x,y)=>x+y.amount,0),0), ex=all.filter(i=>i.kind==="expense").reduce((a,i)=>a+i.amount,0), av=all.filter(i=>i.kind==="advance").reduce((a,i)=>a+i.amount,0);
     return `<section class="rc-day"><h3 class="rc-dh"><span>📅 ${dD(d+"T12:00:00Z")}</span><small>${rec?`استلام <b>${fmt(rec)}</b>`:"ماكو استلام"}${ex?` · مصاريف ${fmt(ex)}`:""}${av?` · سلف ${fmt(av)}`:""}${rec?` · صافي اليوم <b>${fmt(rec-sp)}</b>`:""}</small></h3>
       ${ls.length?`<ul class="lgl">${ls.map(lgItem).join("")}</ul>`:""}${ks.map(rcItem).join("")}</section>`};
   $("#rcb").innerHTML=`<div class="kpis"><div class="kpi"><small>استلمنا بهاي الفترة</small><b>${dinar(total)}</b><small>${L.length} استلام · ${days.length} ${days.length===1?"يوم":"أيام"}</small></div>
     ${exO||exD||adv?`<div class="kpi warn"><small>المصاريف والسلف</small><b>${dinar(exO+exD+adv)}</b><small>${[exO?`من المبلغ المسلّم ${fmt(exO)}`:"",exD?`من كاش السواق ${fmt(exD)}`:"",adv?`سلف ${fmt(adv)}`:""].filter(Boolean).join(" · ")}</small></div>
     <div class="kpi"><small>الصافي عند الإدارة</small><b>${dinar(total-exO)}</b><small>اللي استلمناه − المصاريف اللي انصرفت منه</small></div>`:""}</div>
-    <p class="note" style="margin:0 0 10px">كل يوم بحساباته: الاستلام والمصاريف تنحسب بيومها، وما تندمج ويا الأيام اللي قبلها.</p>
+    <p class="note" style="margin:0 0 10px">كل تسوية (استلام) تروح ويّاها السلف والمصاريف اللي صارت قبلها، وتنحسب بتاريخ نهاية التسوية. اللي ما انسوّى بعد يبقى بيومه لحد التسوية الجاية.</p>
     ${days.length?days.map(dayHTML).join(""):`<p class="note">ماكو استلامات بهاي الفترة.</p>`}`;
   const byId=id=>L.find(k=>k.id===+id);
   $("#rcb").querySelectorAll("[data-rce]").forEach(b=>b.onclick=()=>{const k=byId(b.dataset.rce);
