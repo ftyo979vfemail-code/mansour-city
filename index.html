@@ -559,7 +559,7 @@ const ST={
   done:{t:'مكتمل',c:'ok',who:[]},
   rejected:{t:'مرفوض',c:'bad',who:[]},
 };
-const STAGES=[['store_check','المخزن'],['proj','موافقة المشروع'],['buy','الشراء'],['receive','الاستلام'],['done','التسليم']];
+const STAGES=[['store_check','المخزن'],['buy','الشراء'],['receive','الاستلام'],['done','التسليم']];
 const PRI={normal:['عادي','mute'],urgent:['مستعجل','warn'],critical:['طارئ - توقف إنتاج','bad']};
 const AREAS=['الكسارة','ساحة الحجر الجيري','طاحونة المواد الخام','الفرن الدوار','مبرد الكلنكر','طاحونة الإسمنت','السايلوات','قسم التعبئة والتحميل','محطة الكهرباء الرئيسية','الورشة الميكانيكية','ساحة الآليات','مقلع المواد الأولية'];
 const UNITS=['قطعة','متر','كغم','طن','لتر','برميل','لفة','علبة','طقم'];
@@ -730,7 +730,7 @@ async function act(r,action,extra={}){
   const role=S.role||(isOwner()?'project':null),note=(extra.note||'').trim();const nr=clean(r);nr.log=nr.log||[];
   const push=a=>nr.log.push({t:Date.now(),role,uid:S.me?.id||null,a,note});
   switch(action){
-    case'toBuy':nr.status='proj';push('حوّل للشراء - غير متوفر بالمخزن');break;
+    case'toBuy':nr.status='buy';push('غير متوفر بالمخزن — أُرسل مباشرة لمندوبي المشتريات');break;
     case'issue':nr.status='done';nr.fromStock=true;if(extra.issue)nr.issue=extra.issue;push('صرف من المخزن'+(extra.itemName?' ('+extra.itemName+')':''));break;
     case'projOk':nr.status='buy';push('وافق — أُرسل لمندوبي المشتريات');break;
     case'direct':nr.status='buy';push('أرسل الطلب مباشرة للمشتريات (أولوية مدير المشروع)');break;
@@ -862,7 +862,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='642cacfd52';
+const APP_BUILD='55a104e579';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -4767,7 +4767,7 @@ function closeOv(){document.body.classList.remove('ovopen');stopScan();S.openM=n
 function track(r){
   if(r.status==='rejected'){const last=(r.log||[]).length;return`<div class="track"><div class="step done">الطلب</div><div class="step now rej">مرفوض</div></div>`}
   if(r.fromStock)return`<div class="track"><div class="step done">الطلب</div><div class="step done">المخزن</div><div class="step skip">المشروع</div><div class="step skip">الإدارة</div><div class="step skip">الشراء</div><div class="step done">التسليم</div></div>`;
-  const cur=r.status==='buying'?'buy':r.status==='pur_ok'?'proj':r.status;const idx=STAGES.findIndex(s=>s[0]===cur);
+  const cur=r.status==='buying'||r.status==='pur_ok'||r.status==='proj'?'buy':r.status;const idx=STAGES.findIndex(s=>s[0]===cur);
   return`<div class="track"><div class="step done">الطلب</div>${STAGES.map((s,i)=>`<div class="step ${i<idx||cur==='done'?'done':i===idx?'now':''}">${s[1]}${s[0]==='buy'&&r.status==='buying'?' (جارٍ)':''}</div>`).join('')}</div>`;
 }
 function openReq(r,keep){
