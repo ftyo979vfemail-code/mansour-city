@@ -862,7 +862,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='0f4d240f53';
+const APP_BUILD='06b4b9f318';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -2817,9 +2817,12 @@ const FX_EDIT=['accountant','owner','payer','cpayer'];
 const fxRate=()=>+(S.settings?.usdRate)||0;
 const fxUsd=iqdV=>fxRate()?iqdV/fxRate():0;
 const fxFmtUsd=v=>'$'+(Math.round(v*100)/100).toLocaleString('en-US',{maximumFractionDigits:2});
-function fxCard(){const r=fxRate(),at=S.settings?.usdRateAt;const ed=FX_EDIT.includes(S.me?.role);
-  return`<div class="sec" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;margin:0 0 10px"><div><b>💵 البورصة اليوم</b> ${r?`<span class="num" style="font-size:16px;margin-inline-start:6px">100$ = ${nf.format(Math.round(r*100))} د.ع</span> <span class="small muted">(الدولار ${nf.format(Math.round(r))})</span>`:'<span class="muted">ما محددة</span>'}
-   ${at?`<div class="small muted">آخر تحديث ${dt(+at)}${S.settings?.usdRateBy?' — '+esc(S.settings.usdRateBy):''}</div>`:''}</div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${FX_DUAL_ROLES.includes(S.me?.role)&&r?`<label class="small" style="display:inline-flex;gap:4px;align-items:center;cursor:pointer"><input type="checkbox" id="fxDual" ${fxDualOn()?'checked':''}> عرض المبالغ بالدولار ويه العراقي</label>`:''}${ed?'<button class="btn sm" data-a="fxSet">✎ تحديث البورصة</button>':''}</div></div>`}
+function fxCard(){const r=fxRate(),D=S.settings||{},at=D.usdRateAt;const ed=FX_EDIT.includes(S.me?.role),live=D.usdSrc==='kifah',man=D.usdSrc==='manual';
+  return`<div class="sec" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;margin:0 0 10px"><div><b>💵 البورصة اليوم</b> ${r?`<span class="num" style="font-size:16px;margin-inline-start:6px">100$ = ${nf.format(Math.round(r*100))} د.ع</span> <span class="small muted">(الدولار ${nf.format(Math.round(r))})</span>`:'<span class="small muted">ما محدد بعد</span>'}
+   <div class="small" style="margin-top:2px">${live?`<span style="color:var(--ok)">🟢 مباشر — بورصة الكفاح، بغداد</span>${D.usdPub?` · سعر البورصة من ${dt(D.usdPub)}`:''}`:man?`<span style="color:var(--warn)">✋ يدوي — ${esc(D.usdRateBy||'')}</span>${at?' · '+dt(+at):''} <span class="muted">(يرجع تلقائي بعد 3 ساعات)</span>`:at?`<span class="muted">آخر تحديث ${dt(+at)}${D.usdRateBy?' — '+esc(D.usdRateBy):''}</span>`:''}${D.usdCbi?` · <span class="muted">الرسمي (البنك المركزي) ${nf.format(Math.round(+D.usdCbi))}</span>`:''}</div>
+   ${live?'<div class="small muted" style="font-size:10px">المصدر: IQWealth (iraqsm.com) — يتحدث كل 20 دقيقة</div>':''}</div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${FX_DUAL_ROLES.includes(S.me?.role)&&r?`<label class="small" style="display:inline-flex;gap:4px;align-items:center;cursor:pointer"><input type="checkbox" id="fxDual" ${fxDualOn()?'checked':''}> عرض المبالغ بالدولار ويه العراقي</label>`:''}${ed?'<button class="btn sm ghost" data-a="fxSet">✎ تعديل يدوي</button>':''}</div></div>`}
+/* تحديث سعر البورصة كل 10 دقائق بدون إعادة تحميل */
+setInterval(async()=>{if(!S.me||document.hidden)return;try{const {data}=await sb.from('settings').select('data').eq('id','main').maybeSingle();const d=data?.data;if(d&&(d.usdRate!==S.settings?.usdRate||d.usdRateAt!==S.settings?.usdRateAt)){S.settings={...S.settings,usdRate:d.usdRate,usdRateAt:d.usdRateAt,usdRateBy:d.usdRateBy,usdHist:d.usdHist,usdSrc:d.usdSrc,usdPub:d.usdPub,usdCbi:d.usdCbi};document.querySelectorAll('[data-fxd]').forEach(x=>{delete x.dataset.fxd});document.querySelectorAll('.usdv').forEach(x=>x.remove());render()}}catch(_){}},600000);
 /* عرض كل مبلغ بالدينار ويه ما يعادله بالدولار — للحسابات ومسؤولات الصرف */
 const FX_DUAL_ROLES=['accountant','payer','cpayer'];
 const fxDualOn=()=>{if(!FX_DUAL_ROLES.includes(S.me?.role)||!fxRate())return false;try{return localStorage.getItem('mc_fxDual')!=='0'}catch(_){return true}};
@@ -2833,7 +2836,7 @@ function fxDecorate(){const r=fxRate();if(!fxDualOn()){document.querySelectorAll
 new MutationObserver(()=>{if(!FX_DUAL_ROLES.includes(S.me?.role))return;clearTimeout(fxDT);fxDT=setTimeout(fxDecorate,60)}).observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener('change',e=>{if(e.target.id==='fxDual'){try{localStorage.setItem('mc_fxDual',e.target.checked?'1':'0')}catch(_){}document.querySelectorAll('[data-fxd]').forEach(x=>{delete x.dataset.fxd});document.querySelectorAll('.usdv').forEach(x=>x.remove());fxDecorate()}});
 function fxForm(){const r=fxRate();
-  overlay('fx','💵 تحديث البورصة',`<form class="f" id="fFX"><p class="small muted" style="margin:0">اكتب المبلغ بالدينار وشكد يساوي بالدولار، والنظام يقسمهم ويطلّع سعر الدولار.</p>
+  overlay('fx','💵 تحديث البورصة',`<form class="f" id="fFX"><p class="small muted" style="margin:0">السعر يتحدث تلقائياً من بورصة الكفاح كل 20 دقيقة. استخدم التعديل اليدوي بس إذا السعر بالسوق يختلف — التلقائي يتوقف 3 ساعات بعد تعديلك ويرجع.</p>
    <div class="fr"><label class="l">المبلغ بالدينار<input id="fxI" class="in num" dir="ltr" inputmode="numeric" required value="${r?nf.format(Math.round(r*100)):''}"></label><label class="l">يساوي بالدولار<input id="fxU" class="in num" dir="ltr" inputmode="decimal" required value="100"></label></div>
    <div class="stats" id="fxP"></div>
    ${(S.settings?.usdHist||[]).length?`<details><summary class="small">آخر التحديثات</summary><div class="small">${S.settings.usdHist.slice(0,15).map(h=>`${dt(+h.at)} · الدولار <b class="num">${nf.format(Math.round(+h.r))}</b> · ${esc(h.by||'')}`).join('<br>')}</div></details>`:''}
@@ -2842,7 +2845,7 @@ function fxForm(){const r=fxRate();
   I.addEventListener('input',()=>{const d=normDigits(I.value).replace(/\D/g,'');I.value=d?nf.format(+d):'';upd()});U.addEventListener('input',upd);upd();
   $('#fFX').addEventListener('submit',async e=>{e.preventDefault();const i=+normDigits(I.value).replace(/[^\d.]/g,''),u=+normDigits(U.value).replace(/[^\d.]/g,'');
     const {data,error}=await sb.rpc('set_usd_rate',{p_iqd:i,p_usd:u});if(error){$('#fxE').textContent=error.message;return}
-    S.settings={...S.settings,usdRate:+data.rate,usdRateAt:Date.now(),usdRateBy:S.me?.full_name,usdHist:[{r:+data.rate,at:Date.now(),by:S.me?.full_name},...(S.settings?.usdHist||[])]};closeOv();render();toast('✓ البورصة: الدولار = '+nf.format(Math.round(+data.rate))+' د.ع')})}
+    S.settings={...S.settings,usdSrc:'manual',usdRate:+data.rate,usdRateAt:Date.now(),usdRateBy:S.me?.full_name,usdHist:[{r:+data.rate,at:Date.now(),by:S.me?.full_name},...(S.settings?.usdHist||[])]};closeOv();render();toast('✓ البورصة: الدولار = '+nf.format(Math.round(+data.rate))+' د.ع')})}
 /* تحويل حي: أي خانة مبلغ بالحسابات تطلع جنبها ما يعادلها */
 function fxHint(inp){const r=fxRate();if(!r)return;const lab=inp.closest('label');if(!lab)return;const t=(lab.firstChild?.textContent||lab.textContent||'');
   if(/سعر|نسبة|الكمية|عدد|الوحدة|رقم|التاريخ|%/.test(t))return;const isUsd=/دولار|\$/.test(t)||(inp.id==='acA'&&$('#acU')?.value==='USD')||inp.id==='axU';const isIqd=/مبلغ|دينار|الرصيد|المصروف|المسدد|السلفة|القيمة|البدل/.test(t);if(!isUsd&&!isIqd)return;
