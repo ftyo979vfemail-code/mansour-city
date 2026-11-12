@@ -492,6 +492,8 @@ button.orow:hover{background:var(--sunk)}
 .tapt{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px 2px;border-radius:7px;border:1px solid var(--line);cursor:pointer;font:inherit;line-height:1.15;color:#fff}.tapt span{font-size:10.5px;opacity:.9}
 .tapt.s-available{background:#2e7d4f}.tapt.s-reserved{background:#c98a12}.tapt.s-sold{background:#b4532a}.tapt.s-rented{background:#2f6fa6}.tapt.s-blocked{background:#888}
 .seg button{flex:1 1 auto;padding:8px 10px;font:inherit;font-size:13px;border:0;background:none;color:inherit;cursor:pointer;border-inline-start:1px solid var(--line)}.seg button.on{background:var(--accent-soft,#f6e0d4);color:var(--accent);font-weight:700}
+.usdv{display:block;font-size:.72em;font-weight:500;color:var(--muted);direction:ltr;line-height:1.2;margin-top:1px}
+.stat b .usdv{font-size:.6em}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -860,7 +862,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='85f29cdd93';
+const APP_BUILD='0f4d240f53';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -2817,7 +2819,19 @@ const fxUsd=iqdV=>fxRate()?iqdV/fxRate():0;
 const fxFmtUsd=v=>'$'+(Math.round(v*100)/100).toLocaleString('en-US',{maximumFractionDigits:2});
 function fxCard(){const r=fxRate(),at=S.settings?.usdRateAt;const ed=FX_EDIT.includes(S.me?.role);
   return`<div class="sec" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;margin:0 0 10px"><div><b>💵 البورصة اليوم</b> ${r?`<span class="num" style="font-size:16px;margin-inline-start:6px">100$ = ${nf.format(Math.round(r*100))} د.ع</span> <span class="small muted">(الدولار ${nf.format(Math.round(r))})</span>`:'<span class="muted">ما محددة</span>'}
-   ${at?`<div class="small muted">آخر تحديث ${dt(+at)}${S.settings?.usdRateBy?' — '+esc(S.settings.usdRateBy):''}</div>`:''}</div>${ed?'<button class="btn sm" data-a="fxSet">✎ تحديث البورصة</button>':''}</div>`}
+   ${at?`<div class="small muted">آخر تحديث ${dt(+at)}${S.settings?.usdRateBy?' — '+esc(S.settings.usdRateBy):''}</div>`:''}</div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${FX_DUAL_ROLES.includes(S.me?.role)&&r?`<label class="small" style="display:inline-flex;gap:4px;align-items:center;cursor:pointer"><input type="checkbox" id="fxDual" ${fxDualOn()?'checked':''}> عرض المبالغ بالدولار ويه العراقي</label>`:''}${ed?'<button class="btn sm" data-a="fxSet">✎ تحديث البورصة</button>':''}</div></div>`}
+/* عرض كل مبلغ بالدينار ويه ما يعادله بالدولار — للحسابات ومسؤولات الصرف */
+const FX_DUAL_ROLES=['accountant','payer','cpayer'];
+const fxDualOn=()=>{if(!FX_DUAL_ROLES.includes(S.me?.role)||!fxRate())return false;try{return localStorage.getItem('mc_fxDual')!=='0'}catch(_){return true}};
+let fxDT=0;
+function fxDecorate(){const r=fxRate();if(!fxDualOn()){document.querySelectorAll('.usdv').forEach(x=>x.remove());return}
+  const els=document.querySelectorAll('#app .num, #app .stat b, #ovroot .num, #ovroot .stat b, #app td, #ovroot td');
+  for(const el of els){if(el.dataset.fxd==='1'||el.closest('input,select,textarea,.fxh,.usdv,[data-nofx],.qr,svg,option'))continue;if(el.children.length&&![...el.children].every(c=>c.classList.contains('usdv')))continue;
+    const own=[...el.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim();const m=own.match(/^(-|−)?\s*([\d,]{5,})(\s*(د\.ع|دينار))?$/);
+    if(!m||!own.includes(','))continue;const v=+m[2].replace(/,/g,'');if(!(v>=1000))continue;
+    el.dataset.fxd='1';const u=document.createElement('span');u.className='usdv';u.textContent=(m[1]?'−':'')+'$'+nf.format(Math.round(v/r));el.appendChild(u)}}
+new MutationObserver(()=>{if(!FX_DUAL_ROLES.includes(S.me?.role))return;clearTimeout(fxDT);fxDT=setTimeout(fxDecorate,60)}).observe(document.documentElement,{childList:true,subtree:true});
+document.addEventListener('change',e=>{if(e.target.id==='fxDual'){try{localStorage.setItem('mc_fxDual',e.target.checked?'1':'0')}catch(_){}document.querySelectorAll('[data-fxd]').forEach(x=>{delete x.dataset.fxd});document.querySelectorAll('.usdv').forEach(x=>x.remove());fxDecorate()}});
 function fxForm(){const r=fxRate();
   overlay('fx','💵 تحديث البورصة',`<form class="f" id="fFX"><p class="small muted" style="margin:0">اكتب المبلغ بالدينار وشكد يساوي بالدولار، والنظام يقسمهم ويطلّع سعر الدولار.</p>
    <div class="fr"><label class="l">المبلغ بالدينار<input id="fxI" class="in num" dir="ltr" inputmode="numeric" required value="${r?nf.format(Math.round(r*100)):''}"></label><label class="l">يساوي بالدولار<input id="fxU" class="in num" dir="ltr" inputmode="decimal" required value="100"></label></div>
