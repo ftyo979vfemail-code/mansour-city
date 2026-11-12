@@ -99,8 +99,8 @@ ${ex}
 - اكتب في notes أي ملاحظة مهمة للمحاسب (أسطر غير واضحة، شطب، تعديل باليد، اختلاف المجموع المكتوب عن مجموع الأسطر).
 لا تغيّر شيئاً صحيحاً. أجب بـ JSON فقط: {"fix":[],"missing":[],"extra":[],"header":{},"notes":[],"confidence":رقم من 0 إلى 1}`;
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function core(req: Request, B: Record<string, any>): Promise<Response> {
   try {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
     const token = (req.headers.get("Authorization") || "").replace("Bearer ", "");
@@ -108,15 +108,12 @@ Deno.serve(async (req) => {
     if (!user) return json({ code: "auth" }, 401);
     const { data: me } = await admin.from("staff").select("role,active").eq("id", user.id).maybeSingle();
     if (!me || !me.active || ["clerk"].includes(me.role)) return json({ code: "forbidden" }, 403);
-    if (me.role !== "owner") {
-      const { data: left, error: qe } = await admin.rpc("ai_take", { p_uid: user.id, p_limit: 40 });
-      if (!qe && typeof left === "number" && left < 0) return json({ code: "quota", limit: 40 }, 429);
-    }
     const HAIKU = Deno.env.get("ANTHROPIC_FAST_MODEL") || "claude-haiku-5-5";
 
     const key = Deno.env.get("ANTHROPIC_API_KEY");
     if (!key) return json({ code: "no_key" }, 400);
-    const { image, mime, dept, stock, mode, text: srcText } = await req.json();
+    const { image, mime, dept, stock, mode, text: srcText } = B;
+    const SONNET = Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5";
     if (mode === "fuel") {
       const isPdfF = mime === "application/pdf";
       let block: Record<string, unknown>;
@@ -214,7 +211,7 @@ Deno.serve(async (req) => {
       const rc = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 16000, messages: [{ role: "user", content: [block, { type: "text", text: (mode === "pbox" ? PB_PROMPT : CT_PROMPT)(String(dept || "")) }] }] }),
+        body: JSON.stringify({ model: (typeof srcText === "string" && srcText.trim().length > 5) ? HAIKU : SONNET, max_tokens: 16000, messages: [{ role: "user", content: [block, { type: "text", text: (mode === "pbox" ? PB_PROMPT : CT_PROMPT)(String(dept || "")) }] }] }),
       });
       if (rc.status === 429) return json({ code: "rate_limited" }, 429);
       if (!rc.ok) return json({ code: "upstream", detail: (await rc.text()).slice(0, 300) }, 502);
@@ -323,6 +320,35 @@ Deno.serve(async (req) => {
       confidence: Math.max(0, Math.min(1, Number(x.confidence) || 0.5)),
     })).filter((x: { name: string }) => x.name);
     return json({ items, header: parsed.header || {}, unreadable: String(parsed.unreadable || "") });
+  } catch (e) {
+    return json({ code: "upstream", detail: String((e as Error).message || e) }, 500);
+  }
+}
+
+// كاش: نفس الملف أو الصورة إذا انقرت خلال 30 يوم ترجع نتيجتها بدون كلفة. بعدين الحد اليومي.
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  try {
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+    const token = (req.headers.get("Authorization") || "").replace("Bearer ", "");
+    const { data: { user } } = await admin.auth.getUser(token);
+    if (!user) return json({ code: "auth" }, 401);
+    const { data: me } = await admin.from("staff").select("role,active").eq("id", user.id).maybeSingle();
+    if (!me || !me.active || ["clerk"].includes(me.role)) return json({ code: "forbidden" }, 403);
+    const B = await req.json();
+    const dig = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify([B.mode || "", B.dept || "", B.text || "", B.image || "", B.mime || "", B.stock || null])));
+    const h = Array.from(new Uint8Array(dig)).map((x) => x.toString(16).padStart(2, "0")).join("");
+    const { data: hit } = await admin.rpc("ai_cache_get", { p_h: h });
+    if (hit && typeof hit === "object") return json({ ...(hit as Record<string, unknown>), cached: true });
+    if (me.role !== "owner") {
+      const { data: left, error: qe } = await admin.rpc("ai_take", { p_uid: user.id, p_limit: 40 });
+      if (!qe && typeof left === "number" && left < 0) return json({ code: "quota", limit: 40 }, 429);
+    }
+    const res = await core(req, B);
+    if (res.status === 200) {
+      try { const j = await res.clone().json(); if (j && !j.code) await admin.rpc("ai_cache_put", { p_h: h, p_mode: String(B.mode || "list"), p_r: j }); } catch (_) { /* ignore */ }
+    }
+    return res;
   } catch (e) {
     return json({ code: "upstream", detail: String((e as Error).message || e) }, 500);
   }
