@@ -859,7 +859,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='963b01bb79';
+const APP_BUILD='491c6db479';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -1529,8 +1529,8 @@ async function devDelReq(r){
 function plabel(l){const n=l.uid&&S.names[l.uid]?.name;return`<b>${esc(ROLES[l.role]?.name||(l.role==='owner'?OWNER_NAME:l.role))}</b>${n?` <span class="muted">(${esc(n)})</span>`:''}`}
 const isOwner=()=>S.me?.role==='owner';
 const isDev=()=>!!S.me?.hidden;
-/* ---------- المواقع: المنصور ستي + مجمع الأميرات ستي (نفس النظام، بيانات منفصلة) ---------- */
-const BRANCHES={mansour:{name:'المنصور ستي',sub:'نظام شركة المنصور'},alamirat:{name:'مجمع الأميرات ستي',sub:'مجمع الفلوجة'}};
+/* ---------- المواقع: تيجان ستي + مجمع الأميرات ستي (نفس النظام، بيانات منفصلة) ---------- */
+const BRANCHES={mansour:{name:'تيجان ستي',sub:'نظام شركة المنصور'},alamirat:{name:'مجمع الأميرات ستي',sub:'مجمع الفلوجة'}};
 function gateBranch(){try{const b=localStorage.getItem('mc_branch');if(BRANCHES[b])return b}catch(e){}return'mansour'}
 function setGateBranch(b){try{if(BRANCHES[b])localStorage.setItem('mc_branch',b)}catch(e){}}
 const myBranches=()=>(S.me?.branches&&S.me.branches.length?S.me.branches:['mansour']).filter(b=>BRANCHES[b]);
