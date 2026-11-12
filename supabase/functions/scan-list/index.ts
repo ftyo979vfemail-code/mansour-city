@@ -108,6 +108,11 @@ Deno.serve(async (req) => {
     if (!user) return json({ code: "auth" }, 401);
     const { data: me } = await admin.from("staff").select("role,active").eq("id", user.id).maybeSingle();
     if (!me || !me.active || ["clerk"].includes(me.role)) return json({ code: "forbidden" }, 403);
+    if (me.role !== "owner") {
+      const { data: left, error: qe } = await admin.rpc("ai_take", { p_uid: user.id, p_limit: 40 });
+      if (!qe && typeof left === "number" && left < 0) return json({ code: "quota", limit: 40 }, 429);
+    }
+    const HAIKU = Deno.env.get("ANTHROPIC_FAST_MODEL") || "claude-haiku-5-5";
 
     const key = Deno.env.get("ANTHROPIC_API_KEY");
     if (!key) return json({ code: "no_key" }, 400);
@@ -238,7 +243,7 @@ Deno.serve(async (req) => {
       const rv = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5", max_tokens: 4000, messages: [{ role: "user", content: [isPdf ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } } : { type: "image", source: { type: "base64", media_type: media, data: image } }, { type: "text", text: VERIFY_PROMPT(String(dept || "")) }] }] }),
+        body: JSON.stringify({ model: HAIKU, max_tokens: 4000, messages: [{ role: "user", content: [isPdf ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } } : { type: "image", source: { type: "base64", media_type: media, data: image } }, { type: "text", text: VERIFY_PROMPT(String(dept || "")) }] }] }),
       });
       if (rv.status === 429) return json({ code: "rate_limited" }, 429);
       if (!rv.ok) return json({ code: "upstream", detail: (await rv.text()).slice(0, 300) }, 502);
@@ -297,7 +302,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
-        model: Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-5-5",
+        model: HAIKU,
         max_tokens: 3000,
         messages: [{ role: "user", content: [
           { type: "image", source: { type: "base64", media_type: media, data: image } },
