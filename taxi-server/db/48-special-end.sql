@@ -1,0 +1,4 @@
+-- 48: a special customer's trip ends in one tap. taxi_driver_trip action 'special_end' {amount}: approved special trip
+-- (accepted or started) → done with fare = amount (0 = "ما استلمت"); amounts 1..100 are thousands. Event 'special_end'.
+-- 2026-11-13: Farouq's special trip #273 (سيد وائل للمطار), accepted at 16:51 and never started, was cancelled — it had locked his screen.
+-- Applied as migration taxi_special_end (patched in place).

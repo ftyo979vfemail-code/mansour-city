@@ -903,6 +903,23 @@ public class MainActivity extends Activity {
             v.setPadding(dp(12), dp(10), dp(12), dp(10));
             card.addView(v, full());
             card.addView(space(8));
+            if (st.equals("approved")) {
+                // one tap ends a special customer's trip: received an amount, or nothing
+                card.addView(text("من توصل وتخلّص، اختار وحدة وتنتهي السفرة:", 13, MUTED, false));
+                LinearLayout r = row();
+                Button got = button("💵 استلمت", true);
+                got.setOnClickListener(x -> specialGotDialog());
+                Button none = button("✖ ما استلمت", false);
+                none.setOnClickListener(x -> new android.app.AlertDialog.Builder(this).setTitle("ما استلمت شي؟")
+                        .setMessage("السفرة تنتهي بدون كروة.").setNegativeButton("رجوع", null)
+                        .setPositiveButton("✖ ما استلمت، إنهاء", (d, w) -> tripAction("special_end", obj("amount", "0"))).show());
+                r.addView(got, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+                LinearLayout.LayoutParams nl = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+                nl.setMarginStart(dp(8));
+                r.addView(none, nl);
+                card.addView(r, full());
+                card.addView(space(8));
+            }
         }
         if (!st.equals("pending") && !st.equals("approved")) {
             Button b = button("⭐ زبون خاص (بدون كروة)", false);
@@ -911,6 +928,37 @@ public class MainActivity extends Activity {
             card.addView(space(8));
         }
         return st.equals("pending");
+    }
+
+    private void specialGotDialog() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(16), dp(8), dp(16), dp(8));
+        final EditText a = input("شكد استلمت؟ مثال 5000 أو 5", InputType.TYPE_CLASS_NUMBER);
+        a.setTextSize(22);
+        a.setGravity(Gravity.CENTER);
+        box.addView(a, full());
+        final TextView hint = text("", 15, OK, true);
+        hint.setGravity(Gravity.CENTER);
+        box.addView(hint, full());
+        a.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence c, int s1, int c1, int a1) {}
+            public void onTextChanged(CharSequence c, int s1, int b1, int c1) {}
+            public void afterTextChanged(android.text.Editable e) {
+                int v = fareVal(e.toString());
+                hint.setTextColor(v < 0 ? BAD : OK);
+                hint.setText(e.length() == 0 ? "" : v < 0 ? "المبلغ مو مضبوط" : "= " + String.format(java.util.Locale.US, "%,d", v) + " د.ع");
+            }
+        });
+        final android.app.AlertDialog d = new android.app.AlertDialog.Builder(this).setTitle("💵 استلمت من الزبون الخاص")
+                .setView(box).setNegativeButton("رجوع", null).setPositiveButton("✅ إنهاء السفرة", null).create();
+        d.setOnShowListener(x -> d.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            int fv = fareVal(a.getText().toString());
+            if (fv <= 0) { hint.setTextColor(BAD); hint.setText("اكتب المبلغ اللي استلمته"); return; }
+            d.dismiss();
+            tripAction("special_end", obj("amount", String.valueOf(fv)));
+        }));
+        d.show();
     }
 
     // "بدء سفرة" with no zone picked: a dialog full of zone buttons, one tap starts the trip

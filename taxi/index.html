@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611111942";
+const BUILD="202611131745";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -3376,10 +3376,23 @@ function lineForm(B){
 function specialBox(t){
   const st=t.special_status;
   if(st==="pending") return `<div class="spbox wait"><b>⏳ زبون خاص: بانتظار موافقة الإدارة</b><small>${esc(t.special_note||"")}</small><small>ما تكدر تبدي أو تنهي السفرة لحد ما ترد الإدارة.</small></div>`;
-  if(st==="approved") return `<div class="spbox ok"><b>⭐ زبون خاص: بدون كروة</b><small>${esc(t.special_note||"")}${t.special_by?` · وافق ${esc(t.special_by)}`:""}</small></div>`;
+  if(st==="approved") return `<div class="spbox ok"><b>⭐ زبون خاص</b><small>${esc(t.special_note||"")}${t.special_by?` · وافق ${esc(t.special_by)}`:""}</small>
+    <small>من توصل وتخلّص، اختار وحدة وتنتهي السفرة:</small>
+    <div class="row" style="gap:8px;margin-top:6px"><button type="button" class="btn primary" data-spend="got">💵 استلمت</button><button type="button" class="btn" data-spend="none">✖ ما استلمت</button></div></div>`;
   const rej=st==="rejected"?`<div class="spbox bad"><b>✖ الإدارة رفضت الزبون الخاص: السفرة بكروة عادية</b>${t.special_reason?`<small>${esc(t.special_reason)}</small>`:""}</div>`:"";
   return rej+(t.waiting?"":`<button type="button" class="btn big" id="tr-sp">⭐ زبون خاص (بدون كروة)</button>`);
 }
+// special customer: one tap ends the trip — "استلمت" with the amount, or "ما استلمت" (free)
+document.addEventListener("click",e=>{const b=e.target.closest("[data-spend]");if(!b)return;
+  if(b.dataset.spend==="none") return confirmBox("ما استلمت شي من الزبون الخاص؟ السفرة تنتهي بدون كروة.","✖ ما استلمت، إنهاء",()=>tripAct("special_end",{amount:"0"}),"رجوع");
+  const m=modal(`<h3>💵 استلمت من الزبون الخاص</h3><div class="field fare-in"><label for="se-a">شكد استلمت؟ (دينار)</label><input id="se-a" inputmode="numeric" placeholder="مثال: 5000 أو 5"><small id="se-v" class="fare-v"></small>
+    <div class="fare-q">${FARE_Q.map(v=>`<button type="button" class="btn sm" data-sq2="${v}">${fmt(v)}</button>`).join("")}</div></div>
+    <div class="err" id="se-e"></div><div class="row"><button class="btn" id="se-x">رجوع</button><button class="btn primary" id="se-ok">✅ إنهاء السفرة</button></div>`);
+  const i=$("#se-a",m), show=()=>{const v=fareVal(i.value);$("#se-v",m).className="fare-v"+(v<0?" bad":"");$("#se-v",m).textContent=!i.value?"":v<0?"المبلغ مو مضبوط":`= ${dinar(v)}`};
+  i.oninput=show; m.querySelectorAll("[data-sq2]").forEach(x=>x.onclick=()=>{i.value=x.dataset.sq2;show()}); setTimeout(()=>i.focus(),50);
+  $("#se-x",m).onclick=()=>m.remove();
+  $("#se-ok",m).onclick=e2=>{const v=fareVal(i.value);if(v<=0){$("#se-e",m).textContent="اكتب المبلغ اللي استلمته";return}e2.currentTarget.disabled=true;m.remove();tripAct("special_end",{amount:String(v)})};
+});
 function specialForm(t){
   const zs=today.zones||[];
   const m=modal(`<h3>⭐ زبون خاص</h3><p style="margin:0">سفرة بدون كروة. اكتب منو الزبون بالضبط، والطلب يروح للإدارة توافق عليه، وبعدها تكمّل السفرة.</p>
