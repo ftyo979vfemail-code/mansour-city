@@ -822,6 +822,7 @@ public class MainActivity extends Activity {
 
     private void closingAck(long id, boolean ok, String note) {
         if (!ok && note.trim().length() < 3) { android.widget.Toast.makeText(this, "اكتب شنو الغلط", android.widget.Toast.LENGTH_SHORT).show(); return; }
+        final String code = Prefs.code(this);
         new Thread(() -> {
             try {
                 Api.call("taxi_driver_closing_ack", new JSONObject().put("p_code", code).put("p_id", id).put("p_ok", ok).put("p_note", note));
