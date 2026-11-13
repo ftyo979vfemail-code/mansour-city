@@ -424,7 +424,7 @@ public class MainActivity extends Activity {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
         JSONObject cxk = st.optJSONObject("cancelled");
-        String key = (t == null ? "none:" + st.optString("returning_since") + st.optString("ready_at") + ":" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optString("noshow_status") + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money")) + ":" + (st.optJSONObject("closing") == null ? "" : st.optJSONObject("closing").optLong("id"));
+        String key = (t == null ? "none:" + st.optString("returning_since") + st.optString("ready_at") + ":" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optString("noshow_status") + ":" + cxKey(t) + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money")) + ":" + (st.optJSONObject("closing") == null ? "" : st.optJSONObject("closing").optLong("id"));
         if (key.equals(tripKey)) return;
         tripKey = key;
         h.removeCallbacks(waitTick);
@@ -440,7 +440,7 @@ public class MainActivity extends Activity {
         if (t == null) {
             JSONObject cx = st.optJSONObject("cancelled");
             if (cx != null) {
-                TextView cv = text(("noshow".equals(cx.optString("kind")) ? "✔ الإدارة سكّرت الطلب (الزبون ما نزل)" : "✖ الزبون ألغى طلبه") + (cx.optString("dropoff").isEmpty() ? "" : " لـ " + cx.optString("dropoff")), 16, 0xFFB42318, true);
+                TextView cv = text(("driver".equals(cx.optString("kind")) ? "✔ الإدارة وافقت على إلغاء الرحلة" : "noshow".equals(cx.optString("kind")) ? "✔ الإدارة سكّرت الطلب (الزبون ما نزل)" : "✖ الزبون ألغى طلبه") + (cx.optString("dropoff").isEmpty() ? "" : " لـ " + cx.optString("dropoff")), 16, 0xFFB42318, true);
                 cv.setBackground(box(0xFFFDECEA, 0xFFB42318, 12));
                 cv.setPadding(dp(12), dp(10), dp(12), dp(10));
                 card.addView(cv, full());
@@ -747,6 +747,7 @@ public class MainActivity extends Activity {
                 card.addView(end, full());
             }
         }
+        if (t != null && (status.equals("accepted") || status.equals("started"))) addCancelReq(card, t);
         if (t != null && (status.equals("accepted") || status.equals("started"))) {
             final String waze = wazeUrl(t, status);
             if (waze != null) {
@@ -1090,6 +1091,57 @@ public class MainActivity extends Activity {
                     try { if (zid > 0 && typed.isEmpty()) p.put("zone_id", zid); } catch (Exception ignored) {}
                     if (zid == 0 && typed.length() < 2) { android.widget.Toast.makeText(this, "اكتب اسم المنطقة", android.widget.Toast.LENGTH_LONG).show(); return; }
                     tripAction("line", p);
+                }).show();
+    }
+
+    // "إلغاء الرحلة": reason + note go to the office; approved = cancelled with no fare, refused = carry on
+    private static final String[] CX_KINDS = {"الزبون غيّر رأيه", "الزبون ما موجود / ما نزل", "عطل بالسيارة", "سفرة انفتحت بالغلط", "سبب آخر"};
+
+    private static String cxKey(JSONObject t) {
+        JSONObject r = t == null ? null : t.optJSONObject("cancel_req");
+        return r == null ? "" : r.optString("status") + "/" + r.optString("answer");
+    }
+
+    private void addCancelReq(LinearLayout card, JSONObject t) {
+        JSONObject r = t.optJSONObject("cancel_req");
+        String rs = r == null ? "" : r.optString("status");
+        card.addView(space(8));
+        if ("pending".equals(rs)) {
+            TextView w = text("⏳ طلب إلغاء الرحلة عند الإدارة\n" + r.optString("kind") + ": " + r.optString("note")
+                    + "\nإذا كمّلت الرحلة عادي، الطلب ينشال.", 14, 0xFF8A5A00, true);
+            w.setBackground(box(0xFFFFF4DC, AMBER, 12));
+            w.setPadding(dp(12), dp(10), dp(12), dp(10));
+            card.addView(w, full());
+            return;
+        }
+        if ("rejected".equals(rs)) {
+            String a = r.optString("answer");
+            TextView rj = text("✖ الإدارة رفضت الإلغاء: كمّل الرحلة" + (a.isEmpty() || r.isNull("answer") ? "" : "\n" + a), 14, 0xFFB42318, true);
+            rj.setBackground(box(0xFFFDECEA, 0xFFB42318, 12));
+            rj.setPadding(dp(12), dp(10), dp(12), dp(10));
+            card.addView(rj, full());
+            card.addView(space(8));
+        }
+        Button cx = button("🚫 إلغاء الرحلة", false);
+        cx.setTextColor(0xFFB42318);
+        cx.setOnClickListener(v -> cancelReqDialog());
+        card.addView(cx, full());
+    }
+
+    private void cancelReqDialog() {
+        final int[] pick = {-1};
+        final EditText note = input("مثال: الزبون اتصل وكال ما أريد، أو التاير انفجر", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        new android.app.AlertDialog.Builder(this).setTitle("🚫 إلغاء الرحلة: اختار السبب واكتب شنو صار")
+                .setSingleChoiceItems(CX_KINDS, -1, (d, w) -> pick[0] = w)
+                .setView(note)
+                .setNegativeButton("رجوع", null)
+                .setPositiveButton("إرسال للإدارة", (d, w) -> {
+                    String n = note.getText().toString().trim();
+                    if (pick[0] < 0) { android.widget.Toast.makeText(this, "اختار سبب الإلغاء", android.widget.Toast.LENGTH_LONG).show(); return; }
+                    if (n.length() < 3) { android.widget.Toast.makeText(this, "اكتب ملاحظة: شنو صار؟", android.widget.Toast.LENGTH_LONG).show(); return; }
+                    JSONObject p = obj("note", n);
+                    try { p.put("kind", CX_KINDS[pick[0]]); } catch (Exception ignored) {}
+                    tripAction("cancel_req", p);
                 }).show();
     }
 

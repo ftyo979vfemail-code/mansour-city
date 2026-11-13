@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611131838";
+const BUILD="202611131900";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1575,6 +1575,7 @@ function adminShell(){
      <div class="alert reqbar cpbar" id="cpbar" hidden></div>
      <div class="alert reqbar spbar" id="spbar" hidden></div>
      <div class="alert reqbar spbar" id="nsbar" hidden></div>
+     <div class="alert reqbar spbar" id="cxbar" hidden></div>
      <div class="alert reqbar" id="scbar" hidden></div>
      <div class="alert" id="alert" hidden></div>
      <nav class="tabs" role="tablist">
@@ -1636,6 +1637,7 @@ async function poll(){
     prevReq=ids; prevReqInit=true;
     specialBar(ts.filter(t=>t.special_status==="pending"&&["accepted","started"].includes(t.status)));
     noshowBar(ts.filter(t=>t.noshow_status==="pending"&&t.status==="accepted"));
+    cancelReqBar(ts.filter(t=>t.cancel_req_status==="pending"&&["accepted","started"].includes(t.status)));
     schedBar(ts.filter(t=>t.status==="scheduled"));
   }).catch(()=>{});
   pollDeposits(); if(FULL()) pollRouteChanges(); if(pollN%6===1) pollComplaints(); if(pollN%12===1) shiftSummary();
@@ -1663,6 +1665,20 @@ function noshowBar(ns){const bar=$("#nsbar"); if(!bar) return;
     $("#nsr-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#nsr",m).focus(),50);
     $("#nsr-ok",m).onclick=async()=>{try{await rpc("taxi_admin_noshow",{p_pin:PIN,p_id:+b.dataset.nsno,p_ok:false,p_reason:$("#nsr",m).value});m.remove();toast("انرفض، السائق يكمّل انتظار");pollN=0;poll()}catch(e){$("#nsr-e",m).textContent=e.message}}});
   const ids=ns.map(t=>t.id); if(prevNsInit&&ids.some(id=>!prevNs.includes(id))){beep();setTimeout(beep,300);setTimeout(beep,600)} prevNs=ids; prevNsInit=true;
+}
+// driver asks to cancel an open trip: any manager approves or refuses with a reason
+let prevCx=[], prevCxInit=false;
+function cancelReqBar(cx){const bar=$("#cxbar"); if(!bar) return;
+  if(!cx.length){bar.hidden=true;prevCx=[];prevCxInit=true;return}
+  bar.hidden=false;
+  bar.innerHTML=cx.map(t=>`<div class="sp-row"><span>🚫 <b>طلب إلغاء رحلة</b>: ${plateHTML(t.plate)} ${esc(t.driver_name||"")} · <b>${esc(t.cancel_req_kind||"")}</b> · «${esc(t.cancel_req_note||"")}» · ${esc(t.pickup||"")} ← ${esc(t.dropoff||"")}${t.status==="started"?` · بدت ${hm(t.started_at)}`:" · ما بدت بعد"}</span><span class="acts"><button class="btn sm primary" data-cxok="${t.id}">✔ وافق، الغيها</button><button class="btn sm" data-cxno="${t.id}">✖ رفض</button></span></div>`).join("");
+  bar.querySelectorAll("[data-cxok]").forEach(b=>b.onclick=()=>{const m=modal(`<h3>توافق على إلغاء الرحلة؟</h3><p style="margin:0">الرحلة تنلغي بدون كروة.</p><div class="field"><label for="cxa">ملاحظة (اختياري، يشوفها السائق)</label><input id="cxa" maxlength="200"></div><div class="err" id="cxa-e"></div><div class="row"><button class="btn" id="cxa-x">رجوع</button><button class="btn primary" id="cxa-ok">✔ وافق</button></div>`);
+    $("#cxa-x",m).onclick=()=>m.remove();
+    $("#cxa-ok",m).onclick=async e=>{e.target.disabled=true;try{await rpc("taxi_admin_cancel_req",{p_pin:PIN,p_id:+b.dataset.cxok,p_ok:true,p_reason:$("#cxa",m).value});m.remove();toast("انلغت الرحلة");pollN=0;poll()}catch(er){$("#cxa-e",m).textContent=er.message;e.target.disabled=false}}});
+  bar.querySelectorAll("[data-cxno]").forEach(b=>b.onclick=()=>{const m=modal(`<h3>رفض الإلغاء</h3><p style="margin:0">الرحلة تكمّل. اكتب السبب حتى يشوفه السائق.</p><div class="field"><label for="cxr">السبب</label><input id="cxr" maxlength="200" placeholder="مثال: الزبون اتصل وكال جاي"></div><div class="err" id="cxr-e"></div><div class="row"><button class="btn" id="cxr-x">رجوع</button><button class="btn primary" id="cxr-ok">رفض</button></div>`);
+    $("#cxr-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#cxr",m).focus(),50);
+    $("#cxr-ok",m).onclick=async e=>{e.target.disabled=true;try{await rpc("taxi_admin_cancel_req",{p_pin:PIN,p_id:+b.dataset.cxno,p_ok:false,p_reason:$("#cxr",m).value});m.remove();toast("انرفض، الرحلة تكمّل");pollN=0;poll()}catch(er){$("#cxr-e",m).textContent=er.message;e.target.disabled=false}}});
+  const ids=cx.map(t=>t.id); if(prevCxInit&&ids.some(id=>!prevCx.includes(id))){beep();setTimeout(beep,300);setTimeout(beep,600)} prevCx=ids; prevCxInit=true;
 }
 // bookings made ahead of time
 let prevSc=[], prevScInit=false;
@@ -3405,12 +3421,12 @@ function noteCancel(c){
   if(!c||seenCancel===c.id) return; seenCancel=c.id;
   try{if(store.get("taxi_seen_cancel")==String(c.id))return;store.set("taxi_seen_cancel",String(c.id))}catch{}
   try{navigator.vibrate&&navigator.vibrate([300,120,300])}catch{}
-  const m=modal(c.kind==="noshow"?`<h3>✔ الإدارة سكّرت الطلب</h3><p style="margin:0">وافقت الإدارة على التسكير (الزبون ما نزل). انتظر طلب جديد من المكتب.</p><div class="row"><button class="btn primary" id="cok">تمام</button></div>`:`<h3>✖ الزبون ألغى الطلب</h3><p style="margin:0">الطلب ${c.dropoff?`لـ <b>${esc(c.dropoff)}</b> `:""}انلغى من الزبون. ما عليك شي، انتظر طلب جديد من المكتب.</p><div class="row"><button class="btn primary" id="cok">تمام</button></div>`);
+  const m=modal(c.kind==="driver"?`<h3>✔ الإدارة وافقت على الإلغاء</h3><p style="margin:0">انلغت الرحلة بدون كروة. انتظر طلب جديد من المكتب.</p><div class="row"><button class="btn primary" id="cok">تمام</button></div>`:c.kind==="noshow"?`<h3>✔ الإدارة سكّرت الطلب</h3><p style="margin:0">وافقت الإدارة على التسكير (الزبون ما نزل). انتظر طلب جديد من المكتب.</p><div class="row"><button class="btn primary" id="cok">تمام</button></div>`:`<h3>✖ الزبون ألغى الطلب</h3><p style="margin:0">الطلب ${c.dropoff?`لـ <b>${esc(c.dropoff)}</b> `:""}انلغى من الزبون. ما عليك شي، انتظر طلب جديد من المكتب.</p><div class="row"><button class="btn primary" id="cok">تمام</button></div>`);
   $("#cok",m).onclick=()=>m.remove();
 }
 function showTrip(t,force){
   const box=$("#tripBox"); if(!box) return;
-  const ck=x=>x&&[x.id,x.status,x.waiting,x.pickup_waiting,x.special_status,x.noshow_status,x.round_trip,x.zone_id,x.fare,x.dest_change&&x.dest_change.id,x.dest_change&&x.dest_change.status];
+  const ck=x=>x&&[x.id,x.status,x.waiting,x.pickup_waiting,x.special_status,x.noshow_status,x.cancel_req&&x.cancel_req.status,x.cancel_req&&x.cancel_req.answer,x.round_trip,x.zone_id,x.fare,x.dest_change&&x.dest_change.id,x.dest_change&&x.dest_change.status];
   const key=JSON.stringify(ck(t));
   const same=key===JSON.stringify(ck(curTrip));
   // a running trip card keeps its own live timer and the typed fare; redraw it only when something changes
@@ -3466,11 +3482,12 @@ function showTrip(t,force){
       ${nsP?`<div class="waitbox locked" role="timer"><small>🔒 العدّاد انقفل</small><b>${clock(t.pickup_wait_sec)}</b><small>انتظرت ${Math.floor((t.pickup_wait_sec||0)/60)} دقيقة</small></div>${noshowBox(t)}`
       :t.pickup_waiting?`<div class="waitbox" role="timer" aria-live="off"><small>🕓 تنتظر الزبون ينزل</small><b id="pwclock">${clock(t.pickup_wait_sec)}</b><small>هذا الوقت ما ينحسب بفلوس</small></div>${noshowBox(t)}`
         :`${wazeBtn(t,"ويز: روح للزبون")}<button class="btn big" id="tr-arr">📍 وصلت، دا أنتظر الزبون</button>${t.pickup_wait_sec>0?`<p class="note" style="margin:0">انتظرت: <b>${clock(t.pickup_wait_sec)}</b></p>`:""}`}
-      <button class="btn primary big" id="tr-go" ${spP?"disabled":""}>🚕 انطلاق (ركب الزبون)</button></div>`;
+      <button class="btn primary big" id="tr-go" ${spP?"disabled":""}>🚕 انطلاق (ركب الزبون)</button>${cancelReqBox(t)}</div>`;
     $("#tr-go").onclick=()=>tripAct("start");
     const sp=$("#tr-sp"); if(sp) sp.onclick=()=>specialForm(t);
     const ar=$("#tr-arr"); if(ar) ar.onclick=()=>tripAct("wait_start");
     const nsb=$("#tr-ns"); if(nsb) nsb.onclick=()=>noshowForm(t);
+    const cxb=$("#tr-cx"); if(cxb) cxb.onclick=()=>cancelReqForm(t);
     if(t.pickup_waiting){const t0=Date.now(),w0=t.pickup_wait_sec||0;waitT=setInterval(()=>{const c=$("#pwclock");if(!c)return clearInterval(waitT);c.textContent=clock(w0+Math.floor((Date.now()-t0)/1000))},1000)}
     return}
   const navBtn=`<a class="btn big" href="#nav" style="text-align:center">🧭 الطريق على الخريطة</a>`;
@@ -3479,8 +3496,9 @@ function showTrip(t,force){
     box.innerHTML=`<div class="trip on"><h3>🛣 خط: رايح ${esc(t.dropoff||"")}</h3><p>المرجع: <b>${esc(t.pickup||"المجمع")}</b> · من ${hm(t.started_at)}</p>
       <p class="note" style="margin:0">الخط اشتراك شهري، ما تستلم فلوس من الركاب.</p>
       ${wazeBtn(t,"ويز: روح لـ "+esc(t.dropoff||"الوجهة"))}
-      <button class="btn primary big" id="tr-lend">✅ خلصت الخط</button></div>`;
+      <button class="btn primary big" id="tr-lend">✅ خلصت الخط</button>${cancelReqBox(t)}</div>`;
     $("#tr-lend").onclick=()=>tripAct("end",{});
+    const lcx=$("#tr-cx"); if(lcx) lcx.onclick=()=>cancelReqForm(t);
     return}
   const fixed=t.zone_id&&t.fare;
   const spFree=t.special_status==="approved", spWait=t.special_status==="pending";
@@ -3495,7 +3513,7 @@ function showTrip(t,force){
     ${fixed||spFree?"":`<div class="field fare-in"><label for="tr-fare">💰 الأجرة اللي استلمتها (دينار)</label><input id="tr-fare" inputmode="numeric" autocomplete="off" placeholder="اكتب المبلغ، مثال 5000 أو 5" value="${esc(fareDraft[t.id]||"")}">
       <div class="fare-q" role="group" aria-label="مبالغ سريعة">${FARE_Q.map(v=>`<button type="button" class="btn sm" data-fq="${v}">${fmt(v)}</button>`).join("")}</div>
       <small id="tr-fv" class="fare-v" aria-live="polite"></small></div>`}
-    <button class="btn primary big" id="tr-end" ${t.waiting||spWait?"disabled":""}>إنهاء السفرة</button></div>`;
+    <button class="btn primary big" id="tr-end" ${t.waiting||spWait?"disabled":""}>إنهاء السفرة</button>${cancelReqBox(t)}</div>`;
   // live fare: base + round trip + waiting beyond the free minutes
   const t0=Date.now(), w0=t.wait_sec||0;
   const calc=()=>{
@@ -3525,6 +3543,7 @@ function showTrip(t,force){
     confirmBox(`تنهي السفرة؟ الأجرة ${dinar(v)}`,"✅ نعم، إنهاء",()=>{delete fareDraft[t.id];tripAct("end",{fare:String(v)})},"رجوع")};
   const cb=$("#tr-chg"); if(cb) cb.onclick=()=>destChangeForm(t);
   const spb=$("#tr-sp"); if(spb) spb.onclick=()=>specialForm(t);
+  const scx=$("#tr-cx"); if(scx) scx.onclick=()=>cancelReqForm(t);
   clearInterval(chgT); const dc=t.dest_change;
   if(dc&&(dc.status==="pending"||dc.status==="awaiting_customer")){const t0=Date.now(),s0=dc.seconds_left;
     chgT=setInterval(()=>{const left=Math.max(0,s0-Math.floor((Date.now()-t0)/1000)),el=$("#chg-left");if(!el)return clearInterval(chgT);
@@ -3550,6 +3569,27 @@ function noshowForm(t){
     const b=$("#ns-ok",m);b.disabled=true;
     try{await rpc("taxi_driver_trip",{p_code:CODE,p_action:"noshow",p:{note:n}});m.remove();toast("انرسل للإدارة");curTrip=undefined;if(EXT)setExt(true);else await refreshTrip()}
     catch(e){$("#ns-e",m).textContent=e.message;b.disabled=false}};
+}
+// "إلغاء الرحلة": the driver picks a reason and writes a note; the office approves (trip cancelled, no fare) or refuses
+const CX_KINDS=["الزبون غيّر رأيه","الزبون ما موجود / ما نزل","عطل بالسيارة","سفرة انفتحت بالغلط","سبب آخر"];
+function cancelReqBox(t){const r=t.cancel_req||{};
+  if(r.status==="pending") return `<div class="spbox wait"><b>⏳ طلب إلغاء الرحلة عند الإدارة</b><small>${esc(r.kind||"")}: ${esc(r.note||"")}</small><small>إذا كمّلت الرحلة عادي، الطلب ينشال.</small></div>`;
+  const rej=r.status==="rejected"?`<div class="spbox bad"><b>✖ الإدارة رفضت الإلغاء: كمّل الرحلة</b>${r.answer?`<small>${esc(r.answer)}${r.by?" · "+esc(r.by):""}</small>`:""}</div>`:"";
+  return rej+`<button type="button" class="btn big" id="tr-cx" style="color:var(--bad,#b42318)">🚫 إلغاء الرحلة</button>`;
+}
+function cancelReqForm(t){let kind="";
+  const m=modal(`<h3>🚫 إلغاء الرحلة</h3><p style="margin:0">اختار السبب واكتب شنو صار. الطلب يروح للإدارة، ومن توافق تنلغي الرحلة بدون كروة.</p>
+    <div class="zones" id="cx-k" role="radiogroup" aria-label="سبب الإلغاء">${CX_KINDS.map(k=>`<button type="button" role="radio" aria-checked="false" class="zchip" data-k="${esc(k)}">${esc(k)}</button>`).join("")}</div>
+    <div class="field"><label for="cx-n">الملاحظة</label><textarea id="cx-n" rows="3" maxlength="200" placeholder="مثال: الزبون اتصل وكال ما أريد، أو التاير انفجر بالطريق"></textarea></div>
+    <div class="err" id="cx-e"></div><div class="row"><button class="btn" id="cx-x">رجوع</button><button class="btn primary" id="cx-ok">إرسال للإدارة</button></div>`);
+  m.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{kind=b.dataset.k;m.querySelectorAll("[data-k]").forEach(x=>{const on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)})});
+  $("#cx-x",m).onclick=()=>m.remove();
+  $("#cx-ok",m).onclick=async()=>{const n=$("#cx-n",m).value.trim();
+    if(!kind){$("#cx-e",m).textContent="اختار سبب الإلغاء";return}
+    if(n.length<3){$("#cx-e",m).textContent="اكتب ملاحظة: شنو صار؟";return}
+    const b=$("#cx-ok",m);b.disabled=true;
+    try{await rpc("taxi_driver_trip",{p_code:CODE,p_action:"cancel_req",p:{kind,note:n}});m.remove();toast("انرسل طلب الإلغاء للإدارة");curTrip=undefined;if(EXT)setExt(true);else await refreshTrip()}
+    catch(e){$("#cx-e",m).textContent=e.message;b.disabled=false}};
 }
 // "بدء سفرة" without a zone picked: a full screen of zone buttons, one tap starts the trip
 function zonePicker(zs){
