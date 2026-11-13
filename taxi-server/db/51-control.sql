@@ -1,0 +1,9 @@
+-- 51: control of the accounts. Applied as migration taxi_control_cycles (+ small in-place patches):
+--  * taxi_cycle(day): 3-day cycles from settings cycle_anchor (2026-11-09) / cycle_days (3).
+--  * taxi_closings.driver_ack ok|dispute, driver_note, driver_ack_at; taxi_driver_closing_ack(code, id, ok, note);
+--    taxi_driver_state returns 'closing' (latest unconfirmed settlement); taxi_admin_closings / taxi_period_json.last_closing return ack.
+--  * taxi_cash_counts + taxi_admin_cash_count(pin, day, counted, note): the office's daily cash count vs taxi_office_expected(day)
+--    (receipts that day − office-paid driver advances/expenses); taxi_admin_month_book returns counts + cycle.
+--  * taxi_period_flags(car, from, to): km driven vs km in trips, money per km, quick/0-km trips, lines that never left, unlogged
+--    moves; taxi_admin_period returns flags per car + cycle/prev_cycle.
+--  * lock: a manager (not the owner) can't add an advance/expense/debt dated inside a driver's settled period.

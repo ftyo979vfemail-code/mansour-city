@@ -285,6 +285,7 @@ tr.dd-bad td{background:color-mix(in srgb,var(--bad) 8%,transparent)}td .pill{wh
 .st-tr{list-style:none;margin:6px 0 0;padding:0;font-size:13px}.st-tr li{display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px dashed var(--line)}.st-c details summary{cursor:pointer}#stv input[type=date]{font:inherit;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:inherit}
 @media (max-width:420px){.st-list{grid-template-columns:1fr}}
 .bk-t th[scope=row]{min-width:120px}.bk-t details summary{cursor:pointer;font-weight:700}.bk-det{display:flex;flex-direction:column;gap:6px;margin-top:6px;font-weight:400;white-space:normal;min-width:260px}.bk-drv{border:1px dashed var(--line);border-radius:10px;padding:6px 8px;font-size:13px;line-height:1.6}
+.st-flags{border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:13px}.st-flags[open]{border-color:var(--warn)}.st-flags summary{cursor:pointer;font-weight:700}.st-flags ul{margin:6px 0 0;padding-inline-start:18px;display:flex;flex-direction:column;gap:3px}
 .rc-day{margin:0 0 18px}.rc-dh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px;margin:0 0 8px;padding:8px 12px;border-radius:10px;background:var(--panel2,var(--panel));border:1px solid var(--line);font-size:16px}.rc-dh small{font-weight:400;font-size:13px}
 .rcpt{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px;overflow:hidden}
 .rcpt summary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
@@ -575,7 +576,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611131809";
+const BUILD="202611131815";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -627,7 +628,7 @@ function status(c){
 const TS={scheduled:["s-warn","حجز مسبق"],requested:["s-bad","طلب زبون جديد"],assigned:["s-warn","بانتظار قبول السائق"],accepted:["s-ok","رايح للزبون"],started:["s-ok","بسفرة"],done:["s-idle","انتهت"],cancelled:["s-idle","ملغية"],rejected:["s-bad","رفضها السائق"]};
 const fmt=n=>Number(n||0).toLocaleString("en-US");
 const dinar=n=>fmt(n)+" د.ع";
-const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],ledger:["s-idle","💸 مصروف / سلفة"],trip_edit:["s-warn","✏️ تعديل كروة"],trip_delete:["s-bad","🗑 حذف سفرة"],parked:["s-idle","واقف"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],line:["s-ok","🛣 طلع يوصل خط"],ready:["s-ok","✅ جاهز بالمجمع"],return_long:["s-bad","⚠ طوّل بالرجعة للمجمع"],hurry_answer:["s-warn","⏳ جواب الزبون (مستعجل؟)"],deposit:["s-ok","طلب إيداع من سائق"],route_change:["s-warn","الزبون غيّر مساره"],route_refused:["s-idle","الزبون رفض تغيير الوجهة"],route_suspect:["s-bad","⚠ تغيير وجهة مشكوك بيه"],cust_cancel:["s-idle","الزبون ألغى طلبه"],low_rating:["s-bad","⭐ تقييم واطي"],special:["s-warn","⭐ زبون خاص ينتظر موافقة"],noshow:["s-warn","✖ السائق يريد يسكّر (الزبون ما نزل)"],scheduled:["s-warn","🗓 حجز مسبق جديد"],scheduled_due:["s-warn","🗓 وقت حجز مسبق"],complaint:["s-bad","📣 شكوى زبون"],round:["s-warn","مرجع"]};
+const EVT={started:["s-ok","بدأ الدوام"],stopped:["s-idle","أنهى الدوام"],gps_on:["s-ok","رجع الإرسال"],off:["s-bad","أطفأ الـ GPS"],denied:["s-bad","رفض إذن الموقع"],background:["s-warn","خرج من الصفحة"],closed:["s-bad","أغلق التطبيق"],lost:["s-bad","انقطع الإرسال (بطارية أو شبكة)"],ledger:["s-idle","💸 مصروف / سلفة"],trip_edit:["s-warn","✏️ تعديل كروة"],trip_delete:["s-bad","🗑 حذف سفرة"],parked:["s-idle","واقف"],unlogged:["s-bad","تحرّك بدون سفرة مسجّلة"],rejected:["s-bad","رفض سفرة من المكتب"],request:["s-warn","طلب زبون جديد"],line:["s-ok","🛣 طلع يوصل خط"],ready:["s-ok","✅ جاهز بالمجمع"],return_long:["s-bad","⚠ طوّل بالرجعة للمجمع"],hurry_answer:["s-warn","⏳ جواب الزبون (مستعجل؟)"],deposit:["s-ok","طلب إيداع من سائق"],route_change:["s-warn","الزبون غيّر مساره"],route_refused:["s-idle","الزبون رفض تغيير الوجهة"],route_suspect:["s-bad","⚠ تغيير وجهة مشكوك بيه"],cust_cancel:["s-idle","الزبون ألغى طلبه"],low_rating:["s-bad","⭐ تقييم واطي"],special:["s-warn","⭐ زبون خاص ينتظر موافقة"],noshow:["s-warn","✖ السائق يريد يسكّر (الزبون ما نزل)"],scheduled:["s-warn","🗓 حجز مسبق جديد"],scheduled_due:["s-warn","🗓 وقت حجز مسبق"],complaint:["s-bad","📣 شكوى زبون"],round:["s-warn","مرجع"],closing_ok:["s-ok","✔ أكّد حساب المحاسبة"],closing_dispute:["s-bad","✖ اعترض على حسابه"],special_end:["s-idle","⭐ خلّص زبون خاص"],zone_added:["s-idle","🆕 أضاف منطقة"]};
 const ICON=`<img class="logo-light" src="img/mark.png" alt=""><img class="logo-dark" src="img/mark-light.png" alt="">`;
 const ICON_OLD=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M4 13l2-6a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l2 6v4H4z"/><path d="M10 4h4"/><circle cx="7.5" cy="13.5" r="1"/><circle cx="16.5" cy="13.5" r="1"/></svg>`;
 
@@ -1567,6 +1568,7 @@ function adminShell(){
    <div>
      <div class="alert reqbar" id="reqbar" hidden></div>
      <div class="alert reqbar depbar" id="depbar" hidden></div>
+     <div class="alert" id="shiftbar" hidden></div>
      <div class="alert reqbar rcbar" id="rcbar" hidden></div>
      <div class="alert reqbar cpbar" id="cpbar" hidden></div>
      <div class="alert reqbar spbar" id="spbar" hidden></div>
@@ -1633,7 +1635,7 @@ async function poll(){
     noshowBar(ts.filter(t=>t.noshow_status==="pending"&&t.status==="accepted"));
     schedBar(ts.filter(t=>t.status==="scheduled"));
   }).catch(()=>{});
-  pollDeposits(); if(FULL()) pollRouteChanges(); if(pollN%6===1) pollComplaints();
+  pollDeposits(); if(FULL()) pollRouteChanges(); if(pollN%6===1) pollComplaints(); if(pollN%12===1) shiftSummary();
   if(tab==="live") renderLive(); else if(tab==="cars") renderCars(); else if(tab==="trips") loadTrips(true);
 }
 let prevSp=[], prevSpInit=false;
@@ -1756,6 +1758,23 @@ async function saveNoteItems(car,items){
   for(const x of items){try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{car_id:car,kind:x.kind,amount:String(x.amount),day,note:x.note||"من ملاحظة الاستلام",from_cash:true}});ok++}catch(e){toast(e.message)}}
   if(ok) toast(`انسجل من الملاحظة: ${items.map(x=>NOTE_K[x.kind]+" "+fmt(x.amount)).join("، ")}`);
 }
+// end of a shift (7 PM morning, 10 PM evening): each captain's day — brought, handed over, still on him
+async function shiftSummary(){const bar=$("#shiftbar"); if(!bar) return;
+  const now=new Date(Date.now()+3*36e5), h=now.getUTCHours(), day=now.toISOString().slice(0,10);
+  const sh=h>=22?"evening":h>=19?"morning":null; if(!sh){bar.hidden=true;return}
+  const key="taxi_shift_seen_"+day+"_"+sh; let seen=false; try{seen=localStorage.getItem(key)==="1"}catch{}
+  if(seen){bar.hidden=true;return}
+  let r; try{r=await rpc("taxi_admin_period",{p_pin:PIN,p_from:day,p_to:day})}catch{return}
+  const C=r.cars.filter(c=>(c.shift||"morning")===sh); if(!C.length){bar.hidden=true;return}
+  bar.hidden=false;
+  bar.innerHTML=`<b>${sh==="morning"?"☀️ خلص الدوام الصباحي":"🌙 خلص الدوام المسائي"} · ملخص اليوم</b>
+    <div class="sp-list">${C.map(c=>`<div class="sp-row"><span><b>${esc(c.driver_name)}</b> · ${c.trips_n} سفرة · جاب <b>${fmt(c.fares)}</b> · سلّم ${fmt(c.received)}</span><span class="pill ${c.balance_all>0?"s-bad":"s-ok"}">${c.balance_all>0?`بذمّته ${fmt(c.balance_all)}`:"✓ مسلّم"}</span></div>`).join("")}</div>
+    <div class="row" style="justify-content:flex-start;gap:6px"><button class="btn sm" id="sh-go">🧮 افتح المحاسبة</button><button class="btn sm" id="sh-x">تمام</button></div>`;
+  if(!prevShift||prevShift!==key){beep();prevShift=key}
+  $("#sh-x").onclick=()=>{try{localStorage.setItem(key,"1")}catch{};bar.hidden=true};
+  $("#sh-go").onclick=()=>{try{localStorage.setItem(key,"1")}catch{};bar.hidden=true;const b=document.querySelector('.tabs [data-t="settle"]');if(b)b.click()};
+}
+let prevShift=null;
 let prevDep=[], prevDepInit=false;
 function pollDeposits(){
   rpc("taxi_admin_deposits",{p_pin:PIN}).then(ds=>{const bar=$("#depbar"); if(!bar) return;
@@ -2526,6 +2545,9 @@ async function renderBook(){
   const [y,mo]=bkMonth.split("-").map(Number), nd=new Date(Date.UTC(y,mo,0)).getUTCDate(), days=[];
   for(let d=1;d<=nd;d++){const k=bkMonth+"-"+String(d).padStart(2,"0");if(k<=today)days.push(k)}
   const KL={advance:"🤝 سلفة",expense:"💸 مصروف",debt:"🧾 دين",settle:"⚖️ تسوية"};
+  const CN={}; (r.counts||[]).forEach(x=>CN[x.d]=x);
+  const cntHTML=(d,box)=>{const x=CN[d];if(!x)return box||d===today?`<button class="btn sm" data-cnt="${d}" data-exp="${box}">🧮 جرد</button>`:"—";const df=x.counted-x.expected;
+    return `<button class="btn sm ${df?"danger":""}" data-cnt="${d}" data-exp="${box}" title="${esc(x.by)}${x.note?" · "+esc(x.note):""}">${fmt(x.counted)}</button><br><small style="color:${df?"var(--bad)":"var(--ok)"};font-weight:700">${df?(df>0?"زايد ":"ناقص ")+fmt(Math.abs(df)):"✓ مطابق"}</small>`};
   let cF=0,cK=0,cBox=0; const tot={f:0,k:0,adv:0,exp:0,debt:0,box:0,n:0};
   const rows=days.map(d=>{const T=r.trips.filter(x=>x.d===d), K=r.receipts.filter(x=>x.d===d), L=r.ledger.filter(x=>x.d===d);
     const f=T.reduce((a,x)=>a+x.fares,0), n=T.reduce((a,x)=>a+x.n,0), k=K.reduce((a,x)=>a+x.amount,0);
@@ -2541,7 +2563,7 @@ async function renderBook(){
       +L.filter(x=>x.staff).map(x=>`<div class="bk-drv"><b>👤 ${esc(x.name)}</b> ${KL[x.kind]} <b>${fmt(x.amount)}</b>${x.note?` · ${esc(x.note)}`:""}</div>`).join("");
     return `<tr class="${empty?"ms-empty":""}${d===today?" ms-today":""}"><th scope="row">${empty?dl(d):`<details><summary>${dl(d)}</summary><div class="bk-det">${det||"—"}</div></details>`}</th>
       <td class="num">${n||"—"}</td><td class="num"><b>${f?fmt(f):"—"}</b></td><td class="num">${k?fmt(k):"—"}</td><td class="num">${adv?fmt(adv):"—"}</td><td class="num">${exp?fmt(exp):"—"}</td><td class="num">${debt?fmt(debt):"—"}</td>
-      <td class="num"><b>${box?fmt(box):"—"}</b></td><td class="num ms-cum">${fmt(cBox)}<br><small>جابوا ${fmt(cF)}</small></td></tr>`}).join("");
+      <td class="num"><b>${box?fmt(box):"—"}</b></td><td class="num">${cntHTML(d,box)}</td><td class="num ms-cum">${fmt(cBox)}<br><small>جابوا ${fmt(cF)}</small></td></tr>`}).join("");
   const D=r.debts, dOpen=D.filter(x=>!x.done), AV=r.advances_open;
   $("#bkb").innerHTML=`<div class="kpis">
       <div class="kpi"><small>جابوا السواق</small><b>${dinar(tot.f)}</b><small>${tot.n} سفرة</small></div>
@@ -2550,15 +2572,25 @@ async function renderBook(){
       <div class="kpi ${r.owed_now?"warn":""}"><small>بذمّة السواق هسه</small><b>${dinar(r.owed_now)}</b></div>
       <div class="kpi"><small>سلف هذا الشهر</small><b>${dinar(tot.adv)}</b><small>مصاريف ${fmt(tot.exp)}</small></div>
       <div class="kpi ${dOpen.length?"warn":""}"><small>ديون مفتوحة</small><b>${dinar(dOpen.reduce((a,x)=>a+x.amount,0))}</b><small>${dOpen.length} دين</small></div></div>
-    <div class="tbl-wrap"><table class="ms-t bk-t"><thead><tr><th>اليوم</th><th>سفرات</th><th>جابوا</th><th>استلمنا</th><th>سلف</th><th>مصاريف</th><th>ديون</th><th>بإيد الإدارة</th><th>من أول الشهر</th></tr></thead>
+    <div class="tbl-wrap"><table class="ms-t bk-t"><thead><tr><th>اليوم</th><th>سفرات</th><th>جابوا</th><th>استلمنا</th><th>سلف</th><th>مصاريف</th><th>ديون</th><th>بإيد الإدارة</th><th>🧮 الجرد</th><th>من أول الشهر</th></tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr><th>المجموع</th><td class="num">${tot.n}</td><td class="num"><b>${fmt(tot.f)}</b></td><td class="num"><b>${fmt(tot.k)}</b></td><td class="num">${fmt(tot.adv)}</td><td class="num">${fmt(tot.exp)}</td><td class="num">${fmt(tot.debt)}</td><td class="num"><b>${fmt(tot.box)}</b></td><td></td></tr></tfoot></table></div>
+      <tfoot><tr><th>المجموع</th><td class="num">${tot.n}</td><td class="num"><b>${fmt(tot.f)}</b></td><td class="num"><b>${fmt(tot.k)}</b></td><td class="num">${fmt(tot.adv)}</td><td class="num">${fmt(tot.exp)}</td><td class="num">${fmt(tot.debt)}</td><td class="num"><b>${fmt(tot.box)}</b></td><td></td><td></td></tr></tfoot></table></div>
     <section class="st-c" style="margin-top:14px"><h3>🧾 سجل الديون</h3>
       ${D.length?`<div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>على منو / ملاحظة</th><th>السائق</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody>
         ${D.map(x=>`<tr${x.done?' class="ms-empty"':""}><td>${dl(x.d)}</td><td>${esc(x.note||"—")}</td><td>${esc(x.name||"—")}</td><td class="num"><b>${fmt(x.amount)}</b></td><td>${x.done?`<span class="pill s-ok">✓ انستلم ${x.done_at?new Date(x.done_at).toLocaleDateString("ar-IQ",{day:"numeric",month:"numeric"}):""}</span>`:`<span class="pill s-warn">مفتوح</span>`}</td></tr>`).join("")}
       </tbody><tfoot><tr><th colspan="3">المفتوح</th><td class="num"><b>${fmt(dOpen.reduce((a,x)=>a+x.amount,0))}</b></td><td></td></tr></tfoot></table></div>
       <p class="note" style="margin:6px 0 0">تأشّر الدين «انستلم» من تبويب 🧮 المحاسبة ← السلف والديون المفتوحة.</p>`:`<p class="note">ماكو ديون مسجّلة.</p>`}</section>
     ${AV.length?`<section class="st-c" style="margin-top:12px"><h3>🤝 السلف المفتوحة (تنخصم من الراتب)</h3><ul class="st-tr">${AV.map(a=>`<li><span>${esc(a.name)}</span><b>${fmt(a.amount)}</b></li>`).join("")}<li><span><b>المجموع</b></span><b>${fmt(AV.reduce((x,a)=>x+a.amount,0))}</b></li></ul></section>`:""}`;
+  const badCnt=Object.values(CN).filter(x=>x.counted!==x.expected);
+  if(badCnt.length) $("#bkb").insertAdjacentHTML("afterbegin",`<div class="alert" style="margin:0 0 10px">🧮 فرق بالجرد: ${badCnt.map(x=>`${dl(x.d)} ${x.counted>x.expected?"زايد":"ناقص"} <b>${fmt(Math.abs(x.counted-x.expected))}</b> (${esc(x.by)})`).join(" · ")}</div>`);
+  $("#bkb").querySelectorAll("[data-cnt]").forEach(b=>b.onclick=()=>{const d=b.dataset.cnt, x=CN[d];
+    const m=modal(`<h3>🧮 جرد الصندوق · ${dl(d)}</h3><p class="note" style="margin:0">حسب النظام لازم يكون بإيد الإدارة من هذا اليوم: <b>${dinar(+b.dataset.exp)}</b> (الاستلامات − السلف والمصاريف من المكتب).</p>
+      <div class="field fare-in"><label for="cn-a">شكد بإيدك فعلاً؟ (دينار)</label><input id="cn-a" inputmode="numeric" value="${x?x.counted:""}"><small id="cn-v" class="fare-v"></small></div>
+      <div class="field"><label for="cn-n">ملاحظة</label><input id="cn-n" maxlength="200" value="${x?esc(x.note):""}" placeholder="اختياري"></div>
+      <div class="err" id="cn-e"></div><div class="row"><button class="btn" id="cn-x">رجوع</button><button class="btn primary" id="cn-ok">حفظ الجرد</button></div>`);
+    const i=$("#cn-a",m), exp=+b.dataset.exp, show=()=>{let v=parseInt((i.value||"").replace(/\D/g,""),10)||0;if(v>0&&v<=500)v*=1000;const df=v-exp;$("#cn-v",m).className="fare-v"+(df?" bad":"");$("#cn-v",m).textContent=!i.value?"":df?`${df>0?"زايد":"ناقص"} ${fmt(Math.abs(df))} عن النظام`:"✓ مطابق للنظام"};
+    i.oninput=show; show(); setTimeout(()=>i.focus(),50); $("#cn-x",m).onclick=()=>m.remove();
+    $("#cn-ok",m).onclick=async e=>{const btn=e.currentTarget;btn.disabled=true;try{const res=await rpc("taxi_admin_cash_count",{p_pin:PIN,p_day:d,p_counted:parseInt((i.value||"0").replace(/\D/g,""),10)||0,p_note:$("#cn-n",m).value});m.remove();toast(res.diff?`انحفظ · ${res.diff>0?"زايد":"ناقص"} ${fmt(Math.abs(res.diff))}`:"انحفظ · ✓ مطابق");renderBook()}catch(er){btn.disabled=false;$("#cn-e",m).textContent=er.message}}});
   $("#bk-c").onclick=()=>copy([`📒 دفتر ${ml}`,`جابوا ${fmt(tot.f)} · استلمنا ${fmt(tot.k)} · بإيد الإدارة ${fmt(tot.box)} · بذمّة السواق ${fmt(r.owed_now)}`,
     ...days.map(d=>{const f=r.trips.filter(x=>x.d===d).reduce((a,x)=>a+x.fares,0),k=r.receipts.filter(x=>x.d===d).reduce((a,x)=>a+x.amount,0);return f||k?`- ${dl(d)}: جابوا ${fmt(f)} · استلمنا ${fmt(k)}`:""}).filter(Boolean),
     dOpen.length?`ديون مفتوحة: ${dOpen.map(x=>`${x.note||x.name} ${fmt(x.amount)}`).join("، ")}`:""].filter(Boolean).join("\n"));
@@ -2578,7 +2610,7 @@ async function renderSettle(){
   const dl=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
   $("#view").innerHTML=`<div class="wrap" id="stv"><div class="bar"><h2>🧮 المحاسبة</h2>
     <div class="row" style="gap:6px;flex-wrap:wrap;align-items:center"><label>من <input type="date" id="st-f" value="${stF}" max="${today}"></label><label>لحد <input type="date" id="st-t" value="${stT}" max="${today}"></label>
-      <button class="btn sm" data-sq="new">من آخر محاسبة</button><button class="btn sm" data-sq="3">آخر 3 أيام</button><button class="btn sm" data-sq="m">هذا الشهر</button><button class="btn sm" id="st-c">📋 نسخ</button><button class="btn sm" id="st-h">📚 المحاسبات المخزونة</button></div></div>
+      <button class="btn sm primary" data-sq="cyc">🔄 الدورة الحالية</button><button class="btn sm" data-sq="pcyc">الدورة السابقة</button><button class="btn sm" data-sq="new">من آخر محاسبة</button><button class="btn sm" data-sq="3">آخر 3 أيام</button><button class="btn sm" data-sq="m">هذا الشهر</button><button class="btn sm" id="st-c">📋 نسخ</button><button class="btn sm" id="st-h">📚 المحاسبات المخزونة</button></div></div>
     <div class="seg" role="radiogroup" aria-label="الدوام" style="margin:0 0 8px">${[["all","الكل"],["morning","☀️ الصباحي (7 ص – 7 م)"],["evening","🌙 المسائي (لحد 10 م أو للصبح)"]].map(([k,t])=>`<button type="button" role="radio" aria-checked="${stShift===k}" class="btn sm${stShift===k?" primary":""}" data-ssh="${k}">${t}</button>`).join("")}</div>
     <p class="note" style="margin:0 0 10px">حساب كل سائق بهاي الفترة، كل يوم بروحه. كل سفرة تنحسب على اليوم اللي بدت بيه: اللي تبدي قبل نص الليل تبقى على يومها حتى لو خلصت بعده، واللي بعد نص الليل على اليوم الجديد. الخطوط ما تنحسب بالمبالغ.</p>
     ${stDone&&stT>=stDone&&stF<=stDone?`<p class="note" style="margin:0 0 10px;border-color:var(--ok)">✓ هاي الفترة متحاسبة لحد ${dl(stDone)}. الفترة الجديدة تبدي من ${dl(sh(stDone,1))}.</p>`:""}
@@ -2586,12 +2618,15 @@ async function renderSettle(){
     <div id="stb"><div class="empty">جارٍ التحميل…</div></div></div>`;
   const re=()=>renderSettle();
   $("#st-f").onchange=e=>{stF=e.target.value||stF;if(stF>stT)stT=stF;re()}; $("#st-t").onchange=e=>{stT=e.target.value||stT;if(stF>stT)stF=stT;re()};
-  document.querySelectorAll("[data-sq]").forEach(b=>b.onclick=()=>{stT=today;stF=b.dataset.sq==="new"?null:b.dataset.sq==="m"?today.slice(0,8)+"01":sh(today,-2);re()});
+  document.querySelectorAll("[data-sq]").forEach(b=>b.onclick=async()=>{const q=b.dataset.sq;
+    if(q==="cyc"||q==="pcyc"){try{let cy=await rpc("taxi_cycle",{p_day:null});if(q==="pcyc")cy=await rpc("taxi_cycle",{p_day:sh(cy.from,-1)});stF=cy.from;stT=cy.to>today?today:cy.to}catch(e){return toast(e.message)}return re()}
+    stT=today;stF=q==="new"?null:q==="m"?today.slice(0,8)+"01":sh(today,-2);re()});
   $("#st-h").onclick=()=>closingsList();
   document.querySelectorAll("[data-ssh]").forEach(b=>b.onclick=()=>{stShift=b.dataset.ssh;re()});
   let r, AV=[]; try{[r,AV]=await Promise.all([rpc("taxi_admin_period",{p_pin:PIN,p_from:stF,p_to:stT}),rpc("taxi_admin_advances_open",{p_pin:PIN}).catch(()=>[])])}catch(e){$("#stb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
   const C=r.cars.filter(c=>stShift==="all"||(c.shift||"morning")===stShift), T={f:0,k:0,c:0,b:0};
   T.o=0; C.forEach(c=>{T.f+=c.fares;T.k+=c.received;T.c+=c.from_cash;T.b+=c.balance;T.o+=c.ledger.filter(i=>!i.from_cash&&(i.kind==="advance"||i.kind==="expense")).reduce((a,i)=>a+i.amount,0)});
+  const kmCars=C.filter(c=>c.flags&&c.flags.per_km), avgKm=kmCars.length?Math.round(kmCars.reduce((a,c)=>a+c.flags.per_km,0)/kmCars.length):null;
   const card=c=>{const closed=c.last_closing&&c.last_closing.to>=stT, by=d=>c.trips.filter(t=>t.day===d&&!t.line);
     const st=c.balance===0?`<span class="pill s-ok">✓ الحساب صفر</span>`:c.balance>0?`<span class="pill s-bad">بذمّته ${fmt(c.balance)}</span>`:`<span class="pill s-warn">إله ${fmt(-c.balance)}</span>`;
     const sh=c.shift==="evening"?`<button type="button" class="pill s-idle" data-shf="${c.id}" title="غيّر الدوام">🌙 مسائي</button>`:`<button type="button" class="pill s-idle" data-shf="${c.id}" title="غيّر الدوام">☀️ صباحي</button>`;
@@ -2604,8 +2639,12 @@ async function renderSettle(){
         <div class="tot"><span>${c.balance>=0?"الباقي بذمّته":"إله"}</span><b>${dinar(Math.abs(c.balance))}</b></div></div>
       ${c.ledger.filter(i=>!i.from_cash).length?`<p class="note" style="margin:4px 0">من المكتب: ${c.ledger.filter(i=>!i.from_cash).map(i=>`${i.kind==="advance"?"سلفة":"مصروف"} ${fmt(i.amount)}${i.note?` (${esc(i.note)})`:""}`).join("، ")}</p>`:""}
       ${c.balance_all!==c.balance?`<p class="note" style="margin:4px 0;color:var(--warn)">حسابه الكلّي (كل الفترات): ${c.balance_all>=0?"بذمّته":"إله"} ${fmt(Math.abs(c.balance_all))}</p>`:""}
+      ${flagsHTML(c,avgKm)}
+      ${closed?ackHTML(c.last_closing):""}
       ${OWNER()?`<div class="row" style="justify-content:flex-start"><button class="btn ${closed?"":"primary"} sm" data-close="${c.id}">✅ صفّر وخزّن المحاسبة</button></div>`:""}</section>`};
   $("#stb").innerHTML=`<div class="kpis"><div class="kpi"><small>جابوا</small><b>${dinar(T.f)}</b><small>${dl(stF)} → ${dl(stT)}</small></div><div class="kpi"><small>استلمنا</small><b>${dinar(T.k)}</b></div>${T.o?`<div class="kpi"><small>💵 بإيد الإدارة</small><b>${dinar(T.k-T.o)}</b><small>استلمنا − سلف ومصاريف طلعت من المكتب ${fmt(T.o)}</small></div>`:""}${T.c?`<div class="kpi"><small>سلف/مصاريف/تسويات من الكاش</small><b>${dinar(T.c)}</b></div>`:""}<div class="kpi ${T.b>0?"warn":""}"><small>الباقي بذمّة السواق</small><b>${dinar(T.b)}</b></div></div>
+    ${OWNER()&&C.some(c=>!(c.last_closing&&c.last_closing.to>=stT))?`<div class="row" style="justify-content:flex-start;margin:0 0 10px"><button class="btn primary" id="st-lockall">🔒 قفل الدورة (${dl(stF)} → ${dl(stT)}) لكل السواق</button><small class="note" style="margin:0">اللي ما سلّم يبقى بذمّته، وكل سائق يوصله حسابه حتى يأكّده.</small></div>`:""}
+    ${C.some(c=>c.last_closing&&c.last_closing.ack==="dispute")?`<div class="alert" style="margin:0 0 10px">✖ اكو سائق معترض على حسابه: ${C.filter(c=>c.last_closing&&c.last_closing.ack==="dispute").map(c=>`<b>${esc(c.driver_name)}</b> «${esc(c.last_closing.ack_note||"")}»`).join("، ")}</div>`:""}
     <div class="st-list">${C.map(card).join("")}</div>
     <section class="st-c" style="margin-top:12px"><h3>🤝 السلف والديون المفتوحة</h3><p class="note" style="margin:0">تبقى بالنظام لحد ما تنستلم: السلف تنخصم من الراتب، والديون من تدفعها الزبائن.</p>
       ${AV.length?(()=>{const G={};AV.forEach(a=>{(G[a.name]=G[a.name]||[]).push(a)});
@@ -2615,6 +2654,9 @@ async function renderSettle(){
   if($("#av-ok"))$("#av-ok").onclick=async e=>{const ids=[...document.querySelectorAll("[data-av]:checked")].map(x=>+x.dataset.av);if(!ids.length)return toast("أشّر السلف اللي انخصمت");
     const btn=e.currentTarget;btn.disabled=true;try{await rpc("taxi_admin_advances_deduct",{p_pin:PIN,p_ids:ids});toast("انسجلت مستلمة");renderSettle()}catch(er){btn.disabled=false;toast(er.message)}};
   $("#st-c").onclick=()=>copy([`🧮 محاسبة ${dl(stF)} → ${dl(stT)}`,...C.map(c=>[`\n${c.driver_name}: جاب ${fmt(c.fares)} (${c.trips_n} سفرة)`,...c.days.map(d=>`- ${dl(d.d)}: ${fmt(d.fares)} (${d.trips} سفرة)`),`استلمنا ${fmt(c.received)}${c.from_cash?` · من الكاش ${fmt(c.from_cash)}`:""} · ${c.balance>=0?"الباقي":"إله"} ${fmt(Math.abs(c.balance))}`].join("\n"))].join("\n"));
+  if($("#st-lockall"))$("#st-lockall").onclick=()=>confirmBox(`تقفل الدورة ${dl(stF)} → ${dl(stT)} لكل السواق؟ اللي سلّم ينصفّر، والباقي يبقى بذمّته.`,"🔒 قفل",async()=>{let n=0;
+      for(const c of C){if(c.last_closing&&c.last_closing.to>=stT)continue;try{await rpc("taxi_admin_close",{p_pin:PIN,p_car:c.id,p_from:stF,p_to:stT,p_mode:"keep",p_note:"قفل الدورة"});n++}catch(e){toast(c.driver_name+": "+e.message)}}
+      toast(`انقفلت الدورة لـ ${n} سائق`);renderSettle()},"رجوع");
   $("#stb").querySelectorAll("[data-shf]").forEach(b=>b.onclick=async()=>{const c=r.cars.find(x=>x.id===b.dataset.shf);const to=c.shift==="evening"?"morning":"evening";
     try{await rpc("taxi_admin_car_shift",{p_pin:PIN,p_car:c.id,p_shift:to});toast(`${c.driver_name}: صار ${to==="evening"?"🌙 مسائي":"☀️ صباحي"}`);re()}catch(e){toast(e.message)}});
   $("#stb").querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const c=C.find(x=>x.id===b.dataset.close);
@@ -2630,6 +2672,16 @@ async function renderSettle(){
     $("#cok",m).onclick=async e=>{const btn=e.currentTarget;if(btn.disabled)return;btn.disabled=true;const md=m.querySelector('[name="cm"]:checked');
       try{await rpc("taxi_admin_close",{p_pin:PIN,p_car:c.id,p_from:stF,p_to:stT,p_mode:md?md.value:"keep",p_note:$("#cn",m).value});m.remove();toast("انخزنت المحاسبة");renderSettle()}catch(er){btn.disabled=false;$("#ce",m).textContent=er.message}}});
 }
+// what needs asking about in a driver's period
+function flagsHTML(c,avg){const F=c.flags; if(!F) return "";
+  const out=F.km&&F.trip_km!=null?Math.max(0,F.km-F.trip_km):0, low=avg&&F.per_km&&F.per_km<avg*0.75;
+  const items=[
+    F.quick.length?`<li>⚡ ${F.quick.length} سفرة انفتحت وانسدّت بسرعة أو 0 كم: ${F.quick.slice(0,6).map(q=>`${esc(q.time)} ${esc(q.to||"")} ${fmt(q.fare||0)}`).join("، ")}${F.quick.length>6?"…":""}</li>`:"",
+    F.lines_still.length?`<li>🛣 ${F.lines_still.length} خط مسجّل والسيارة ما طلعت من المجمع</li>`:"",
+    F.unlogged?`<li>🚨 ${F.unlogged} مرة تحرّك بدون سفرة مسجّلة</li>`:"",
+    low?`<li>📉 جاب ${fmt(F.per_km)} دينار لكل كم، أقل من المعدل (${fmt(avg)})</li>`:""].filter(Boolean);
+  return `<details class="st-flags"${items.length?" open":""}><summary>${items.length?`⚠️ يحتاج سؤال (${items.length})`:"✓ ماكو ملاحظات"} · مشى ${fmt(Math.round(F.km))} كم (${fmt(Math.round(F.trip_km||0))} كم بسفرات)${F.per_km?` · ${fmt(F.per_km)} د/كم`:""}</summary>${items.length?`<ul>${items.join("")}</ul>`:""}</details>`}
+function ackHTML(k){return k.ack==="ok"?`<p class="note" style="margin:0;border-color:var(--ok)">✔ السائق أكّد إن حسابه صحيح</p>`:k.ack==="dispute"?`<p class="note" style="margin:0;border-color:var(--bad);color:var(--bad)">✖ السائق معترض: «${esc(k.ack_note||"")}»</p>`:`<p class="note" style="margin:0">⏳ السائق ما أكّد حسابه بعد</p>`}
 /* the stored settlements (محاسبات) with each driver */
 async function closingsList(){
   const m=modal(`<h3>📚 سجل المحاسبات</h3><div id="clb"><div class="empty">جارٍ التحميل…</div></div><div class="row"><button class="btn" id="cl-x">سدّ</button></div>`);
@@ -2640,6 +2692,7 @@ async function closingsList(){
     return `<details class="rcpt"><summary><span class="rc-amt">✅ ${dinar(k.received)}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>من ${d(k.from)} لحد ${d(k.to)} · سجّلها ${esc(k.by)}</small></span>
       <span class="rc-cov">جاب ${fmt(k.fares)} (${k.trips} سفرة)${k.advances?`<br><small>سلف ${fmt(k.advances)}</small>`:""}${k.debts?`<br><small>دين ${fmt(k.debts)}</small>`:""}<br><small style="color:${k.balance_after?"var(--bad)":"var(--ok)"}">${k.balance_after?`الباقي ${fmt(k.balance_after)}`:"الحساب صفر ✓"}</small></span></summary>
       <p class="note" style="margin:8px 14px">${esc(k.note)}</p>
+      <div style="margin:0 14px">${ackHTML({ack:k.driver_ack,ack_note:k.driver_note})}</div>
       <div class="calc" style="margin:0 14px"><div><span>جاب</span><b>${dinar(k.fares)}</b></div>${k.advances?`<div><span>− سلف من الكاش</span><b>${dinar(k.advances)}</b></div>`:""}${k.expenses?`<div><span>− مصاريف</span><b>${dinar(k.expenses)}</b></div>`:""}${k.debts?`<div><span>− دين على زبائن</span><b>${dinar(k.debts)}</b></div>`:""}<div class="tot"><span>استلمنا كاش</span><b>${dinar(k.received)}</b></div></div>
       ${T.length?`<div class="tbl-wrap"><table><thead><tr><th>اليوم</th><th>الوقت</th><th>لوين</th><th>الكروة</th></tr></thead><tbody>${T.map(t=>`<tr><td>${d(t.day)}</td><td>${esc(t.time||"")}</td><td>${esc(t.to||"—")}</td><td class="num">${fmt(t.fare)}</td></tr>`).join("")}</tbody></table></div>`:""}
       ${G.length?`<ul class="rc-sp">${G.map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="debt"?"🧾 دين على زبون":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b> · ${d(i.day)} · ${esc(i.note||"")}</li>`).join("")}</ul>`:""}
@@ -3282,7 +3335,7 @@ function setExt(on){
     let st=$("#extStatus"); if(!st){st=document.createElement("div");st.id="extStatus";st.className="stat";$(".drv").insertBefore(st,$("#tripBox"))}
     const upd=async()=>{try{const s=await rpc("taxi_driver_state",{p_code:CODE});const fresh=s.last_seen&&(Date.now()-new Date(s.last_seen))<180000&&["ok","background"].includes(s.gps_state);
       st.innerHTML=`<small>التتبع عن طريق Traccar</small><b style="color:${fresh?"var(--ok)":"var(--bad)"}">${fresh?"✔ موقعك يوصل للإدارة":"⚠ ما دا يوصل موقع"}</b><small>آخر إشارة: ${ago(s.last_seen)}</small>`;
-      today={trips:s.today_trips,fares:s.today_fares,fareBase:s.fare_base,wk:s.week_trips||0,zones:s.zones||[],money:s.money,rating:s.rating,ret:s.returning_since,ready:s.ready_at,base:s.base,lat:s.last_lat,lng:s.last_lng};showTrip(s.trip,true);noteCancel(s.cancelled)}catch{}};
+      today={trips:s.today_trips,fares:s.today_fares,fareBase:s.fare_base,wk:s.week_trips||0,zones:s.zones||[],money:s.money,closing:s.closing,rating:s.rating,ret:s.returning_since,ready:s.ready_at,base:s.base,lat:s.last_lat,lng:s.last_lng};showTrip(s.trip,true);noteCancel(s.cancelled)}catch{}};
     upd(); extT=setInterval(upd,8000);
   }else{const st=$("#extStatus"); if(st) st.remove(); showTrip(null,true)}
 }
@@ -3291,7 +3344,7 @@ function setExt(on){
 let curTrip, tripPoll, lastOffer=null, today={trips:0,fares:0,base:null};
 async function refreshTrip(){
   if(!CODE) return;
-  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,fareBase:st.fare_base,wk:st.week_trips||0,zones:st.zones||[],money:st.money,rating:st.rating,ret:st.returning_since,ready:st.ready_at,base:st.base,lat:st.last_lat,lng:st.last_lng};showTrip(st.trip,true);noteCancel(st.cancelled)}catch{}
+  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,fareBase:st.fare_base,wk:st.week_trips||0,zones:st.zones||[],money:st.money,closing:st.closing,rating:st.rating,ret:st.returning_since,ready:st.ready_at,base:st.base,lat:st.last_lat,lng:st.last_lng};showTrip(st.trip,true);noteCancel(st.cancelled)}catch{}
 }
 // Waze: to the customer before pickup, to the destination after the trip starts
 function wazeUrl(t){
@@ -3319,7 +3372,7 @@ function showTrip(t,force){
   if(same&&(!force||(t&&t.status==="started"&&$("#tr-end")))) return;
   // the empty card (zone buttons) is redrawn only when something on it really changes,
   // so the zone list doesn't jump back to the top while the driver scrolls it
-  if(!t&&$("#tr-zones")){const ek=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT]);
+  if(!t&&$("#tr-zones")){const ek=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT,today.closing&&today.closing.id]);
     if(ek===emptyKey){const eta=$("#back-eta");if(eta&&today.ret){const B=today.base&&today.base.lat?today.base:BASE_DEF,fx=lastFix&&lastFix.coords,la=fx?fx.latitude:today.lat,lo=fx?fx.longitude:today.lng;if(la!=null)eta.textContent=backEta(la,lo,B)}return}}
   curTrip=t;
   if(!ON&&!EXT){box.innerHTML="";return}
@@ -3334,7 +3387,7 @@ function showTrip(t,force){
       <button class="btn primary big" id="tr-start">بدء سفرة</button>
       <button class="btn big" id="tr-sp">⭐ زبون خاص (بدون كروة)</button>
       <button class="btn big" id="tr-line">🛣 رايح أوصل خط</button></div>${sum}`;
-    emptyKey=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT]);
+    emptyKey=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT,today.closing&&today.closing.id]);
     // zones as big buttons: one tap picks it; the choice survives the screen refreshing every few seconds
     const zs=today.zones||[];
     const drawZ=()=>{const q=drvQ.trim();const L=zs.filter(z=>!q||z.name.includes(q));const zb=$("#tr-zones"),st=zb.scrollTop;
@@ -3547,13 +3600,26 @@ function destChangeForm(t){
     try{await rpc("taxi_driver_change_dest",{p_code:CODE,p_zone:sel});m.remove();toast("انسجل التغيير");curTrip=undefined;if(EXT)setExt(true);else await refreshTrip()}catch(e){$("#chg-e",m).textContent=e.message;b.disabled=false}};
 }
 // driver's cash: what he holds for the company, and the "إيداع" (hand over to the office) button
+// the settlement the office stored: the driver checks it and confirms or disputes
+function closingCard(){const k=today.closing; if(!k) return "";
+  const dl=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
+  return `<div class="money" style="border-color:var(--amber,#f2a400)"><div class="money-top"><span>🧮 حسابك من ${dl(k.from)} لحد ${dl(k.to)}</span></div>
+    ${(k.days||[]).map(d=>`<small>${dl(d.d)}: ${d.trips} سفرة · ${fmt(d.fares)}</small>`).join("")}
+    <div class="calc" style="margin:6px 0"><div><span>جبت</span><b>${dinar(k.fares)}</b></div><div><span>سلّمت</span><b>${dinar(k.received)}</b></div>${k.advances?`<div><span>سلف</span><b>${dinar(k.advances)}</b></div>`:""}${k.debts?`<div><span>ديون على زبائن</span><b>${dinar(k.debts)}</b></div>`:""}<div class="tot"><span>${k.balance>0?"باقي بذمّتك":k.balance<0?"إلك":"الحساب"}</span><b>${k.balance?dinar(Math.abs(k.balance)):"صفر ✓"}</b></div></div>
+    <div class="row" style="gap:8px"><button type="button" class="btn primary" data-cack="ok">✔ الحساب صحيح</button><button type="button" class="btn" data-cack="no">✖ عندي اعتراض</button></div></div>`}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-cack]");if(!b||!today.closing)return;const k=today.closing;
+  const send=async(ok,note)=>{try{await rpc("taxi_driver_closing_ack",{p_code:CODE,p_id:k.id,p_ok:ok,p_note:note||""});today.closing=null;toast(ok?"شكراً، انسجل إن حسابك صحيح":"انرسل اعتراضك للإدارة");emptyKey="";showTrip(null,true)}catch(er){toast(er.message)}};
+  if(b.dataset.cack==="ok") return send(true);
+  const m=modal(`<h3>✖ اعتراض على الحساب</h3><div class="field"><label for="ca-n">شنو الغلط؟</label><textarea id="ca-n" rows="3" maxlength="300" placeholder="مثال: سلّمت 50,000 يوم 12 وما مسجّلة"></textarea></div><div class="err" id="ca-e"></div><div class="row"><button class="btn" id="ca-x">رجوع</button><button class="btn danger" id="ca-ok">إرسال الاعتراض</button></div>`);
+  $("#ca-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#ca-n",m).focus(),50);
+  $("#ca-ok",m).onclick=()=>{const n=$("#ca-n",m).value.trim();if(n.length<3){$("#ca-e",m).textContent="اكتب شنو الغلط";return}m.remove();send(false,n)}});
 function moneyCard(){
-  const m=today.money; if(!m) return "";
+  const m=today.money; if(!m) return closingCard();
   const last=(m.deposits||[])[0], free=Math.max(0,(m.in_hand||0)-(m.pending||0));
   const lastLine=!last?"":last.status==="pending"?`⏳ إيداع ${dinar(last.amount)} بانتظار تأكيد الإدارة`
     :last.status==="confirmed"?`✔ الإدارة استلمت ${dinar(last.received??last.amount)}${last.received!=null&&last.received!==last.amount?` (من ${dinar(last.amount)})`:""}${last.decided_by&&/يدوي/.test(last.decided_by)?" (كانت مسجّلة عند الإدارة)":""}`
     :`✖ انرفض إيداع ${dinar(last.amount)}${last.reason?`: ${esc(last.reason)}`:""}`;
-  return `<div class="money"><div class="money-top"><span>💵 المبلغ اللي بيدك للشركة</span><b>${dinar(m.in_hand||0)}</b></div>
+  return closingCard()+`<div class="money"><div class="money-top"><span>💵 المبلغ اللي بيدك للشركة</span><b>${dinar(m.in_hand||0)}</b></div>
     ${m.pending?`<small>منها ${dinar(m.pending)} بانتظار تأكيد الإدارة</small>`:""}
     ${lastLine?`<small class="money-last">${lastLine}</small>`:""}
     ${free>0?`<button type="button" class="btn primary big" id="dep-btn">إيداع: سلّمت المبلغ للإدارة</button>`

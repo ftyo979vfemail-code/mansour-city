@@ -424,7 +424,7 @@ public class MainActivity extends Activity {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
         JSONObject cxk = st.optJSONObject("cancelled");
-        String key = (t == null ? "none:" + st.optString("returning_since") + st.optString("ready_at") + ":" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optString("noshow_status") + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money"));
+        String key = (t == null ? "none:" + st.optString("returning_since") + st.optString("ready_at") + ":" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optString("noshow_status") + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money")) + ":" + (st.optJSONObject("closing") == null ? "" : st.optJSONObject("closing").optLong("id"));
         if (key.equals(tripKey)) return;
         tripKey = key;
         h.removeCallbacks(waitTick);
@@ -776,7 +776,63 @@ public class MainActivity extends Activity {
         TextView wk = text("هذا الأسبوع: " + st.optInt("week_trips") + " سفرة" + (rt != null && rt.optInt("count") > 0 ? " · تقييمك ⭐ " + rt.optString("avg") + " (" + rt.optInt("count") + ")" : ""), 15, FG, true);
         wk.setPadding(dp(4), dp(2), dp(4), dp(4));
         tripBox.addView(wk);
+        addClosing(st.optJSONObject("closing"));
         addMoney(st.optJSONObject("money"));
+    }
+
+    /** The settlement the office stored: the driver confirms it or disputes it. */
+    private void addClosing(JSONObject k) {
+        if (k == null) return;
+        java.util.Locale L = java.util.Locale.US;
+        LinearLayout c = new LinearLayout(this);
+        c.setOrientation(LinearLayout.VERTICAL);
+        c.setPadding(dp(16), dp(14), dp(16), dp(14));
+        c.setBackground(box(0xFFFFFFFF, AMBER, 16));
+        c.addView(text("🧮 حسابك من " + k.optString("from").substring(5) + " لحد " + k.optString("to").substring(5), 15, FG, true));
+        org.json.JSONArray days = k.optJSONArray("days");
+        if (days != null) for (int i = 0; i < days.length(); i++) {
+            JSONObject d = days.optJSONObject(i);
+            c.addView(text(d.optString("d").substring(5) + ": " + d.optInt("trips") + " سفرة · " + String.format(L, "%,d", d.optInt("fares")), 13, MUTED, false));
+        }
+        int bal = k.optInt("balance");
+        String body = "جبت: " + String.format(L, "%,d", k.optInt("fares")) + "\nسلّمت: " + String.format(L, "%,d", k.optInt("received"))
+                + (k.optInt("advances") > 0 ? "\nسلف: " + String.format(L, "%,d", k.optInt("advances")) : "")
+                + (k.optInt("debts") > 0 ? "\nديون على زبائن: " + String.format(L, "%,d", k.optInt("debts")) : "")
+                + "\n" + (bal > 0 ? "باقي بذمّتك: " + String.format(L, "%,d", bal) : bal < 0 ? "إلك: " + String.format(L, "%,d", -bal) : "الحساب: صفر ✓");
+        c.addView(text(body, 15, FG, true));
+        final long id = k.optLong("id");
+        LinearLayout r = row();
+        Button ok = button("✔ الحساب صحيح", true);
+        ok.setOnClickListener(v -> closingAck(id, true, ""));
+        Button no = button("✖ عندي اعتراض", false);
+        no.setOnClickListener(v -> {
+            final EditText n = input("شنو الغلط؟ مثال: سلّمت 50,000 يوم 12 وما مسجّلة", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+            new android.app.AlertDialog.Builder(this).setTitle("✖ اعتراض على الحساب").setView(n).setNegativeButton("رجوع", null)
+                    .setPositiveButton("إرسال", (d, w) -> closingAck(id, false, n.getText().toString())).show();
+        });
+        r.addView(ok, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        LinearLayout.LayoutParams nl = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        nl.setMarginStart(dp(8));
+        r.addView(no, nl);
+        LinearLayout.LayoutParams rl = full(); rl.topMargin = dp(8);
+        c.addView(r, rl);
+        LinearLayout.LayoutParams cl = full(); cl.topMargin = dp(10);
+        tripBox.addView(c, cl);
+    }
+
+    private void closingAck(long id, boolean ok, String note) {
+        if (!ok && note.trim().length() < 3) { android.widget.Toast.makeText(this, "اكتب شنو الغلط", android.widget.Toast.LENGTH_SHORT).show(); return; }
+        new Thread(() -> {
+            try {
+                Api.call("taxi_driver_closing_ack", new JSONObject().put("p_code", code).put("p_id", id).put("p_ok", ok).put("p_note", note));
+                h.post(() -> {
+                    android.widget.Toast.makeText(this, ok ? "شكراً، انسجل إن حسابك صحيح" : "انرسل اعتراضك للإدارة", android.widget.Toast.LENGTH_LONG).show();
+                    tripKey = ""; loadTrip();
+                });
+            } catch (Exception e) {
+                h.post(() -> android.widget.Toast.makeText(this, e instanceof Api.ApiError ? e.getMessage() : "ماكو إنترنت", android.widget.Toast.LENGTH_LONG).show());
+            }
+        }).start();
     }
 
     private static String moneyKey(JSONObject m) {
