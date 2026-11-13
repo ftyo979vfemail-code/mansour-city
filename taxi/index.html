@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611131801";
+const BUILD="202611131806";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1713,6 +1713,47 @@ function pollRouteChanges(){
     const ids=rs.map(x=>x.id); if(prevRcInit&&ids.some(id=>!prevRc.includes(id))){beep();setTimeout(beep,300);setTimeout(beep,600)} prevRc=ids; prevRcInit=true;
   }).catch(()=>{});
 }
+/* ---------- reading the receipt note: "سلفة 10 وصرف بانزين 5 واستلمت 50" → advance / expense / debt rows (confirmed first) ---------- */
+const NOTE_NUMW={"خمسة":5,"خمسه":5,"ستة":6,"سته":6,"سبعة":7,"سبعه":7,"ثمانية":8,"ثمانيه":8,"تسعة":9,"تسعه":9,"عشرة":10,"عشره":10,"خمسطعش":15,"خمسطعشر":15,"عشرين":20,"ثلاثين":30,"اربعين":40,"خمسين":50,"مية":100,"ميه":100,"الف":1,"ألف":1};
+function parseNote(text){
+  const t=String(text||"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/(\d)[,٬](\d{3})/g,"$1$2").replace(/(\d+)/g," $1 ").replace(/[،,+\n.\/]/g," ، ");
+  const toks=t.split(/\s+/).filter(Boolean), out=[]; let cur=null, words=[];
+  const strip=w=>w.replace(/^و(?=\S{2})/,"");
+  const kindOf=w=>{w=strip(w);return /^(?:ال)?سلف/.test(w)?"advance":/^(?:ال)?دين/.test(w)?"debt":/^(?:استلمت|استلام|استلم|سلّم|سلم$|سلمني|سلمها)/.test(w)?"recv":/^(?:ال)?(?:صرف|مصروف|مصاريف|بانزين|بنزين|غسل|غسيل|تصليح|زيت|بنچر|بنجر|تاير|كراج|رصيد)/.test(w)?"expense":null};
+  for(let i=0;i<toks.length;i++){const w=toks[i];
+    if(w==="،"){if(cur&&cur!=="recv"&&words.length===0){}cur=cur;continue}
+    const k=kindOf(w);
+    if(k){cur=k;words=k==="expense"&&!/^(?:صرف|مصروف|مصاريف)/.test(strip(w))?[strip(w)]:[];continue}
+    let n=/^\d+$/.test(w)?+w:NOTE_NUMW[strip(w)];
+    if(n!=null&&cur){const nx=toks[i+1]||"";
+      if(/^(?:الف|ألف|آلاف|الاف|الآف|الف\S*)$/.test(nx)&&n<1000){n*=1000;i++} else if(n>0&&n<=100) n*=1000;
+      if(n>=250) out.push({kind:cur,amount:n,note:words.join(" ").trim()});
+      cur=null;words=[];continue}
+    if(cur&&!/^(?:و|ب|من|على|الى|إلى|لل?|كذا|مال)$/.test(w)) words.push(strip(w));
+  }
+  return out;
+}
+const NOTE_K={advance:"🤝 سلفة",expense:"💸 مصروف",debt:"🧾 دين على زبون",recv:"💵 استلمت"};
+// resolves: [] nothing to add · [items] add them · null = go back
+function noteGate(name,text,received){
+  const it=parseNote(text), led=it.filter(x=>x.kind!=="recv"), rc=it.filter(x=>x.kind==="recv");
+  if(!led.length) return Promise.resolve([]);
+  return new Promise(res=>{
+    const m=modal(`<h3>📝 فهمت من الملاحظة · ${esc(name)}</h3>
+      <ul class="rc-sp" style="margin:0">${led.map((x,i)=>`<li><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-ng="${i}" checked> ${NOTE_K[x.kind]} <b>${fmt(x.amount)}</b>${x.note?` · ${esc(x.note)}`:""}</label></li>`).join("")}
+        ${rc.map(x=>`<li>${NOTE_K.recv} <b>${fmt(x.amount)}</b>${received&&x.amount!==received?` <span class="pill s-warn">المسجّل ${fmt(received)}</span>`:""}</li>`).join("")}</ul>
+      <p class="note" style="margin:0">السلف والمصاريف والديون المأشّرة تنسجل باسمه بتاريخ اليوم، وتنخصم من اللي لازم يسلّمه (أخذها من الكاش اللي بيده). السلف تبقى مفتوحة لحد ما تنخصم من راتبه.</p>
+      <div class="row"><button class="btn" id="ng-x">رجوع</button><button class="btn" id="ng-skip">سجّل الاستلام بس</button><button class="btn primary" id="ng-ok">✔ صح، سجّلها</button></div>`);
+    $("#ng-x",m).onclick=()=>{m.remove();res(null)};
+    $("#ng-skip",m).onclick=()=>{m.remove();res([])};
+    $("#ng-ok",m).onclick=()=>{const pick=[...m.querySelectorAll("[data-ng]:checked")].map(x=>led[+x.dataset.ng]);m.remove();res(pick)};
+  });
+}
+async function saveNoteItems(car,items){
+  const day=new Date(Date.now()+3*36e5).toISOString().slice(0,10); let ok=0;
+  for(const x of items){try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{car_id:car,kind:x.kind,amount:String(x.amount),day,note:x.note||"من ملاحظة الاستلام",from_cash:true}});ok++}catch(e){toast(e.message)}}
+  if(ok) toast(`انسجل من الملاحظة: ${items.map(x=>NOTE_K[x.kind]+" "+fmt(x.amount)).join("، ")}`);
+}
 let prevDep=[], prevDepInit=false;
 function pollDeposits(){
   rpc("taxi_admin_deposits",{p_pin:PIN}).then(ds=>{const bar=$("#depbar"); if(!bar) return;
@@ -1720,11 +1761,12 @@ function pollDeposits(){
       bar.querySelectorAll("[data-ddt]").forEach(b=>b.onclick=()=>depositDecide(ds[+b.dataset.ddt]));
       bar.querySelectorAll("[data-dok]").forEach(b=>b.onclick=()=>{const d=ds[+b.dataset.dok];
         const m=modal(`<h3>✔ استلمت ${dinar(d.amount)} من ${esc(d.driver_name)}؟</h3><p class="note" style="margin:0">تنحسب على أقدم سفراته.</p>
-          <div class="field"><label for="dk-m">📝 ملاحظة على الاستلام</label><input id="dk-m" maxlength="300" placeholder="اختياري، مثال: سلّمها بالمجمع، ناقص فكّة…"></div>
+          <div class="field"><label for="dk-m">📝 ملاحظة على الاستلام</label><input id="dk-m" maxlength="300" placeholder="مثال: سلفة 10 وصرف بانزين 5، تنسجل وحدها"></div>
           <div class="err" id="dk-e"></div><div class="row"><button class="btn" id="dk-x">رجوع</button><button class="btn primary" id="dk-ok">✔ نعم، استلمت</button></div>`);
         $("#dk-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#dk-m",m).focus(),50);
         $("#dk-ok",m).onclick=async e=>{const btn=e.currentTarget;if(btn.disabled)return;btn.disabled=true;
-          try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:d.amount,p_reason:$("#dk-m",m).value,p_trips:null});m.remove();toast("انسجل الاستلام");pollDeposits();if(tab==="files")renderFiles()}catch(er){btn.disabled=false;$("#dk-e",m).textContent=er.message}}});
+          const it=await noteGate(d.driver_name,$("#dk-m",m).value,d.amount); if(it===null){btn.disabled=false;return}
+          try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:d.amount,p_reason:$("#dk-m",m).value,p_trips:null});m.remove();toast("انسجل الاستلام");await saveNoteItems(d.car_id,it);pollDeposits();if(tab==="files")renderFiles()}catch(er){btn.disabled=false;$("#dk-e",m).textContent=er.message}}});
       bar.querySelectorAll("[data-dno]").forEach(b=>b.onclick=()=>{const d=ds[+b.dataset.dno];const m=modal(`<h3>✖ ما استلمت من ${esc(d.driver_name)}</h3><p style="margin:0">المبلغ ${dinar(d.amount)} يبقى بذمّته، والسائق يشوف السبب.</p><div class="field"><label for="dn-r">السبب</label><input id="dn-r" placeholder="مثال: ما سلّم شي" maxlength="120"></div><div class="err" id="dn-e"></div><div class="row"><button class="btn" id="dn-x">رجوع</button><button class="btn danger" id="dn-ok">تأكيد: ما استلمت</button></div>`);
         $("#dn-x",m).onclick=()=>m.remove();
         $("#dn-ok",m).onclick=async()=>{try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:false,p_received:null,p_reason:$("#dn-r",m).value||"غير مستلم",p_trips:null});m.remove();toast("انسجل: ما استلمت، المبلغ باقي بذمّته");pollDeposits()}catch(e){$("#dn-e",m).textContent=e.message}}});
@@ -1766,7 +1808,7 @@ function depositDecide(d){
     <h4 style="margin:4px 0 0">تفاصيل الرحلات (علّم اللي استلمت فلوسها)</h4>
     <div id="dd-tp">${tp.html}</div>
     <div class="field"><label for="dd-a">المبلغ اللي استلمته فعلًا (دينار)</label><input id="dd-a" inputmode="numeric" value="${d.amount}" style="font:600 22px var(--mono);text-align:center"></div>
-    <div class="field"><label for="dd-m">📝 ملاحظة على الاستلام</label><input id="dd-m" maxlength="300" placeholder="اختياري، مثال: ناقص 1,000 فكّة"></div>
+    <div class="field"><label for="dd-m">📝 ملاحظة على الاستلام</label><input id="dd-m" maxlength="300" placeholder="مثال: سلفة 10 وصرف بانزين 5، تنسجل وحدها"></div>
     <div class="field" id="dd-rf" hidden><label for="dd-r">ليش غير مستلم؟</label><input id="dd-r" placeholder="مثال: ما سلّم شي"></div>
     <div class="err" id="dd-e"></div>
     <div class="row"><button class="btn danger" id="dd-no">✖ غير مستلم (يبقى بذمته)</button><button class="btn primary" id="dd-ok">✔ استلمت المبلغ</button></div>`);
@@ -1775,7 +1817,8 @@ function depositDecide(d){
   const picked=tp.wire($("#dd-tp",m),(sum)=>{if(!typed&&(d.trips||[]).length)$("#dd-a",m).value=sum});
   $("#dd-ok",m).onclick=async()=>{const a=parseInt(($("#dd-a",m).value||"").replace(/\D/g,""),10);const ids=(d.trips||[]).length?picked():null;
     if(!a){$("#dd-e",m).textContent="اختار الرحلات المستلمة أو اكتب المبلغ";return}
-    try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:a,p_reason:$("#dd-m",m).value,p_trips:ids});m.remove();toast("انسجل الاستلام");pollDeposits();if(tab==="files")renderFiles()}catch(e){$("#dd-e",m).textContent=e.message}};
+    const it=await noteGate(d.driver_name,$("#dd-m",m).value,a); if(it===null)return;
+    try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:a,p_reason:$("#dd-m",m).value,p_trips:ids});m.remove();toast("انسجل الاستلام");await saveNoteItems(d.car_id,it);pollDeposits();if(tab==="files")renderFiles()}catch(e){$("#dd-e",m).textContent=e.message}};
   $("#dd-no",m).onclick=async()=>{const rf=$("#dd-rf",m);if(rf.hidden){rf.hidden=false;$("#dd-r",m).focus();$("#dd-no",m).textContent="تأكيد: غير مستلم";return}
     try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:false,p_received:null,p_reason:$("#dd-r",m).value||"غير مستلم",p_trips:null});m.remove();toast("انسجل غير مستلم، المبلغ باقي بذمة السائق");pollDeposits()}catch(e){$("#dd-e",m).textContent=e.message}};
 }
@@ -1939,13 +1982,14 @@ async function fileCash(id,name,inHand){
     <div id="fc-tp">${tp.html}</div>
     <form id="fcf" style="display:flex;flex-direction:column;gap:12px">
     <div class="field"><label for="fcm">المبلغ المستلم (دينار)</label><input id="fcm" inputmode="numeric" required value="${inHand>0?inHand:""}" style="font:600 22px var(--mono);text-align:center"></div>
-    <div class="field"><label for="fcn">📝 ملاحظة على الاستلام</label><input id="fcn" maxlength="300" placeholder="اختياري، مثال: سلّمها بالمجمع، ناقص فكّة…"></div>
+    <div class="field"><label for="fcn">📝 ملاحظة على الاستلام</label><input id="fcn" maxlength="300" placeholder="مثال: سلفة 10 وصرف بانزين 5، تنسجل وحدها"></div>
     <div class="err" id="fce"></div><div class="row"><button type="button" class="btn danger" id="fcc">✖ غير مستلم (يبقى بذمته)</button><button class="btn primary">✔ تسجيل الاستلام</button></div></form>`;
   let typed=false; $("#fcm",m).oninput=()=>typed=true;
   const picked=tp.wire($("#fc-tp",m),sum=>{if(!typed&&u.trips.length)$("#fcm",m).value=sum||""});
   $("#fcc",m).onclick=()=>{m.remove();toast("ما انسجل شي، المبلغ باقي بذمة السائق")};
   $("#fcf",m).onsubmit=async e=>{e.preventDefault();const p={car_id:id,amount:$("#fcm",m).value,remark:$("#fcn",m).value};if(u.trips.length)p.trips=picked();
-    try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p});m.remove();toast("انسجل الاستلام");if(tab==="files")renderFiles()}catch(err){$("#fce",m).textContent=err.message}};
+    const it=await noteGate(name,p.remark,parseInt(String(p.amount).replace(/\D/g,""),10)||0); if(it===null)return;
+    try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p});m.remove();toast("انسجل الاستلام");await saveNoteItems(id,it);if(tab==="files")renderFiles()}catch(err){$("#fce",m).textContent=err.message}};
 }
 async function driverFile(id){
   const m=modal(`<div id="df"><div class="empty">جارٍ التحميل…</div></div><div class="row"><button class="btn" id="dfc">سدّ</button></div>`);
@@ -2143,7 +2187,7 @@ function cashForm(r){
    <form id="cf2" style="display:flex;flex-direction:column;gap:12px">
     <div class="field"><label for="cm">المبلغ اللي استلمته (دينار)</label><input id="cm" inputmode="numeric" required autocomplete="off" placeholder="مثال: 28000 أو 28" style="font:600 26px var(--mono);text-align:center"><small id="cm-v" class="fare-v" aria-live="polite"></small>
       <div class="row" style="justify-content:flex-start;gap:6px;flex-wrap:wrap" id="cm-q"></div></div>
-    <div class="field"><label for="cn2">📝 ملاحظة على الاستلام</label><input id="cn2" maxlength="300" placeholder="اختياري"></div>
+    <div class="field"><label for="cn2">📝 ملاحظة على الاستلام</label><input id="cn2" maxlength="300" placeholder="مثال: سلفة 10 وصرف بانزين 5، تنسجل وحدها"></div>
     <div class="err" id="cme"></div>
     <div class="row"><button type="button" class="btn" id="cmc">رجوع</button><button class="btn primary" id="cm-ok">✅ تم الاستلام</button></div></form>`);
   $("#cmc",m).onclick=()=>m.remove(); setTimeout(()=>$("#cm",m).focus(),60);
@@ -2157,7 +2201,8 @@ function cashForm(r){
     if(hand>0)$("#cm-q",m).innerHTML=`<button type="button" class="btn sm" data-v="${hand}">كل المبلغ ${fmt(hand)}</button>`;
     $("#cm-q",m).querySelectorAll("[data-v]").forEach(x=>x.onclick=()=>{$("#cm",m).value=x.dataset.v;show()});show()}).catch(e=>{$("#cf-b",m).innerHTML=`<div><span>${esc(e.message)}</span></div>`});
   $("#cf2",m).onsubmit=async e=>{e.preventDefault();const v=val(),btn=$("#cm-ok",m);if(btn.disabled)return;if(!v){$("#cme",m).textContent="اكتب المبلغ اللي استلمته";return}
-    btn.disabled=true;try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p:{car_id:r.id,amount:String(v),remark:$("#cn2",m).value}});m.remove();toast(`✅ انسجل استلام ${dinar(v)} من ${r.driver_name}`);loadAccounts()}catch(err){btn.disabled=false;$("#cme",m).textContent=err.message}};
+    btn.disabled=true;const it=await noteGate(r.driver_name,$("#cn2",m).value,v); if(it===null){btn.disabled=false;return}
+    try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p:{car_id:r.id,amount:String(v),remark:$("#cn2",m).value}});m.remove();toast(`✅ انسجل استلام ${dinar(v)} من ${r.driver_name}`);await saveNoteItems(r.id,it);loadAccounts()}catch(err){btn.disabled=false;$("#cme",m).textContent=err.message}};
 }
 async function driverDetail(r){
   const m=modal(`<h3>${esc(r.driver_name)} · ${esc(r.plate)}</h3><div id="dd"><div class="empty">جارٍ التحميل…</div></div><div class="row"><button class="btn" id="ddc">سدّ</button></div>`);
