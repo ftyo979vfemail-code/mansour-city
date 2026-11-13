@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611131759";
+const BUILD="202611131801";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1939,12 +1939,12 @@ async function fileCash(id,name,inHand){
     <div id="fc-tp">${tp.html}</div>
     <form id="fcf" style="display:flex;flex-direction:column;gap:12px">
     <div class="field"><label for="fcm">المبلغ المستلم (دينار)</label><input id="fcm" inputmode="numeric" required value="${inHand>0?inHand:""}" style="font:600 22px var(--mono);text-align:center"></div>
-    <div class="field"><label for="fcn">ملاحظة</label><input id="fcn" placeholder="اختياري"></div>
+    <div class="field"><label for="fcn">📝 ملاحظة على الاستلام</label><input id="fcn" maxlength="300" placeholder="اختياري، مثال: سلّمها بالمجمع، ناقص فكّة…"></div>
     <div class="err" id="fce"></div><div class="row"><button type="button" class="btn danger" id="fcc">✖ غير مستلم (يبقى بذمته)</button><button class="btn primary">✔ تسجيل الاستلام</button></div></form>`;
   let typed=false; $("#fcm",m).oninput=()=>typed=true;
   const picked=tp.wire($("#fc-tp",m),sum=>{if(!typed&&u.trips.length)$("#fcm",m).value=sum||""});
   $("#fcc",m).onclick=()=>{m.remove();toast("ما انسجل شي، المبلغ باقي بذمة السائق")};
-  $("#fcf",m).onsubmit=async e=>{e.preventDefault();const p={car_id:id,amount:$("#fcm",m).value,note:$("#fcn",m).value};if(u.trips.length)p.trips=picked();
+  $("#fcf",m).onsubmit=async e=>{e.preventDefault();const p={car_id:id,amount:$("#fcm",m).value,remark:$("#fcn",m).value};if(u.trips.length)p.trips=picked();
     try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p});m.remove();toast("انسجل الاستلام");if(tab==="files")renderFiles()}catch(err){$("#fce",m).textContent=err.message}};
 }
 async function driverFile(id){
