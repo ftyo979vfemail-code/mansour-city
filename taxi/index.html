@@ -284,6 +284,7 @@ tr.dd-bad td{background:color-mix(in srgb,var(--bad) 8%,transparent)}td .pill{wh
 .st-days{border:1px solid var(--line);border-radius:12px;overflow:hidden}.st-days summary,.st-sum{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:8px 12px;align-items:center;cursor:pointer;border-bottom:1px solid var(--line)}.st-sum{cursor:default;border-bottom:0;font-weight:700;background:var(--bg)}.st-days details[open] summary{background:var(--bg)}.st-days .st-tr{padding:4px 12px 8px}
 .st-tr{list-style:none;margin:6px 0 0;padding:0;font-size:13px}.st-tr li{display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px dashed var(--line)}.st-c details summary{cursor:pointer}#stv input[type=date]{font:inherit;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:inherit}
 @media (max-width:420px){.st-list{grid-template-columns:1fr}}
+.bk-t th[scope=row]{min-width:120px}.bk-t details summary{cursor:pointer;font-weight:700}.bk-det{display:flex;flex-direction:column;gap:6px;margin-top:6px;font-weight:400;white-space:normal;min-width:260px}.bk-drv{border:1px dashed var(--line);border-radius:10px;padding:6px 8px;font-size:13px;line-height:1.6}
 .rc-day{margin:0 0 18px}.rc-dh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px;margin:0 0 8px;padding:8px 12px;border-radius:10px;background:var(--panel2,var(--panel));border:1px solid var(--line);font-size:16px}.rc-dh small{font-weight:400;font-size:13px}
 .rcpt{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px;overflow:hidden}
 .rcpt summary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
@@ -574,7 +575,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611131806";
+const BUILD="202611131809";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1580,6 +1581,7 @@ function adminShell(){
        <button role="tab" data-t="routes">الطرق</button>
        <button role="tab" data-t="inv">📦 الجرد</button>
        <button role="tab" data-t="entry">📝 تسجيل يومي</button>
+       <button role="tab" data-t="book">📒 دفتر الشهر</button>
        <button role="tab" data-t="settle">🧮 المحاسبة</button>
        <button role="tab" data-t="rcp">🧾 الاستلامات</button>
        <button role="tab" data-t="lines">🛣 الخطوط</button>
@@ -1842,6 +1844,7 @@ function renderTab(){
   if(tab==="entry") renderEntry();
   if(tab==="rcp") renderReceipts();
   if(tab==="settle") renderSettle();
+  if(tab==="book") renderBook();
   if(tab==="lines") renderLines();
   if(tab==="sched") renderSched();
   if(tab==="fb") renderFeedback();
@@ -2506,6 +2509,60 @@ async function renderInventory(){
 async function openLedger(id){const c=cars.find(z=>z.id===id);if(!c)return;
   if(OWNER()){try{const r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_day:null,p_period:"month"});const x=r.rows.find(z=>z.id===id);if(x)return driverLedger(x)}catch{}}
   driverLedger({id:c.id,plate:c.plate,driver_name:c.driver_name})}
+/* ---------- the month's book: day by day — money brought, receipts, advances, expenses, debts, cash in the office ---------- */
+let bkMonth=null;
+async function renderBook(){
+  const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10); bkMonth=bkMonth||today.slice(0,7);
+  const mShift=n=>{const [y,mo]=bkMonth.split("-").map(Number);return new Date(Date.UTC(y,mo-1+n,1)).toISOString().slice(0,7)};
+  const ml=new Date(bkMonth+"-15T12:00:00Z").toLocaleDateString("ar-IQ",{month:"long",year:"numeric"});
+  const dl=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
+  $("#view").innerHTML=`<div class="wrap" id="bkv"><div class="bar"><h2>📒 دفتر الشهر</h2><button class="btn sm" id="bk-c">📋 نسخ</button></div>
+    <div class="ent-nav"><button class="btn" id="bk-p">‹ الشهر السابق</button><b style="text-align:center">${ml}</b><button class="btn" id="bk-n" ${bkMonth>=today.slice(0,7)?"disabled":""}>الشهر الجاي ›</button></div>
+    <p class="note" style="margin:0 0 10px">كل يوم بسطر: شكد جابوا السواق، شكد استلمنا، السلف والمصاريف والديون، وشكد بقى بإيد الإدارة. اضغط اليوم حتى تشوف تفاصيله.</p>
+    <div id="bkb"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  $("#bk-p").onclick=()=>{bkMonth=mShift(-1);renderBook()}; $("#bk-n").onclick=()=>{bkMonth=mShift(1);renderBook()};
+  let r; try{r=await rpc("taxi_admin_month_book",{p_pin:PIN,p_month:bkMonth+"-01"})}catch(e){$("#bkb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const car=id=>r.cars.find(c=>c.id===id)||{driver_name:"—"}, nm=id=>esc(car(id).driver_name), who=k=>(k.note||"").includes("استلمه")?k.note.split("استلمه").pop().split("·")[0].trim():"";
+  const [y,mo]=bkMonth.split("-").map(Number), nd=new Date(Date.UTC(y,mo,0)).getUTCDate(), days=[];
+  for(let d=1;d<=nd;d++){const k=bkMonth+"-"+String(d).padStart(2,"0");if(k<=today)days.push(k)}
+  const KL={advance:"🤝 سلفة",expense:"💸 مصروف",debt:"🧾 دين",settle:"⚖️ تسوية"};
+  let cF=0,cK=0,cBox=0; const tot={f:0,k:0,adv:0,exp:0,debt:0,box:0,n:0};
+  const rows=days.map(d=>{const T=r.trips.filter(x=>x.d===d), K=r.receipts.filter(x=>x.d===d), L=r.ledger.filter(x=>x.d===d);
+    const f=T.reduce((a,x)=>a+x.fares,0), n=T.reduce((a,x)=>a+x.n,0), k=K.reduce((a,x)=>a+x.amount,0);
+    const adv=L.filter(x=>x.kind==="advance").reduce((a,x)=>a+x.amount,0), exp=L.filter(x=>x.kind==="expense").reduce((a,x)=>a+x.amount,0), debt=L.filter(x=>x.kind==="debt").reduce((a,x)=>a+x.amount,0);
+    const office=L.filter(x=>!x.from_cash&&!x.staff&&(x.kind==="advance"||x.kind==="expense")).reduce((a,x)=>a+x.amount,0), box=k-office;
+    cF+=f;cK+=k;cBox+=box; tot.f+=f;tot.k+=k;tot.adv+=adv;tot.exp+=exp;tot.debt+=debt;tot.box+=box;tot.n+=n;
+    const empty=!f&&!k&&!L.length;
+    const ids=[...new Set([...T.map(x=>x.car_id),...K.map(x=>x.car_id),...L.filter(x=>x.car_id).map(x=>x.car_id)])];
+    const det=ids.map(id=>{const t=T.find(x=>x.car_id===id)||{n:0,fares:0,lines:0}, ks=K.filter(x=>x.car_id===id), ls=L.filter(x=>x.car_id===id);
+      return `<div class="bk-drv"><b>${nm(id)}</b> <small>${t.n} سفرة${t.lines?` · ${t.lines} خط`:""} · جاب <b>${fmt(t.fares)}</b></small>
+        ${ks.map(x=>`<div>💵 استلمنا <b>${fmt(x.amount)}</b>${who(x)?` (${esc(who(x))})`:""}${x.remark?` · 📝 ${esc(x.remark)}`:""}</div>`).join("")}
+        ${ls.map(x=>`<div>${KL[x.kind]||x.kind} <b>${fmt(x.amount)}</b>${x.note?` · ${esc(x.note)}`:""}${x.kind==="advance"||x.kind==="expense"?` <small>(${x.from_cash?"من الكاش اللي بيده":"من المكتب"})</small>`:""}${x.done?" ✓":""}</div>`).join("")}</div>`}).join("")
+      +L.filter(x=>x.staff).map(x=>`<div class="bk-drv"><b>👤 ${esc(x.name)}</b> ${KL[x.kind]} <b>${fmt(x.amount)}</b>${x.note?` · ${esc(x.note)}`:""}</div>`).join("");
+    return `<tr class="${empty?"ms-empty":""}${d===today?" ms-today":""}"><th scope="row">${empty?dl(d):`<details><summary>${dl(d)}</summary><div class="bk-det">${det||"—"}</div></details>`}</th>
+      <td class="num">${n||"—"}</td><td class="num"><b>${f?fmt(f):"—"}</b></td><td class="num">${k?fmt(k):"—"}</td><td class="num">${adv?fmt(adv):"—"}</td><td class="num">${exp?fmt(exp):"—"}</td><td class="num">${debt?fmt(debt):"—"}</td>
+      <td class="num"><b>${box?fmt(box):"—"}</b></td><td class="num ms-cum">${fmt(cBox)}<br><small>جابوا ${fmt(cF)}</small></td></tr>`}).join("");
+  const D=r.debts, dOpen=D.filter(x=>!x.done), AV=r.advances_open;
+  $("#bkb").innerHTML=`<div class="kpis">
+      <div class="kpi"><small>جابوا السواق</small><b>${dinar(tot.f)}</b><small>${tot.n} سفرة</small></div>
+      <div class="kpi"><small>استلمنا</small><b>${dinar(tot.k)}</b></div>
+      <div class="kpi"><small>💵 بإيد الإدارة</small><b>${dinar(tot.box)}</b><small>استلمنا − سلف ومصاريف من المكتب</small></div>
+      <div class="kpi ${r.owed_now?"warn":""}"><small>بذمّة السواق هسه</small><b>${dinar(r.owed_now)}</b></div>
+      <div class="kpi"><small>سلف هذا الشهر</small><b>${dinar(tot.adv)}</b><small>مصاريف ${fmt(tot.exp)}</small></div>
+      <div class="kpi ${dOpen.length?"warn":""}"><small>ديون مفتوحة</small><b>${dinar(dOpen.reduce((a,x)=>a+x.amount,0))}</b><small>${dOpen.length} دين</small></div></div>
+    <div class="tbl-wrap"><table class="ms-t bk-t"><thead><tr><th>اليوم</th><th>سفرات</th><th>جابوا</th><th>استلمنا</th><th>سلف</th><th>مصاريف</th><th>ديون</th><th>بإيد الإدارة</th><th>من أول الشهر</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><th>المجموع</th><td class="num">${tot.n}</td><td class="num"><b>${fmt(tot.f)}</b></td><td class="num"><b>${fmt(tot.k)}</b></td><td class="num">${fmt(tot.adv)}</td><td class="num">${fmt(tot.exp)}</td><td class="num">${fmt(tot.debt)}</td><td class="num"><b>${fmt(tot.box)}</b></td><td></td></tr></tfoot></table></div>
+    <section class="st-c" style="margin-top:14px"><h3>🧾 سجل الديون</h3>
+      ${D.length?`<div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>على منو / ملاحظة</th><th>السائق</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody>
+        ${D.map(x=>`<tr${x.done?' class="ms-empty"':""}><td>${dl(x.d)}</td><td>${esc(x.note||"—")}</td><td>${esc(x.name||"—")}</td><td class="num"><b>${fmt(x.amount)}</b></td><td>${x.done?`<span class="pill s-ok">✓ انستلم ${x.done_at?new Date(x.done_at).toLocaleDateString("ar-IQ",{day:"numeric",month:"numeric"}):""}</span>`:`<span class="pill s-warn">مفتوح</span>`}</td></tr>`).join("")}
+      </tbody><tfoot><tr><th colspan="3">المفتوح</th><td class="num"><b>${fmt(dOpen.reduce((a,x)=>a+x.amount,0))}</b></td><td></td></tr></tfoot></table></div>
+      <p class="note" style="margin:6px 0 0">تأشّر الدين «انستلم» من تبويب 🧮 المحاسبة ← السلف والديون المفتوحة.</p>`:`<p class="note">ماكو ديون مسجّلة.</p>`}</section>
+    ${AV.length?`<section class="st-c" style="margin-top:12px"><h3>🤝 السلف المفتوحة (تنخصم من الراتب)</h3><ul class="st-tr">${AV.map(a=>`<li><span>${esc(a.name)}</span><b>${fmt(a.amount)}</b></li>`).join("")}<li><span><b>المجموع</b></span><b>${fmt(AV.reduce((x,a)=>x+a.amount,0))}</b></li></ul></section>`:""}`;
+  $("#bk-c").onclick=()=>copy([`📒 دفتر ${ml}`,`جابوا ${fmt(tot.f)} · استلمنا ${fmt(tot.k)} · بإيد الإدارة ${fmt(tot.box)} · بذمّة السواق ${fmt(r.owed_now)}`,
+    ...days.map(d=>{const f=r.trips.filter(x=>x.d===d).reduce((a,x)=>a+x.fares,0),k=r.receipts.filter(x=>x.d===d).reduce((a,x)=>a+x.amount,0);return f||k?`- ${dl(d)}: جابوا ${fmt(f)} · استلمنا ${fmt(k)}`:""}).filter(Boolean),
+    dOpen.length?`ديون مفتوحة: ${dOpen.map(x=>`${x.note||x.name} ${fmt(x.amount)}`).join("، ")}`:""].filter(Boolean).join("\n"));
+}
 /* ---------- settlement: every driver's accounts for a period, each day apart, then close it ---------- */
 let stF=null, stT=null, stShift="all", stDone=null;
 async function renderSettle(){

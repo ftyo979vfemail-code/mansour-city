@@ -1,0 +1,3 @@
+-- 50: taxi_admin_month_book(pin, month) — the month's book in one call (any manager): per work-day & driver trips/fares/lines,
+-- receipts (with remark), ledger rows (advance/expense/debt/settle, from_cash, done), the debts log (all time), open advances
+-- per person, and what drivers owe now. Applied as migration taxi_month_book.
