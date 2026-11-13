@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#014e55">
-<title>المنصور تاكسي</title>
-<meta name="description" content="المنصور تاكسي: تكاسي مجمّع المنصور، سواق مسجّلين وكل سيارة متتبَّعة مباشرة.">
-<meta property="og:title" content="المنصور تاكسي">
+<title>تكسي مجمع المنصور</title>
+<meta name="description" content="تكسي مجمع المنصور: تكاسي مجمّع المنصور، سواق مسجّلين وكل سيارة متتبَّعة مباشرة.">
+<meta property="og:title" content="تكسي مجمع المنصور">
 <meta property="og:description" content="تكاسي مجمّع المنصور، سواق مسجّلين وكل سيارة متتبَّعة مباشرة.">
 <meta property="og:image" content="https://ftyo979vfemail-code.github.io/mansour-city/taxi/img/og.png">
 <meta property="og:type" content="website">
@@ -15,7 +15,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="المنصور تاكسي">
+<meta name="apple-mobile-web-app-title" content="تكسي مجمع المنصور">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&family=Readex+Pro:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -51,7 +51,7 @@ button{cursor:pointer}
 .cx-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .cx-brand{display:flex;align-items:baseline;gap:6px;line-height:1;color:#00383d;text-decoration:none}
 .cx-brand b{font:900 24px var(--body)}
-.cx-brand i{font:900 17px var(--body);font-style:normal;letter-spacing:.06em;background:#00383d;color:#febd02;padding:3px 8px;border-radius:6px}
+.cx-brand i{font:900 15px var(--body);font-style:normal;background:#00383d;color:#febd02;padding:3px 8px;border-radius:6px}
 .cx-av{width:46px;height:46px;border-radius:50%;background:#00383d;color:#febd02;display:grid;place-items:center;font:900 18px var(--body);text-decoration:none;flex:none}
 .cx-h1{margin:4px 0 0;font:900 clamp(34px,10vw,42px)/1.12 var(--body);color:#00383d}
 .cx-sub{margin:0;font-weight:700;color:#3a4a2c;font-size:16px}
@@ -577,7 +577,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611131832";
+const BUILD="202611131834";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -651,10 +651,10 @@ function landingApp(){
   if(role==="customer"&&store.get("taxi_cs")){location.replace("#order");return}
   if(!role&&store.get("taxi_driver_code")){store.set("taxi_role","driver");location.replace("#driver");return}
   if(!role&&store.get("taxi_cs")){store.set("taxi_role","customer");location.replace("#order");return}
-  document.title="المنصور تاكسي";
+  document.title="تكسي مجمع المنصور";
   if(isStandalone()){
     $("#app").innerHTML=`<div class="gate"><div class="gate-card" style="display:flex;flex-direction:column;gap:14px;text-align:center">
-      <img src="img/wordmark.png" alt="المنصور تاكسي" style="height:60px;align-self:center"><h2 style="margin:0">أهلًا بيك بالمنصور تاكسي</h2>
+      <img src="img/wordmark.png" alt="تكسي مجمع المنصور" style="height:60px;align-self:center"><h2 style="margin:0">أهلًا بيك بتكسي مجمع المنصور</h2>
       <p style="margin:0;color:var(--muted)">تكسي لباب عمارتك، بضغطة وحدة.</p>
       <a class="btn primary big" href="#order" style="font-size:20px;padding-block:18px">🚕 اطلب تكسي</a>
       <a class="btn" href="#signup">حساب جديد</a></div>
@@ -662,11 +662,11 @@ function landingApp(){
     return}
   $("#app").innerHTML=`<div class="lp">
   <header class="hero">
-    <div class="lp-in hero-top"><img src="img/wordmark-light.png" alt="المنصور تاكسي" width="140" height="74"><a href="#admin">دخول الإدارة</a></div>
+    <div class="lp-in hero-top"><img src="img/wordmark-light.png" alt="تكسي مجمع المنصور" width="140" height="74"><a href="#admin">دخول الإدارة</a></div>
     <div class="lp-in hero-grid">
       <div>
         <h1>تكسي المجمّع<br><em>أقرب إلك</em> من باب العمارة</h1>
-        <p class="lead">المنصور تاكسي يخدم سكّان مجمّع المنصور: سواق معروفين ومسجّلين عند الإدارة، وكل سيارة تنشاف على الخريطة لحظة بلحظة طول ما هي بالخدمة.</p>
+        <p class="lead">تكسي مجمع المنصور يخدم سكّان مجمّع المنصور: سواق معروفين ومسجّلين عند الإدارة، وكل سيارة تنشاف على الخريطة لحظة بلحظة طول ما هي بالخدمة.</p>
         <div class="lp-live" id="live" hidden><i></i><span><b id="online">0</b> سيارة شغّالة هسه من أصل <b id="fleet">0</b></span></div>
         <div id="contact"></div>
       </div>
@@ -683,7 +683,7 @@ function landingApp(){
   </header>
 
   <section class="sec"><div class="lp-in">
-    <span class="kicker">ليش المنصور تاكسي</span>
+    <span class="kicker">ليش تكسي مجمع المنصور</span>
     <h2>تتنقّل وإنت مرتاح بال</h2>
     <div class="why">
       <article><div class="ico">${IC.id}</div><h3>سواق مسجّلين</h3><p>كل سائق مسجّل عند إدارة المجمّع باسمه ورقم هاتفه، وكل سيارة برقمها وموديلها ولونها.</p></article>
@@ -711,19 +711,19 @@ function landingApp(){
   </div></section>
 
   <section class="band"><div class="lp-in drv-band">
-    <div><h2 style="font-size:22px">إنت سائق بالمنصور تاكسي؟</h2><p>نصّب تطبيق السائق وادخل بالرمز اللي انطتك إياه الإدارة.</p></div>
+    <div><h2 style="font-size:22px">إنت سائق بتكسي مجمع المنصور؟</h2><p>نصّب تطبيق السائق وادخل بالرمز اللي انطتك إياه الإدارة.</p></div>
     <div class="ctas" style="margin:0"><a class="btn primary" style="text-decoration:none;padding:12px 18px" href="${APK_URL}">تحميل تطبيق السائق</a><a class="btn" style="text-decoration:none;padding:12px 18px" href="#driver">صفحة السائق</a></div>
   </div></section>
 
   <footer class="lp-foot"><div class="lp-in">
-    <img src="img/logo-light.png" alt="المنصور تاكسي" width="26" height="40" style="width:auto">
+    <img src="img/logo-light.png" alt="تكسي مجمع المنصور" width="26" height="40" style="width:auto">
     <nav><a href="#login">دخول الزبائن</a><a href="#admin">دخول الإدارة</a><a href="#driver">صفحة السائق</a><a href="${APK_URL}">تطبيق السائق</a></nav>
-    <span>© ${new Date().getFullYear()} المنصور تاكسي</span>
+    <span>© ${new Date().getFullYear()} تكسي مجمع المنصور</span>
   </div></footer>
   </div>`;
   const render=i=>{
     if(i.cars>0){$("#live").hidden=false;
-      $("#live span").innerHTML=i.online>0?`<b>${i.online}</b> سيارة شغّالة هسه من أصل <b>${i.cars}</b>`:`<b>${i.cars}</b> سيارة مسجّلة بأسطول المنصور تاكسي`;
+      $("#live span").innerHTML=i.online>0?`<b>${i.online}</b> سيارة شغّالة هسه من أصل <b>${i.cars}</b>`:`<b>${i.cars}</b> سيارة مسجّلة بأسطول تكسي مجمع المنصور`;
       $("#live i").style.background=i.online>0?"":"var(--amber)"}
     if(i.points_redeem){$("#lp-pts").innerHTML=`كل سفرة تكملها تاخذ <b>${fmt(i.points_per_trip||0)} نقطة</b>، وكل 1000 نقطة = 1000 دينار. أول ما توصل <b>${fmt(i.points_redeem)} نقطة</b> الكروة عليك مجانية${i.points_welcome?`، وهدية <b>${fmt(i.points_welcome)} نقطة</b> أول ما تسوّي حساب`:""}.`}
     $("#contact").innerHTML=accountCtas()+(i.hours?`<div class="hours">أوقات العمل: ${esc(i.hours)}</div>`:"");
@@ -769,7 +769,7 @@ function custShell(title,o){
   const ini=(CS.name||"").trim().charAt(0)||"؟";
   $("#app").innerHTML=`<div class="cx">
    <header class="cx-top"><div class="cx-in">
-     <div class="cx-head"><a href="#" class="cx-brand" aria-label="المنصور تاكسي، الرئيسية"><b>المنصور</b><i>TAXI</i></a>${CS.tok?`<a class="cx-av" href="#account" aria-label="حسابي: ${esc(CS.name)}">${esc(ini)}</a>`:""}</div>
+     <div class="cx-head"><a href="#" class="cx-brand" aria-label="تكسي مجمع المنصور، الرئيسية"><b>تكسي</b><i>مجمع المنصور</i></a>${CS.tok?`<a class="cx-av" href="#account" aria-label="حسابي: ${esc(CS.name)}">${esc(ini)}</a>`:""}</div>
      <h1 class="cx-h1">${title}</h1>${o.sub?`<p class="cx-sub">${o.sub}</p>`:""}<div id="cx-pickslot"></div>
    </div></header>
    <main class="cx-main" id="ord"></main></div>`;
@@ -786,7 +786,7 @@ function ptsCard(p,compact){
 }
 const PR={welcome:"هدية التسجيل",trip:"سفرة",redeem:"كروة مجانية",refund:"رجعت",gift:"من الإدارة"};
 function signupApp(){
-  document.title="إنشاء حساب · المنصور تاكسي"; custShell("إنشاء حساب");
+  document.title="إنشاء حساب · تكسي مجمع المنصور"; custShell("إنشاء حساب");
   $("#ord").innerHTML=`<form id="sg" class="ocard">
     <div class="field"><label for="s-name">اسمك</label><input id="s-name" autocomplete="name" required placeholder="مثال: أحمد علي"></div>
     <div class="field"><label for="s-user">اسم المستخدم (بالإنگليزي)</label><input id="s-user" dir="ltr" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="3" maxlength="20" placeholder="ahmed.ali"><small style="color:var(--muted)">حروف إنگليزية وأرقام، بدون مسافات. تدخل بيه كل مرة.</small></div>
@@ -805,7 +805,7 @@ function signupApp(){
     catch(err){$("#se").textContent=err.message}};
 }
 function loginApp(){
-  document.title="تسجيل الدخول · المنصور تاكسي"; custShell("تسجيل الدخول");
+  document.title="تسجيل الدخول · تكسي مجمع المنصور"; custShell("تسجيل الدخول");
   $("#ord").innerHTML=`<form id="lg" class="ocard">
     <div class="field"><label for="l-user">اسم المستخدم</label><input id="l-user" dir="ltr" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
     <div class="field"><label for="l-pass">كلمة السر</label><input id="l-pass" type="password" autocomplete="current-password" required></div>
@@ -818,7 +818,7 @@ function loginApp(){
 }
 async function accountApp(){
   if(!CS.tok){location.hash="#login";return}
-  document.title="حسابي · المنصور تاكسي"; custShell("حسابي");
+  document.title="حسابي · تكسي مجمع المنصور"; custShell("حسابي");
   const box=$("#ord"); box.innerHTML=`<div class="ocard"><div class="empty">جارٍ التحميل…</div></div>`;
   let me; try{me=await rpc("taxi_customer_me",{p_token:CS.tok})}catch(e){if(!custError(e)) box.innerHTML=`<div class="ocard err">${esc(e.message)}</div>`;return}
   const dt=ts=>new Date(ts).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"});
@@ -870,7 +870,7 @@ function installCard(){
   let hide=false; try{hide=store.get("taxi_installed")==="1"||Number(store.get("taxi_inst_x")||0)>Date.now()}catch{}
   if(hide) return "";
   return `<div class="cx-inst" id="inst-card" ${installEvt||isIOS()?"":"hidden"}><span class="cx-inst-ico" aria-hidden="true"><img src="img/apple-touch-icon.png" alt="" width="44" height="44"></span>
-    <span class="cx-inst-t"><b>ثبّت المنصور تاكسي على تلفونك</b><small>يصير عندك أيقونة وتطلب بضغطة وحدة</small></span>
+    <span class="cx-inst-t"><b>ثبّت تكسي مجمع المنصور على تلفونك</b><small>يصير عندك أيقونة وتطلب بضغطة وحدة</small></span>
     <button type="button" class="btn primary sm" id="inst-go">تثبيت</button><button type="button" class="cx-inst-x" id="inst-x" aria-label="مو هسه">✕</button></div>`;
 }
 function bindInstall(){
@@ -878,7 +878,7 @@ function bindInstall(){
   x.onclick=()=>{try{store.set("taxi_inst_x",String(Date.now()+7*864e5))}catch{};$("#inst-card").remove()};
   go.onclick=async()=>{
     if(installEvt){installEvt.prompt();try{const r=await installEvt.userChoice;if(r.outcome==="accepted"){$("#inst-card").remove();try{store.set("taxi_installed","1")}catch{}}}catch{}installEvt=null;return}
-    const m=modal(`<h3>ثبّت التطبيق على الآيفون</h3><ol class="steps-sm"><li>اضغط زر المشاركة <b>⬆︎</b> جوّه الشاشة بسفاري.</li><li>انزل واختار <b>«إضافة إلى الشاشة الرئيسية»</b>.</li><li>اضغط <b>«إضافة»</b> فوق، وتطلع أيقونة المنصور تاكسي ويا تطبيقاتك.</li></ol><div class="row"><button class="btn primary" id="ios-ok">تمام</button></div>`);
+    const m=modal(`<h3>ثبّت التطبيق على الآيفون</h3><ol class="steps-sm"><li>اضغط زر المشاركة <b>⬆︎</b> جوّه الشاشة بسفاري.</li><li>انزل واختار <b>«إضافة إلى الشاشة الرئيسية»</b>.</li><li>اضغط <b>«إضافة»</b> فوق، وتطلع أيقونة تكسي مجمع المنصور ويا تطبيقاتك.</li></ol><div class="row"><button class="btn primary" id="ios-ok">تمام</button></div>`);
     $("#ios-ok",m).onclick=()=>m.remove()};
 }
 if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
@@ -887,7 +887,7 @@ function driverManifest(){
   try{
     const base=location.origin+location.pathname, start=base+"?c="+encodeURIComponent(CODE)+"#driver";
     history.replaceState(null,"",location.pathname+"?c="+encodeURIComponent(CODE)+"#driver");
-    const m={name:"المنصور تاكسي · السائق",short_name:"تاكسي السائق",id:base+"?driver",start_url:start,scope:base,display:"standalone",dir:"rtl",lang:"ar",
+    const m={name:"تكسي مجمع المنصور · السائق",short_name:"تاكسي السائق",id:base+"?driver",start_url:start,scope:base,display:"standalone",dir:"rtl",lang:"ar",
       background_color:"#014e55",theme_color:"#014e55",icons:[{src:new URL("img/apple-touch-icon.png",base).href,sizes:"180x180",type:"image/png"},{src:new URL("img/icon-512.png",base).href,sizes:"512x512",type:"image/png"}]};
     const l=document.querySelector('link[rel="manifest"]'); if(l) l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:"application/manifest+json"}));
   }catch{}
@@ -928,7 +928,7 @@ async function pushCard(el,who){
 let orderZones=[], orderZone=null, orderT=null;
 async function orderApp(){
   if(!CS.tok){location.hash="#signup";return}
-  document.title="اطلب تكسي · المنصور تاكسي"; custShell("اطلب تكسي");
+  document.title="اطلب تكسي · تكسي مجمع المنصور"; custShell("اطلب تكسي");
   let tok=store.get("taxi_order");
   if(!tok){try{const me=await rpc("taxi_customer_me",{p_token:CS.tok});tok=me.open;if(tok)store.set("taxi_order",tok)}catch(e){if(custError(e))return}}
   tok?orderStatus(tok):orderForm();
@@ -1150,7 +1150,7 @@ async function orderForm(){
       orderStatus(r.token)}catch(err){if(custError(err))return;$("#oe").textContent=err.message;btn.disabled=false}};
 }
 const OS={scheduled:["🗓","انحجز موعدك","الإدارة تأكّد الحجز وتجهّزلك سائق."],arrived:["📍","السائق وصل وينتظرك","انزل للسيارة، ووقت تركب السائق ينطلق."],requested:["⏳","طلبك وصل للمكتب","دنختارلك أقرب سائق، لحظات."],assigned:["📲","انرسل للسائق","بانتظار موافقته."],
-  accepted:["🚕","السائق جاي إلك","انتظر بمكانك."],started:["🛣️","بالطريق","توصل بالسلامة."],waiting:["⏸","السائق ينتظرك","ارجع للسيارة وقت تخلص، والسائق يكمّل الرحلة."],done:["✅","وصلت","شكرًا لاختيارك المنصور تاكسي."],
+  accepted:["🚕","السائق جاي إلك","انتظر بمكانك."],started:["🛣️","بالطريق","توصل بالسلامة."],waiting:["⏸","السائق ينتظرك","ارجع للسيارة وقت تخلص، والسائق يكمّل الرحلة."],done:["✅","وصلت","شكرًا لاختيارك تكسي مجمع المنصور."],
   cancelled:["✖️","انلغى الطلب",""],rejected:["📲","دنحوّل طلبك لسائق ثاني","لحظات."]};
 async function orderStatus(tok){
   clearInterval(orderT);
@@ -1214,7 +1214,7 @@ function loadGL(){
 }
 async function navApp(){
   if(!CODE){location.replace("#driver");return}
-  document.title="الطريق · المنصور تاكسي";
+  document.title="الطريق · تكسي مجمع المنصور";
   $("#app").innerHTML=`<div class="nav">
     <div class="nav-top">
       <a class="btn sm" href="#driver" aria-label="رجوع">‹ رجوع</a>
@@ -1462,9 +1462,9 @@ window.addEventListener("hashchange",()=>location.reload());
 let DP={t:null,data:null,prev:[],init:false,open:null,actx:null};
 function dispApp(){
   const tok=store.get("taxi_disp");
-  document.title="توزيع الطلبات · المنصور تاكسي";
-  if(!tok){$("#app").innerHTML=`<div class="gate"><div class="gate-card"><div class="brand"><div class="brand-mark">${ICON}</div><div><h1>توزيع الطلبات</h1><small>المنصور تاكسي</small></div></div><p style="margin:0">امسح الباركود اللي تنطيك إياه الإدارة بكاميرا التلفون حتى تدخل.</p><a class="btn" href="#">الصفحة الرئيسية</a></div></div>`;return}
-  $("#app").innerHTML=`<div class="lp"><header class="hero ord-hero"><div class="lp-in hero-top"><img src="img/wordmark-light.png" alt="المنصور تاكسي" width="120" height="64"><span id="dpn" style="color:#fff;font-weight:700"></span></div>
+  document.title="توزيع الطلبات · تكسي مجمع المنصور";
+  if(!tok){$("#app").innerHTML=`<div class="gate"><div class="gate-card"><div class="brand"><div class="brand-mark">${ICON}</div><div><h1>توزيع الطلبات</h1><small>تكسي مجمع المنصور</small></div></div><p style="margin:0">امسح الباركود اللي تنطيك إياه الإدارة بكاميرا التلفون حتى تدخل.</p><a class="btn" href="#">الصفحة الرئيسية</a></div></div>`;return}
+  $("#app").innerHTML=`<div class="lp"><header class="hero ord-hero"><div class="lp-in hero-top"><img src="img/wordmark-light.png" alt="تكسي مجمع المنصور" width="120" height="64"><span id="dpn" style="color:#fff;font-weight:700"></span></div>
     <div class="lp-in"><h1 class="ord-h1">توزيع الطلبات</h1></div></header>
     <main class="lp-in ord"><div class="ocard" id="dpbox"><div class="empty">جارٍ التحميل…</div></div>
     <p class="note" style="text-align:center">أول ما يوصل طلب زبون يرن التلفون. اضغط عليه واختار السائق.</p>
@@ -1540,7 +1540,7 @@ let PIN=sess.get("taxi_pin"), cars=[], map, markers={}, trailLine=null, selId=nu
 function adminApp(){ PIN?adminShell():adminGate(); }
 function adminGate(msg){
   $("#app").innerHTML=`<div class="gate"><form class="gate-card" id="g">
-    <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>المنصور تاكسي</h1><small>لوحة الإدارة والتتبع</small></div></div>
+    <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>تكسي مجمع المنصور</h1><small>لوحة الإدارة والتتبع</small></div></div>
     <div class="field"><label for="pin">رمز المدير</label><input id="pin" class="code-input" inputmode="numeric" autocomplete="off" maxlength="12" required></div>
     <div class="err" id="ge">${esc(msg||"")}</div>
     <button class="btn primary">دخول</button>
@@ -1559,7 +1559,7 @@ function adminShell(){
   if(!FULL()&&MONEY_TABS.includes(tab)) tab="live";
   $("#app").innerHTML=`<div class="shell">
    <header class="top">
-     <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>المنصور تاكسي</h1><small id="clock">تحديث مباشر كل 5 ثوانٍ</small></div></div>
+     <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>تكسي مجمع المنصور</h1><small id="clock">تحديث مباشر كل 5 ثوانٍ</small></div></div>
      <div class="counts" id="counts"></div>
      <button class="btn primary" id="tripBtn">+ حجز سفرة</button>
      <button class="btn" id="addBtn">+ إضافة سيارة</button>
@@ -2368,7 +2368,7 @@ async function renderLines(){
     $("#lnb").querySelectorAll("[data-le]").forEach(b=>b.onclick=()=>lineSubForm(linesData.find(x=>x.id===+b.dataset.le)))};
   draw();
   $("#ln-q").oninput=e=>{linesQ=e.target.value;draw()};
-  $("#ln-c").onclick=()=>{const act=linesData.filter(x=>x.active);copy([`🛣 خطوط المنصور تاكسي`,...act.map(x=>`- ${x.students} (${x.n}) · عمارة ${x.building||"—"} ط${x.floor||"—"} ش${x.apt||"—"}${x.dest?` · ${x.dest}`:""} · ${fmt(x.amount)}${x.driver_name?` · ${x.driver_name}`:""}`),
+  $("#ln-c").onclick=()=>{const act=linesData.filter(x=>x.active);copy([`🛣 خطوط تكسي مجمع المنصور`,...act.map(x=>`- ${x.students} (${x.n}) · عمارة ${x.building||"—"} ط${x.floor||"—"} ش${x.apt||"—"}${x.dest?` · ${x.dest}`:""} · ${fmt(x.amount)}${x.driver_name?` · ${x.driver_name}`:""}`),
     `المجموع: ${act.reduce((a,x)=>a+x.n,0)} طالب · ${fmt(act.reduce((a,x)=>a+x.amount,0))} د.ع شهريًا`].join("\n"))};
 }
 function lineSubForm(x){
@@ -2915,7 +2915,7 @@ async function manualDays(){
       m.remove();toast(`انحفظت ${n} خانة`);renderInventory()}catch(e){$("#md-e",m).textContent=e.message;b.disabled=false;b.textContent="حفظ"}};
 }
 function invText(r,mn){const R=r.rows,T=k=>R.reduce((a,x)=>a+Number(x[k]||0),0);
-  return [`📦 جرد المنصور تاكسي · ${mn}`,...R.map(x=>`• ${x.driver_name} (${x.plate}): ${x.trips} سفرة، جمع ${fmt(x.cash)}، استلمنا ${fmt(x.received)}، الباقي ${fmt(x.closing)}`),
+  return [`📦 جرد تكسي مجمع المنصور · ${mn}`,...R.map(x=>`• ${x.driver_name} (${x.plate}): ${x.trips} سفرة، جمع ${fmt(x.cash)}، استلمنا ${fmt(x.received)}، الباقي ${fmt(x.closing)}`),
     "",`المجموع: ${T("trips")} سفرة · جمعوا ${fmt(T("cash"))} · استلمنا ${fmt(T("received"))} · الباقي ${fmt(T("closing"))} د.ع`].join("\n")}
 /* ---------- daily report ---------- */
 let dailyDay=null, dailyData=null;
@@ -2976,7 +2976,7 @@ async function driverDay(car,day){
     ...r.trips.map(t=>`- ${h(t.started_at||t.accepted_at)} ${t.trip_kind==="line"?"خط ":""}${t.dropoff||""} ${t.trip_kind==="line"?"":fmt(t.fare||0)}${t.flags.length?" ⚠️ "+t.flags.join("، "):""}`),
     un.length?"طلعات بدون سفرة:":"", ...un.map(o=>`- ${h(o.from)}–${h(o.to)} (${o.minutes} د) قريب ${o.near||""} ${map(o)}`)].filter(Boolean).join("\n"));
 }
-function dailyText(r){const T=r.totals;return [`📊 تقرير المنصور تاكسي ليوم ${r.day}`,`سفرات خلصت: ${T.done} (طلبات أونلاين ${T.requests}، ملغية ${T.cancelled}، مرفوضة ${T.rejected})`,
+function dailyText(r){const T=r.totals;return [`📊 تقرير تكسي مجمع المنصور ليوم ${r.day}`,`سفرات خلصت: ${T.done} (طلبات أونلاين ${T.requests}، ملغية ${T.cancelled}، مرفوضة ${T.rejected})`,
   `مجموع الأجرة: ${fmt(T.fares)} د.ع · كاش بيد السواق: ${fmt(T.cash)} د.ع`,`استلمت الإدارة: ${fmt(r.received)} د.ع`,
   `عدّاد انتظار: ${fmt(T.wait_fees)} · مرجع: ${fmt(T.round_fees)}${T.special?` · زبون خاص بدون كروة: ${T.special}`:""}`,`تقييم: ${r.ratings.avg??"—"} (${r.ratings.count}) · شكاوي جديدة: ${r.complaints.new} · زباين جدد: ${r.new_customers}`,
   "",...r.drivers.filter(d=>d.done||d.received).map(d=>`• ${d.driver_name} (${d.plate}): ${d.done} سفرة، ${fmt(d.fares)} د.ع${d.received?`، استلمنا ${fmt(d.received)}`:""}${d.stars?`، ⭐ ${d.stars}`:""}`)].join("\n")}
@@ -3043,7 +3043,7 @@ function settleForm(r){
 function receipt(st){
   const cash=st.cash!=null?st.cash:st.fares, balance=cash-st.collected;
   const m=modal(`<div class="rcpt" id="rcpt">
-    <div class="rc-head"><img src="img/logo.png" alt="المنصور تاكسي"><div><h3>وصل تسوية أسبوعية #${st.id}</h3><small>السبت ${dmy(st.week_start)} — الجمعة ${dmy(st.week_end)} · ${new Date(st.created_at).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}</small></div></div>
+    <div class="rc-head"><img src="img/logo.png" alt="تكسي مجمع المنصور"><div><h3>وصل تسوية أسبوعية #${st.id}</h3><small>السبت ${dmy(st.week_start)} — الجمعة ${dmy(st.week_end)} · ${new Date(st.created_at).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}</small></div></div>
     <p><b>السائق:</b> ${esc(st.driver_name)} &nbsp; ${plateHTML(st.plate)}</p>
     <div class="calc">
       <div><span>عدد السفرات</span><b>${fmt(st.trips)}</b></div>
@@ -3287,11 +3287,11 @@ let EXT=store.get("taxi_ext")==="1", ON=store.get("taxi_on")==="1", CODE=store.g
 function driverApp(){ CODE?driverStart():driverGate(); }
 function driverGate(msg){
   $("#app").innerHTML=`<div class="gate"><form class="gate-card" id="dg">
-   <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>صفحة السائق</h1><small>المنصور تاكسي</small></div></div>
+   <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>صفحة السائق</h1><small>تكسي مجمع المنصور</small></div></div>
    <div class="field"><label for="dc">رمز السائق (6 أرقام من الإدارة)</label><input id="dc" class="code-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></div>
    <div class="err" id="de">${esc(msg||"")}</div>
    <button class="btn primary" style="font-size:17px;padding:13px">دخول وتشغيل التتبع</button>
-   <a class="btn" style="text-align:center;text-decoration:none" href="${APK_URL}">تحميل تطبيق المنصور تاكسي للأندرويد</a>
+   <a class="btn" style="text-align:center;text-decoration:none" href="${APK_URL}">تحميل تطبيق تكسي مجمع المنصور للأندرويد</a>
    <p class="note" style="margin:0">عند الدخول سيطلب الهاتف إذن الموقع. اختر «السماح دائمًا» أو «أثناء الاستخدام».</p></form></div>`;
   $("#dg").onsubmit=async e=>{e.preventDefault();const k=$("#dc").value.trim();
     try{await rpc("taxi_driver_login",{p_code:k});CODE=k;store.set("taxi_driver_code",k);store.set("taxi_role","driver");driverStart()}catch(err){$("#de").textContent=err.message}};
@@ -3327,7 +3327,7 @@ async function driverStart(){
     // On Android the browser stops GPS once the driver leaves the page; the app keeps it running.
     const box=document.createElement("div");box.className="trip offer";
     box.innerHTML=`<h3>⚠ الصفحة توقف الموقع أول ما تطلع منها</h3>
-      <p>حتى يبقى الـ GPS شغّال والشاشة مقفولة، نزّل <b>تطبيق المنصور تاكسي</b> وادخل بنفس رمزك <b dir="ltr">${esc(CODE)}</b>.</p>
+      <p>حتى يبقى الـ GPS شغّال والشاشة مقفولة، نزّل <b>تطبيق تكسي مجمع المنصور</b> وادخل بنفس رمزك <b dir="ltr">${esc(CODE)}</b>.</p>
       <a class="btn primary big" href="${APK_URL}" style="text-align:center">تنزيل التطبيق للأندرويد</a>
       <p style="font-size:13px">بعد التنزيل افتح الملف ووافق على «تثبيت من هذا المصدر». بالتطبيق وافق على كل الأذونات، واختار للموقع «السماح طوال الوقت».</p>`;
     $(".drv").insertBefore(box,$("#ring"));

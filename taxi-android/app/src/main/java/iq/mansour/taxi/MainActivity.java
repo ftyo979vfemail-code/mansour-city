@@ -254,7 +254,7 @@ public class MainActivity extends Activity {
     private void showLogin(String error) {
         h.removeCallbacks(tick);
         root.removeAllViews();
-        root.addView(brand("صفحة السائق", "المنصور تاكسي"));
+        root.addView(brand("صفحة السائق", "تكسي مجمع المنصور"));
         root.addView(space(24));
         root.addView(label("رمز السائق (6 أرقام من الإدارة)"));
         final EditText in = new EditText(this);
