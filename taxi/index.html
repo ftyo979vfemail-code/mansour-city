@@ -574,7 +574,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611131745";
+const BUILD="202611131759";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1718,7 +1718,13 @@ function pollDeposits(){
   rpc("taxi_admin_deposits",{p_pin:PIN}).then(ds=>{const bar=$("#depbar"); if(!bar) return;
     if(ds.length){bar.hidden=false;bar.innerHTML=ds.slice(0,4).map((d,i)=>`<div class="sp-row"><span>💵 <b>${esc(d.driver_name)}</b> سلّم <b>${dinar(d.amount)}</b>${d.note?` · «${esc(d.note)}»`:""} <small>${new Date(d.created_at).toLocaleTimeString("ar-IQ",{hour:"numeric",minute:"2-digit"})}</small></span><span class="acts"><button class="btn sm primary" data-dok="${i}">✔ استلمت</button><button class="btn sm danger" data-dno="${i}">✖ ما استلمت</button><button class="btn sm" data-ddt="${i}">التفاصيل</button></span></div>`).join("")+(ds.length>4?`<small>و${ds.length-4} غيرها…</small>`:"");
       bar.querySelectorAll("[data-ddt]").forEach(b=>b.onclick=()=>depositDecide(ds[+b.dataset.ddt]));
-      bar.querySelectorAll("[data-dok]").forEach(b=>b.onclick=()=>{const d=ds[+b.dataset.dok];confirmBox(`استلمت ${dinar(d.amount)} من ${esc(d.driver_name)}؟ تنحسب على أقدم سفراته.`,"✔ نعم، استلمت",async()=>{try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:d.amount,p_reason:"",p_trips:null});toast("انسجل الاستلام");pollDeposits();if(tab==="files")renderFiles()}catch(e){toast(e.message)}},"رجوع")});
+      bar.querySelectorAll("[data-dok]").forEach(b=>b.onclick=()=>{const d=ds[+b.dataset.dok];
+        const m=modal(`<h3>✔ استلمت ${dinar(d.amount)} من ${esc(d.driver_name)}؟</h3><p class="note" style="margin:0">تنحسب على أقدم سفراته.</p>
+          <div class="field"><label for="dk-m">📝 ملاحظة على الاستلام</label><input id="dk-m" maxlength="300" placeholder="اختياري، مثال: سلّمها بالمجمع، ناقص فكّة…"></div>
+          <div class="err" id="dk-e"></div><div class="row"><button class="btn" id="dk-x">رجوع</button><button class="btn primary" id="dk-ok">✔ نعم، استلمت</button></div>`);
+        $("#dk-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#dk-m",m).focus(),50);
+        $("#dk-ok",m).onclick=async e=>{const btn=e.currentTarget;if(btn.disabled)return;btn.disabled=true;
+          try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:d.amount,p_reason:$("#dk-m",m).value,p_trips:null});m.remove();toast("انسجل الاستلام");pollDeposits();if(tab==="files")renderFiles()}catch(er){btn.disabled=false;$("#dk-e",m).textContent=er.message}}});
       bar.querySelectorAll("[data-dno]").forEach(b=>b.onclick=()=>{const d=ds[+b.dataset.dno];const m=modal(`<h3>✖ ما استلمت من ${esc(d.driver_name)}</h3><p style="margin:0">المبلغ ${dinar(d.amount)} يبقى بذمّته، والسائق يشوف السبب.</p><div class="field"><label for="dn-r">السبب</label><input id="dn-r" placeholder="مثال: ما سلّم شي" maxlength="120"></div><div class="err" id="dn-e"></div><div class="row"><button class="btn" id="dn-x">رجوع</button><button class="btn danger" id="dn-ok">تأكيد: ما استلمت</button></div>`);
         $("#dn-x",m).onclick=()=>m.remove();
         $("#dn-ok",m).onclick=async()=>{try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:false,p_received:null,p_reason:$("#dn-r",m).value||"غير مستلم",p_trips:null});m.remove();toast("انسجل: ما استلمت، المبلغ باقي بذمّته");pollDeposits()}catch(e){$("#dn-e",m).textContent=e.message}}});
@@ -1760,6 +1766,7 @@ function depositDecide(d){
     <h4 style="margin:4px 0 0">تفاصيل الرحلات (علّم اللي استلمت فلوسها)</h4>
     <div id="dd-tp">${tp.html}</div>
     <div class="field"><label for="dd-a">المبلغ اللي استلمته فعلًا (دينار)</label><input id="dd-a" inputmode="numeric" value="${d.amount}" style="font:600 22px var(--mono);text-align:center"></div>
+    <div class="field"><label for="dd-m">📝 ملاحظة على الاستلام</label><input id="dd-m" maxlength="300" placeholder="اختياري، مثال: ناقص 1,000 فكّة"></div>
     <div class="field" id="dd-rf" hidden><label for="dd-r">ليش غير مستلم؟</label><input id="dd-r" placeholder="مثال: ما سلّم شي"></div>
     <div class="err" id="dd-e"></div>
     <div class="row"><button class="btn danger" id="dd-no">✖ غير مستلم (يبقى بذمته)</button><button class="btn primary" id="dd-ok">✔ استلمت المبلغ</button></div>`);
@@ -1768,7 +1775,7 @@ function depositDecide(d){
   const picked=tp.wire($("#dd-tp",m),(sum)=>{if(!typed&&(d.trips||[]).length)$("#dd-a",m).value=sum});
   $("#dd-ok",m).onclick=async()=>{const a=parseInt(($("#dd-a",m).value||"").replace(/\D/g,""),10);const ids=(d.trips||[]).length?picked():null;
     if(!a){$("#dd-e",m).textContent="اختار الرحلات المستلمة أو اكتب المبلغ";return}
-    try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:a,p_reason:"",p_trips:ids});m.remove();toast("انسجل الاستلام");pollDeposits();if(tab==="files")renderFiles()}catch(e){$("#dd-e",m).textContent=e.message}};
+    try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:a,p_reason:$("#dd-m",m).value,p_trips:ids});m.remove();toast("انسجل الاستلام");pollDeposits();if(tab==="files")renderFiles()}catch(e){$("#dd-e",m).textContent=e.message}};
   $("#dd-no",m).onclick=async()=>{const rf=$("#dd-rf",m);if(rf.hidden){rf.hidden=false;$("#dd-r",m).focus();$("#dd-no",m).textContent="تأكيد: غير مستلم";return}
     try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:false,p_received:null,p_reason:$("#dd-r",m).value||"غير مستلم",p_trips:null});m.remove();toast("انسجل غير مستلم، المبلغ باقي بذمة السائق");pollDeposits()}catch(e){$("#dd-e",m).textContent=e.message}};
 }
@@ -2136,7 +2143,7 @@ function cashForm(r){
    <form id="cf2" style="display:flex;flex-direction:column;gap:12px">
     <div class="field"><label for="cm">المبلغ اللي استلمته (دينار)</label><input id="cm" inputmode="numeric" required autocomplete="off" placeholder="مثال: 28000 أو 28" style="font:600 26px var(--mono);text-align:center"><small id="cm-v" class="fare-v" aria-live="polite"></small>
       <div class="row" style="justify-content:flex-start;gap:6px;flex-wrap:wrap" id="cm-q"></div></div>
-    <div class="field"><label for="cn2">ملاحظة</label><input id="cn2" placeholder="اختياري"></div>
+    <div class="field"><label for="cn2">📝 ملاحظة على الاستلام</label><input id="cn2" maxlength="300" placeholder="اختياري"></div>
     <div class="err" id="cme"></div>
     <div class="row"><button type="button" class="btn" id="cmc">رجوع</button><button class="btn primary" id="cm-ok">✅ تم الاستلام</button></div></form>`);
   $("#cmc",m).onclick=()=>m.remove(); setTimeout(()=>$("#cm",m).focus(),60);
@@ -2150,7 +2157,7 @@ function cashForm(r){
     if(hand>0)$("#cm-q",m).innerHTML=`<button type="button" class="btn sm" data-v="${hand}">كل المبلغ ${fmt(hand)}</button>`;
     $("#cm-q",m).querySelectorAll("[data-v]").forEach(x=>x.onclick=()=>{$("#cm",m).value=x.dataset.v;show()});show()}).catch(e=>{$("#cf-b",m).innerHTML=`<div><span>${esc(e.message)}</span></div>`});
   $("#cf2",m).onsubmit=async e=>{e.preventDefault();const v=val(),btn=$("#cm-ok",m);if(btn.disabled)return;if(!v){$("#cme",m).textContent="اكتب المبلغ اللي استلمته";return}
-    btn.disabled=true;try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p:{car_id:r.id,amount:String(v),note:$("#cn2",m).value}});m.remove();toast(`✅ انسجل استلام ${dinar(v)} من ${r.driver_name}`);loadAccounts()}catch(err){btn.disabled=false;$("#cme",m).textContent=err.message}};
+    btn.disabled=true;try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p:{car_id:r.id,amount:String(v),remark:$("#cn2",m).value}});m.remove();toast(`✅ انسجل استلام ${dinar(v)} من ${r.driver_name}`);loadAccounts()}catch(err){btn.disabled=false;$("#cme",m).textContent=err.message}};
 }
 async function driverDetail(r){
   const m=modal(`<h3>${esc(r.driver_name)} · ${esc(r.plate)}</h3><div id="dd"><div class="empty">جارٍ التحميل…</div></div><div class="row"><button class="btn" id="ddc">سدّ</button></div>`);
@@ -2375,7 +2382,7 @@ async function renderReceipts(){
       const sp=spent[k.id]||[], spT=sp.reduce((a,x)=>a+x.amount,0), A=att[k.id]||[];
       const fc=A.filter(i=>i.from_cash), fcT=fc.reduce((a,i)=>a+i.amount,0), oa=A.filter(i=>!i.from_cash&&i.kind==="advance"), oaT=oa.reduce((a,i)=>a+i.amount,0);
       const lab=i=>i.kind==="settle"?"⚖️ تسوية بالمحاسبة":i.kind==="debt"?"🧾 دين على زبون (ما استلمه)":i.kind==="advance"?(i.from_cash?"🤝 سلفة من الكاش":"🤝 سلفة من المكتب"):(i.from_cash?"💸 مصروف من الكاش":"💸 مصروف من المبلغ");
-      return `<details class="rcpt"><summary><span class="rc-amt">💵 ${dinar(k.amount)}${spT?`<small class="rc-net">− صرف ${fmt(spT)}<br>= صافي <b>${fmt(k.amount-spT)}</b></small>`:""}${A.length?`<small class="pill s-warn" style="margin-top:4px">ويّاها ${A.length} ${A.some(i=>i.kind==="advance")?"سلف/مصاريف":"مصاريف"}</small>`:""}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}<br><small>${k.manual_day?"استلام قديم (إدخال يدوي)":tm(k.at)}${who(k.note)&&!k.manual_day?` · استلمه ${esc(who(k.note))}`:""}</small></span>
+      return `<details class="rcpt"><summary><span class="rc-amt">💵 ${dinar(k.amount)}${spT?`<small class="rc-net">− صرف ${fmt(spT)}<br>= صافي <b>${fmt(k.amount-spT)}</b></small>`:""}${A.length?`<small class="pill s-warn" style="margin-top:4px">ويّاها ${A.length} ${A.some(i=>i.kind==="advance")?"سلف/مصاريف":"مصاريف"}</small>`:""}</span><span><b>${esc(k.driver_name)}</b> ${plateHTML(k.plate)}${k.remark?` <span class="pill s-idle">📝 ${esc(k.remark.length>30?k.remark.slice(0,30)+"…":k.remark)}</span>`:""}<br><small>${k.manual_day?"استلام قديم (إدخال يدوي)":tm(k.at)}${who(k.note)&&!k.manual_day?` · استلمه ${esc(who(k.note))}`:""}</small></span>
         <span class="rc-cov">${tr.length?`غطّى ${tr.length} ${tr.length===1?"سفرة":"سفرات"}<br><small>${dD(first.ended_at)}${tr.length>1&&dD(first.ended_at)!==dD(last.ended_at)?` — ${dD(last.ended_at)}`:""}</small>`:"ما غطّى سفرات"}${k.unallocated>0?`<br><small style="color:var(--ok)">+ ${fmt(k.unallocated)} زيادة (رصيد إله)</small>`:""}</span></summary>
         <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الوقت</th><th>من ← إلى</th><th>الكروة</th><th>انحسب من هذا الاستلام</th></tr></thead><tbody>
         ${tr.map(t=>`<tr><td>${dD(t.ended_at)}</td><td>${t.manual?"—":tm(t.ended_at)}</td><td>${t.manual?"إدخال يدوي (مجموع اليوم)":`${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}${t.line?" · خط":""}`}</td><td class="num">${fmt(t.cash)}</td><td class="num">${t.covered<t.cash?`<span class="pill s-warn">${fmt(t.covered)} من ${fmt(t.cash)}</span>`:fmt(t.covered)}</td></tr>`).join("")}
@@ -2384,6 +2391,7 @@ async function renderReceipts(){
           ${fcT?`<li class="tot">قبل لا يسلّم خصم من الكاش اللي بيده <b>${fmt(fcT)}</b> (سلف ومصاريف)</li>`:""}
           ${spT?`<li class="tot">الاستلام ${fmt(k.amount)} − الصرف ${fmt(spT)} = <b>${fmt(k.amount-spT)}</b> صافي</li>`:""}
           ${oaT?`<li class="tot">سلف انطيناها من المكتب: <b>${fmt(oaT)}</b></li>`:""}</ul>`:""}
+        <p class="rc-rm" style="margin:8px 14px 0">📝 ${k.remark?`<b>${esc(k.remark)}</b>`:`<span style="color:var(--muted)">ماكو ملاحظة</span>`} <button class="btn sm" data-rcm="${k.id}">${k.remark?"تعديل الملاحظة":"+ ملاحظة"}</button></p>
         <div class="row rc-acts" style="justify-content:flex-start;gap:8px;flex-wrap:wrap;padding:10px 14px 0">${OWNER()?`<button class="btn sm" data-rce="${k.id}">✏️ تعديل المبلغ</button><button class="btn sm danger" data-rcd="${k.id}">🗑 حذف الاستلام</button>`:""}<button class="btn sm" data-rcl="${k.car_id}">💸 مصاريف وسلف ${esc(k.driver_name.split(" ")[0])}</button></div>
         <p class="note" style="margin:6px 0 0">${k.owed_after>0?`بعد هذا الاستلام بقى بذمّته <b>${dinar(k.owed_after)}</b> من السفرات اللي قبله.`:k.owed_after<0?`بعد هذا الاستلام صار إله رصيد <b>${dinar(-k.owed_after)}</b>.`:`بعد هذا الاستلام ما بقى عليه شي من السفرات اللي قبله.`}</p></details>`};
   const days=[...new Set([...L.map(kDay),...LG.filter(i=>!attOf[i.id]).map(i=>i.day)])].sort().reverse();
@@ -2407,6 +2415,10 @@ async function renderReceipts(){
   $("#rcb").querySelectorAll("[data-lgo]").forEach(b=>b.onclick=()=>openLedger(b.dataset.lgo));
   $("#rcb").querySelectorAll("[data-lgp]").forEach(b=>b.onclick=()=>openPerson(+b.dataset.lgp));
   $("#rcb").querySelectorAll("[data-rcl]").forEach(b=>b.onclick=()=>openLedger(b.dataset.rcl));
+  $("#rcb").querySelectorAll("[data-rcm]").forEach(b=>b.onclick=()=>{const k=L.find(x=>x.id===+b.dataset.rcm);
+    const m=modal(`<h3>📝 ملاحظة على استلام ${dinar(k.amount)} · ${esc(k.driver_name)}</h3><div class="field"><textarea id="rm-t" rows="3" maxlength="300" placeholder="مثال: سلّمها ناقصة 1,000، الباقي باچر">${esc(k.remark||"")}</textarea></div><div class="err" id="rm-e"></div><div class="row"><button class="btn" id="rm-x">رجوع</button><button class="btn primary" id="rm-ok">حفظ</button></div>`);
+    $("#rm-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#rm-t",m).focus(),50);
+    $("#rm-ok",m).onclick=async e=>{const btn=e.currentTarget;btn.disabled=true;try{await rpc("taxi_admin_cash_remark",{p_pin:PIN,p_id:k.id,p_remark:$("#rm-t",m).value});m.remove();toast("انحفظت الملاحظة");renderReceipts()}catch(er){btn.disabled=false;$("#rm-e",m).textContent=er.message}}});
 }
 /* ---------- monthly inventory (main manager only) ---------- */
 let invDay=null, invPer="month", invData=null;
@@ -2485,7 +2497,7 @@ async function renderSettle(){
       ${c.days.length?`<div class="st-days">${c.days.map(d=>`<details><summary><span>${dl(d.d)}</span><span>${d.trips} سفرة${d.lines?` · ${d.lines} خط`:""}</span><b>${fmt(d.fares)}</b></summary><ul class="st-tr">${by(d.d).map(t=>`<li><span>${esc(t.time)} · ${esc(t.to||"—")}${t.quick?" ⚠️":""}</span><b>${fmt(t.fare)}</b></li>`).join("")}</ul></details>`).join("")}
         <div class="st-sum"><span>المجموع</span><span>${c.trips_n} سفرة${c.lines_n?` · ${c.lines_n} خط`:""}</span><b>${fmt(c.fares)}</b></div></div>`:`<p class="note">ما عنده سفرات بهاي الفترة.</p>`}
       <div class="calc"><div><span>جاب</span><b>${dinar(c.fares)}</b></div>
-        ${c.receipts.map(k=>`<div><span>− استلام ${dl(k.day)}${k.note&&k.note.includes("استلمه")?` (${esc(k.note.split("استلمه").pop().trim())})`:""}</span><b>${fmt(k.amount)}</b></div>`).join("")}
+        ${c.receipts.map(k=>`<div><span>− استلام ${dl(k.day)}${k.note&&k.note.includes("استلمه")?` (${esc(k.note.split("استلمه").pop().trim())})`:""}${k.remark?`<br><small>📝 ${esc(k.remark)}</small>`:""}</span><b>${fmt(k.amount)}</b></div>`).join("")}
         ${c.ledger.filter(i=>i.from_cash).map(i=>`<div><span>− ${i.kind==="settle"?"تسوية":i.kind==="debt"?"دين على زبون (يبقى لحد ما ينستلم)":i.kind==="advance"?"سلفة من الكاش (تنخصم من الراتب)":"مصروف"} ${dl(i.day)}${i.note?` · ${esc(i.note)}`:""}</span><b>${fmt(i.amount)}</b></div>`).join("")}
         <div class="tot"><span>${c.balance>=0?"الباقي بذمّته":"إله"}</span><b>${dinar(Math.abs(c.balance))}</b></div></div>
       ${c.ledger.filter(i=>!i.from_cash).length?`<p class="note" style="margin:4px 0">من المكتب: ${c.ledger.filter(i=>!i.from_cash).map(i=>`${i.kind==="advance"?"سلفة":"مصروف"} ${fmt(i.amount)}${i.note?` (${esc(i.note)})`:""}`).join("، ")}</p>`:""}

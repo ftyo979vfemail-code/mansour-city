@@ -1,0 +1,3 @@
+-- 49: taxi_cash.remark — a free note on every receipt. taxi_admin_cash_remark(pin, id, remark) (any manager).
+-- Deposit "استلمت" (taxi_admin_deposit_settle, ok=true) stores p_reason as the remark; taxi_admin_cash 'add' takes p.remark.
+-- taxi_admin_receipts and taxi_period_json return remark. Applied as migration taxi_cash_remark.
