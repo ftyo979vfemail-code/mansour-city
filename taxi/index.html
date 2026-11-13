@@ -286,6 +286,7 @@ tr.dd-bad td{background:color-mix(in srgb,var(--bad) 8%,transparent)}td .pill{wh
 @media (max-width:420px){.st-list{grid-template-columns:1fr}}
 .bk-t th[scope=row]{min-width:120px}.bk-t details summary{cursor:pointer;font-weight:700}.bk-det{display:flex;flex-direction:column;gap:6px;margin-top:6px;font-weight:400;white-space:normal;min-width:260px}.bk-drv{border:1px dashed var(--line);border-radius:10px;padding:6px 8px;font-size:13px;line-height:1.6}
 .st-flags{border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:13px}.st-flags[open]{border-color:var(--warn)}.st-flags summary{cursor:pointer;font-weight:700}.st-flags ul{margin:6px 0 0;padding-inline-start:18px;display:flex;flex-direction:column;gap:3px}
+.dv-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}.dv-list li{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:8px 2px;border-bottom:1px dashed var(--line)}.dv-list li.tot{border-bottom:0;font-weight:700}.dv-list li>span{min-width:0}
 .rc-day{margin:0 0 18px}.rc-dh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px;margin:0 0 8px;padding:8px 12px;border-radius:10px;background:var(--panel2,var(--panel));border:1px solid var(--line);font-size:16px}.rc-dh small{font-weight:400;font-size:13px}
 .rcpt{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px;overflow:hidden}
 .rcpt summary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
@@ -576,7 +577,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611131815";
+const BUILD="202611131832";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1583,6 +1584,7 @@ function adminShell(){
        <button role="tab" data-t="routes">الطرق</button>
        <button role="tab" data-t="inv">📦 الجرد</button>
        <button role="tab" data-t="entry">📝 تسجيل يومي</button>
+       <button role="tab" data-t="dayv">🗓 كشف يوم</button>
        <button role="tab" data-t="book">📒 دفتر الشهر</button>
        <button role="tab" data-t="settle">🧮 المحاسبة</button>
        <button role="tab" data-t="rcp">🧾 الاستلامات</button>
@@ -1864,6 +1866,7 @@ function renderTab(){
   if(tab==="rcp") renderReceipts();
   if(tab==="settle") renderSettle();
   if(tab==="book") renderBook();
+  if(tab==="dayv") renderDayView();
   if(tab==="lines") renderLines();
   if(tab==="sched") renderSched();
   if(tab==="fb") renderFeedback();
@@ -2528,6 +2531,47 @@ async function renderInventory(){
 async function openLedger(id){const c=cars.find(z=>z.id===id);if(!c)return;
   if(OWNER()){try{const r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_day:null,p_period:"month"});const x=r.rows.find(z=>z.id===id);if(x)return driverLedger(x)}catch{}}
   driverLedger({id:c.id,plate:c.plate,driver_name:c.driver_name})}
+/* ---------- one day: its receipts, and its expenses / advances / debts kept apart ---------- */
+let dvDay=null;
+async function renderDayView(){
+  const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10); dvDay=dvDay||today;
+  const sh=n=>{const x=new Date(dvDay+"T12:00:00Z");x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
+  const dl=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  $("#view").innerHTML=`<div class="wrap" id="dvv"><div class="bar"><h2>🗓 كشف يوم</h2><button class="btn sm" id="dv-c">📋 نسخ</button></div>
+    <div class="ent-nav"><button class="btn" id="dv-p">‹ اليوم السابق</button>
+      <label class="ent-day"><input type="date" id="dv-d" value="${dvDay}" max="${today}"><b>${dl(dvDay)}</b></label>
+      <button class="btn" id="dv-n" ${dvDay>=today?"disabled":""}>اليوم الجاي ›</button></div>
+    <div id="dvb"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  const go=d=>{dvDay=d>today?today:d;renderDayView()};
+  $("#dv-p").onclick=()=>go(sh(-1)); $("#dv-n").onclick=()=>go(sh(1)); $("#dv-d").onchange=e=>e.target.value&&go(e.target.value);
+  let r; try{r=await rpc("taxi_admin_month_book",{p_pin:PIN,p_month:dvDay.slice(0,8)+"01"})}catch(e){$("#dvb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const car=id=>r.cars.find(c=>c.id===id)||{driver_name:"—"}, who=k=>(k.note||"").includes("استلمه")?k.note.split("استلمه").pop().split("·")[0].trim():"";
+  const tm=ts=>new Date(ts).toLocaleTimeString("ar-IQ",{hour:"numeric",minute:"2-digit"});
+  const K=r.receipts.filter(x=>x.d===dvDay), L=r.ledger.filter(x=>x.d===dvDay), T=r.trips.filter(x=>x.d===dvDay), CNT=(r.counts||[]).find(x=>x.d===dvDay);
+  const EX=L.filter(x=>x.kind==="expense"), AD=L.filter(x=>x.kind==="advance"), DB=L.filter(x=>x.kind==="debt"), ST=L.filter(x=>x.kind==="settle");
+  const sum=a=>a.reduce((x,y)=>x+y.amount,0), office=a=>a.filter(x=>!x.from_cash&&!x.staff);
+  const rec=sum(K), fares=T.reduce((a,x)=>a+x.fares,0), out=sum(office(EX))+sum(office(AD)), box=rec-out;
+  const nm=x=>x.staff?`👤 ${esc(x.name)}`:esc(x.name||car(x.car_id).driver_name);
+  const src=x=>x.staff?"من المكتب":x.from_cash?"من الكاش اللي بيده":"من المكتب";
+  const led=(arr,icon,empty)=>arr.length?`<ul class="dv-list">${arr.map(x=>`<li><span>${icon} <b>${nm(x)}</b>${x.note?` · ${esc(x.note)}`:""}<br><small>${src(x)}${x.by?` · سجّلها ${esc(x.by)}`:""}${x.done?" · ✓ انستلمت":""}</small></span><b class="num">${fmt(x.amount)}</b></li>`).join("")}<li class="tot"><span>المجموع</span><b class="num">${fmt(sum(arr))}</b></li></ul>`:`<p class="note" style="margin:0">${empty}</p>`;
+  $("#dvb").innerHTML=`<div class="kpis">
+      <div class="kpi"><small>جابوا السواق</small><b>${dinar(fares)}</b><small>${T.reduce((a,x)=>a+x.n,0)} سفرة</small></div>
+      <div class="kpi"><small>💵 استلمنا</small><b>${dinar(rec)}</b><small>${K.length} استلام</small></div>
+      <div class="kpi ${sum(EX)?"warn":""}"><small>💸 المصاريف</small><b>${dinar(sum(EX))}</b></div>
+      <div class="kpi"><small>🤝 السلف</small><b>${dinar(sum(AD))}</b></div>
+      <div class="kpi"><small>بإيد الإدارة من هذا اليوم</small><b>${dinar(box)}</b><small>استلمنا − مصاريف وسلف من المكتب ${fmt(out)}</small></div>
+      ${CNT?`<div class="kpi ${CNT.counted!==CNT.expected?"warn":""}"><small>🧮 الجرد</small><b>${dinar(CNT.counted)}</b><small>${CNT.counted===CNT.expected?"✓ مطابق":(CNT.counted>CNT.expected?"زايد ":"ناقص ")+fmt(Math.abs(CNT.counted-CNT.expected))} · ${esc(CNT.by)}</small></div>`:""}</div>
+    <section class="st-c"><h3>💵 الاستلامات</h3>
+      ${K.length?`<ul class="dv-list">${K.map(k=>`<li><span><b>${esc(car(k.car_id).driver_name)}</b> <small>${tm(k.at)}${who(k)?` · استلمه ${esc(who(k))}`:""}</small>${k.remark?`<br><small>📝 ${esc(k.remark)}</small>`:""}</span><b class="num">${fmt(k.amount)}</b></li>`).join("")}<li class="tot"><span>المجموع</span><b class="num">${fmt(rec)}</b></li></ul>`:`<p class="note" style="margin:0">ماكو استلامات بهذا اليوم.</p>`}</section>
+    <section class="st-c" style="margin-top:12px"><h3>💸 المصاريف</h3>${led(EX,"💸","ماكو مصاريف بهذا اليوم.")}</section>
+    <section class="st-c" style="margin-top:12px"><h3>🤝 السلف</h3>${led(AD,"🤝","ماكو سلف بهذا اليوم.")}</section>
+    ${DB.length?`<section class="st-c" style="margin-top:12px"><h3>🧾 الديون</h3>${led(DB,"🧾","")}</section>`:""}
+    ${ST.length?`<section class="st-c" style="margin-top:12px"><h3>⚖️ تسويات</h3>${led(ST,"⚖️","")}</section>`:""}
+    <section class="st-c" style="margin-top:12px"><h3>🚕 شكد جاب كل سائق</h3>${T.length?`<ul class="dv-list">${T.map(x=>`<li><span><b>${esc(car(x.car_id).driver_name)}</b> <small>${x.n} سفرة${x.lines?` · ${x.lines} خط`:""}</small></span><b class="num">${fmt(x.fares)}</b></li>`).join("")}</ul>`:`<p class="note" style="margin:0">ماكو سفرات.</p>`}</section>`;
+  $("#dv-c").onclick=()=>copy([`🗓 ${dl(dvDay)}`,`استلمنا ${fmt(rec)}:`,...K.map(k=>`- ${car(k.car_id).driver_name} ${fmt(k.amount)}${k.remark?` (${k.remark})`:""}`),
+    EX.length?`مصاريف ${fmt(sum(EX))}:`:"",...EX.map(x=>`- ${x.name||car(x.car_id).driver_name} ${fmt(x.amount)}${x.note?` · ${x.note}`:""}`),
+    AD.length?`سلف ${fmt(sum(AD))}:`:"",...AD.map(x=>`- ${x.name||car(x.car_id).driver_name} ${fmt(x.amount)}`),`بإيد الإدارة: ${fmt(box)}`].filter(Boolean).join("\n"));
+}
 /* ---------- the month's book: day by day — money brought, receipts, advances, expenses, debts, cash in the office ---------- */
 let bkMonth=null;
 async function renderBook(){
