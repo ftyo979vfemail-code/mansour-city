@@ -123,6 +123,8 @@ public class MainActivity extends Activity {
     private TextView fareHint;
     // what the driver typed, per trip, so a screen refresh doesn't wipe it
     private final java.util.HashMap<Long, String> fareDraft = new java.util.HashMap<>();
+    private final java.util.HashMap<Long, String> noteDraft = new java.util.HashMap<>();
+    private EditText endNoteIn; private long endNoteTid;
     private static final int[] FARE_Q = {3000, 5000, 7000, 10000, 15000, 20000};
     /** "5" means 5,000; 101..499 or more than a million is a typo (-1); empty is 0. Arabic digits accepted. */
     static int fareVal(String x) {
@@ -424,7 +426,7 @@ public class MainActivity extends Activity {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
         JSONObject cxk = st.optJSONObject("cancelled");
-        String key = (t == null ? "none:" + st.optString("returning_since") + st.optString("ready_at") + ":" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optString("noshow_status") + ":" + cxKey(t) + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money")) + ":" + (st.optJSONObject("closing") == null ? "" : st.optJSONObject("closing").optLong("id"));
+        String key = (t == null ? "none:" + st.optString("returning_since") + st.optString("ready_at") + ":" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) + ":" + bookingsKey(st) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optString("noshow_status") + ":" + cxKey(t) + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money")) + ":" + (st.optJSONObject("closing") == null ? "" : st.optJSONObject("closing").optLong("id"));
         if (key.equals(tripKey)) return;
         tripKey = key;
         h.removeCallbacks(waitTick);
@@ -446,6 +448,7 @@ public class MainActivity extends Activity {
                 card.addView(cv, full());
                 card.addView(space(8));
             }
+            addBookings(card, st);
             if (!st.optString("returning_since").isEmpty() && !st.isNull("returning_since")) {
                 JSONObject b = st.optJSONObject("base");
                 String bn = b == null ? "المجمع" : b.optString("name", "المجمع");
@@ -623,7 +626,8 @@ public class MainActivity extends Activity {
                 card.addView(text("الخط اشتراك شهري، ما تستلم فلوس من الركاب.", 13, MUTED, false));
                 card.addView(space(10));
                 Button le = button("✅ خلصت الخط", true);
-                le.setOnClickListener(v -> tripAction("end", new JSONObject()));
+                addEndNote(card, t);
+                le.setOnClickListener(v -> tripAction("end", obj("end_note", takeEndNote())));
                 card.addView(le, full());
             } else {
                 final boolean round = t.optBoolean("round_trip");
@@ -728,11 +732,12 @@ public class MainActivity extends Activity {
                 if (waiting) h.postDelayed(waitTick, 1000);
                 card.addView(space(8));
                 final long endTid = t.optLong("id");
+                addEndNote(card, t);
                 Button end = button("إنهاء السفرة", true);
                 end.setEnabled(!waiting && !spPending);
                 if (waiting || spPending) end.setAlpha(0.45f);
                 end.setOnClickListener(v -> {
-                    if (fixed) { tripAction("end", obj("fare", "")); return; }
+                    if (fixed) { tripAction("end", withNote(obj("fare", ""))); return; }
                     int fv = fareVal(fare.getText().toString());
                     if (fv <= 0) {
                         fare.requestFocus();
@@ -742,7 +747,7 @@ public class MainActivity extends Activity {
                     new android.app.AlertDialog.Builder(this).setTitle("تنهي السفرة؟")
                             .setMessage("الأجرة: " + String.format(java.util.Locale.US, "%,d", fv) + " د.ع")
                             .setNegativeButton("رجوع", null)
-                            .setPositiveButton("✅ نعم، إنهاء", (d, w) -> { fareDraft.remove(endTid); tripAction("end", obj("fare", String.valueOf(fv))); }).show();
+                            .setPositiveButton("✅ نعم، إنهاء", (d, w) -> { fareDraft.remove(endTid); tripAction("end", withNote(obj("fare", String.valueOf(fv)))); }).show();
                 });
                 card.addView(end, full());
             }
@@ -970,7 +975,7 @@ public class MainActivity extends Activity {
                 Button none = button("✖ ما استلمت", false);
                 none.setOnClickListener(x -> new android.app.AlertDialog.Builder(this).setTitle("ما استلمت شي؟")
                         .setMessage("السفرة تنتهي بدون كروة.").setNegativeButton("رجوع", null)
-                        .setPositiveButton("✖ ما استلمت، إنهاء", (d, w) -> tripAction("special_end", obj("amount", "0"))).show());
+                        .setPositiveButton("✖ ما استلمت، إنهاء", (d, w) -> tripAction("special_end", withNote(obj("amount", "0")))).show());
                 r.addView(got, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
                 LinearLayout.LayoutParams nl = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
                 nl.setMarginStart(dp(8));
@@ -1014,7 +1019,7 @@ public class MainActivity extends Activity {
             int fv = fareVal(a.getText().toString());
             if (fv <= 0) { hint.setTextColor(BAD); hint.setText("اكتب المبلغ اللي استلمته"); return; }
             d.dismiss();
-            tripAction("special_end", obj("amount", String.valueOf(fv)));
+            tripAction("special_end", withNote(obj("amount", String.valueOf(fv))));
         }));
         d.show();
     }
@@ -1143,6 +1148,75 @@ public class MainActivity extends Activity {
                     try { p.put("kind", CX_KINDS[pick[0]]); } catch (Exception ignored) {}
                     tripAction("cancel_req", p);
                 }).show();
+    }
+
+    // optional note the driver leaves when he ends the trip (kept while the screen redraws)
+    private void addEndNote(LinearLayout card, JSONObject t) {
+        endNoteTid = t.optLong("id");
+        endNoteIn = input("مثال: الزبون نزل بنص الطريق، أو دفع أقل", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        String dr = noteDraft.get(endNoteTid);
+        if (dr != null) endNoteIn.setText(dr);
+        final long tid = endNoteTid;
+        endNoteIn.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence a, int b, int c, int d) {}
+            public void onTextChanged(CharSequence a, int b, int c, int d) {}
+            public void afterTextChanged(android.text.Editable e) { noteDraft.put(tid, e.toString()); }
+        });
+        card.addView(text("📝 ملاحظة على السفرة (اختياري)", 14, FG, true));
+        card.addView(endNoteIn, full());
+        card.addView(space(6));
+    }
+
+    private String takeEndNote() {
+        String v = endNoteIn == null ? "" : endNoteIn.getText().toString().trim();
+        if (v.isEmpty()) { String dr = noteDraft.get(endNoteTid); if (dr != null) v = dr.trim(); }
+        noteDraft.remove(endNoteTid);
+        return v;
+    }
+
+    private JSONObject withNote(JSONObject p) {
+        try { p.put("end_note", takeEndNote()); } catch (Exception ignored) {}
+        return p;
+    }
+
+    // upcoming bookings the office confirmed for this driver
+    private static String bookingsKey(JSONObject st) {
+        org.json.JSONArray b = st.optJSONArray("bookings");
+        if (b == null) return "";
+        StringBuilder k = new StringBuilder();
+        for (int i = 0; i < b.length(); i++) k.append(b.optJSONObject(i).optLong("id")).append(',');
+        return k.toString();
+    }
+
+    private void addBookings(LinearLayout card, JSONObject st) {
+        org.json.JSONArray b = st.optJSONArray("bookings");
+        if (b == null || b.length() == 0) return;
+        LinearLayout bx = new LinearLayout(this);
+        bx.setOrientation(LinearLayout.VERTICAL);
+        bx.setPadding(dp(12), dp(10), dp(12), dp(10));
+        bx.setBackground(box(0xFFE6F2F2, 0xFF014E55, 12));
+        bx.addView(text("🗓 حجوزاتك (" + b.length() + ")", 16, FG, true));
+        for (int i = 0; i < b.length(); i++) {
+            JSONObject o = b.optJSONObject(i);
+            String when = o.optString("at");
+            try {
+                java.text.SimpleDateFormat in = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US);
+                in.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+                java.util.Date dd = in.parse(when.substring(0, 19));
+                java.text.SimpleDateFormat out = new java.text.SimpleDateFormat("EEEE d/M · hh:mm a", new java.util.Locale("ar"));
+                out.setTimeZone(java.util.TimeZone.getTimeZone("Asia/Baghdad"));
+                when = out.format(dd);
+            } catch (Exception ignored) {}
+            String cu = o.optString("customer");
+            bx.addView(space(6));
+            bx.addView(text(when + (cu.isEmpty() || o.isNull("customer") ? "" : " · " + cu), 14, FG, true));
+            bx.addView(text("من: " + or(o.optString("pickup")) + "\nإلى: " + or(o.optString("dropoff"))
+                    + (o.optString("note").isEmpty() || o.isNull("note") ? "" : "\nملاحظة: " + o.optString("note")), 14, FG, false));
+        }
+        bx.addView(space(4));
+        bx.addView(text("قبل الموعد بـ20 دقيقة توصلك السفرة على التطبيق.", 12, MUTED, false));
+        card.addView(bx, full());
+        card.addView(space(8));
     }
 
     private void noshowDialog(JSONObject t) {
