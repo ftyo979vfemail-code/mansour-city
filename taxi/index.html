@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611131900";
+const BUILD="202611140924";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2070,7 +2070,7 @@ function todayStr(){const d=new Date(Date.now()+3*3600e3);return d.toISOString()
 function hm(ts){return ts?new Date(ts).toLocaleTimeString("ar-IQ",{hour:"2-digit",minute:"2-digit"}):"—"}
 // owner only: fix a fare or delete a trip; every change is logged
 function tripFareEdit(t){
-  const m=modal(`<h3>✏️ تعديل كروة السفرة</h3><div class="calc"><div><span>السائق</span><b>${esc(t.driver_name||"—")}</b></div><div><span>إلى</span><b>${esc(t.dropoff||"—")}</b></div><div><span>الوقت</span><b>${hm(t.created_at)}</b></div><div><span>الكروة هسه</span><b>${dinar(t.fare)}</b></div></div>
+  const m=modal(`<h3>✏️ تعديل كروة السفرة</h3><div class="calc"><div><span>السائق</span><b>${esc(t.driver_name||"—")}</b></div><div><span>من ← إلى</span><b>${esc(t.pickup||"—")} ← ${esc(t.dropoff||"—")}</b></div><div><span>الوقت</span><b>${hm(t.created_at)}</b></div><div><span>الكروة هسه</span><b>${dinar(t.fare)}</b></div></div>
     <div class="field"><label for="fe-a">الكروة الصحيحة (دينار)</label><input id="fe-a" inputmode="numeric" value="${t.fare||""}" style="font:600 22px var(--mono);text-align:center"><small id="fe-v" class="fare-v" aria-live="polite"></small></div>
     <div class="field"><label for="fe-n">السبب (اختياري)</label><input id="fe-n" maxlength="200" placeholder="مثال: السائق كتب 5 بدال 5000"></div>
     <div class="err" id="fe-e"></div><div class="row"><button class="btn" id="fe-x">رجوع</button><button class="btn primary" id="fe-ok">حفظ</button></div>`);
@@ -2692,7 +2692,7 @@ async function renderSettle(){
     const st=c.balance===0?`<span class="pill s-ok">✓ الحساب صفر</span>`:c.balance>0?`<span class="pill s-bad">بذمّته ${fmt(c.balance)}</span>`:`<span class="pill s-warn">إله ${fmt(-c.balance)}</span>`;
     const sh=c.shift==="evening"?`<button type="button" class="pill s-idle" data-shf="${c.id}" title="غيّر الدوام">🌙 مسائي</button>`:`<button type="button" class="pill s-idle" data-shf="${c.id}" title="غيّر الدوام">☀️ صباحي</button>`;
     return `<section class="st-c"><h3>${plateHTML(c.plate)} ${esc(c.driver_name)} ${sh} ${st}${closed?` <span class="pill s-idle">📚 متحاسب ${dl(c.last_closing.to)}</span>`:""}</h3>
-      ${c.days.length?`<div class="st-days">${c.days.map(d=>`<details><summary><span>${dl(d.d)}</span><span>${d.trips} سفرة${d.lines?` · ${d.lines} خط`:""}</span><b>${fmt(d.fares)}</b></summary><ul class="st-tr">${by(d.d).map(t=>`<li><span>${esc(t.time)} · ${esc(t.to||"—")}${t.quick?" ⚠️":""}</span><b>${fmt(t.fare)}</b></li>`).join("")}</ul></details>`).join("")}
+      ${c.days.length?`<div class="st-days">${c.days.map(d=>`<details><summary><span>${dl(d.d)}</span><span>${d.trips} سفرة${d.lines?` · ${d.lines} خط`:""}</span><b>${fmt(d.fares)}</b></summary><ul class="st-tr">${by(d.d).map(t=>`<li><span>${esc(t.time)} · ${t.from?esc(t.from)+" ← ":""}${esc(t.to||"—")}${t.quick?" ⚠️":""}</span><b>${fmt(t.fare)}</b></li>`).join("")}</ul></details>`).join("")}
         <div class="st-sum"><span>المجموع</span><span>${c.trips_n} سفرة${c.lines_n?` · ${c.lines_n} خط`:""}</span><b>${fmt(c.fares)}</b></div></div>`:`<p class="note">ما عنده سفرات بهاي الفترة.</p>`}
       <div class="calc"><div><span>جاب</span><b>${dinar(c.fares)}</b></div>
         ${c.receipts.map(k=>`<div><span>− استلام ${dl(k.day)}${k.note&&k.note.includes("استلمه")?` (${esc(k.note.split("استلمه").pop().trim())})`:""}${k.remark?`<br><small>📝 ${esc(k.remark)}</small>`:""}</span><b>${fmt(k.amount)}</b></div>`).join("")}
@@ -2755,7 +2755,7 @@ async function closingsList(){
       <p class="note" style="margin:8px 14px">${esc(k.note)}</p>
       <div style="margin:0 14px">${ackHTML({ack:k.driver_ack,ack_note:k.driver_note})}</div>
       <div class="calc" style="margin:0 14px"><div><span>جاب</span><b>${dinar(k.fares)}</b></div>${k.advances?`<div><span>− سلف من الكاش</span><b>${dinar(k.advances)}</b></div>`:""}${k.expenses?`<div><span>− مصاريف</span><b>${dinar(k.expenses)}</b></div>`:""}${k.debts?`<div><span>− دين على زبائن</span><b>${dinar(k.debts)}</b></div>`:""}<div class="tot"><span>استلمنا كاش</span><b>${dinar(k.received)}</b></div></div>
-      ${T.length?`<div class="tbl-wrap"><table><thead><tr><th>اليوم</th><th>الوقت</th><th>لوين</th><th>الكروة</th></tr></thead><tbody>${T.map(t=>`<tr><td>${d(t.day)}</td><td>${esc(t.time||"")}</td><td>${esc(t.to||"—")}</td><td class="num">${fmt(t.fare)}</td></tr>`).join("")}</tbody></table></div>`:""}
+      ${T.length?`<div class="tbl-wrap"><table><thead><tr><th>اليوم</th><th>الوقت</th><th>من ← إلى</th><th>الكروة</th></tr></thead><tbody>${T.map(t=>`<tr><td>${d(t.day)}</td><td>${esc(t.time||"")}</td><td>${t.from?esc(t.from)+" ← ":""}${esc(t.to||"—")}</td><td class="num">${fmt(t.fare)}</td></tr>`).join("")}</tbody></table></div>`:""}
       ${G.length?`<ul class="rc-sp">${G.map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="debt"?"🧾 دين على زبون":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b> · ${d(i.day)} · ${esc(i.note||"")}</li>`).join("")}</ul>`:""}
       ${R.length?`<p class="note" style="margin:6px 14px">الدفعات: ${R.map(r=>fmt(r.amount)).join(" + ")}</p>`:""}</details>`}).join(""):`<p class="note">لسه ماكو محاسبات مخزونة.</p>`;
 }
@@ -2984,13 +2984,13 @@ async function driverDay(car,day){
       <div class="kpi ${un.length?"warn":""}"><small>طلعات بدون سفرة</small><b>${un.length}</b><small>${un.reduce((a,o)=>a+o.minutes,0)} دقيقة بالمجموع</small></div></div>
     <h3>السفرات</h3>
     ${r.trips.length?`<div class="tbl-wrap"><table><thead><tr><th>الوقت</th><th>لوين</th><th>الأجرة</th><th>المدة</th><th>كم</th><th>ملاحظة</th></tr></thead><tbody>
-      ${r.trips.map(t=>`<tr${t.flags.length?' class="dd-bad"':""}><td class="num">${h(t.started_at||t.accepted_at)}${t.ended_at?`–${h(t.ended_at)}`:""}</td><td>${t.trip_kind==="line"?"🛣 خط ":""}${esc(t.dropoff||"—")}${t.status!=="done"?` <span class="pill s-warn">شغّالة</span>`:""}${t.special_status==="approved"?" ⭐":""}</td><td class="num">${t.trip_kind==="line"?"—":fmt(t.fare||0)}</td><td class="num">${t.minutes!=null?t.minutes+" د":"—"}</td><td class="num">${t.km??"—"}</td><td>${t.flags.map(f=>`<span class="pill s-bad">⚠️ ${esc(f)}</span>`).join(" ")||"✓"}</td></tr>`).join("")}
+      ${r.trips.map(t=>`<tr${t.flags.length?' class="dd-bad"':""}><td class="num">${h(t.started_at||t.accepted_at)}${t.ended_at?`–${h(t.ended_at)}`:""}</td><td>${t.trip_kind==="line"?"🛣 خط ":""}${t.pickup?esc(t.pickup)+" ← ":""}${esc(t.dropoff||"—")}${t.status!=="done"?` <span class="pill s-warn">شغّالة</span>`:""}${t.special_status==="approved"?" ⭐":""}</td><td class="num">${t.trip_kind==="line"?"—":fmt(t.fare||0)}</td><td class="num">${t.minutes!=null?t.minutes+" د":"—"}</td><td class="num">${t.km??"—"}</td><td>${t.flags.map(f=>`<span class="pill s-bad">⚠️ ${esc(f)}</span>`).join(" ")||"✓"}</td></tr>`).join("")}
     </tbody></table></div>`:`<p class="note">ما سجّل سفرات.</p>`}
     <h3>وين راح (من الـGPS)</h3>
     <p class="note" style="margin-top:0">كل مرة ابتعد عن المجمع أكثر من كيلومتر وما جان فاتح سفرة.</p>
     ${r.outings.length?`<ul class="log">${r.outings.map(o=>{const k=KIND[o.kind];return `<li><span class="pill ${k[2]}">${k[0]} ${k[1]}</span><span><b>${h(o.from)} – ${h(o.to)}</b> · ${o.minutes} دقيقة · وصل ${o.max_km} كم بعيد<br><small>قريب من <b>${esc(o.near||"—")}</b> · <a href="${map(o)}" target="_blank" rel="noopener">📍 شوف المكان</a></small></span></li>`}).join("")}</ul>`:`<p class="note">ما طلع من المجمع بدون سفرة. 👍</p>`}`;
   $("#dd-c",m).onclick=()=>copy([`🔍 ${r.driver_name} · ${r.day}`,`سفرات: ${T.done} (${T.paid} بأجرة، ${T.lines} خط) · المجموع ${fmt(T.fares)}`,
-    ...r.trips.map(t=>`- ${h(t.started_at||t.accepted_at)} ${t.trip_kind==="line"?"خط ":""}${t.dropoff||""} ${t.trip_kind==="line"?"":fmt(t.fare||0)}${t.flags.length?" ⚠️ "+t.flags.join("، "):""}`),
+    ...r.trips.map(t=>`- ${h(t.started_at||t.accepted_at)} ${t.trip_kind==="line"?"خط ":""}${t.pickup?t.pickup+" ← ":""}${t.dropoff||""} ${t.trip_kind==="line"?"":fmt(t.fare||0)}${t.flags.length?" ⚠️ "+t.flags.join("، "):""}`),
     un.length?"طلعات بدون سفرة:":"", ...un.map(o=>`- ${h(o.from)}–${h(o.to)} (${o.minutes} د) قريب ${o.near||""} ${map(o)}`)].filter(Boolean).join("\n"));
 }
 function dailyText(r){const T=r.totals;return [`📊 تقرير تكسي مجمع المنصور ليوم ${r.day}`,`سفرات خلصت: ${T.done} (طلبات أونلاين ${T.requests}، ملغية ${T.cancelled}، مرفوضة ${T.rejected})`,
