@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611151056";
+const BUILD="202611151059";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1562,6 +1562,7 @@ function adminShell(){
    <header class="top">
      <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>تكسي مجمع المنصور</h1><small id="clock">تحديث مباشر كل 5 ثوانٍ</small></div></div>
      <div class="counts" id="counts"></div>
+     <button class="btn" id="calcBtn">🧮 حاسبة</button>
      <button class="btn primary" id="tripBtn">+ حجز سفرة</button>
      <button class="btn" id="addBtn">+ إضافة سيارة</button>
      <span class="pill s-idle" id="who" hidden></span>
@@ -1605,6 +1606,7 @@ function adminShell(){
    <main class="view" id="view"></main></div>`;
   $("#addBtn").onclick=()=>carForm();
   $("#tripBtn").onclick=()=>tripForm();
+  $("#calcBtn").onclick=()=>calcOpen();
   $("#out").onclick=()=>{sess.del("taxi_pin");PIN=null;ME=null;clearInterval(pollT);clearInterval(evT);adminGate()};
   if(!FULL()) document.querySelectorAll(".tabs button").forEach(b=>{if(MONEY_TABS.includes(b.dataset.t))b.remove()});
   if(!OWNER()){["inv"].forEach(k=>{const ib=document.querySelector(`.tabs [data-t="${k}"]`);if(ib)ib.remove()});if(tab==="inv")tab="live"}
@@ -2550,6 +2552,33 @@ async function renderInventory(){
 async function openLedger(id){const c=cars.find(z=>z.id===id);if(!c)return;
   if(OWNER()){try{const r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_day:null,p_period:"month"});const x=r.rows.find(z=>z.id===id);if(x)return driverLedger(x)}catch{}}
   driverLedger({id:c.id,plate:c.plate,driver_name:c.driver_name})}
+/* ---------- calculator for the accounts: add / subtract amounts, small numbers are thousands (105.5 = 105,500) ---------- */
+let CALC=(()=>{try{return JSON.parse(localStorage.getItem("taxi_calc")||"[]")}catch{return[]}})();
+const calcSave=()=>{try{localStorage.setItem("taxi_calc",JSON.stringify(CALC))}catch{}};
+function calcParse(txt){const out=[];const t=String(txt).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[٫,،]/g,m=>m==="٫"?".":"").replace(/[×xX]/g,"*").replace(/\s+/g,"");
+  if(!t) return out; const re=/([+\-−]?)(\d+(?:\.\d+)?)/g; let m, last=0;
+  while((m=re.exec(t))){if(m.index!==last) return null; let v=parseFloat(m[2]); if(v<1000) v=Math.round(v*1000); out.push((m[1]==="-"||m[1]==="−")?-v:v); last=re.lastIndex}
+  return last===t.length?out:null}
+function calcOpen(){
+  const m=modal(`<h3>🧮 حاسبة الحسابات</h3><p class="note" style="margin:0">اكتب المبلغ واضغط «ضيف» أو Enter. الرقم الصغير بالآلاف: 48 = 48,000 و105.5 = 105,500. تكدر تكتب أكثر من رقم سوا: 48+55-20</p>
+    <div class="row" style="gap:8px;align-items:stretch"><input id="cl-in" inputmode="decimal" placeholder="مثال: 48 أو -20 أو 48+55" style="flex:1;min-width:0;font-size:18px" aria-label="المبلغ">
+      <button class="btn" id="cl-minus" title="طرح">− طرح</button><button class="btn primary" id="cl-add">➕ ضيف</button></div>
+    <div class="err" id="cl-e"></div>
+    <ol id="cl-l" class="log" style="max-height:40vh;overflow:auto;margin:0;padding:0"></ol>
+    <div class="calc"><div class="tot"><span>الناتج</span><b id="cl-t" style="font-size:22px">0</b></div></div>
+    <div class="row"><button class="btn" id="cl-clr">🗑 مسح الكل</button><button class="btn" id="cl-cp">📋 نسخ</button><button class="btn primary" id="cl-x">سدّ</button></div>`);
+  const L=$("#cl-l",m), I=$("#cl-in",m);
+  const draw=()=>{const tot=CALC.reduce((a,x)=>a+x,0);
+    L.innerHTML=CALC.map((v,i)=>`<li style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>${i+1}.</span><b class="num" style="color:${v<0?"var(--bad,#b42318)":"inherit"}">${v<0?"− ":"+ "}${fmt(Math.abs(v))}</b><button class="btn sm" data-cli="${i}" aria-label="شيل الرقم ${i+1}">✕</button></li>`).join("")||`<li class="note">ماكو أرقام بعد</li>`;
+    $("#cl-t",m).textContent=dinar(tot); L.querySelectorAll("[data-cli]").forEach(b=>b.onclick=()=>{CALC.splice(+b.dataset.cli,1);calcSave();draw()}); L.scrollTop=L.scrollHeight};
+  const add=neg=>{const r=calcParse(I.value);if(!r||!r.length){$("#cl-e",m).textContent=I.value.trim()?"الرقم مو مضبوط":"اكتب رقم";return}
+    $("#cl-e",m).textContent=""; CALC.push(...r.map(v=>neg?-Math.abs(v):v)); calcSave(); I.value=""; draw(); I.focus()};
+  $("#cl-add",m).onclick=()=>add(false); $("#cl-minus",m).onclick=()=>add(true);
+  I.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();add(false)}};
+  $("#cl-clr",m).onclick=()=>{CALC=[];calcSave();draw()};
+  $("#cl-cp",m).onclick=()=>copy(CALC.map(v=>(v<0?"− ":"+ ")+fmt(Math.abs(v))).join("\n")+`\n= ${fmt(CALC.reduce((a,x)=>a+x,0))}`);
+  $("#cl-x",m).onclick=()=>m.remove(); draw(); setTimeout(()=>I.focus(),50);
+}
 /* ---------- debts: fares a customer still owes — open ones first; the owner marks them received ---------- */
 async function renderDebts(){
   $("#view").innerHTML=`<div class="wrap"><div class="bar"><h2>📕 الديون</h2><div class="row" style="gap:8px"><button class="btn primary sm" id="db-add">➕ دين جديد</button><button class="btn sm" id="db-c">📋 نسخ</button></div></div>
