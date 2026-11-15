@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611151120";
+const BUILD="202611151126";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1761,24 +1761,46 @@ function parseNote(text){
 }
 const NOTE_K={advance:"🤝 سلفة",expense:"💸 مصروف",debt:"🧾 دين على زبون",recv:"💵 استلمت"};
 // resolves: [] nothing to add · [items] add them · null = go back
-function noteGate(name,text,received){
+// the note's advances / debts / expenses: shows the math (owed − note items = to hand over vs received) and decides by itself
+// whether they came out of the cash he holds (receipt is net of them) or apart from it (receipt already covers the fares)
+const NOTE_FROM_CASH_TOL=1000;
+function noteGate(name,text,received,car){
   const it=parseNote(text), led=it.filter(x=>x.kind!=="recv"), rc=it.filter(x=>x.kind==="recv");
   if(!led.length) return Promise.resolve([]);
-  return new Promise(res=>{
+  return new Promise(async res=>{
+    let hand=null; if(car){try{const b=await rpc("taxi_admin_balance",{p_pin:PIN,p_car:car});hand=b.in_hand}catch{}}
     const m=modal(`<h3>📝 فهمت من الملاحظة · ${esc(name)}</h3>
       <ul class="rc-sp" style="margin:0">${led.map((x,i)=>`<li><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-ng="${i}" checked> ${NOTE_K[x.kind]} <b>${fmt(x.amount)}</b>${x.note?` · ${esc(x.note)}`:""}</label></li>`).join("")}
         ${rc.map(x=>`<li>${NOTE_K.recv} <b>${fmt(x.amount)}</b>${received&&x.amount!==received?` <span class="pill s-warn">المسجّل ${fmt(received)}</span>`:""}</li>`).join("")}</ul>
-      <p class="note" style="margin:0">السلف والمصاريف والديون المأشّرة تنسجل باسمه بتاريخ اليوم، وتنخصم من اللي لازم يسلّمه (أخذها من الكاش اللي بيده). السلف تبقى مفتوحة لحد ما تنخصم من راتبه.</p>
+      <div class="calc" id="ng-c"></div>
+      <fieldset class="md-rec"><legend>هاي المبالغ منين؟</legend>
+        <label><input type="radio" name="ng-src" value="1"> أخذها من الكاش اللي بيده، والاستلام بعد ما خصمها</label>
+        <label><input type="radio" name="ng-src" value="0"> منفصلة، والاستلام غطّى الكروة كاملة</label></fieldset>
+      <small class="note" id="ng-auto"></small>
       <div class="row"><button class="btn" id="ng-x">رجوع</button><button class="btn" id="ng-skip">سجّل الاستلام بس</button><button class="btn primary" id="ng-ok">✔ صح، سجّلها</button></div>`);
+    const picked=()=>[...m.querySelectorAll("[data-ng]:checked")].map(x=>led[+x.dataset.ng]);
+    let auto=true;
+    const calc=()=>{const P=picked(), S=P.reduce((a,x)=>a+x.amount,0), by=k=>P.filter(x=>x.kind===k).reduce((a,x)=>a+x.amount,0);
+      if(auto){const fc=hand==null?true:(received+S<=hand+NOTE_FROM_CASH_TOL);m.querySelector(`[name=ng-src][value="${fc?1:0}"]`).checked=true;
+        $("#ng-auto",m).textContent=hand==null?"":fc?"النظام اختار «من الكاش» لأن الاستلام + المبالغ ما يتعدّى اللي بذمّته.":"النظام اختار «منفصلة» لأن الاستلام لوحده يغطّي اللي بذمّته، فما ينخصمن مرتين."}
+      const fc=m.querySelector("[name=ng-src]:checked").value==="1";
+      $("#ng-c",m).innerHTML=(hand!=null?`<div><span>بذمّته قبل الاستلام</span><b>${dinar(hand)}</b></div>`:"")
+        +(by("advance")?`<div><span>− سلف</span><b>${dinar(by("advance"))}</b></div>`:"")+(by("debt")?`<div><span>− ديون على زبائن</span><b>${dinar(by("debt"))}</b></div>`:"")+(by("expense")?`<div><span>− مصاريف</span><b>${dinar(by("expense"))}</b></div>`:"")
+        +(hand!=null?`<div class="tot"><span>${fc?"المفروض تستلم منه":"المفروض تستلم منه (المبالغ منفصلة)"}</span><b>${dinar(fc?hand-S:hand)}</b></div>`:"")
+        +`<div><span>استلمت فعلاً</span><b>${dinar(received||0)}</b></div>`
+        +(hand!=null?`<div><span>يبقى بذمّته بعدها</span><b>${dinar((fc?hand-S:hand)-(received||0))}</b></div>`:"")};
+    m.querySelectorAll("[data-ng]").forEach(x=>x.onchange=calc);
+    m.querySelectorAll("[name=ng-src]").forEach(x=>x.onchange=()=>{auto=false;$("#ng-auto",m).textContent="";calc()});
+    calc();
     $("#ng-x",m).onclick=()=>{m.remove();res(null)};
     $("#ng-skip",m).onclick=()=>{m.remove();res([])};
-    $("#ng-ok",m).onclick=()=>{const pick=[...m.querySelectorAll("[data-ng]:checked")].map(x=>led[+x.dataset.ng]);m.remove();res(pick)};
+    $("#ng-ok",m).onclick=()=>{const pick=picked();pick.fromCash=m.querySelector("[name=ng-src]:checked").value==="1";m.remove();res(pick)};
   });
 }
 async function saveNoteItems(car,items){
   const day=new Date(Date.now()+3*36e5).toISOString().slice(0,10); let ok=0;
-  for(const x of items){try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{car_id:car,kind:x.kind,amount:String(x.amount),day,note:x.note||"من ملاحظة الاستلام",from_cash:true}});ok++}catch(e){toast(e.message)}}
-  if(ok) toast(`انسجل من الملاحظة: ${items.map(x=>NOTE_K[x.kind]+" "+fmt(x.amount)).join("، ")}`);
+  for(const x of items){try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{car_id:car,kind:x.kind,amount:String(x.amount),day,note:x.note||"من ملاحظة الاستلام",from_cash:items.fromCash!==false}});ok++}catch(e){toast(e.message)}}
+  if(ok) toast(`انسجل من الملاحظة: ${items.map(x=>NOTE_K[x.kind]+" "+fmt(x.amount)).join("، ")}${items.fromCash===false?" (منفصلة عن الكاش)":""}`);
 }
 // end of a shift (7 PM morning, 10 PM evening): each captain's day — brought, handed over, still on him
 async function shiftSummary(){const bar=$("#shiftbar"); if(!bar) return;
@@ -1808,7 +1830,7 @@ function pollDeposits(){
           <div class="err" id="dk-e"></div><div class="row"><button class="btn" id="dk-x">رجوع</button><button class="btn primary" id="dk-ok">✔ نعم، استلمت</button></div>`);
         $("#dk-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#dk-m",m).focus(),50);
         $("#dk-ok",m).onclick=async e=>{const btn=e.currentTarget;if(btn.disabled)return;btn.disabled=true;
-          const it=await noteGate(d.driver_name,$("#dk-m",m).value,d.amount); if(it===null){btn.disabled=false;return}
+          const it=await noteGate(d.driver_name,$("#dk-m",m).value,d.amount,d.car_id); if(it===null){btn.disabled=false;return}
           try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:d.amount,p_reason:$("#dk-m",m).value,p_trips:null});m.remove();toast("انسجل الاستلام");await saveNoteItems(d.car_id,it);pollDeposits();if(tab==="files")renderFiles()}catch(er){btn.disabled=false;$("#dk-e",m).textContent=er.message}}});
       bar.querySelectorAll("[data-dno]").forEach(b=>b.onclick=()=>{const d=ds[+b.dataset.dno];const m=modal(`<h3>✖ ما استلمت من ${esc(d.driver_name)}</h3><p style="margin:0">المبلغ ${dinar(d.amount)} يبقى بذمّته، والسائق يشوف السبب.</p><div class="field"><label for="dn-r">السبب</label><input id="dn-r" placeholder="مثال: ما سلّم شي" maxlength="120"></div><div class="err" id="dn-e"></div><div class="row"><button class="btn" id="dn-x">رجوع</button><button class="btn danger" id="dn-ok">تأكيد: ما استلمت</button></div>`);
         $("#dn-x",m).onclick=()=>m.remove();
@@ -1860,7 +1882,7 @@ function depositDecide(d){
   const picked=tp.wire($("#dd-tp",m),(sum)=>{if(!typed&&(d.trips||[]).length)$("#dd-a",m).value=sum});
   $("#dd-ok",m).onclick=async()=>{const a=parseInt(($("#dd-a",m).value||"").replace(/\D/g,""),10);const ids=(d.trips||[]).length?picked():null;
     if(!a){$("#dd-e",m).textContent="اختار الرحلات المستلمة أو اكتب المبلغ";return}
-    const it=await noteGate(d.driver_name,$("#dd-m",m).value,a); if(it===null)return;
+    const it=await noteGate(d.driver_name,$("#dd-m",m).value,a,d.car_id); if(it===null)return;
     try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:a,p_reason:$("#dd-m",m).value,p_trips:ids});m.remove();toast("انسجل الاستلام");await saveNoteItems(d.car_id,it);pollDeposits();if(tab==="files")renderFiles()}catch(e){$("#dd-e",m).textContent=e.message}};
   $("#dd-no",m).onclick=async()=>{const rf=$("#dd-rf",m);if(rf.hidden){rf.hidden=false;$("#dd-r",m).focus();$("#dd-no",m).textContent="تأكيد: غير مستلم";return}
     try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:false,p_received:null,p_reason:$("#dd-r",m).value||"غير مستلم",p_trips:null});m.remove();toast("انسجل غير مستلم، المبلغ باقي بذمة السائق");pollDeposits()}catch(e){$("#dd-e",m).textContent=e.message}};
@@ -2034,7 +2056,7 @@ async function fileCash(id,name,inHand){
   const picked=tp.wire($("#fc-tp",m),sum=>{if(!typed&&u.trips.length)$("#fcm",m).value=sum||""});
   $("#fcc",m).onclick=()=>{m.remove();toast("ما انسجل شي، المبلغ باقي بذمة السائق")};
   $("#fcf",m).onsubmit=async e=>{e.preventDefault();const p={car_id:id,amount:$("#fcm",m).value,remark:$("#fcn",m).value};if(u.trips.length)p.trips=picked();
-    const it=await noteGate(name,p.remark,parseInt(String(p.amount).replace(/\D/g,""),10)||0); if(it===null)return;
+    const it=await noteGate(name,p.remark,parseInt(String(p.amount).replace(/\D/g,""),10)||0,id); if(it===null)return;
     try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p});m.remove();toast("انسجل الاستلام");await saveNoteItems(id,it);if(tab==="files")renderFiles()}catch(err){$("#fce",m).textContent=err.message}};
 }
 async function driverFile(id){
@@ -2233,7 +2255,7 @@ function cashForm(r){
    <form id="cf2" style="display:flex;flex-direction:column;gap:12px">
     <div class="field"><label for="cm">المبلغ اللي استلمته (دينار)</label><input id="cm" inputmode="numeric" required autocomplete="off" placeholder="مثال: 28000 أو 28" style="font:600 26px var(--mono);text-align:center"><small id="cm-v" class="fare-v" aria-live="polite"></small>
       <div class="row" style="justify-content:flex-start;gap:6px;flex-wrap:wrap" id="cm-q"></div></div>
-    <div class="field"><label for="cn2">📝 ملاحظة على الاستلام</label><input id="cn2" maxlength="300" placeholder="مثال: سلفة 10 وصرف بانزين 5، تنسجل وحدها"></div>
+    <div class="field"><label for="cn2">📝 ملاحظة على الاستلام</label><input id="cn2" maxlength="300" placeholder="مثال: سلفة 10 وصرف بانزين 5، تنسجل وحدها"><small id="cn2-v" class="note" aria-live="polite"></small></div>
     <div class="err" id="cme"></div>
     <div class="row"><button type="button" class="btn" id="cmc">رجوع</button><button class="btn primary" id="cm-ok">✅ تم الاستلام</button></div></form>`);
   $("#cmc",m).onclick=()=>m.remove(); setTimeout(()=>$("#cm",m).focus(),60);
@@ -2242,12 +2264,14 @@ function cashForm(r){
   const show=()=>{const v=val(),raw=($("#cm",m).value||"").replace(/\D/g,"");$("#cm-v",m).className="fare-v"+(hand!=null&&v>hand?" bad":"");
     $("#cm-v",m).textContent=!raw?"":`= ${dinar(v)}`+(hand!=null&&v>0?(v>hand?` · أكثر من اللي بذمّته بـ ${fmt(v-hand)} (يصير رصيد إله)`:` · يبقى بذمّته ${fmt(hand-v)}`):"")};
   $("#cm",m).oninput=show;
+  $("#cn2",m).oninput=()=>{const L=parseNote($("#cn2",m).value).filter(x=>x.kind!=="recv"), S=L.reduce((a,x)=>a+x.amount,0);
+    $("#cn2-v",m).innerHTML=!L.length?"":`فهمت: ${L.map(x=>NOTE_K[x.kind]+" "+fmt(x.amount)).join("، ")}`+(hand!=null?` · <b>إذا أخذها من الكاش، المفروض تستلم منه ${dinar(Math.max(0,hand-S))}</b>`:"")};
   rpc("taxi_admin_balance",{p_pin:PIN,p_car:r.id}).then(b=>{hand=Math.max(0,b.in_hand);
     $("#cf-b",m).innerHTML=`<div><span>جمع من السفرات (كل الفترات)</span><b>${dinar(b.cash)}</b></div><div><span>استلمنا منه</span><b>${dinar(b.collected)}</b></div>${b.ledger?`<div><span>صرفه من الكاش (مصاريف/سلف)</span><b>− ${dinar(b.ledger)}</b></div>`:""}${b.pending?`<div><span>إيداع ينتظر الموافقة</span><b>${dinar(b.pending)}</b></div>`:""}<div class="tot"><span>بذمّته هسه</span><b>${dinar(b.in_hand)}</b></div>`;
     if(hand>0)$("#cm-q",m).innerHTML=`<button type="button" class="btn sm" data-v="${hand}">كل المبلغ ${fmt(hand)}</button>`;
     $("#cm-q",m).querySelectorAll("[data-v]").forEach(x=>x.onclick=()=>{$("#cm",m).value=x.dataset.v;show()});show()}).catch(e=>{$("#cf-b",m).innerHTML=`<div><span>${esc(e.message)}</span></div>`});
   $("#cf2",m).onsubmit=async e=>{e.preventDefault();const v=val(),btn=$("#cm-ok",m);if(btn.disabled)return;if(!v){$("#cme",m).textContent="اكتب المبلغ اللي استلمته";return}
-    btn.disabled=true;const it=await noteGate(r.driver_name,$("#cn2",m).value,v); if(it===null){btn.disabled=false;return}
+    btn.disabled=true;const it=await noteGate(r.driver_name,$("#cn2",m).value,v,r.id); if(it===null){btn.disabled=false;return}
     try{await rpc("taxi_admin_cash",{p_pin:PIN,p_action:"add",p:{car_id:r.id,amount:String(v),remark:$("#cn2",m).value}});m.remove();toast(`✅ انسجل استلام ${dinar(v)} من ${r.driver_name}`);await saveNoteItems(r.id,it);loadAccounts()}catch(err){btn.disabled=false;$("#cme",m).textContent=err.message}};
 }
 async function driverDetail(r){
