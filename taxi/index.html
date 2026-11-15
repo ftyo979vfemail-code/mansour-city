@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611151054";
+const BUILD="202611151056";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1607,7 +1607,7 @@ function adminShell(){
   $("#tripBtn").onclick=()=>tripForm();
   $("#out").onclick=()=>{sess.del("taxi_pin");PIN=null;ME=null;clearInterval(pollT);clearInterval(evT);adminGate()};
   if(!FULL()) document.querySelectorAll(".tabs button").forEach(b=>{if(MONEY_TABS.includes(b.dataset.t))b.remove()});
-  if(!OWNER()){["inv","entry"].forEach(k=>{const ib=document.querySelector(`.tabs [data-t="${k}"]`);if(ib)ib.remove()});if(tab==="inv"||tab==="entry")tab="live"}
+  if(!OWNER()){["inv"].forEach(k=>{const ib=document.querySelector(`.tabs [data-t="${k}"]`);if(ib)ib.remove()});if(tab==="inv")tab="live"}
   document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderTab()});
   document.addEventListener("pointerdown",()=>{try{audioCtx=audioCtx||new AudioContext()}catch{}},{once:true});
   renderTab(); poll(); pollT=setInterval(poll,5000);
@@ -2857,8 +2857,8 @@ async function renderEntry(){
     return `<section class="ent-c" data-car="${c.id}"><h4>${plateHTML(c.plate)} ${esc(c.driver_name)}${appN>0?`<small class="pill s-idle">من التطبيق: ${appN} سفرة · ${fmt(appF)}</small>`:""}</h4>
       ${appN>0&&!oT[c.id]&&!oC[c.id]?`<p class="note ent-lock" style="margin:0">🔒 هذا اليوم حساباته من التطبيق: السفرات تنحسب وحدها، والاستلام يتسجّل من <b>✅ تم الاستلام</b> أو <b>🧮 المحاسبة</b>. هاي الخانات بس لمبلغ ما انسجل بالتطبيق.
         <button type="button" class="btn sm" data-unlock>فتح الخانات</button></p>`:""}
-      <div class="ent-g" ${appN>0&&!oT[c.id]&&!oC[c.id]?"hidden":""}><label><span>جاب 🚕 ${appN>0?"(زيادة على التطبيق)":""}</span><input inputmode="numeric" data-k="t" value="${oT[c.id]||""}" placeholder="0"><small class="ent-v"></small>${appN>0?`<small style="color:var(--bad);font-weight:600">لا تكتب مجموع اليوم، سفرات التطبيق (${fmt(appF)}) محسوبة. اكتب بس اللي ما انسجل.</small>`:""}</label>
-        <label><span>استلمت 💵 ${appN>0?"(خارج التطبيق)":""}</span><input inputmode="numeric" data-k="c" value="${oC[c.id]||""}" placeholder="0"><small class="ent-v"></small>${appN>0?`<small style="color:var(--bad);font-weight:600">الاستلامات اللي انسجلت بالتطبيق محسوبة. لا تكررها هنا.</small>`:""}</label></div>
+      <div class="ent-g" ${appN>0&&!oT[c.id]&&!oC[c.id]?"hidden":""}><label><span>جاب 🚕 ${appN>0?"(زيادة على التطبيق)":""}</span><input inputmode="numeric" data-k="t" value="${oT[c.id]||""}" placeholder="0" ${!OWNER()&&oT[c.id]?"readonly title=\"التعديل بس للمدير الرئيسي\"":""}><small class="ent-v"></small>${appN>0?`<small style="color:var(--bad);font-weight:600">لا تكتب مجموع اليوم، سفرات التطبيق (${fmt(appF)}) محسوبة. اكتب بس اللي ما انسجل.</small>`:""}</label>
+        <label><span>استلمت 💵 ${appN>0?"(خارج التطبيق)":""}</span><input inputmode="numeric" data-k="c" value="${oC[c.id]||""}" placeholder="0" ${!OWNER()&&oC[c.id]?"readonly title=\"التعديل بس للمدير الرئيسي\"":""}><small class="ent-v"></small>${appN>0?`<small style="color:var(--bad);font-weight:600">الاستلامات اللي انسجلت بالتطبيق محسوبة. لا تكررها هنا.</small>`:""}</label></div>
       ${lg.length?`<ul class="ent-lg">${lg.map(i=>`<li>${(i.kind==="settle"?"⚖️ تسوية":i.kind==="debt"?"🧾 دين على زبون":i.kind==="advance"?"🤝 سلفة":"💸 مصروف")} <b>${fmt(i.amount)}</b>${i.note?` · ${esc(i.note)}`:""}</li>`).join("")}</ul>`:""}
       <div class="row" style="justify-content:flex-start;gap:6px"><button class="btn sm" data-q="expense">+ مصروف</button><button class="btn sm" data-q="advance">+ سلفة</button></div></section>`};
   const people=await rpc("taxi_admin_ledger_people",{p_pin:PIN}).catch(()=>[]);
