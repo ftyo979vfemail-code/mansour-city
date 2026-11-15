@@ -13,3 +13,7 @@ update taxi_ledger set from_cash=false where id in (20,22);
 --  * Wisam's receipt #44 (13/11, Hamza) 221,000 -> 229,000 (what he settled up to 13/11). Backup: taxi_backup.wisam_cash44_20261115.
 --    His balance is then 14/11 + 15/11 fares only.
 --  * حسام added to taxi_ledger_people (staff expenses/advances, like حمزة).
+--  * Farouq: Hamza turned the 14/11 receipt remark into ledger rows on 15/11 (#26 debt 10,000 أبو كرم, #27 debt 7,000 أخو بارق,
+--    #28 expense 10,000 بانزين), all "from cash" — but the owner said the 221,000 was received in full, so they took 27,000 off
+--    Farouq twice. -> from_cash = false (rows kept). Backup: taxi_backup.farouq_led_20261115.
+--  * taxi_admin_ledger_save: the event text said "سلفة" for a debt -> "دين على زبون".
