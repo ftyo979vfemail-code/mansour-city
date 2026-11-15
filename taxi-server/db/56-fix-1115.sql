@@ -7,3 +7,9 @@ update taxi_ledger set from_cash=false, deducted_at='2026-11-13 20:31:09+03', de
   note='سلفه شخصيه · رجّعها 13/11 (استلمها حمزة)' where id=19;
 delete from taxi_cash where id=45;
 update taxi_ledger set from_cash=false where id in (20,22);
+
+-- later the same day (owner):
+--  * Wisam's advances #18 (20,000), #21 (8,000 from cash), #23 (17,000) deleted. Backup: taxi_backup.wisam_adv_del_20261115.
+--  * Wisam's receipt #44 (13/11, Hamza) 221,000 -> 229,000 (what he settled up to 13/11). Backup: taxi_backup.wisam_cash44_20261115.
+--    His balance is then 14/11 + 15/11 fares only.
+--  * حسام added to taxi_ledger_people (staff expenses/advances, like حمزة).
