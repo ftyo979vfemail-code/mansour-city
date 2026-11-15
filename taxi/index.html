@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611141022";
+const BUILD="202611151054";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1590,6 +1590,7 @@ function adminShell(){
        <button role="tab" data-t="book">📒 دفتر الشهر</button>
        <button role="tab" data-t="settle">🧮 المحاسبة</button>
        <button role="tab" data-t="rcp">🧾 الاستلامات</button>
+       <button role="tab" data-t="debts">📕 الديون</button>
        <button role="tab" data-t="lines">🛣 الخطوط</button>
        <button role="tab" data-t="daily">التقرير اليومي</button>
        <button role="tab" data-t="fb">التقييم والشكاوي <span class="tbadge" id="fb-n" hidden></span></button>
@@ -1884,6 +1885,7 @@ function renderTab(){
   if(tab==="settle") renderSettle();
   if(tab==="book") renderBook();
   if(tab==="dayv") renderDayView();
+  if(tab==="debts") renderDebts();
   if(tab==="lines") renderLines();
   if(tab==="sched") renderSched();
   if(tab==="fb") renderFeedback();
@@ -2548,6 +2550,39 @@ async function renderInventory(){
 async function openLedger(id){const c=cars.find(z=>z.id===id);if(!c)return;
   if(OWNER()){try{const r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_day:null,p_period:"month"});const x=r.rows.find(z=>z.id===id);if(x)return driverLedger(x)}catch{}}
   driverLedger({id:c.id,plate:c.plate,driver_name:c.driver_name})}
+/* ---------- debts: fares a customer still owes — open ones first; the owner marks them received ---------- */
+async function renderDebts(){
+  $("#view").innerHTML=`<div class="wrap"><div class="bar"><h2>📕 الديون</h2><div class="row" style="gap:8px"><button class="btn primary sm" id="db-add">➕ دين جديد</button><button class="btn sm" id="db-c">📋 نسخ</button></div></div>
+    <p class="note" style="margin:0 0 10px">كروة ما استلمها السائق من الزبون. تنقص من اللي بذمة السائق، وتبقى مفتوحة لحد ما تنستلم.</p>
+    <div id="dbb"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  let D; try{D=await rpc("taxi_admin_debts",{p_pin:PIN})}catch(e){$("#dbb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const O=D.filter(x=>!x.done), C=D.filter(x=>x.done), sum=L=>L.reduce((a,x)=>a+x.amount,0);
+  const dl=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
+  const row=x=>`<tr><td>${dl(x.day)}</td><td><b>${esc(x.note||"—")}</b></td><td>${esc(x.driver_name||"—")}</td><td class="num"><b>${fmt(x.amount)}</b></td>
+    <td><small>${esc(x.by||"")}</small></td><td>${x.done?`<span class="pill s-ok">✓ انستلم</span><br><small>${new Date(x.done_at).toLocaleDateString("ar-IQ",{day:"numeric",month:"numeric"})}${x.done_by?" · "+esc(x.done_by):""}</small>`:OWNER()?`<button class="btn sm primary" data-dbok="${x.id}">✓ انستلم</button>`:`<span class="pill s-warn">مفتوح</span>`}</td></tr>`;
+  const tbl=(L,cap)=>`<div class="tbl-wrap"><table class="tbl"><caption style="text-align:right;font-weight:700;padding:6px 0">${cap}</caption>
+    <thead><tr><th>اليوم</th><th>الزبون / العمارة</th><th>السائق</th><th>المبلغ</th><th>سجّله</th><th></th></tr></thead><tbody>${L.map(row).join("")}</tbody></table></div>`;
+  $("#dbb").innerHTML=`<div class="kpis"><div class="kpi"><small>ديون مفتوحة</small><b>${dinar(sum(O))}</b><small>${O.length} دين</small></div><div class="kpi"><small>انستلمت</small><b>${dinar(sum(C))}</b><small>${C.length} دين</small></div></div>
+    ${O.length?tbl(O,"🔴 مفتوحة"):`<div class="empty">ماكو ديون مفتوحة 👍</div>`}${C.length?tbl(C,"✅ انستلمت"):""}`;
+  $("#dbb").querySelectorAll("[data-dbok]").forEach(b=>b.onclick=()=>{const x=D.find(z=>z.id===+b.dataset.dbok);
+    confirmBox(`استلمت دين ${x.note||""} (${dinar(x.amount)})؟`,"✓ نعم، انستلم",async()=>{try{await rpc("taxi_admin_advances_deduct",{p_pin:PIN,p_ids:[x.id]});toast("انسجل مستلم");renderDebts()}catch(e){toast(e.message)}},"رجوع")});
+  $("#db-c").onclick=()=>copy(`📕 الديون المفتوحة: ${fmt(sum(O))}\n`+O.map(x=>`• ${x.note||"—"} · ${fmt(x.amount)} · ${x.driver_name||""} · ${x.day}`).join("\n"));
+  $("#db-add").onclick=()=>{const act=cars.filter(c=>c.active);
+    const m=modal(`<h3>➕ دين جديد على زبون</h3><p class="note" style="margin:0">زبون ركب وما دفع الكروة. المبلغ ينقص من اللي بذمة السائق.</p>
+      <div class="field"><label>السائق اللي وصّله</label><div class="zones" id="dbf-c" role="radiogroup">${act.map(c=>`<button type="button" class="zchip" role="radio" aria-checked="false" data-c="${c.id}">${esc(c.driver_name)}</button>`).join("")}</div></div>
+      <div class="field"><label for="dbf-n">الزبون والعمارة</label><input id="dbf-n" maxlength="200" placeholder="مثال: سحر المحامية · عمارة B13"></div>
+      <div class="field"><label for="dbf-a">المبلغ</label><input id="dbf-a" inputmode="numeric" placeholder="مثال: 10000 أو 10"></div>
+      <div class="field"><label for="dbf-d">اليوم</label><input id="dbf-d" type="date" value="${new Date(Date.now()+3*36e5).toISOString().slice(0,10)}"></div>
+      <div class="err" id="dbf-e"></div><div class="row"><button class="btn" id="dbf-x">رجوع</button><button class="btn primary" id="dbf-ok">حفظ</button></div>`);
+    let car=null; m.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{car=b.dataset.c;m.querySelectorAll("[data-c]").forEach(z=>{const on=z===b;z.classList.toggle("on",on);z.setAttribute("aria-checked",on)})});
+    $("#dbf-x",m).onclick=()=>m.remove();
+    $("#dbf-ok",m).onclick=async e=>{const n=$("#dbf-n",m).value.trim();
+      if(!car){$("#dbf-e",m).textContent="اختار السائق";return} if(n.length<2){$("#dbf-e",m).textContent="اكتب اسم الزبون والعمارة";return}
+      e.target.disabled=true;
+      try{await rpc("taxi_admin_ledger_save",{p_pin:PIN,p:{kind:"debt",car_id:car,amount:$("#dbf-a",m).value,day:$("#dbf-d",m).value,note:n,from_cash:true}});m.remove();toast("انسجل الدين");renderDebts()}
+      catch(er){$("#dbf-e",m).textContent=er.message;e.target.disabled=false}};
+  };
+}
 /* ---------- one day: its receipts, and its expenses / advances / debts kept apart ---------- */
 let dvDay=null;
 async function renderDayView(){
