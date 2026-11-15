@@ -426,7 +426,7 @@ public class MainActivity extends Activity {
         if (tripBox == null || !Prefs.of(this).getBoolean("on", false)) return;
         JSONObject t = st.optJSONObject("trip");
         JSONObject cxk = st.optJSONObject("cancelled");
-        String key = (t == null ? "none:" + st.optString("returning_since") + st.optString("ready_at") + ":" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) + ":" + bookingsKey(st) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optString("noshow_status") + ":" + cxKey(t) + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money")) + ":" + (st.optJSONObject("closing") == null ? "" : st.optJSONObject("closing").optLong("id"));
+        String key = (t == null ? "none:" + st.optString("returning_since") + st.optString("ready_at") + ":" + st.optInt("today_trips") + ":" + (cxk == null ? 0 : cxk.optLong("id")) + ":" + bookingsKey(st) + ":" + debtsKey(st) : t.optLong("id") + ":" + t.optString("status") + ":" + t.optBoolean("waiting") + ":" + t.optBoolean("pickup_waiting") + ":" + t.optString("special_status") + ":" + t.optString("noshow_status") + ":" + cxKey(t) + ":" + t.optBoolean("round_trip") + ":" + t.optInt("fare") + ":" + t.optInt("zone_id") + ":" + (t.optJSONObject("dest_change") == null ? "" : t.optJSONObject("dest_change").optLong("id") + t.optJSONObject("dest_change").optString("status"))) + ":" + st.optLong("week_share") + ":" + moneyKey(st.optJSONObject("money")) + ":" + (st.optJSONObject("closing") == null ? "" : st.optJSONObject("closing").optLong("id"));
         if (key.equals(tripKey)) return;
         tripKey = key;
         h.removeCallbacks(waitTick);
@@ -449,6 +449,7 @@ public class MainActivity extends Activity {
                 card.addView(space(8));
             }
             addBookings(card, st);
+            addDebts(card, st);
             if (!st.optString("returning_since").isEmpty() && !st.isNull("returning_since")) {
                 JSONObject b = st.optJSONObject("base");
                 String bn = b == null ? "المجمع" : b.optString("name", "المجمع");
@@ -750,6 +751,17 @@ public class MainActivity extends Activity {
                             .setPositiveButton("✅ نعم، إنهاء", (d, w) -> { fareDraft.remove(endTid); tripAction("end", withNote(obj("fare", String.valueOf(fv)))); }).show();
                 });
                 card.addView(end, full());
+                if (!spFree && !spPending) {
+                    card.addView(space(6));
+                    Button dbt = button("🧾 الزبون ما دفع (سجّل دين)", false);
+                    final JSONObject tt = t;
+                    dbt.setOnClickListener(v -> {
+                        int fv = fixed ? tt.optInt("fare", 0) : fareVal(fare.getText().toString());
+                        if (!fixed && fv <= 0) { fare.requestFocus(); android.widget.Toast.makeText(this, "اكتب الأجرة أول", android.widget.Toast.LENGTH_SHORT).show(); return; }
+                        debtDialog(tt, fv, fixed);
+                    });
+                    card.addView(dbt, full());
+                }
             }
         }
         if (t != null && (status.equals("accepted") || status.equals("started"))) addCancelReq(card, t);
@@ -1177,6 +1189,79 @@ public class MainActivity extends Activity {
     private JSONObject withNote(JSONObject p) {
         try { p.put("end_note", takeEndNote()); } catch (Exception ignored) {}
         return p;
+    }
+
+    // customer debts: "the customer didn't pay" — amount + details; open ones listed on the empty screen
+    private static String debtsKey(JSONObject st) {
+        org.json.JSONArray b = st.optJSONArray("debts");
+        if (b == null) return "";
+        StringBuilder k = new StringBuilder();
+        for (int i = 0; i < b.length(); i++) k.append(b.optJSONObject(i).optLong("id")).append(',');
+        return k.toString();
+    }
+
+    private void addDebts(LinearLayout card, JSONObject st) {
+        org.json.JSONArray b = st.optJSONArray("debts");
+        int n = b == null ? 0 : b.length(), tot = 0;
+        LinearLayout bx = new LinearLayout(this);
+        bx.setOrientation(LinearLayout.VERTICAL);
+        bx.setPadding(dp(12), dp(10), dp(12), dp(10));
+        bx.setBackground(box(0xFFFDF1F0, BAD, 12));
+        for (int i = 0; i < n; i++) tot += b.optJSONObject(i).optInt("amount");
+        bx.addView(text("🧾 ديون على الزبائن" + (n > 0 ? " (" + n + ") · " + String.format(java.util.Locale.US, "%,d", tot) + " د.ع" : ""), 16, FG, true));
+        for (int i = 0; i < n; i++) {
+            JSONObject o = b.optJSONObject(i);
+            bx.addView(text("• " + o.optString("note") + " · " + String.format(java.util.Locale.US, "%,d", o.optInt("amount")) + " · " + o.optString("day"), 14, FG, false));
+        }
+        if (n > 0) bx.addView(text("تنقص من المبلغ اللي بيدك، وتبقى لحد ما الإدارة تستلمها من الزبون.", 12, MUTED, false));
+        Button add = button("➕ سجّل دين على زبون", false);
+        add.setOnClickListener(v -> debtDialog(null, 0, false));
+        bx.addView(space(6));
+        bx.addView(add, full());
+        card.addView(bx, full());
+        card.addView(space(8));
+    }
+
+    private void debtDialog(JSONObject t, int amount, boolean fixed) {
+        LinearLayout f = new LinearLayout(this);
+        f.setOrientation(LinearLayout.VERTICAL);
+        f.setPadding(dp(16), dp(8), dp(16), 0);
+        final EditText am = input("المبلغ، مثال 5000 أو 5", InputType.TYPE_CLASS_NUMBER);
+        if (amount > 0) am.setText(String.valueOf(amount));
+        final EditText nt = input("الاسم · العمارة والشقة · متى يدفع", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        f.addView(text("المبلغ (دينار)", 14, FG, true)); f.addView(am, full()); f.addView(space(6));
+        f.addView(text("ملاحظة: معلومات الزبون", 14, FG, true)); f.addView(nt, full());
+        final long tripId = t == null ? 0 : t.optLong("id");
+        final String code = Prefs.code(this);
+        new android.app.AlertDialog.Builder(this).setTitle(t == null ? "🧾 دين على زبون" : "🧾 الزبون ما دفع: تنتهي السفرة وينسجل دين")
+                .setView(f).setNegativeButton("رجوع", null)
+                .setPositiveButton(t == null ? "حفظ الدين" : "✅ إنهاء وتسجيل الدين", (d, w) -> {
+                    final int fv = fareVal(am.getText().toString());
+                    final String n = nt.getText().toString().trim();
+                    if (fv <= 0) { android.widget.Toast.makeText(this, "اكتب المبلغ", android.widget.Toast.LENGTH_LONG).show(); return; }
+                    if (n.length() < 3) { android.widget.Toast.makeText(this, "اكتب معلومات الزبون: الاسم والعمارة", android.widget.Toast.LENGTH_LONG).show(); return; }
+                    if (code == null) return;
+                    final String endN = tripId > 0 ? takeEndNote() : "";
+                    new Thread(() -> {
+                        try {
+                            if (tripId > 0) {
+                                JSONObject p = new JSONObject().put("end_note", endN);
+                                if (!fixed) p.put("fare", String.valueOf(fv));
+                                Api.driverTrip(code, "end", p);
+                                fareDraft.remove(tripId);
+                            }
+                            JSONObject b = new JSONObject().put("p_code", code).put("p_amount", String.valueOf(fv)).put("p_note", n);
+                            if (tripId > 0) b.put("p_trip", tripId); else b.put("p_trip", JSONObject.NULL);
+                            Api.call("taxi_driver_debt_add", b);
+                            h.post(() -> {
+                                android.widget.Toast.makeText(this, tripId > 0 ? "انتهت السفرة وانسجل الدين" : "انسجل الدين", android.widget.Toast.LENGTH_LONG).show();
+                                tripKey = ""; loadTrip();
+                            });
+                        } catch (Exception e) {
+                            h.post(() -> android.widget.Toast.makeText(this, e instanceof Api.ApiError ? e.getMessage() : "ماكو إنترنت", android.widget.Toast.LENGTH_LONG).show());
+                        }
+                    }).start();
+                }).show();
     }
 
     // upcoming bookings the office confirmed for this driver
