@@ -260,6 +260,7 @@ textarea.in{min-height:70px;resize:vertical}
 .drop .dt{min-width:0;font-size:13px}
 .drop .dt b{display:block}
 .drop input{display:none}
+.drop .ffb{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .gps{display:flex;gap:8px;flex-wrap:wrap}
 .gps .in{flex:1 1 220px}
 .note{font-size:12.5px;color:var(--muted)}
@@ -872,7 +873,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='bd18a06185';
+const APP_BUILD='3a4d4d3f47';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -4879,9 +4880,12 @@ function actionsHTML(r,role){if(!role||!ROLES[role])return"";
 }
 
 function fileField(id,label,hint,capture){
+  if(capture==='both')return`<label class="drop" for="${id}"><input type="file" id="${id}" accept="image/*"><input type="file" id="${id}Cam" accept="image/*" capture="environment"><div class="thumb" id="${id}P" style="width:72px;height:60px">صورة</div><div class="dt"><b>${label}</b><span class="muted">${hint}</span><span class="ffb"><button type="button" class="btn sm" data-cam="${id}">📷 كاميرا</button><span class="btn sm ghost">🖼 من الصور / الملفات</span></span></div></label>`;
   return`<label class="drop" for="${id}"><input type="file" id="${id}" accept="image/*" ${capture?'capture="environment"':''}><div class="thumb" id="${id}P" style="width:72px;height:60px">صورة</div><div class="dt"><b>${label}</b><span class="muted">${hint}</span></div></label>`;
 }
-function bindPreview(id,onFile){const inp=$('#'+id);inp.addEventListener('change',async()=>{const f=inp.files[0];if(!f)return;const pv=$('#'+id+'P');
+function bindPreview(id,onFile){const inp=$('#'+id),cam=$('#'+id+'Cam');
+  if(cam){const cb=document.querySelector(`[data-cam="${id}"]`);cb?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();cam.click()});
+    cam.addEventListener('change',()=>{const f=cam.files[0];if(!f)return;inp._f=f;try{const dt=new DataTransfer();dt.items.add(f);inp.files=dt.files}catch(x){}inp.dispatchEvent(new Event('change'))})}inp.addEventListener('change',async()=>{const f=(inp.files[0]&&inp.files[0]!==inp._f?(inp._f=null,inp.files[0]):inp.files[0]||inp._f);if(!f)return;const pv=$('#'+id+'P');
   if(f.type.startsWith('image/')){const u=URL.createObjectURL(f);pv.outerHTML=`<img id="${id}P" src="${u}" alt="">`}else pv.textContent='PDF';
   inp.closest('.drop').querySelector('.dt span').textContent=f.name;onFile&&onFile(f)})}
 function bindGps(btnId,inId,noteId){
@@ -4904,7 +4908,7 @@ function newReqForm(pre){
    <div id="fMore"></div>
    <button type="button" class="btn" id="fAddMore" style="justify-self:start">+ إضافة مادة ثانية لنفس الطلب</button>
    <div class="l" style="font-size:13px;font-weight:500">الأولوية<div class="seg">${Object.entries(PRI).map(([k,v],i)=>`<label><input type="radio" name="pri" value="${k}" ${i?'':'checked'}>${v[0]}</label>`).join('')}</div></div>
-   <div class="fr">${fileField('fProd','صورة المنتج المطلوب','صوّر القطعة القديمة أو لوحة المواصفات',true)}${fileField('fSite','صورة مكان العمل','تُقرأ إحداثيات GPS من صورة الهاتف تلقائياً',true)}</div>
+   <div class="fr">${fileField('fProd','صورة المنتج المطلوب','صوّر القطعة القديمة أو اختار صورة من الموبايل','both')}${fileField('fSite','صورة مكان العمل','تُقرأ إحداثيات GPS من صورة الهاتف تلقائياً','both')}</div>
    <label class="l">إحداثيات مكان العمل <em>(تُملأ من الصورة أو الصقها من خرائط Google)</em><div class="gps"><input id="fGps" class="in num" placeholder="33.3152, 44.3661"><button type="button" class="btn" id="fGpsBtn">موقعي الحالي</button></div><span class="note" id="fGpsN"></span></label>
    ${S.role==='project'?`<div class="sec" style="padding:10px 12px"><div class="seg"><label><input type="radio" name="fRoute" value="buy" checked>مباشرة للمشتريات</label><label><input type="radio" name="fRoute" value="store_check">فحص المخزن أولاً</label></div><p class="note" style="margin:6px 0 0">بصفتك مدير المشروع، يمكن إرسال الطلب مباشرة لمندوبي المشتريات بدون مراحل الموافقة.</p></div>`:isSt?`<p class="note" style="margin:0">طلبك يروح مباشرة لمندوبي المشتريات. من يوصل المادة تستلمها أنت بالباركود.</p>`:''}
    <label class="l">ملاحظات<textarea id="fNotes" class="in" placeholder="سبب الطلب، المواصفات، رقم الماكنة…">${esc(pre.notes||'')}</textarea></label>
@@ -4921,7 +4925,7 @@ function newReqForm(pre){
   $('#fMore').addEventListener('click',e=>{if(e.target.classList.contains('fmX')){e.target.closest('.fm').remove();updMore()}});
   $('#fNew').addEventListener('submit',async e=>{e.preventDefault();const sub=$('#fSub'),err=$('#fErr');err.textContent='';sub.disabled=true;sub.textContent='جارِ الرفع…';
     try{
-      const prod=await saveFile($('#fProd').files[0]),site=await saveFile($('#fSite').files[0]);
+      const prod=await saveFile($('#fProd').files[0]||$('#fProd')._f),site=await saveFile($('#fSite').files[0]||$('#fSite')._f);
       const gv=$('#fGps').value.trim();const coords=parseCoords(gv);
       const _m=$('#fMach')?.value||null,_d=$('#fDept').value;const r={id:uid(),code:code(),machineId:_m,wh:isSt?myWh(S.role):(_m||_d==='الآليات'||['machines','mstore','keeper','operator','mechanic','fueler','supply'].includes(S.role))?'mach':'main',by:S.role,dept:_d,item:$('#fItem').value.trim(),qty:+$('#fQty').value||0,unit:$('#fUnit').value.trim()||'قطعة',area:$('#fArea').value.trim(),priority:document.querySelector('input[name=pri]:checked').value,notes:$('#fNotes').value.trim(),
         productImg:prod?.ref||null,siteImg:site?.ref||null,site:coords,siteLink:!coords&&/^https?:/.test(gv)?gv:null,status:'store_check',createdAt:Date.now(),log:[{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'أنشأ الطلب',note:''}]};
