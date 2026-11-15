@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611151126";
+const BUILD="202611151201";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1589,6 +1589,7 @@ function adminShell(){
        <button role="tab" data-t="entry">📝 تسجيل يومي</button>
        <button role="tab" data-t="dayv">🗓 كشف يوم</button>
        <button role="tab" data-t="book">📒 دفتر الشهر</button>
+       <button role="tab" data-t="net">📊 الصافي</button>
        <button role="tab" data-t="settle">🧮 المحاسبة</button>
        <button role="tab" data-t="rcp">🧾 الاستلامات</button>
        <button role="tab" data-t="debts">📕 الديون</button>
@@ -1910,6 +1911,7 @@ function renderTab(){
   if(tab==="book") renderBook();
   if(tab==="dayv") renderDayView();
   if(tab==="debts") renderDebts();
+  if(tab==="net") renderNet();
   if(tab==="lines") renderLines();
   if(tab==="sched") renderSched();
   if(tab==="fb") renderFeedback();
@@ -2576,6 +2578,55 @@ async function renderInventory(){
 async function openLedger(id){const c=cars.find(z=>z.id===id);if(!c)return;
   if(OWNER()){try{const r=await rpc("taxi_admin_inventory",{p_pin:PIN,p_day:null,p_period:"month"});const x=r.rows.find(z=>z.id===id);if(x)return driverLedger(x)}catch{}}
   driverLedger({id:c.id,plate:c.plate,driver_name:c.driver_name})}
+/* ---------- net of a 3-day cycle: fares − expenses per driver, receipts, what's still on them; debts and advances apart ---------- */
+let netFrom=null, netTo=null;
+const CYC_ANCHOR="2026-11-09", CYC_DAYS=3;
+const dAdd=(d,n)=>{const x=new Date(d+"T12:00:00Z");x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
+const cycOf=d=>{const k=Math.floor((Date.parse(d+"T12:00:00Z")-Date.parse(CYC_ANCHOR+"T12:00:00Z"))/864e5/CYC_DAYS);const f=dAdd(CYC_ANCHOR,k*CYC_DAYS);return [f,dAdd(f,CYC_DAYS-1)]};
+async function renderNet(){
+  const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10);
+  if(!netFrom){[netFrom,netTo]=cycOf(today)}
+  const dl=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
+  $("#view").innerHTML=`<div class="wrap"><div class="bar"><h2>📊 الصافي</h2><button class="btn sm" id="nt-c">📋 نسخ</button></div>
+    <div class="ent-nav"><button class="btn" id="nt-p">‹ الدورة السابقة</button>
+      <span class="ent-day" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="date" id="nt-f" value="${netFrom}" max="${today}" aria-label="من"> ← <input type="date" id="nt-t" value="${netTo}" aria-label="إلى"></span>
+      <button class="btn" id="nt-n" ${netTo>=today?"disabled":""}>الدورة الجاية ›</button></div>
+    <p class="note" style="margin:6px 0">الصافي = الكروة − المصاريف. السلف والديون ما تنحسب بالصافي، وكل وحدة تطلع بروحها جوّا.</p>
+    <div id="ntb"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  $("#nt-p").onclick=()=>{[netFrom,netTo]=cycOf(dAdd(netFrom,-1));renderNet()};
+  $("#nt-n").onclick=()=>{[netFrom,netTo]=cycOf(dAdd(netTo,1));renderNet()};
+  $("#nt-f").onchange=e=>{netFrom=e.target.value;if(netTo<netFrom)netTo=netFrom;renderNet()};
+  $("#nt-t").onchange=e=>{netTo=e.target.value;if(netTo<netFrom)netFrom=netTo;renderNet()};
+  const to=netTo>today?today:netTo;
+  let r,LG; try{[r,LG]=await Promise.all([rpc("taxi_admin_period",{p_pin:PIN,p_from:netFrom,p_to:to}),rpc("taxi_admin_ledger_range",{p_pin:PIN,p_car:null,p_from:netFrom,p_to:to})])}
+  catch(e){$("#ntb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const C=r.cars, sum=(L,f)=>L.reduce((a,x)=>a+(f?f(x):x),0);
+  const rows=C.map(c=>{const ex=c.ledger.filter(x=>x.kind==="expense");const e=sum(ex,x=>x.amount);
+    return {c,fares:c.fares,n:c.trips_n,ln:c.lines_n,exp:e,net:c.fares-e,rec:c.received,now:c.balance_all}}).filter(x=>x.fares||x.exp||x.rec||x.now);
+  const T={fares:sum(rows,x=>x.fares),exp:sum(rows,x=>x.exp),net:sum(rows,x=>x.net),rec:sum(rows,x=>x.rec),now:sum(rows,x=>x.now),n:sum(rows,x=>x.n)};
+  const EX=LG.filter(x=>x.kind==="expense"), SEX=EX.filter(x=>x.staff), DEX=EX.filter(x=>!x.staff);
+  const DB=LG.filter(x=>x.kind==="debt"), AD=LG.filter(x=>x.kind==="advance");
+  const sex=sum(SEX,x=>x.amount);
+  const by=(L)=>{const G={};L.forEach(x=>{(G[x.driver_name]=G[x.driver_name]||[]).push(x)});return Object.entries(G)};
+  const per=n=>n.split(" ")[0];
+  $("#ntb").innerHTML=`<div class="kpis">
+      <div class="kpi"><small>الكروة (${T.n} سفرة)</small><b>${dinar(T.fares)}</b><small>${dl(netFrom)} ← ${dl(to)}</small></div>
+      <div class="kpi"><small>المصاريف</small><b>− ${dinar(T.exp+sex)}</b><small>سواق ${fmt(T.exp)}${sex?` · إدارة ${fmt(sex)}`:""}</small></div>
+      <div class="kpi"><small><b>الصافي</b></small><b>${dinar(T.net-sex)}</b><small>بدون سلف وديون</small></div>
+      <div class="kpi"><small>استلمنا بهاي الأيام</small><b>${dinar(T.rec)}</b><small>بذمة السواق هسه: ${fmt(T.now)}</small></div></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>السائق</th><th>السفرات</th><th>الكروة</th><th>المصاريف</th><th>الصافي</th><th>استلمنا</th><th>بذمته هسه</th></tr></thead>
+      <tbody>${rows.map(x=>`<tr><td><b>${esc(x.c.driver_name)}</b></td><td class="num">${x.n}${x.ln?` <small>+${x.ln} خط</small>`:""}</td><td class="num">${fmt(x.fares)}</td><td class="num">${x.exp?"− "+fmt(x.exp):"—"}</td><td class="num"><b>${fmt(x.net)}</b></td><td class="num">${x.rec?fmt(x.rec):"—"}</td><td class="num">${x.now?`<b>${fmt(x.now)}</b>`:"0"}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><th>المجموع</th><td class="num">${T.n}</td><td class="num"><b>${fmt(T.fares)}</b></td><td class="num">− ${fmt(T.exp)}</td><td class="num"><b>${fmt(T.net)}</b></td><td class="num">${fmt(T.rec)}</td><td class="num"><b>${fmt(T.now)}</b></td></tr></tfoot></table></div>
+    <h3 class="h4" style="margin-top:16px">💸 الصرفيات (${EX.length}) · ${dinar(sum(EX,x=>x.amount))}</h3>
+    ${EX.length?`<ul class="log">${EX.map(x=>`<li><span class="pill s-idle">${fmt(x.amount)}</span><span><b>${esc(x.driver_name||"")}</b>${x.staff?" (إدارة)":""} · ${dl(x.day)}${x.note?" · "+esc(x.note):""} <small>${x.staff?"":x.from_cash?"· من الكاش اللي بيده":"· من المكتب"}</small></span><small>${esc(x.by||"")}</small></li>`).join("")}</ul>`:`<p class="note">ماكو صرفيات.</p>`}
+    <h3 class="h4" style="margin-top:16px">🧾 الديون على الزبائن (${DB.length}) · ${dinar(sum(DB,x=>x.amount))} <small style="color:var(--muted);font-weight:400">ما تنحسب بالصافي</small></h3>
+    ${DB.length?`<ul class="log">${DB.map(x=>`<li><span class="pill s-warn">${fmt(x.amount)}</span><span><b>${esc(x.note||"—")}</b> · ${esc(per(x.driver_name||""))} · ${dl(x.day)}</span><small>${esc(x.by||"")}</small></li>`).join("")}</ul>`:`<p class="note">ماكو ديون بهاي الأيام.</p>`}
+    <h3 class="h4" style="margin-top:16px">🤝 السلف (${AD.length}) · ${dinar(sum(AD,x=>x.amount))} <small style="color:var(--muted);font-weight:400">ما تنحسب بالصافي، تنخصم من الرواتب</small></h3>
+    ${AD.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>الشخص</th><th>السلف</th><th>المجموع</th></tr></thead><tbody>${by(AD).map(([n,L])=>`<tr><td><b>${esc(n)}</b>${L[0].staff?" <small>(إدارة)</small>":""}</td><td>${L.map(x=>`${dl(x.day)}: ${fmt(x.amount)}${x.note?` <small>(${esc(x.note)})</small>`:""}`).join("<br>")}</td><td class="num"><b>${fmt(sum(L,x=>x.amount))}</b></td></tr>`).join("")}</tbody></table></div>`:`<p class="note">ماكو سلف بهاي الأيام.</p>`}`;
+  $("#nt-c").onclick=()=>copy([`📊 الصافي ${netFrom} ← ${to}`,...rows.map(x=>`- ${x.c.driver_name}: كروة ${fmt(x.fares)}${x.exp?` − مصاريف ${fmt(x.exp)}`:""} = ${fmt(x.net)}${x.now?` · بذمته ${fmt(x.now)}`:""}`),
+    `المجموع: كروة ${fmt(T.fares)} − مصاريف ${fmt(T.exp+sex)} = صافي ${fmt(T.net-sex)}`,`استلمنا ${fmt(T.rec)} · بذمة السواق هسه ${fmt(T.now)}`,
+    DB.length?`ديون على زبائن: ${fmt(sum(DB,x=>x.amount))}`:"",AD.length?`سلف: ${by(AD).map(([n,L])=>per(n)+" "+fmt(sum(L,x=>x.amount))).join("، ")}`:""].filter(Boolean).join("\n"));
+}
 /* ---------- calculator for the accounts: add / subtract amounts, small numbers are thousands (105.5 = 105,500) ---------- */
 let CALC=(()=>{try{return JSON.parse(localStorage.getItem("taxi_calc")||"[]")}catch{return[]}})();
 const calcSave=()=>{try{localStorage.setItem("taxi_calc",JSON.stringify(CALC))}catch{}};
