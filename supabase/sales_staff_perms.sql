@@ -5,3 +5,7 @@
 -- public.set_staff_perms(uid, perms): بس مسؤول المبيعات أو المالك، وللموظفات بنفس الفرع
 -- مربوطة بالسيرفر: contracts k_ins(book)/k_upd(kedit|cancel) · units u_ins(units) · svc_ins(svc) · sales_remind(remind)
 --   cash_ins (pay/svc) · wallet_op(wallet) · sales_pay_row/wallet_use_edit(edit) · set_sales_plans(plans)
+
+-- مهم: جدول staff صلاحياته على مستوى الأعمدة — أي عمود جديد لازم grant select (col) to authenticated
+grant select (perms) on public.staff to authenticated;
+revoke update (perms), insert (perms) on public.staff from authenticated, anon;
