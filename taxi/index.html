@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611151201";
+const BUILD="202611181210";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2587,12 +2587,15 @@ async function renderNet(){
   const today=new Date(Date.now()+3*36e5).toISOString().slice(0,10);
   if(!netFrom){[netFrom,netTo]=cycOf(today)}
   const dl=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"});
-  $("#view").innerHTML=`<div class="wrap"><div class="bar"><h2>📊 الصافي</h2><button class="btn sm" id="nt-c">📋 نسخ</button></div>
+  $("#view").innerHTML=`<div class="wrap"><div class="bar"><h2>📊 الصافي</h2><div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary sm" id="nt-m">📅 مصاريف الشهر</button><button class="btn sm" id="nt-pm">الشهر السابق</button><button class="btn sm" id="nt-c">📋 نسخ</button></div></div>
     <div class="ent-nav"><button class="btn" id="nt-p">‹ الدورة السابقة</button>
       <span class="ent-day" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="date" id="nt-f" value="${netFrom}" max="${today}" aria-label="من"> ← <input type="date" id="nt-t" value="${netTo}" aria-label="إلى"></span>
       <button class="btn" id="nt-n" ${netTo>=today?"disabled":""}>الدورة الجاية ›</button></div>
     <p class="note" style="margin:6px 0">الصافي = الكروة − المصاريف. السلف والديون ما تنحسب بالصافي، وكل وحدة تطلع بروحها جوّا.</p>
     <div id="ntb"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  const monthOf=d=>{const f=d.slice(0,8)+"01";const x=new Date(f+"T12:00:00Z");x.setUTCMonth(x.getUTCMonth()+1);x.setUTCDate(0);return [f,x.toISOString().slice(0,10)]};
+  $("#nt-m").onclick=()=>{[netFrom,netTo]=monthOf(today);renderNet()};
+  $("#nt-pm").onclick=()=>{[netFrom,netTo]=monthOf(dAdd(netFrom.slice(0,8)+"01",-1));renderNet()};
   $("#nt-p").onclick=()=>{[netFrom,netTo]=cycOf(dAdd(netFrom,-1));renderNet()};
   $("#nt-n").onclick=()=>{[netFrom,netTo]=cycOf(dAdd(netTo,1));renderNet()};
   $("#nt-f").onchange=e=>{netFrom=e.target.value;if(netTo<netFrom)netTo=netFrom;renderNet()};
@@ -2602,21 +2605,24 @@ async function renderNet(){
   catch(e){$("#ntb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
   const C=r.cars, sum=(L,f)=>L.reduce((a,x)=>a+(f?f(x):x),0);
   const rows=C.map(c=>{const ex=c.ledger.filter(x=>x.kind==="expense");const e=sum(ex,x=>x.amount);
-    return {c,fares:c.fares,n:c.trips_n,ln:c.lines_n,exp:e,net:c.fares-e,rec:c.received,now:c.balance_all}}).filter(x=>x.fares||x.exp||x.rec||x.now);
-  const T={fares:sum(rows,x=>x.fares),exp:sum(rows,x=>x.exp),net:sum(rows,x=>x.net),rec:sum(rows,x=>x.rec),now:sum(rows,x=>x.now),n:sum(rows,x=>x.n)};
+    return {c,fares:c.fares,n:c.trips_n,ln:c.lines_n,exp:e,net:c.fares-e,rec:c.received,now:c.balance_all,adv:sum(c.ledger.filter(x=>x.kind==="advance"),x=>x.amount),dbt:sum(c.ledger.filter(x=>x.kind==="debt"),x=>x.amount)}}).filter(x=>x.fares||x.exp||x.rec||x.now||x.adv||x.dbt);
+  const T={fares:sum(rows,x=>x.fares),exp:sum(rows,x=>x.exp),net:sum(rows,x=>x.net),rec:sum(rows,x=>x.rec),now:sum(rows,x=>x.now),n:sum(rows,x=>x.n),adv:sum(rows,x=>x.adv),dbt:sum(rows,x=>x.dbt)};
+  const isMonth=netFrom.slice(8)==="01"&&dAdd(netTo,1).slice(8)==="01";
   const EX=LG.filter(x=>x.kind==="expense"), SEX=EX.filter(x=>x.staff), DEX=EX.filter(x=>!x.staff);
   const DB=LG.filter(x=>x.kind==="debt"), AD=LG.filter(x=>x.kind==="advance");
   const sex=sum(SEX,x=>x.amount);
   const by=(L)=>{const G={};L.forEach(x=>{(G[x.driver_name]=G[x.driver_name]||[]).push(x)});return Object.entries(G)};
   const per=n=>n.split(" ")[0];
-  $("#ntb").innerHTML=`<div class="kpis">
+  $("#ntb").innerHTML=`${isMonth?`<h3 class="h4" style="margin:0 0 8px">📅 مصاريف شهر ${new Date(netFrom+"T12:00:00Z").toLocaleDateString("ar-IQ",{month:"long",year:"numeric"})}</h3>`:""}<div class="kpis">
       <div class="kpi"><small>الكروة (${T.n} سفرة)</small><b>${dinar(T.fares)}</b><small>${dl(netFrom)} ← ${dl(to)}</small></div>
       <div class="kpi"><small>المصاريف</small><b>− ${dinar(T.exp+sex)}</b><small>سواق ${fmt(T.exp)}${sex?` · إدارة ${fmt(sex)}`:""}</small></div>
       <div class="kpi"><small><b>الصافي</b></small><b>${dinar(T.net-sex)}</b><small>بدون سلف وديون</small></div>
-      <div class="kpi"><small>استلمنا بهاي الأيام</small><b>${dinar(T.rec)}</b><small>بذمة السواق هسه: ${fmt(T.now)}</small></div></div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>السائق</th><th>السفرات</th><th>الكروة</th><th>المصاريف</th><th>الصافي</th><th>استلمنا</th><th>بذمته هسه</th></tr></thead>
-      <tbody>${rows.map(x=>`<tr><td><b>${esc(x.c.driver_name)}</b></td><td class="num">${x.n}${x.ln?` <small>+${x.ln} خط</small>`:""}</td><td class="num">${fmt(x.fares)}</td><td class="num">${x.exp?"− "+fmt(x.exp):"—"}</td><td class="num"><b>${fmt(x.net)}</b></td><td class="num">${x.rec?fmt(x.rec):"—"}</td><td class="num">${x.now?`<b>${fmt(x.now)}</b>`:"0"}</td></tr>`).join("")}</tbody>
-      <tfoot><tr><th>المجموع</th><td class="num">${T.n}</td><td class="num"><b>${fmt(T.fares)}</b></td><td class="num">− ${fmt(T.exp)}</td><td class="num"><b>${fmt(T.net)}</b></td><td class="num">${fmt(T.rec)}</td><td class="num"><b>${fmt(T.now)}</b></td></tr></tfoot></table></div>
+      <div class="kpi"><small>استلمنا بهاي الأيام</small><b>${dinar(T.rec)}</b><small>بذمة السواق هسه: ${fmt(T.now)}</small></div>
+      <div class="kpi"><small>السلف</small><b>${dinar(sum(AD,x=>x.amount))}</b><small>سواق ${fmt(T.adv)} · إدارة ${fmt(sum(AD.filter(x=>x.staff),x=>x.amount))}</small></div>
+      <div class="kpi"><small>ديون على زبائن</small><b>${dinar(sum(DB,x=>x.amount))}</b><small>ما تنحسب بالصافي</small></div></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>السائق</th><th>السفرات</th><th>الكروة</th><th>المصاريف</th><th>الصافي</th><th>استلمنا</th><th>بذمته هسه</th><th>السلف</th><th>الديون</th></tr></thead>
+      <tbody>${rows.map(x=>`<tr><td><b>${esc(x.c.driver_name)}</b></td><td class="num">${x.n}${x.ln?` <small>+${x.ln} خط</small>`:""}</td><td class="num">${fmt(x.fares)}</td><td class="num">${x.exp?"− "+fmt(x.exp):"—"}</td><td class="num"><b>${fmt(x.net)}</b></td><td class="num">${x.rec?fmt(x.rec):"—"}</td><td class="num">${x.now?`<b>${fmt(x.now)}</b>`:"0"}</td><td class="num">${x.adv?fmt(x.adv):"—"}</td><td class="num">${x.dbt?fmt(x.dbt):"—"}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><th>المجموع</th><td class="num">${T.n}</td><td class="num"><b>${fmt(T.fares)}</b></td><td class="num">− ${fmt(T.exp)}</td><td class="num"><b>${fmt(T.net)}</b></td><td class="num">${fmt(T.rec)}</td><td class="num"><b>${fmt(T.now)}</b></td><td class="num">${fmt(T.adv)}</td><td class="num">${fmt(T.dbt)}</td></tr></tfoot></table></div>
     <h3 class="h4" style="margin-top:16px">💸 الصرفيات (${EX.length}) · ${dinar(sum(EX,x=>x.amount))}</h3>
     ${EX.length?`<ul class="log">${EX.map(x=>`<li><span class="pill s-idle">${fmt(x.amount)}</span><span><b>${esc(x.driver_name||"")}</b>${x.staff?" (إدارة)":""} · ${dl(x.day)}${x.note?" · "+esc(x.note):""} <small>${x.staff?"":x.from_cash?"· من الكاش اللي بيده":"· من المكتب"}</small></span><small>${esc(x.by||"")}</small></li>`).join("")}</ul>`:`<p class="note">ماكو صرفيات.</p>`}
     <h3 class="h4" style="margin-top:16px">🧾 الديون على الزبائن (${DB.length}) · ${dinar(sum(DB,x=>x.amount))} <small style="color:var(--muted);font-weight:400">ما تنحسب بالصافي</small></h3>
