@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611181210";
+const BUILD="202611181243";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2601,7 +2601,7 @@ async function renderNet(){
   $("#nt-f").onchange=e=>{netFrom=e.target.value;if(netTo<netFrom)netTo=netFrom;renderNet()};
   $("#nt-t").onchange=e=>{netTo=e.target.value;if(netTo<netFrom)netFrom=netTo;renderNet()};
   const to=netTo>today?today:netTo;
-  let r,LG; try{[r,LG]=await Promise.all([rpc("taxi_admin_period",{p_pin:PIN,p_from:netFrom,p_to:to}),rpc("taxi_admin_ledger_range",{p_pin:PIN,p_car:null,p_from:netFrom,p_to:to})])}
+  let r,LG,DC; try{[r,LG,DC]=await Promise.all([rpc("taxi_admin_period",{p_pin:PIN,p_from:netFrom,p_to:to}),rpc("taxi_admin_ledger_range",{p_pin:PIN,p_car:null,p_from:netFrom,p_to:to}),rpc("taxi_admin_day_closes",{p_pin:PIN,p_from:netFrom,p_to:to}).catch(()=>({closes:[]}))])}
   catch(e){$("#ntb").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
   const C=r.cars, sum=(L,f)=>L.reduce((a,x)=>a+(f?f(x):x),0);
   const rows=C.map(c=>{const ex=c.ledger.filter(x=>x.kind==="expense");const e=sum(ex,x=>x.amount);
@@ -2619,7 +2619,8 @@ async function renderNet(){
       <div class="kpi"><small><b>الصافي</b></small><b>${dinar(T.net-sex)}</b><small>بدون سلف وديون</small></div>
       <div class="kpi"><small>استلمنا بهاي الأيام</small><b>${dinar(T.rec)}</b><small>بذمة السواق هسه: ${fmt(T.now)}</small></div>
       <div class="kpi"><small>السلف</small><b>${dinar(sum(AD,x=>x.amount))}</b><small>سواق ${fmt(T.adv)} · إدارة ${fmt(sum(AD.filter(x=>x.staff),x=>x.amount))}</small></div>
-      <div class="kpi"><small>ديون على زبائن</small><b>${dinar(sum(DB,x=>x.amount))}</b><small>ما تنحسب بالصافي</small></div></div>
+      <div class="kpi"><small>ديون على زبائن</small><b>${dinar(sum(DB,x=>x.amount))}</b><small>ما تنحسب بالصافي</small></div>
+      ${DC.closes.length?`<div class="kpi"><small>📥 الكاش المستلم (${DC.closes.length} يوم)</small><b>${dinar(sum(DC.closes,x=>x.amount))}</b><small>${DC.closes.slice().reverse().map(c=>new Date(c.at).toLocaleDateString("ar-IQ",{day:"numeric",month:"numeric"})+": "+fmt(c.amount)).join(" · ")}</small></div>`:""}</div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>السائق</th><th>السفرات</th><th>الكروة</th><th>المصاريف</th><th>الصافي</th><th>استلمنا</th><th>بذمته هسه</th><th>السلف</th><th>الديون</th></tr></thead>
       <tbody>${rows.map(x=>`<tr><td><b>${esc(x.c.driver_name)}</b></td><td class="num">${x.n}${x.ln?` <small>+${x.ln} خط</small>`:""}</td><td class="num">${fmt(x.fares)}</td><td class="num">${x.exp?"− "+fmt(x.exp):"—"}</td><td class="num"><b>${fmt(x.net)}</b></td><td class="num">${x.rec?fmt(x.rec):"—"}</td><td class="num">${x.now?`<b>${fmt(x.now)}</b>`:"0"}</td><td class="num">${x.adv?fmt(x.adv):"—"}</td><td class="num">${x.dbt?fmt(x.dbt):"—"}</td></tr>`).join("")}</tbody>
       <tfoot><tr><th>المجموع</th><td class="num">${T.n}</td><td class="num"><b>${fmt(T.fares)}</b></td><td class="num">− ${fmt(T.exp)}</td><td class="num"><b>${fmt(T.net)}</b></td><td class="num">${fmt(T.rec)}</td><td class="num"><b>${fmt(T.now)}</b></td><td class="num">${fmt(T.adv)}</td><td class="num">${fmt(T.dbt)}</td></tr></tfoot></table></div>
@@ -2632,6 +2633,26 @@ async function renderNet(){
   $("#nt-c").onclick=()=>copy([`📊 الصافي ${netFrom} ← ${to}`,...rows.map(x=>`- ${x.c.driver_name}: كروة ${fmt(x.fares)}${x.exp?` − مصاريف ${fmt(x.exp)}`:""} = ${fmt(x.net)}${x.now?` · بذمته ${fmt(x.now)}`:""}`),
     `المجموع: كروة ${fmt(T.fares)} − مصاريف ${fmt(T.exp+sex)} = صافي ${fmt(T.net-sex)}`,`استلمنا ${fmt(T.rec)} · بذمة السواق هسه ${fmt(T.now)}`,
     DB.length?`ديون على زبائن: ${fmt(sum(DB,x=>x.amount))}`:"",AD.length?`سلف: ${by(AD).map(([n,L])=>per(n)+" "+fmt(sum(L,x=>x.amount))).join("، ")}`:""].filter(Boolean).join("\n"));
+}
+/* ---------- 📥 الكاش المستلم: the office enters the cash it received, the day closes and a new one starts ---------- */
+async function dayCloseCard(){const box=$("#dc-card"); if(!box) return;
+  let d; try{d=await rpc("taxi_admin_day_closes",{p_pin:PIN,p_from:null,p_to:null})}catch(e){box.innerHTML="";return}
+  const o=d.open, net=o.fares-o.expenses, tm=t=>new Date(t).toLocaleString("ar-IQ",{timeZone:"Asia/Baghdad",weekday:"short",day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"});
+  box.innerHTML=`<div class="money" style="border-color:var(--ok,#16935a);margin:10px 0">
+    <div class="money-top"><span>📥 الكاش المستلم · اليوم المفتوح من ${tm(o.from)}</span><b>${dinar(net)}</b></div>
+    <div class="calc"><div><span>الكروة (${o.trips} سفرة)</span><b>${dinar(o.fares)}</b></div>${o.expenses?`<div><span>− مصاريف</span><b>${dinar(o.expenses)}</b></div>`:""}<div class="tot"><span>الصافي بالنظام</span><b>${dinar(net)}</b></div></div>
+    ${o.drivers.length?`<small>${o.drivers.map(x=>`${esc(x.name.split(" ")[0])} ${fmt(x.fares)}`).join(" · ")}</small>`:""}${o.running?`<small> · ⏳ ${o.running} سفرة شغّالة بعد</small>`:""}
+    <div class="row" style="gap:8px;align-items:stretch;margin-top:8px"><input id="dc-a" inputmode="numeric" placeholder="المبلغ اللي بيدك، مثال 721 أو 721000" style="flex:1;min-width:0;font-size:18px" aria-label="الكاش المستلم"><button class="btn primary" id="dc-ok">✅ الكاش المستلم</button></div>
+    <small id="dc-v" class="fare-v" aria-live="polite"></small>
+    <input id="dc-n" maxlength="300" placeholder="ملاحظة (اختياري)" style="margin-top:6px" aria-label="ملاحظة">
+    <div class="err" id="dc-e"></div>
+    <small>بعد ما تضغط: المبلغ ينحفظ، حساب اليوم يتصفّر ويبدي يوم جديد لكل السواق، والمبلغ يدخل بصافي الـ3 أيام.</small></div>
+    ${d.closes.length?`<h4 class="h4">الأيام اللي انسدّت</h4><div class="tbl-wrap"><table class="tbl"><thead><tr><th>انسدّ</th><th>الكاش المستلم</th><th>الصافي بالنظام</th><th>الفرق</th><th>منو</th><th></th></tr></thead><tbody>${d.closes.slice(0,12).map(c=>`<tr><td>${tm(c.at)}${c.note?`<br><small>${esc(c.note)}</small>`:""}</td><td class="num"><b>${fmt(c.amount)}</b></td><td class="num">${fmt(c.net)}</td><td class="num">${c.amount-c.net?`<span class="pill ${c.amount<c.net?"s-bad":"s-ok"}">${c.amount>c.net?"+":"−"}${fmt(Math.abs(c.amount-c.net))}</span>`:"✓"}</td><td><small>${esc(c.by||"")}</small></td><td>${OWNER()?`<button class="btn sm danger" data-dcdel="${c.id}">حذف</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:""}`;
+  const val=()=>{let n=parseInt(($("#dc-a",box).value||"").replace(/[٠-٩]/g,x=>"٠١٢٣٤٥٦٧٨٩".indexOf(x)).replace(/\D/g,""),10)||0;return n>0&&n<10000?n*1000:n};
+  $("#dc-a",box).oninput=()=>{const v=val();$("#dc-v",box).textContent=v?`= ${dinar(v)}${v-net?` · ${v>net?"أكثر":"أقل"} من الصافي بـ ${fmt(Math.abs(v-net))}`:" · مطابق ✓"}`:""};
+  $("#dc-ok",box).onclick=()=>{const v=val(); if(!v){$("#dc-e",box).textContent="اكتب المبلغ اللي بيدك";return}
+    confirmBox(`تسجّل الكاش المستلم ${dinar(v)} وتصفّر اليوم؟ يبدي يوم جديد لكل السواق.`,"✅ نعم",async()=>{try{await rpc("taxi_admin_day_close",{p_pin:PIN,p_amount:String(v),p_note:$("#dc-n",box).value});toast("انسجل، وبدا يوم جديد");dayCloseCard()}catch(e){$("#dc-e",box).textContent=e.message}},"رجوع")};
+  box.querySelectorAll("[data-dcdel]").forEach(b=>b.onclick=()=>confirmBox("تحذف هذا التسكير؟","حذف",async()=>{try{await rpc("taxi_admin_day_close_delete",{p_pin:PIN,p_id:+b.dataset.dcdel});dayCloseCard()}catch(e){toast(e.message)}},"رجوع"));
 }
 /* ---------- calculator for the accounts: add / subtract amounts, small numbers are thousands (105.5 = 105,500) ---------- */
 let CALC=(()=>{try{return JSON.parse(localStorage.getItem("taxi_calc")||"[]")}catch{return[]}})();
@@ -2949,11 +2970,13 @@ async function renderEntry(){
     <div class="ent-nav"><button class="btn" id="en-p" aria-label="اليوم السابق">‹ ${dLbl(shift(-1))}</button>
       <label class="ent-day"><input type="date" id="en-d" value="${entDay}" max="${today}"><b>${dl}</b></label>
       <button class="btn" id="en-n" ${entDay>=today?"disabled":""} aria-label="اليوم الجاي">${entDay>=today?"اليوم":dLbl(shift(1))+" ›"}</button></div>
+    <div id="dc-card"></div>
     <p class="note" style="margin:0 0 10px">اكتب لكل سائق شكد <b>جاب</b> بهذا اليوم وشكد <b>استلمت</b> منه. ينحفظ وحده أول ما تطلع من الخانة، وكل يوم بحساباته.</p>
     <div id="enb"><div class="empty">جارٍ التحميل…</div></div>
     <div class="ent-foot"><span id="en-st" aria-live="polite"></span>${entDay<today?`<button class="btn primary" id="en-next">✓ خلصت هذا اليوم، روح لـ ${dLbl(shift(1))} ›</button>`:""}</div></div>`;
   const go=async d=>{if(entPending)await entPending; entDay=d; renderEntry()};
   bindEntMode();
+  if(entDay===today) dayCloseCard();
   $("#en-p").onclick=()=>go(shift(-1)); $("#en-n").onclick=()=>entDay<today&&go(shift(1));
   $("#en-d").onchange=e=>e.target.value&&go(e.target.value>today?today:e.target.value);
   if($("#en-next"))$("#en-next").onclick=()=>go(shift(1));
