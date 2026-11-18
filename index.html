@@ -873,7 +873,7 @@ function pendingView(){const me=S.me;
 
 /* ---------- push ---------- */
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const APP_BUILD='9a7e455cfc';
+const APP_BUILD='8db6021dc4';
 async function checkUpdate(){if(APP_BUILD==='dev'||document.hidden||!navigator.onLine)return;try{const t=await(await fetch(location.pathname+'?u='+Date.now(),{cache:'no-store'})).text();const m=t.match(/const APP_BUILD='([^']+)'/);
   if(m&&m[1]!=='dev'&&m[1]!==APP_BUILD){if(!$('#ovroot')?.dataset.kind&&!document.querySelector('input:focus,textarea:focus,select:focus'))location.reload();else S._updWait=1}}catch(e){}}
 setInterval(checkUpdate,3*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setTimeout(checkUpdate,15000);
@@ -2656,7 +2656,7 @@ function acsumView(){
     <div><b style="color:var(--bad)">المصروف حسب الفئة</b>${bars(byCat('out'),'var(--bad)')}</div><div><b style="color:var(--ok)">الوارد حسب المصدر</b>${bars(byCat('in'),'var(--ok)')}</div></div>
     <p class="note" style="margin-top:12px">للمقارنة: مشتريات وفواتير مسجلة بالنظام (المخازن والمندوبين) لهذا الشهر: <b class="num">${iqd(sysOut)}</b> د.ع</p></div>`}
 function cashForm(kind,c){const n=!c;const sl=isSales(),pp=isPayer();if(pp)kind='out';c=c||{kind:sl?'in':(kind||'out'),day:bgDay(),category:sl?SALES_CAT:'',amount:'',party:'',note:'',ref:''};let k=c.kind;
-  const cats=kk=>'<option value="">— اختر الفئة —</option>'+CASH_CAT[kk].map(x=>`<option ${c.category===x?'selected':''}>${x}</option>`).join('');
+  const cats=kk=>'<option value="">— اختر الفئة —</option>'+CASH_CAT[kk].filter(x=>!(S.me?.role==='accountant'&&S.settings?.salesSep&&['إيرادات مبيعات','إيجارات','خدمات','محفظة الزبائن'].includes(x))).map(x=>`<option ${c.category===x?'selected':''}>${x}</option>`).join('');
   overlay('cash',n?(sl?'تسجيل بيع / مبلغ مستلم':k==='in'?'تسجيل وارد':'تسجيل صرف'):'تعديل حركة',`<form class="f" id="fCash">
    <div class="seg" style="width:100%" ${sl||pp?'hidden':''}><label><input type="radio" name="cK" value="in" ${k==='in'?'checked':''}>وارد (دخل للصندوق)</label><label><input type="radio" name="cK" value="out" ${k==='out'?'checked':''}>صرف (طلع من الصندوق)</label></div>
    <div class="fr"><label class="l">المبلغ (دينار)<input id="cAmt" class="in num" dir="ltr" inputmode="numeric" required value="${c.amount?iqd(c.amount):''}" placeholder="250,000"></label>
@@ -3637,7 +3637,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!
 
 /* ===== المبيعات: الوحدات · الحجز وخطة الدفع · الأقساط · المستأجرين ===== */
 const SALES_SEE=['sales','sales_staff','owner','project','accountant','admin1','admin2'];
-const seesSales=()=>SALES_SEE.includes(S.me?.role);const writesSales=()=>['sales','sales_staff','owner'].includes(S.me?.role);const managesSales=()=>['sales','owner'].includes(S.me?.role);
+const seesSales=()=>SALES_SEE.includes(S.me?.role)&&!(S.me?.role==='accountant'&&S.settings?.salesSep);const writesSales=()=>['sales','sales_staff','owner'].includes(S.me?.role);const managesSales=()=>['sales','owner'].includes(S.me?.role);
 const RENT_CAT='إيجارات';
 const PLAN0={price_m:1750000,down:90000000,handover:50000000,monthly:2000000,base:84,max:90};
 const plan0=()=>({...PLAN0,...(S.settings?.sales||{})});

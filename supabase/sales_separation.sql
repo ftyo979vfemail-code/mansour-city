@@ -1,0 +1,8 @@
+-- فصل المحاسب عن المبيعات (ترحيل separate_accountant_from_sales و _2)
+-- settings.main.data.salesSep = true  (مفعّل لفرع تيجان ستي - mansour فقط)
+-- private.acc_no_sales(): المحاسب + الفرع مفصول
+-- sees_sales() يرجع false للمحاسب بهذا الفرع (العقود، الوحدات، الخدمات، سجل العقود)
+-- cash_read/cash_upd/cash_ins: المحاسب ما يشوف ولا يسجل ولا يعدّل حركات المبيعات
+--   (contract_id أو فئات: إيرادات مبيعات، إيجارات، خدمات، محفظة الزبائن)
+-- sales_wallet.sw_r: المحاسب ما يشوف المحفظة
+-- sales_pay_row / wallet_use_edit: المحاسب المفصول ما يعدّل دفعات الزباين
