@@ -1,0 +1,7 @@
+-- ترحيل: sales_staff_permissions
+-- staff.perms jsonb : صلاحيات موظفة المبيعات (book,pay,remind,svc,wallet,edit,kedit,cancel,units,import,plans)
+-- الافتراضي المفتوح: book,pay,remind,svc,wallet (نفس اللي كانت تكدر عليه قبل)
+-- public.sales_can(cap): sales/owner = true · sales_staff حسب perms
+-- public.set_staff_perms(uid, perms): بس مسؤول المبيعات أو المالك، وللموظفات بنفس الفرع
+-- مربوطة بالسيرفر: contracts k_ins(book)/k_upd(kedit|cancel) · units u_ins(units) · svc_ins(svc) · sales_remind(remind)
+--   cash_ins (pay/svc) · wallet_op(wallet) · sales_pay_row/wallet_use_edit(edit) · set_sales_plans(plans)
