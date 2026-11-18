@@ -89,3 +89,19 @@ create or replace function public.taxi_session_boundary(p_car uuid, p_at timesta
     select max(at) from taxi_day_closes where at <= p_at
   ) b
 $$;
+
+-- expenses of a stretch go by the day they belong to (an expense entered today for yesterday stays in yesterday)
+do $do$ declare d text; begin
+  d := pg_get_functiondef('public.taxi_open_stretch(timestamptz,timestamptz)'::regprocedure);
+  if position('day > (p_from' in d) = 0 then
+    d := replace(d, $a$from taxi_ledger where kind = 'expense' and at >= p_from and at < p_to)$a$,
+      $a$from taxi_ledger where kind = 'expense'
+        and (day > (p_from at time zone 'Asia/Baghdad')::date or (day = (p_from at time zone 'Asia/Baghdad')::date and at >= p_from))
+        and (day < (p_to at time zone 'Asia/Baghdad')::date or (day = (p_to at time zone 'Asia/Baghdad')::date and at < p_to)))$a$);
+    execute d;
+  end if;
+end $do$;
+
+-- data (2026-11-18, owner): 15→17/11 closed with 721,000 cash (close at 18/11 00:00), balances up to 17/11 zeroed:
+--  * Ali's 10,000 advance #43 (17/11) not from cash (he handed all 38,000).
+--  * Wisam's 25,000 advance #38 split: 15,000 from cash + 10,000 office. Backup: taxi_backup.close17_ledger_20261118.
