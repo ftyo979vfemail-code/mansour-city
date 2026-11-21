@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611181243";
+const BUILD="202611211530";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -3615,7 +3615,8 @@ function showTrip(t,force){
       <div class="field" id="tr-to-f" ${drvZone===0?"":"hidden"}><label for="tr-to">اسم المكان</label><input id="tr-to" value="${esc(drvTo)}"></div>
       <button class="btn primary big" id="tr-start">بدء سفرة</button>
       <button class="btn big" id="tr-sp">⭐ زبون خاص (بدون كروة)</button>
-      <button class="btn big" id="tr-line">🛣 رايح أوصل خط</button></div>${sum}`;
+      <button class="btn big" id="tr-line">🛣 رايح أوصل خط</button>
+      <button class="btn big" id="tr-past">📅 سجّل سفرة البارحة (نسيتها)</button></div>${sum}`;
     emptyKey=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT,today.closing&&today.closing.id,(today.bookings||[]).map(b=>b.id).join(),(today.debts||[]).map(b=>b.id).join()]);
     // zones as big buttons: one tap picks it; the choice survives the screen refreshing every few seconds
     const zs=today.zones||[];
@@ -3633,6 +3634,7 @@ function showTrip(t,force){
       drvZone=null;drvQ="";drvTo="";tripAct("start",p)};
     $("#tr-sp").onclick=()=>specialForm(null);
     $("#tr-line").onclick=()=>lineForm(B);
+    $("#tr-past").onclick=()=>pastTripForm(zs);
     const rd=$("#tr-ready"); if(rd) rd.onclick=()=>tripAct("ready");
     const db=$("#dep-btn"); if(db) db.onclick=depositForm; return}
   const where=`<p><b>من:</b> ${esc(t.pickup||"—")}${t.pickup_lat?` <a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍 الخريطة</a>`:""}<br><b>إلى:</b> ${esc(t.dropoff||"—")}${t.dropoff_note?` <small>(${esc(t.dropoff_note)})</small>`:""}${t.customer_name?`<br><b>الزبون:</b> ${esc(t.customer_name)}`:""}${t.note?`<br><b>ملاحظة:</b> ${esc(t.note)}`:""}${t.zone_id&&t.fare?`<br><b>الأجرة:</b> ${fmt(t.fare)} د.ع (ثابتة)`:""}${t.points_used?`<br><b style="color:var(--ok)">⭐ الزبون دافع ${fmt(t.points_used)} بالنقاط، استلم منه ${fmt(t.collect)} بس</b>`:""}</p>`;
@@ -3915,16 +3917,42 @@ function moneyCard(){
     ${free>0?`<button type="button" class="btn primary big" id="dep-btn">إيداع: سلّمت المبلغ للإدارة</button>`
       :`<div class="money-ok">✔ ما عليك شي للشركة هسه${m.pending?"، والإيداع بانتظار التأكيد":""}${m.last_collected&&!m.pending?`<br><small>آخر استلام سجّلته الإدارة: ${dinar(m.last_collected.amount)} · ${new Date(m.last_collected.at).toLocaleString("ar-IQ",{weekday:"short",hour:"2-digit",minute:"2-digit"})}</small>`:""}</div>`}</div>`;
 }
+// a trip from yesterday the driver forgot to record: zone price, or a typed place + fare
+function pastTripForm(zs){
+  let pz=null;
+  const md=modal(`<h3>📅 سفرة البارحة</h3><p style="margin:0">سجّل سفرة سوّيتها البارحة ونسيت تسجّلها. تنحسب على يوم البارحة وتوصل للإدارة.</p>
+    <div class="field"><label for="pt-q">إلى وين جانت؟</label><input id="pt-q" type="search" placeholder="🔎 ابحث عن منطقة" autocomplete="off"></div>
+    <div class="zones dz" id="pt-z" role="radiogroup" aria-label="المنطقة" style="max-height:38vh"></div>
+    <div id="pt-o" hidden><div class="field"><label for="pt-to">اسم المكان</label><input id="pt-to"></div>
+      <div class="field"><label for="pt-f">الكروة (دينار)</label><input id="pt-f" inputmode="numeric" style="font:600 22px var(--mono);text-align:center"></div></div>
+    <div class="err" id="pt-e"></div><div class="row"><button class="btn" id="pt-c">رجوع</button><button class="btn primary" id="pt-ok">سجّل سفرة البارحة</button></div>`);
+  const draw=()=>{const q=$("#pt-q",md).value.trim();const L=zs.filter(z=>!q||z.name.includes(q));
+    $("#pt-z",md).innerHTML=L.map(z=>`<button type="button" role="radio" aria-checked="${pz===z.id}" class="zchip${pz===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}<small>${fmt(z.price)}</small></button>`).join("")
+      +`<button type="button" role="radio" aria-checked="${pz===0}" class="zchip other${pz===0?" on":""}" data-z="0">✏️ منطقة أخرى</button>`;
+    $("#pt-z",md).querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{pz=+b.dataset.z;$("#pt-o",md).hidden=pz!==0;draw()})};
+  draw(); $("#pt-q",md).oninput=draw;
+  $("#pt-c",md).onclick=()=>md.remove();
+  $("#pt-ok",md).onclick=async()=>{const b=$("#pt-ok",md);
+    if(pz==null){$("#pt-e",md).textContent="اختار المنطقة";return}
+    const p=pz?{zone_id:pz}:{dropoff:$("#pt-to",md).value,fare:$("#pt-f",md).value};
+    b.disabled=true;try{const r=await rpc("taxi_driver_past_trip",{p_code:CODE,p});md.remove();toast(`انسجلت سفرة البارحة: ${r.dropoff} ${fmt(r.fare)}`);curTrip=undefined;if(EXT)setExt(true);else await refreshTrip()}
+    catch(e){$("#pt-e",md).textContent=e.message;b.disabled=false}};
+}
 function depositForm(){
   const m=today.money||{}, free=Math.max(0,(m.in_hand||0)-(m.pending||0));
   const md=modal(`<h3>💵 إيداع للإدارة</h3><p style="margin:0">اكتب المبلغ اللي سلّمته للإدارة (أكثر شي ${dinar(free)}). ينحسب بعد ما الإدارة تأكد إنها استلمته.</p>
     <div class="field"><label for="dp-a">المبلغ (دينار)</label><input id="dp-a" inputmode="numeric" value="${free}" style="font:600 24px var(--mono);text-align:center"></div>
+    <div class="field"><p style="margin:0 0 6px;font-weight:600">هذا الإيداع عن:</p><div class="row2" role="radiogroup" aria-label="يوم الإيداع">
+      <button type="button" class="btn big primary" role="radio" aria-checked="true" data-dd="today">إيداع اليوم</button>
+      <button type="button" class="btn big" role="radio" aria-checked="false" data-dd="yesterday">إيداع البارحة</button></div></div>
     <div class="field"><label for="dp-n">ملاحظة (اختياري)</label><input id="dp-n" placeholder="مثال: سلّمته لأبو علي"></div>
     <div class="err" id="dp-e"></div><div class="row"><button class="btn" id="dp-c">رجوع</button><button class="btn primary" id="dp-ok">إرسال الإيداع</button></div>`);
+  let dday="today";
+  md.querySelectorAll("[data-dd]").forEach(x=>x.onclick=()=>{dday=x.dataset.dd;md.querySelectorAll("[data-dd]").forEach(y=>{const on=y===x;y.setAttribute("aria-checked",on);y.classList.toggle("primary",on)})});
   $("#dp-c",md).onclick=()=>md.remove();
   $("#dp-ok",md).onclick=async()=>{const a=parseInt(($("#dp-a",md).value||"").replace(/\D/g,""),10);const b=$("#dp-ok",md);
     if(!a){$("#dp-e",md).textContent="اكتب المبلغ";return}
-    b.disabled=true;try{const r=await rpc("taxi_driver_deposit",{p_code:CODE,p_amount:a,p_note:$("#dp-n",md).value});today.money=r;md.remove();toast("انرسل الإيداع، بانتظار تأكيد الإدارة");curTrip=undefined;showTrip(null,true)}
+    b.disabled=true;try{const r=await rpc("taxi_driver_deposit",{p_code:CODE,p_amount:a,p_note:$("#dp-n",md).value,p_day:dday});today.money=r;md.remove();toast("انرسل الإيداع، بانتظار تأكيد الإدارة");curTrip=undefined;showTrip(null,true)}
     catch(e){$("#dp-e",md).textContent=e.message;b.disabled=false}};
 }
 function clock(s){s=Math.max(0,s|0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(x).padStart(2,"0")}

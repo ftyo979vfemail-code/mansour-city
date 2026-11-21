@@ -1,0 +1,6 @@
+-- 63: drivers add a trip for yesterday (taxi_driver_past_trip) and pick a deposit day (today / yesterday).
+--  * taxi_trips.late_day: the day a late trip counts on; taxi_trip_wday_trg keeps it.
+--  * taxi_deposits.for_day: when the office confirms, the receipt gets taxi_cash.manual_day = for_day.
+--  * taxi_shift_start / taxi_shift_day: work day 07:00 → 07:00 (Baghdad); a trip never inherits a day from before the last 07:00.
+--  * taxi_admin_manual_cash_set only replaces its own «استلام قديم» rows.
+-- Applied on Supabase as migrations taxi_wday_7am_boundary, taxi_driver_yesterday_trips_deposits, taxi_manual_cash_only_old.
