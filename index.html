@@ -3718,9 +3718,10 @@ const kPartsTxt=(c,k)=>{const P=kParts(c,k);return P&&P.length>1?` (${P.length} 
 function kState(c){const sch=kSchedule(c),now=bgDay(),seen={},byKey={};let due=0,over=0,next=null,paid=0,pool=0;
   sch.forEach(r=>{let k=r.k+'|'+(r.d||'')+'|'+r.label;if(seen[k])k+='#'+(++seen[k]);else seen[k]=1;r.key=k;r.paid=0;r.pays=[];byKey[k]=r});
   const PR=kPayRows(c),FL=[];
-  PR.forEach(p=>{paid+=p.amount;const r=p.inst&&byKey[p.inst];let left=p.amount;if(r){const t=Math.min(left,r.a-r.paid);if(t>0){r.paid+=t;r.pays.push({...p,part:t,direct:true});left-=t}}if(left>0)FL.push({p,left})});
-  /* غير المربوط والزايد: يتوزع على الأقدم، وكل قسط يحفظ منو سدّده وبشكد */
-  let ri=0;FL.forEach(f=>{while(f.left>0&&ri<sch.length){const r=sch[ri],room=r.a-r.paid;if(room<=0){ri++;continue}const t=Math.min(f.left,room);r.paid+=t;r.pays.push({...f.p,part:t,direct:false});f.left-=t;if(r.a-r.paid<=0)ri++}});
+  PR.forEach(p=>{paid+=p.amount;const r=p.inst&&byKey[p.inst];let left=p.amount;if(r){const t=Math.min(left,r.a-r.paid);if(t>0){r.paid+=t;r.pays.push({...p,part:t,direct:true});left-=t}}if(left>0)FL.push({p,left,from:r?sch.indexOf(r):0})});
+  /* الزايد من دفعة مربوطة بقسط: يكمل على الأقساط الي بعده (مو يرجع للمقدمة). غير المربوط: يتوزع على الأقدم */
+  const fill=(f,i0)=>{for(let i=i0;i<sch.length&&f.left>0;i++){const r=sch[i],room=r.a-r.paid;if(room<=0)continue;const t=Math.min(f.left,room);r.paid+=t;r.pays.push({...f.p,part:t,direct:false});f.left-=t}};
+  FL.forEach(f=>{fill(f,f.from);if(f.left>0)fill(f,0)});
   sch.forEach(r=>r.pays.sort((x,y)=>((x.day||'')+(x.t||''))<((y.day||'')+(y.t||''))?-1:1));
   /* مستحقة = يومها وصل؛ متأخرة = عبر يومها بيوم (حتى لو مسدد منها جزء) */
   sch.forEach(r=>{const isDue=r.k==='hand'?['delivered','done'].includes(c.status):r.d<=now,isLate=r.k==='hand'?isDue:r.d<now;r.due=isDue;r.late=isLate;r.rem=Math.max(0,r.a-r.paid);r.st=r.rem<=0?'paid':isLate?(r.paid>0?'partlate':'late'):r.paid>0?'part':'';if(isDue)due+=r.a;if(isLate)over+=r.rem;if(!next&&r.rem>0&&r.k!=='hand')next=r});
