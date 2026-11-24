@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611211530";
+const BUILD="202611241515";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1651,7 +1651,7 @@ let prevSp=[], prevSpInit=false;
 function specialBar(sp){const bar=$("#spbar"); if(!bar) return;
   if(!sp.length){bar.hidden=true;prevSp=[];prevSpInit=true;return}
   bar.hidden=false;
-  bar.innerHTML=sp.map(t=>`<div class="sp-row"><span>⭐ <b>زبون خاص (بدون كروة)</b>: ${plateHTML(t.plate)} ${esc(t.driver_name||"")} يكول: «${esc(t.special_note||"")}»${t.dropoff?` ← ${esc(t.dropoff)}`:""}</span>${FULL()?`<span class="acts"><button class="btn sm primary" data-spok="${t.id}">✔ موافق</button><button class="btn sm" data-spno="${t.id}">✖ رفض</button></span>`:`<small>ينتظر موافقة المدير</small>`}</div>`).join("");
+  bar.innerHTML=sp.map(t=>`<div class="sp-row"><span>⭐ <b>زبون خاص (بدون كروة)</b>: ${plateHTML(t.plate)} ${esc(t.driver_name||"")} يكول: «${esc(t.special_note||"")}»${t.dropoff?` ← ${esc(t.dropoff)}`:""}</span><span class="acts"><button class="btn sm primary" data-spok="${t.id}">✔ موافق</button><button class="btn sm" data-spno="${t.id}">✖ رفض</button></span></div>`).join("");
   bar.querySelectorAll("[data-spok]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await rpc("taxi_admin_special",{p_pin:PIN,p_id:+b.dataset.spok,p_ok:true});toast("وافقت: السفرة بدون كروة");pollN=0;poll()}catch(e){toast(e.message);b.disabled=false}});
   bar.querySelectorAll("[data-spno]").forEach(b=>b.onclick=()=>{const m=modal(`<h3>رفض الزبون الخاص؟</h3><p style="margin:0">السفرة تكمّل بكروة عادية.</p><div class="field"><label for="spr">السبب (يشوفه السائق)</label><input id="spr" maxlength="200"></div><div class="err" id="spr-e"></div><div class="row"><button class="btn" id="spr-x">رجوع</button><button class="btn primary" id="spr-ok">رفض</button></div>`);
     $("#spr-x",m).onclick=()=>m.remove();
