@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611251650";
+const BUILD="202611251700";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1645,6 +1645,7 @@ function adminShell(){
      <div class="alert reqbar spbar" id="cxbar" hidden></div>
      <div class="alert reqbar" id="scbar" hidden></div>
      <div class="alert" id="alert" hidden></div>
+     <button type="button" class="btn primary big" id="calls-btn" style="margin:8px 0">📞 اتصالات التكسي: دز سفرة لسائق</button>
      <nav class="tabs" role="tablist">
        <button role="tab" data-t="live">الخريطة الحيّة</button>
        <button role="tab" data-t="files">ملفات السواق</button>
@@ -1678,6 +1679,9 @@ function adminShell(){
   if(!FULL()) document.querySelectorAll(".tabs button").forEach(b=>{if(MONEY_TABS.includes(b.dataset.t))b.remove()});
   if(!OWNER()){["inv"].forEach(k=>{const ib=document.querySelector(`.tabs [data-t="${k}"]`);if(ib)ib.remove()});if(tab==="inv")tab="live"}
   document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderTab()});
+  const cbtn=$("#calls-btn"); if(cbtn) cbtn.onclick=async()=>{cbtn.disabled=true;
+    try{const r=await rpc("taxi_admin_disp_token",{p_pin:PIN});const w=window.open(dispLink(r.token),"_blank");if(!w)location.href=dispLink(r.token)}
+    catch(e){toast(e.message)}finally{cbtn.disabled=false}};
   document.addEventListener("pointerdown",()=>{try{audioCtx=audioCtx||new AudioContext()}catch{}},{once:true});
   renderTab(); poll(); pollT=setInterval(poll,5000);
 }
