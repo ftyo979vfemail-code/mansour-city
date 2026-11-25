@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611251720";
+const BUILD="202611251730";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -718,7 +718,7 @@ function landingApp(){
 
   <footer class="lp-foot"><div class="lp-in">
     <img src="img/logo-light.png" alt="تكسي مجمع المنصور" width="26" height="40" style="width:auto">
-    <nav><a href="#login">دخول الزبائن</a><a href="#admin">دخول الإدارة</a><a href="#disp">اتصالات التكسي</a><a href="#driver">صفحة السائق</a><a href="${APK_URL}">تطبيق السائق</a></nav>
+    <nav><a href="#login">دخول الزبائن</a><a href="#admin">دخول الإدارة</a><a href="#driver">صفحة السائق</a><a href="${APK_URL}">تطبيق السائق</a></nav>
     <span>© ${new Date().getFullYear()} تكسي مجمع المنصور</span>
   </div></footer>
   </div>`;
@@ -1683,6 +1683,7 @@ function adminShell(){
        <button role="tab" data-t="cust">الزبائن</button>
        <button role="tab" data-t="log">سجل التنبيهات</button>
        <button role="tab" data-t="set">الإعدادات</button>
+       <button type="button" class="calls-open" style="font-weight:700">📞 اتصالات التكسي</button>
      </nav>
    </div>
    <main class="view" id="view"></main></div>`;
@@ -1692,10 +1693,10 @@ function adminShell(){
   $("#out").onclick=()=>{sess.del("taxi_pin");PIN=null;ME=null;clearInterval(pollT);clearInterval(evT);adminGate()};
   if(!FULL()) document.querySelectorAll(".tabs button").forEach(b=>{if(MONEY_TABS.includes(b.dataset.t))b.remove()});
   if(!OWNER()){["inv"].forEach(k=>{const ib=document.querySelector(`.tabs [data-t="${k}"]`);if(ib)ib.remove()});if(tab==="inv")tab="live"}
-  document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderTab()});
-  const cbtn=$("#calls-btn"); if(cbtn) cbtn.onclick=async()=>{cbtn.disabled=true;
+  document.querySelectorAll(".tabs button[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderTab()});
+  document.querySelectorAll("#calls-btn,.calls-open").forEach(cbtn=>cbtn.onclick=async()=>{cbtn.disabled=true;
     try{const r=await rpc("taxi_admin_disp_token",{p_pin:PIN});const w=window.open(dispLink(r.token),"_blank");if(!w)location.href=dispLink(r.token)}
-    catch(e){toast(e.message)}finally{cbtn.disabled=false}};
+    catch(e){toast(e.message)}finally{cbtn.disabled=false}});
   document.addEventListener("pointerdown",()=>{try{audioCtx=audioCtx||new AudioContext()}catch{}},{once:true});
   renderTab(); poll(); pollT=setInterval(poll,5000);
 }
