@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611251600";
+const BUILD="202611251630";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1463,26 +1463,92 @@ window.addEventListener("hashchange",()=>location.reload());
 let DP={t:null,data:null,prev:[],init:false,open:null,actx:null};
 function dispApp(){
   const tok=store.get("taxi_disp");
-  document.title="توزيع الطلبات · تكسي مجمع المنصور";
-  if(!tok){$("#app").innerHTML=`<div class="gate"><div class="gate-card"><div class="brand"><div class="brand-mark">${ICON}</div><div><h1>توزيع الطلبات</h1><small>تكسي مجمع المنصور</small></div></div><p style="margin:0">امسح الباركود اللي تنطيك إياه الإدارة بكاميرا التلفون حتى تدخل.</p><a class="btn" href="#">الصفحة الرئيسية</a></div></div>`;return}
+  document.title="توجيه الكراوي · تكسي مجمع المنصور";
+  if(!tok){$("#app").innerHTML=`<div class="gate"><div class="gate-card"><div class="brand"><div class="brand-mark">${ICON}</div><div><h1>توجيه الكراوي</h1><small>تكسي مجمع المنصور</small></div></div><p style="margin:0">امسح الباركود اللي تنطيك إياه الإدارة بكاميرا التلفون حتى تدخل.</p><a class="btn" href="#">الصفحة الرئيسية</a></div></div>`;return}
   $("#app").innerHTML=`<div class="lp"><header class="hero ord-hero"><div class="lp-in hero-top"><img src="img/wordmark-light.png" alt="تكسي مجمع المنصور" width="105" height="70"><span id="dpn" style="color:#fff;font-weight:700"></span></div>
-    <div class="lp-in"><h1 class="ord-h1">توزيع الطلبات</h1></div></header>
-    <main class="lp-in ord"><div class="ocard" id="dpbox"><div class="empty">جارٍ التحميل…</div></div>
-    <p class="note" style="text-align:center">أول ما يوصل طلب زبون يرن التلفون. اضغط عليه واختار السائق.</p>
-    <button class="btn" id="dpout" style="align-self:center">خروج</button></main></div>`;
+    <div class="lp-in"><h1 class="ord-h1">توجيه الكراوي</h1></div></header>
+    <main class="lp-in ord">
+      <div class="ocard"><h2 style="margin:0 0 8px;font-size:18px">🗺 السواق</h2>
+        <div id="dpmap" style="height:46vh;min-height:280px;border-radius:12px;overflow:hidden"></div>
+        <p class="note" style="margin:6px 0 0">🟢 فاضي · 🟠 عنده سفرة · ⚪ غير متصل. اضغط على السائق بالخريطة أو بالقائمة حتى تختاره.</p></div>
+      <div class="ocard" id="dpform"><h2 style="margin:0 0 8px;font-size:18px">🚕 سفرة جديدة</h2>
+        <div class="field"><span style="font-weight:600">1. السائق</span><div class="dpick" id="dp-drv"></div></div>
+        <div class="field"><label for="dp-zq">2. الوجهة (وين رايح الزبون)</label><input id="dp-zq" type="search" placeholder="🔎 ابحث عن منطقة" autocomplete="off">
+          <div class="zones dz" id="dp-z" role="radiogroup" aria-label="الوجهة" style="max-height:30vh"></div></div>
+        <div id="dp-other" hidden><div class="grid2"><div class="field"><label for="dp-to">اسم المكان</label><input id="dp-to"></div>
+          <div class="field"><label for="dp-fare">الكروة (دينار)</label><input id="dp-fare" inputmode="numeric" placeholder="مثال: 10000"></div></div></div>
+        <div class="field"><span style="font-weight:600">3. مكان الزبون بالمجمع</span>
+          <div class="grid2"><div class="field"><label for="dp-b">العمارة</label><select id="dp-b" class="btn" style="width:100%"><option value="">اختار</option>${Array.from({length:13},(_,i)=>`<option>B${i+1}</option>`).join("")}</select></div>
+          <div class="field"><label for="dp-f">الطابق</label><select id="dp-f" class="btn" style="width:100%"><option value="">اختار العمارة أول</option></select></div></div>
+          <div class="grid2"><div class="field"><label for="dp-a">رقم الشقة</label><input id="dp-a" inputmode="numeric" maxlength="4"></div>
+          <div class="field"><label for="dp-cn">اسم الزبون (اختياري)</label><input id="dp-cn" maxlength="60"></div></div>
+          <div class="field"><label for="dp-nt">ملاحظة (اختياري)</label><input id="dp-nt" maxlength="200"></div></div>
+        <div class="calc"><div class="tot"><span id="dp-sum">اختار السائق والوجهة</span><b id="dp-pr">—</b></div></div>
+        <div class="err" id="dp-e"></div>
+        <button class="btn primary big" id="dp-go">📲 دز السفرة للسائق</button></div>
+      <div class="ocard"><h2 style="margin:0 0 8px;font-size:18px">📋 سفراتي اليوم</h2><div id="dpmine"><div class="empty">جارٍ التحميل…</div></div></div>
+      <div class="ocard"><h2 style="margin:0 0 8px;font-size:18px">🔔 طلبات الزباين من التطبيق</h2><div id="dpbox"><div class="empty">جارٍ التحميل…</div></div></div>
+      <button class="btn" id="dpout" style="align-self:center">خروج</button></main></div>`;
   const unlock=()=>{try{DP.actx=DP.actx||new AudioContext();DP.actx.resume()}catch{}};
   document.addEventListener("click",unlock);
-  $("#dpout").onclick=()=>confirmBox("تطلع من صفحة التوزيع؟ حتى ترجع تحتاج تمسح الباركود مرة ثانية.","خروج",async()=>{store.del("taxi_disp");store.del("taxi_role");clearInterval(DP.t);location.replace(location.pathname+"#")});
+  $("#dpout").onclick=()=>confirmBox("تطلع من صفحة التوجيه؟ حتى ترجع تحتاج تمسح الباركود مرة ثانية.","خروج",async()=>{store.del("taxi_disp");store.del("taxi_role");clearInterval(DP.t);location.replace(location.pathname+"#")});
   const ring=()=>{try{if(!DP.actx)return;[0,.45,.9].forEach(d=>{const o=DP.actx.createOscillator(),g=DP.actx.createGain();o.frequency.value=880;o.connect(g);g.connect(DP.actx.destination);g.gain.value=.25;o.start(DP.actx.currentTime+d);o.stop(DP.actx.currentTime+d+.3)})}catch{};try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch{}};
+  // form state survives the 5-second refresh
+  const F={car:null,zone:null};
+  let map=null; const mk={};
+  const initMap=()=>{if(map||typeof L==="undefined")return;
+    map=L.map("dpmap",{zoomControl:true}).setView([33.315,44.366],12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
+    setTimeout(()=>map&&map.invalidateSize(),200)};
+  const col=x=>x.busy?"#f08c00":x.online?"#16a34a":"#9aa0a6";
+  const icon=(x,on)=>L.divIcon({className:"",iconSize:[30,30],iconAnchor:[15,15],html:`<div style="width:30px;height:30px;border-radius:50%;background:${col(x)};border:${on?"4px solid #111":"3px solid #fff"};box-shadow:0 1px 4px rgb(0 0 0/.4);display:grid;place-items:center;font-size:15px">🚕</div>`});
+  const pick=id=>{const x=(DP.data.drivers||[]).find(d=>d.id===id);if(!x)return;if(x.busy){toast("هذا السائق عنده سفرة");return}F.car=id;drawDrivers();drawMarkers();sum()};
+  let fitted=false;
+  const drawMarkers=()=>{if(!map)return;const D=DP.data.drivers||[],pts=[];
+    D.forEach(x=>{if(x.lat==null)return;const ll=[x.lat,x.lng];pts.push(ll);
+      const tip=`${esc(x.driver_name)} · ${x.busy?"عنده سفرة"+(x.trip&&x.trip.dropoff?" ← "+esc(x.trip.dropoff):""):x.online?"فاضي":"غير متصل"}`;
+      if(mk[x.id]){mk[x.id].setLatLng(ll).setIcon(icon(x,F.car===x.id));mk[x.id].setTooltipContent(tip)}
+      else{mk[x.id]=L.marker(ll,{icon:icon(x,F.car===x.id)}).addTo(map).bindTooltip(tip,{permanent:true,direction:"top",offset:[0,-14],className:"dotlbl"});mk[x.id].on("click",()=>pick(x.id))}});
+    if(!fitted&&pts.length){fitted=true;map.fitBounds(pts,{padding:[40,40],maxZoom:14})}};
+  const drawDrivers=()=>{const D=[...(DP.data.drivers||[])].sort((a,b)=>(a.busy-b.busy)||(b.online-a.online));
+    if(F.car&&!D.some(x=>x.id===F.car&&!x.busy))F.car=null;
+    $("#dp-drv").innerHTML=D.map(x=>`<button type="button" data-c="${x.id}" aria-pressed="${F.car===x.id}" ${x.busy?"disabled":""}>${plateHTML(x.plate)}<span class="dn"><b>${esc(x.driver_name)}</b><small>${x.busy?"عنده سفرة":x.online?"🟢 متصل · فاضي":"⚪ غير متصل"}</small></span></button>`).join("");
+    $("#dp-drv").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>pick(b.dataset.c))};
+  const drawZones=()=>{const q=$("#dp-zq").value.trim(),Z=(DP.data.zones||[]).filter(z=>!q||z.name.includes(q));
+    $("#dp-z").innerHTML=Z.map(z=>`<button type="button" role="radio" aria-checked="${F.zone===z.id}" class="zchip${F.zone===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}<small>${fmt(z.price)}</small></button>`).join("")
+      +`<button type="button" role="radio" aria-checked="${F.zone===0}" class="zchip other${F.zone===0?" on":""}" data-z="0">✏️ منطقة أخرى</button>`;
+    $("#dp-z").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{F.zone=+b.dataset.z;$("#dp-other").hidden=F.zone!==0;drawZones();sum()})};
+  const sum=()=>{const x=(DP.data.drivers||[]).find(d=>d.id===F.car),z=(DP.data.zones||[]).find(z=>z.id===F.zone);
+    $("#dp-sum").textContent=x?`${x.driver_name} ← ${z?z.name:F.zone===0?($("#dp-to").value||"منطقة أخرى"):"اختار الوجهة"}`:"اختار السائق والوجهة";
+    $("#dp-pr").textContent=z?dinar(z.price):F.zone===0&&fareVal($("#dp-fare").value)>0?dinar(fareVal($("#dp-fare").value)):"—"};
+  const fb=$("#dp-b"),ff=$("#dp-f");
+  fb.onchange=()=>{ff.innerHTML=fb.value?Array.from({length:+fb.value.slice(1)<=7?11:13},(_,i)=>`<option>${i+1}</option>`).join(""):`<option value="">اختار العمارة أول</option>`};
+  $("#dp-zq").oninput=drawZones; $("#dp-to").oninput=sum; $("#dp-fare").oninput=sum;
+  $("#dp-go").onclick=async()=>{const e=$("#dp-e");e.textContent="";
+    if(!F.car){e.textContent="اختار السائق";return} if(F.zone==null){e.textContent="اختار الوجهة";return}
+    if(!fb.value){e.textContent="اختار العمارة";return} if(!ff.value){e.textContent="اختار الطابق";return}
+    if(!$("#dp-a").value.replace(/\D/g,"")){e.textContent="اكتب رقم الشقة";return}
+    const p={car_id:F.car,zone_id:F.zone||"",dropoff:F.zone===0?$("#dp-to").value:"",fare:F.zone===0?$("#dp-fare").value:"",
+      building:fb.value,floor:ff.value,apartment:$("#dp-a").value,customer_name:$("#dp-cn").value,note:$("#dp-nt").value};
+    const b=$("#dp-go");b.disabled=true;
+    try{const r=await rpc("taxi_disp_create",{p_token:tok,p});toast(`انرسلت: ${r.pickup} ← ${r.dropoff} · ${fmt(r.fare)}`);
+      F.car=null;F.zone=null;["#dp-zq","#dp-to","#dp-fare","#dp-a","#dp-cn","#dp-nt"].forEach(k=>$(k).value="");fb.value="";fb.onchange();$("#dp-other").hidden=true;await load()}
+    catch(er){e.textContent=er.message}finally{b.disabled=false}};
+  const ST={assigned:["s-warn","بانتظار قبول السائق"],accepted:["s-ok","رايح للزبون"],started:["s-ok","بسفرة"],done:["s-idle","انتهت"],cancelled:["s-idle","ملغية"],rejected:["s-bad","رفضها السائق"]};
+  const ago2=ts=>{const m=Math.max(0,Math.round((Date.now()-new Date(ts))/60000));return m<1?"هسه":m<60?m+" د":Math.floor(m/60)+" س"};
+  let zonesDrawn=false;
   const load=async()=>{
     let d; try{d=await rpc("taxi_disp_state",{p_token:tok})}catch(e){
-      if(/الباركود/.test(e.message)){clearInterval(DP.t);store.del("taxi_disp");$("#dpbox").innerHTML=`<div class="err">${esc(e.message)}</div>`}return}
+      if(/الباركود/.test(e.message)){clearInterval(DP.t);store.del("taxi_disp");$("#dpform").innerHTML=`<div class="err">${esc(e.message)}</div>`}return}
     DP.data=d; $("#dpn").textContent="👤 "+d.name;
+    initMap(); drawMarkers(); drawDrivers(); if(!zonesDrawn){zonesDrawn=true;drawZones()} sum();
+    const M=d.mine||[];
+    $("#dpmine").innerHTML=M.length?`<ul class="log" style="margin:0">${M.map(t=>{const st=ST[t.status]||["s-idle",t.status];return `<li><span class="pill ${st[0]}">${st[1]}</span>
+      <span><b>${esc(t.driver_name||"—")}</b> ← <b>${esc(t.dropoff||"—")}</b> · ${fmt(t.fare||0)}<br><small style="color:var(--muted)">${esc(t.pickup||"")}${t.customer_name?` · ${esc(t.customer_name)}`:""}${t.cancel_reason?` · ${esc(t.cancel_reason)}`:""}</small></span><small>${ago2(t.created_at)}</small></li>`}).join("")}</ul>`:`<div class="empty">ما دزّيت سفرات اليوم.</div>`;
     const waiting=d.requests.filter(r=>r.status!=="assigned"), ids=waiting.map(r=>r.id);
     if(DP.init&&ids.some(id=>!DP.prev.includes(id))) ring();
     DP.prev=ids; DP.init=true;
     if(document.querySelector(".modal")) return;
-    const ago2=ts=>{const m=Math.max(0,Math.round((Date.now()-new Date(ts))/60000));return m<1?"هسه":m+" د"};
     $("#dpbox").innerHTML=d.requests.length?`<ul class="log" style="margin:0">${d.requests.map(r=>`<li style="cursor:pointer" data-r="${r.id}">
       <span class="pill ${r.status==="assigned"?"s-warn":"s-bad"}">${r.status==="assigned"?"انرسل":r.status==="rejected"?"رفضه السائق":"جديد"}</span>
       <span><b>${esc(r.customer_name||"زبون")}</b> ← <b>${esc(r.dropoff||"—")}</b><br><small style="color:var(--muted)">${esc(r.pickup||"")}${r.note?` · ${esc(r.note)}`:""}${r.status==="assigned"&&r.driver_name?` · عند ${esc(r.driver_name)} بانتظار قبوله`:""}</small></span>
@@ -1512,7 +1578,7 @@ function loadQR(){return qrLib||(qrLib=new Promise((ok,no)=>{const sc=document.c
 function dispLink(tok){return location.origin+location.pathname+"?d="+tok+"#disp"}
 async function showDispQR(name,tok){
   const link=dispLink(tok);
-  const m=modal(`<h3>باركود دخول ${esc(name)}</h3><p style="margin:0">خلّي ${esc(name)} يمسح الباركود بكاميرا تلفونه، فتنفتح عنده صفحة توزيع الطلبات وتبقى محفوظة. يشوف الطلبات ويرسلها للسواق بس.</p>
+  const m=modal(`<h3>باركود دخول ${esc(name)}</h3><p style="margin:0">خلّي ${esc(name)} يمسح الباركود بكاميرا تلفونه، فتنفتح عنده صفحة توزيع الطلبات وتبقى محفوظة. يشوف السواق على الخريطة، ويدز السفرات للسواق ويّا الوجهة والعمارة والشقة، ويرسل طلبات الزباين.</p>
     <div id="qrb" style="background:#fff;border-radius:14px;padding:14px;align-self:center;line-height:0"><div class="empty">جارٍ التحميل…</div></div>
     <p class="note" style="margin:0">⚠ الباركود مثل المفتاح، لا تنطيه لغير هذا الشخص. إذا ضاع اضغط «باركود جديد» فالقديم يبطل.</p>
     <div class="row"><button class="btn" id="qcp">نسخ الرابط</button><button class="btn primary" id="qok">تم</button></div>`);
@@ -3364,7 +3430,7 @@ function renderSettings(){
     <p class="note" style="margin:0">كل مسؤول يدخل لوحة الإدارة برمزه الخاص، وعنده نفس صلاحياتك. بالسفرات يبيّن منو أرسل كل طلب. بس إنت (المدير الرئيسي) تگدر تضيف أو تشيل مسؤول.</p>
     <div id="abox"><div class="empty">جارٍ التحميل…</div></div></section>
    <section class="gate-card" style="width:100%;margin-bottom:16px">
-    <h3>📲 موزّعين الطلبات (دخول بالباركود)</h3>
+    <h3>📲 موظفين توجيه الكراوي (دخول بالباركود)</h3>
     <p class="note" style="margin:0">شخص يدخل بمسح باركود، ويشوف طلبات الزبائن ويرسلها للسائق بس. ما يشوف الفلوس ولا الأسعار ولا الخريطة ولا أرقام الهواتف ولا الإعدادات.</p>
     <div id="dbox"><div class="empty">جارٍ التحميل…</div></div></section>
    <form id="sp" class="gate-card" style="width:100%">
