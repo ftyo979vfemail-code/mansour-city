@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611251730";
+const BUILD="202611251745";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1491,12 +1491,9 @@ function dispApp(){
           <div class="zones dz" id="dp-z" role="radiogroup" aria-label="الوجهة" style="max-height:30vh"></div></div>
         <div id="dp-other" hidden><div class="grid2"><div class="field"><label for="dp-to">اسم المكان</label><input id="dp-to"></div>
           <div class="field"><label for="dp-fare">الكروة (دينار)</label><input id="dp-fare" inputmode="numeric" placeholder="مثال: 10000"></div></div></div>
-        <div class="field"><span style="font-weight:600">3. مكان الزبون بالمجمع</span>
-          <div class="grid2"><div class="field"><label for="dp-b">العمارة</label><select id="dp-b" class="btn" style="width:100%"><option value="">اختار</option>${Array.from({length:13},(_,i)=>`<option>B${i+1}</option>`).join("")}</select></div>
-          <div class="field"><label for="dp-f">الطابق</label><select id="dp-f" class="btn" style="width:100%"><option value="">اختار العمارة أول</option></select></div></div>
-          <div class="grid2"><div class="field"><label for="dp-a">رقم الشقة</label><input id="dp-a" inputmode="numeric" maxlength="4"></div>
-          <div class="field"><label for="dp-cn">اسم الزبون (اختياري)</label><input id="dp-cn" maxlength="60"></div></div>
-          <div class="field"><label for="dp-nt">ملاحظة (اختياري)</label><input id="dp-nt" maxlength="200"></div></div>
+        <div class="grid2"><div class="field"><label for="dp-b">3. عمارة الزبون</label><select id="dp-b" class="btn" style="width:100%"><option value="">اختار</option>${Array.from({length:13},(_,i)=>`<option>B${i+1}</option>`).join("")}</select></div>
+          <div class="field"><span style="font-weight:600">↩ مرجع</span><button type="button" class="btn" id="dp-rt" aria-pressed="false" style="width:100%">ذهاب بس</button></div></div>
+        <div class="field"><label for="dp-nt">📝 ملاحظات (اختياري)</label><textarea id="dp-nt" rows="2" maxlength="200" placeholder="مثال: الزبون بالطابق 5، ينتظر بالبوابة"></textarea></div>
         <div class="calc"><div class="tot"><span id="dp-sum">اختار السائق والوجهة</span><b id="dp-pr">—</b></div></div>
         <div class="err" id="dp-e"></div>
         <button class="btn primary big" id="dp-go">📲 دز السفرة للسائق</button></div>
@@ -1508,7 +1505,7 @@ function dispApp(){
   $("#dpout").onclick=()=>confirmBox("تطلع من صفحة اتصالات التكسي؟ حتى ترجع تحتاج تمسح الباركود مرة ثانية.","خروج",async()=>{store.del("taxi_disp");store.del("taxi_role");clearInterval(DP.t);location.replace(location.pathname+"#")});
   const ring=()=>{try{if(!DP.actx)return;[0,.45,.9].forEach(d=>{const o=DP.actx.createOscillator(),g=DP.actx.createGain();o.frequency.value=880;o.connect(g);g.connect(DP.actx.destination);g.gain.value=.25;o.start(DP.actx.currentTime+d);o.stop(DP.actx.currentTime+d+.3)})}catch{};try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch{}};
   // form state survives the 5-second refresh
-  const F={car:null,zone:null};
+  const F={car:null,zone:null,rt:false};
   let map=null; const mk={};
   const initMap=()=>{if(map||typeof L==="undefined")return;
     map=L.map("dpmap",{zoomControl:true}).setView([33.315,44.366],12);
@@ -1534,19 +1531,20 @@ function dispApp(){
     $("#dp-z").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{F.zone=+b.dataset.z;$("#dp-other").hidden=F.zone!==0;drawZones();sum()})};
   const sum=()=>{const x=(DP.data.drivers||[]).find(d=>d.id===F.car),z=(DP.data.zones||[]).find(z=>z.id===F.zone);
     $("#dp-sum").textContent=x?`${x.driver_name} ← ${z?z.name:F.zone===0?($("#dp-to").value||"منطقة أخرى"):"اختار الوجهة"}`:"اختار السائق والوجهة";
-    $("#dp-pr").textContent=z?dinar(z.price):F.zone===0&&fareVal($("#dp-fare").value)>0?dinar(fareVal($("#dp-fare").value)):"—"};
-  const fb=$("#dp-b"),ff=$("#dp-f");
-  fb.onchange=()=>{ff.innerHTML=fb.value?Array.from({length:+fb.value.slice(1)<=7?11:13},(_,i)=>`<option>${i+1}</option>`).join(""):`<option value="">اختار العمارة أول</option>`};
+    const base=z?z.price:F.zone===0&&fareVal($("#dp-fare").value)>0?fareVal($("#dp-fare").value):0;
+    $("#dp-pr").textContent=base?dinar(F.rt?base*2:base)+(F.rt?" (مرجع)":""):"—"};
+  const fb=$("#dp-b"), rtb=$("#dp-rt");
+  const drawRt=()=>{rtb.setAttribute("aria-pressed",F.rt);rtb.classList.toggle("primary",F.rt);rtb.textContent=F.rt?"↩ مرجع ✓ (ذهاب ورجعة)":"ذهاب بس"};
+  rtb.onclick=()=>{F.rt=!F.rt;drawRt();sum()};
   $("#dp-zq").oninput=drawZones; $("#dp-to").oninput=sum; $("#dp-fare").oninput=sum;
   $("#dp-go").onclick=async()=>{const e=$("#dp-e");e.textContent="";
     if(!F.car){e.textContent="اختار السائق";return} if(F.zone==null){e.textContent="اختار الوجهة";return}
-    if(!fb.value){e.textContent="اختار العمارة";return} if(!ff.value){e.textContent="اختار الطابق";return}
-    if(!$("#dp-a").value.replace(/\D/g,"")){e.textContent="اكتب رقم الشقة";return}
+    if(!fb.value){e.textContent="اختار العمارة";return}
     const p={car_id:F.car,zone_id:F.zone||"",dropoff:F.zone===0?$("#dp-to").value:"",fare:F.zone===0?$("#dp-fare").value:"",
-      building:fb.value,floor:ff.value,apartment:$("#dp-a").value,customer_name:$("#dp-cn").value,note:$("#dp-nt").value};
+      building:fb.value,round_trip:F.rt,note:$("#dp-nt").value};
     const b=$("#dp-go");b.disabled=true;
-    try{const r=await rpc("taxi_disp_create",{p_token:tok,p});toast(`انرسلت: ${r.pickup} ← ${r.dropoff} · ${fmt(r.fare)}`);
-      F.car=null;F.zone=null;["#dp-zq","#dp-to","#dp-fare","#dp-a","#dp-cn","#dp-nt"].forEach(k=>$(k).value="");fb.value="";fb.onchange();$("#dp-other").hidden=true;await load()}
+    try{const r=await rpc("taxi_disp_create",{p_token:tok,p});toast(`انرسلت: ${r.pickup} ← ${r.dropoff}${r.round_trip?" (مرجع)":""}`);
+      F.car=null;F.zone=null;F.rt=false;drawRt();["#dp-zq","#dp-to","#dp-fare","#dp-nt"].forEach(k=>$(k).value="");fb.value="";$("#dp-other").hidden=true;await load()}
     catch(er){e.textContent=er.message}finally{b.disabled=false}};
   const ST={assigned:["s-warn","بانتظار قبول السائق"],accepted:["s-ok","رايح للزبون"],started:["s-ok","بسفرة"],done:["s-idle","انتهت"],cancelled:["s-idle","ملغية"],rejected:["s-bad","رفضها السائق"]};
   const ago2=ts=>{const m=Math.max(0,Math.round((Date.now()-new Date(ts))/60000));return m<1?"هسه":m<60?m+" د":Math.floor(m/60)+" س"};
@@ -1558,7 +1556,7 @@ function dispApp(){
     initMap(); drawMarkers(); drawDrivers(); if(!zonesDrawn){zonesDrawn=true;drawZones()} sum();
     const M=d.mine||[];
     $("#dpmine").innerHTML=M.length?`<ul class="log" style="margin:0">${M.map(t=>{const st=ST[t.status]||["s-idle",t.status];return `<li><span class="pill ${st[0]}">${st[1]}</span>
-      <span><b>${esc(t.driver_name||"—")}</b> ← <b>${esc(t.dropoff||"—")}</b> · ${fmt(t.fare||0)}<br><small style="color:var(--muted)">${esc(t.pickup||"")}${t.customer_name?` · ${esc(t.customer_name)}`:""}${t.cancel_reason?` · ${esc(t.cancel_reason)}`:""}</small></span><small>${ago2(t.created_at)}</small></li>`}).join("")}</ul>`:`<div class="empty">ما دزّيت سفرات اليوم.</div>`;
+      <span><b>${esc(t.driver_name||"—")}</b> ← <b>${esc(t.dropoff||"—")}</b> · ${fmt(t.fare||0)}${t.round_trip?" ↩":""}<br><small style="color:var(--muted)">${esc(t.pickup||"")}${t.customer_name?` · ${esc(t.customer_name)}`:""}${t.cancel_reason?` · ${esc(t.cancel_reason)}`:""}</small></span><small>${ago2(t.created_at)}</small></li>`}).join("")}</ul>`:`<div class="empty">ما دزّيت سفرات اليوم.</div>`;
     const waiting=d.requests.filter(r=>r.status!=="assigned"), ids=waiting.map(r=>r.id);
     if(DP.init&&ids.some(id=>!DP.prev.includes(id))) ring();
     DP.prev=ids; DP.init=true;
