@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611251540";
+const BUILD="202611251600";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -3662,7 +3662,7 @@ function showTrip(t,force){
     ${fixed||spFree?"":`<div class="field fare-in"><label for="tr-fare">💰 الأجرة اللي استلمتها (دينار)</label><input id="tr-fare" inputmode="numeric" autocomplete="off" placeholder="اكتب المبلغ، مثال 5000 أو 5" value="${esc(fareDraft[t.id]||"")}">
       <div class="fare-q" role="group" aria-label="مبالغ سريعة">${FARE_Q.map(v=>`<button type="button" class="btn sm" data-fq="${v}">${fmt(v)}</button>`).join("")}</div>
       <small id="tr-fv" class="fare-v" aria-live="polite"></small></div>`}
-    ${endNoteBox(t)}<button class="btn primary big" id="tr-end" ${t.waiting||spWait?"disabled":""}>إنهاء السفرة</button>${spFree||spWait?"":`<button type="button" class="btn big" id="tr-debt">🧾 الزبون ما دفع (سجّل دين)</button>`}${cancelReqBox(t)}</div>`;
+    ${endNoteBox(t)}<button class="btn primary big" id="tr-end" ${t.waiting||spWait?"disabled":""}>إنهاء السفرة</button>${spFree||spWait?"":`<button type="button" class="btn big" id="tr-debt">🧾 ما استلمت الكروة (دين على الشقة)</button>`}${cancelReqBox(t)}</div>`;
   // live fare: base + round trip + waiting beyond the free minutes
   const t0=Date.now(), w0=t.wait_sec||0;
   const calc=()=>{
@@ -3693,9 +3693,10 @@ function showTrip(t,force){
   const cb=$("#tr-chg"); if(cb) cb.onclick=()=>destChangeForm(t);
   const spb=$("#tr-sp"); if(spb) spb.onclick=()=>specialForm(t);
   const scx=$("#tr-cx"); if(scx) scx.onclick=()=>cancelReqForm(t);
-  const sdb=$("#tr-debt"); if(sdb) sdb.onclick=()=>{let v=fixed?(t.fare||0):fareVal(($("#tr-fare")||{}).value);
-    if(!fixed&&v<=0){const f=$("#tr-fare");if(f)f.focus();toast("اكتب الأجرة أول");return}
-    debtForm({trip:t,amount:v})};
+  const sdb=$("#tr-debt"); if(sdb) sdb.onclick=()=>{const base=fixed?(t.base_fare||t.fare||0):fareVal(($("#tr-fare")||{}).value);
+    if(!fixed&&base<=0){const f=$("#tr-fare");if(f)f.focus();toast("اكتب الأجرة أول");return}
+    const rf=t.round_trip?Math.round(base*(t.round_trip_pct??100)/100):0, wf=waitFee(t.wait_sec||0,t.wait_tiers);
+    unpaidForm(t,Math.max(0,base+rf+wf-(t.points_used||0)))};
   clearInterval(chgT); const dc=t.dest_change;
   if(dc&&(dc.status==="pending"||dc.status==="awaiting_customer")){const t0=Date.now(),s0=dc.seconds_left;
     chgT=setInterval(()=>{const left=Math.max(0,s0-Math.floor((Date.now()-t0)/1000)),el=$("#chg-left");if(!el)return clearInterval(chgT);
@@ -3784,7 +3785,7 @@ function specialBox(t){
     <small>من توصل وتخلّص، اختار وحدة وتنتهي السفرة:</small>
     <div class="row" style="gap:8px;margin-top:6px"><button type="button" class="btn primary" data-spend="got">💵 استلمت</button><button type="button" class="btn" data-spend="none">✖ ما استلمت</button></div></div>`;
   const rej=st==="rejected"?`<div class="spbox bad"><b>✖ الإدارة رفضت الزبون الخاص: السفرة بكروة عادية</b>${t.special_reason?`<small>${esc(t.special_reason)}</small>`:""}</div>`:"";
-  return rej+(t.waiting?"":`<button type="button" class="btn big" id="tr-sp">⭐ زبون خاص (بدون كروة)</button>`);
+  return rej;
 }
 // optional note the driver leaves when he ends the trip (kept as a draft while the screen redraws)
 const endNoteDraft={};
@@ -3797,6 +3798,29 @@ function debtsCard(){const D=today.debts||[];
     ${D.map(x=>`<div class="calc" style="margin:4px 0"><div><span>${esc(x.note||"—")}</span><b>${dinar(x.amount)}</b></div><div><span>${new Date(x.day+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"short",day:"numeric",month:"numeric"})}</span><small>${esc(x.by||"")}</small></div></div>`).join("")}
     ${D.length?`<small>تنقص من المبلغ اللي بيدك، وتبقى لحد ما الإدارة تستلمها من الزبون.</small>`:""}
     <button type="button" class="btn" id="dbt-add" style="margin-top:6px">➕ سجّل دين على زبون</button></div>`}
+// trip not paid: the fare is fixed, the driver only picks the building, floor and flat
+const BLDG=Array.from({length:13},(_,i)=>"B"+(i+1)), bFloors=b=>(+String(b).slice(1)<=7?11:13);
+function unpaidForm(t,amount){
+  const m=modal(`<h3>🧾 ما استلمت الكروة</h3><p style="margin:0">السفرة تنتهي، والكروة تنسجل دين على الشقة.</p>
+    <div class="calc"><div class="tot"><span>الكروة</span><b>${dinar(amount)}</b></div></div>
+    <div class="grid2">
+      <div class="field"><label for="up-b">العمارة</label><select id="up-b" class="btn" style="width:100%"><option value="">اختار</option>${BLDG.map(b=>`<option>${b}</option>`).join("")}</select></div>
+      <div class="field"><label for="up-f">الطابق</label><select id="up-f" class="btn" style="width:100%"><option value="">اختار العمارة أول</option></select></div>
+    </div>
+    <div class="field"><label for="up-a">رقم الشقة</label><input id="up-a" inputmode="numeric" maxlength="4" style="font:600 22px var(--mono);text-align:center"></div>
+    <div class="field"><label for="up-n">اسم الزبون (اختياري)</label><input id="up-n" maxlength="60"></div>
+    <div class="err" id="up-e"></div><div class="row"><button class="btn" id="up-x">رجوع</button><button class="btn primary" id="up-ok">✅ إنهاء وتسجيل الدين</button></div>`);
+  const sb=$("#up-b",m), sf=$("#up-f",m);
+  sb.onchange=()=>{sf.innerHTML=sb.value?Array.from({length:bFloors(sb.value)},(_,i)=>`<option>${i+1}</option>`).join(""):`<option value="">اختار العمارة أول</option>`};
+  $("#up-x",m).onclick=()=>m.remove();
+  $("#up-ok",m).onclick=async e=>{const b=sb.value,f=sf.value,a=$("#up-a",m).value.replace(/\D/g,""),n=$("#up-n",m).value.trim();
+    if(!b){$("#up-e",m).textContent="اختار العمارة";return} if(!f){$("#up-e",m).textContent="اختار الطابق";return} if(!a){$("#up-e",m).textContent="اكتب رقم الشقة";return}
+    const note=`عمارة ${b} · طابق ${f} · شقة ${a}${n?` · ${n}`:""}`, btn=e.currentTarget; btn.disabled=true;
+    try{const r=await rpc("taxi_driver_trip",{p_code:CODE,p_action:"end",p:{end_note:endNote(t)}});delete fareDraft[t.id];
+      await rpc("taxi_driver_debt_add",{p_code:CODE,p_amount:String((r&&r.fare)||amount),p_note:note,p_trip:t.id});
+      m.remove();toast("انتهت السفرة وانسجل الدين على "+`${b} · ${a}`);curTrip=undefined;emptyKey="";if(EXT)setExt(true);else await refreshTrip()}
+    catch(er){$("#up-e",m).textContent=er.message;btn.disabled=false}};
+}
 function debtForm(o){o=o||{};const t=o.trip;
   const m=modal(`<h3>🧾 دين على زبون</h3><p style="margin:0">${t?`السفرة لـ${esc(t.zone||t.dropoff||"")} تنتهي، والكروة تنسجل دين على الزبون.`:"زبون ركب وما دفع الكروة."}</p>
     <div class="field fare-in"><label for="dbt-a">المبلغ (دينار)</label><input id="dbt-a" inputmode="numeric" value="${o.amount>0?o.amount:""}" placeholder="مثال: 5000 أو 5"><small id="dbt-v" class="fare-v"></small></div>
