@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611241515";
+const BUILD="202611251540";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2196,6 +2196,7 @@ function tripForm(){
       <div class="field"><label for="t-from">من (مكان الزبون)</label><input id="t-from" required placeholder="مثال: عمارة T5، البوابة 2"></div>
       <div class="field"><label for="t-zone">إلى (المنطقة)</label><select id="t-zone" class="btn" style="width:100%"><option value="">جارٍ التحميل…</option></select></div>
       <div class="field" id="t-to-f" hidden><label for="t-to">اسم المكان</label><input id="t-to" placeholder="مثال: الكاظمية"></div>
+      <div class="field" id="t-fare-f" hidden><label for="t-fare">الكروة (دينار)</label><input id="t-fare" inputmode="numeric" placeholder="مثال: 10000"></div>
     </div>
     <div class="field"><label for="t-name">اسم الزبون</label><input id="t-name" placeholder="اختياري"></div>
     <div class="field"><label for="t-note">ملاحظة</label><input id="t-note" placeholder="اختياري"></div>
@@ -2205,10 +2206,10 @@ function tripForm(){
     <div class="row"><button type="button" class="btn" id="tfc">إلغاء</button><button class="btn primary">إرسال للسائق</button></div>
    </form>`);
   $("#tfc",m).onclick=()=>m.remove();
-  loadZones().then(zs=>{const sel=$("#t-zone",m);sel.innerHTML=zs.map(z=>`<option value="${z.id}">${esc(z.name)} — ${fmt(z.current)}${z.rush_on?" (ازدحام)":""}</option>`).join("")+`<option value="">منطقة أخرى (الأجرة يكتبها السائق)</option>`;
-    const upd=()=>{const z=zs.find(x=>String(x.id)===sel.value);$("#t-price",m).textContent=z?dinar(z.current):"يكتبها السائق";$("#t-to-f",m).hidden=!!z};sel.onchange=upd;upd()});
+  loadZones().then(zs=>{const sel=$("#t-zone",m);sel.innerHTML=zs.map(z=>`<option value="${z.id}">${esc(z.name)} — ${fmt(z.current)}${z.rush_on?" (ازدحام)":""}</option>`).join("")+`<option value="">منطقة أخرى (اكتب الكروة)</option>`;
+    const upd=()=>{const z=zs.find(x=>String(x.id)===sel.value);$("#t-price",m).textContent=z?dinar(z.current):"تكتبها إنت";$("#t-to-f",m).hidden=!!z;$("#t-fare-f",m).hidden=!!z};sel.onchange=upd;upd()});
   $("#tf",m).onsubmit=async e=>{e.preventDefault();
-    try{await rpc("taxi_admin_trip_create",{p_pin:PIN,p:{car_id:$("#t-drv",m).value,customer_phone:$("#t-ph",m).value,customer_name:$("#t-name",m).value,pickup:$("#t-from",m).value,zone_id:$("#t-zone",m).value,dropoff:$("#t-to",m).value,note:$("#t-note",m).value}});
+    try{await rpc("taxi_admin_trip_create",{p_pin:PIN,p:{car_id:$("#t-drv",m).value,customer_phone:$("#t-ph",m).value,customer_name:$("#t-name",m).value,pickup:$("#t-from",m).value,zone_id:$("#t-zone",m).value,dropoff:$("#t-to",m).value,fare:$("#t-fare",m).value,note:$("#t-note",m).value}});
       const c=cars.find(x=>x.id===$("#t-drv",m).value);m.remove();toast("انرسلت السفرة لـ "+(c?c.driver_name:"السائق"));poll();if(tab==="trips")loadTrips();
     }catch(err){$("#tfe",m).textContent=err.message}};
 }
@@ -3601,7 +3602,7 @@ function showTrip(t,force){
   if(same&&(!force||(t&&t.status==="started"&&$("#tr-end")))) return;
   // the empty card (zone buttons) is redrawn only when something on it really changes,
   // so the zone list doesn't jump back to the top while the driver scrolls it
-  if(!t&&$("#tr-zones")){const ek=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT,today.closing&&today.closing.id,(today.bookings||[]).map(b=>b.id).join(),(today.debts||[]).map(b=>b.id).join()]);
+  if(!t&&$("#tr-line")){const ek=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT,today.closing&&today.closing.id,(today.bookings||[]).map(b=>b.id).join(),(today.debts||[]).map(b=>b.id).join()]);
     if(ek===emptyKey){const eta=$("#back-eta");if(eta&&today.ret){const B=today.base&&today.base.lat?today.base:BASE_DEF,fx=lastFix&&lastFix.coords,la=fx?fx.latitude:today.lat,lo=fx?fx.longitude:today.lng;if(la!=null)eta.textContent=backEta(la,lo,B)}return}}
   curTrip=t;
   if(!ON&&!EXT){box.innerHTML="";return}
@@ -3609,32 +3610,10 @@ function showTrip(t,force){
   const B=today.base&&today.base.lat?today.base:BASE_DEF, fx=lastFix&&lastFix.coords, myLat=fx?fx.latitude:today.lat, myLng=fx?fx.longitude:today.lng;
   const back=!t&&today.ret?`<div class="trip back"><h3>🔙 راجع لـ${esc(B.name)}</h3><p>${myLat!=null?`توصل بعد ~<b><span id="back-eta">${backEta(myLat,myLng,B)}</span> دقيقة</b> (${baseKm(myLat,myLng,B).toFixed(1)} كم). `:""}الطريق للمجمع ما ينحسب «بدون سفرة».</p><button class="btn primary big" id="tr-ready">✅ وصلت المجمع، جاهز للكراوي</button></div>`
     :!t&&today.ready?`<p class="note" style="margin:0">✅ إنت جاهز بالمجمع من ${hm(today.ready)}.</p>`:"";
-  if(!t){box.innerHTML=`${back}<div class="trip"><h3>ماكو سفرة</h3><p>إذا ركب زبون، سجّل السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.</p>
-      <div class="field"><label for="tr-zq">إلى وين؟ اضغط على المنطقة</label><input id="tr-zq" type="search" placeholder="🔎 ابحث عن منطقة" autocomplete="off" value="${esc(drvQ)}"></div>
-      <div class="zones dz" id="tr-zones" role="radiogroup" aria-label="المنطقة"></div>
-      <div class="field" id="tr-to-f" ${drvZone===0?"":"hidden"}><label for="tr-to">اسم المكان</label><input id="tr-to" value="${esc(drvTo)}"></div>
-      <button class="btn primary big" id="tr-start">بدء سفرة</button>
-      <button class="btn big" id="tr-sp">⭐ زبون خاص (بدون كروة)</button>
-      <button class="btn big" id="tr-line">🛣 رايح أوصل خط</button>
-      <button class="btn big" id="tr-past">📅 سجّل سفرة البارحة (نسيتها)</button></div>${sum}`;
+  if(!t){box.innerHTML=`${back}<div class="trip"><h3>ماكو سفرة</h3><p>السفرات توصلك من المكتب ويّا الكروة. إذا ركب زبون من المجمع، <b>اتصل بالمكتب</b> حتى يدزلك السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.</p>
+      <button class="btn big" id="tr-line">🛣 رايح أوصل خط</button></div>${sum}`;
     emptyKey=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT,today.closing&&today.closing.id,(today.bookings||[]).map(b=>b.id).join(),(today.debts||[]).map(b=>b.id).join()]);
-    // zones as big buttons: one tap picks it; the choice survives the screen refreshing every few seconds
-    const zs=today.zones||[];
-    const drawZ=()=>{const q=drvQ.trim();const L=zs.filter(z=>!q||z.name.includes(q));const zb=$("#tr-zones"),st=zb.scrollTop;
-      $("#tr-zones").innerHTML=L.map(z=>`<button type="button" role="radio" aria-checked="${drvZone===z.id}" class="zchip${drvZone===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}<small>${fmt(z.price)}</small></button>`).join("")
-        +`<button type="button" role="radio" aria-checked="${drvZone===0}" class="zchip other${drvZone===0?" on":""}" data-z="0">✏️ منطقة أخرى</button>`;
-      $("#tr-zones").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{drvZone=+b.dataset.z;$("#tr-to-f").hidden=drvZone!==0;if(drvZone===0)setTimeout(()=>$("#tr-to").focus(),30);drawZ()});
-      zb.scrollTop=st;
-      const z=zs.find(x=>x.id===drvZone);$("#tr-start").textContent=z?`🚕 بدء سفرة لـ ${z.name}`:"🚕 بدء سفرة"};
-    drawZ();
-    $("#tr-zq").oninput=e=>{drvQ=e.target.value;drawZ()};
-    $("#tr-to").oninput=e=>{drvTo=e.target.value};
-    $("#tr-start").onclick=()=>{if(drvZone==null) return zonePicker(zs);
-      const p={zone_id:drvZone||"",dropoff:drvZone===0?$("#tr-to").value:""};if(drvZone===0&&p.dropoff.trim().length<2){toast("اكتب اسم المكان");return}
-      drvZone=null;drvQ="";drvTo="";tripAct("start",p)};
-    $("#tr-sp").onclick=()=>specialForm(null);
     $("#tr-line").onclick=()=>lineForm(B);
-    $("#tr-past").onclick=()=>pastTripForm(zs);
     const rd=$("#tr-ready"); if(rd) rd.onclick=()=>tripAct("ready");
     const db=$("#dep-btn"); if(db) db.onclick=depositForm; return}
   const where=`<p><b>من:</b> ${esc(t.pickup||"—")}${t.pickup_lat?` <a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍 الخريطة</a>`:""}<br><b>إلى:</b> ${esc(t.dropoff||"—")}${t.dropoff_note?` <small>(${esc(t.dropoff_note)})</small>`:""}${t.customer_name?`<br><b>الزبون:</b> ${esc(t.customer_name)}`:""}${t.note?`<br><b>ملاحظة:</b> ${esc(t.note)}`:""}${t.zone_id&&t.fare?`<br><b>الأجرة:</b> ${fmt(t.fare)} د.ع (ثابتة)`:""}${t.points_used?`<br><b style="color:var(--ok)">⭐ الزبون دافع ${fmt(t.points_used)} بالنقاط، استلم منه ${fmt(t.collect)} بس</b>`:""}</p>`;
