@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611251700";
+const BUILD="202611251720";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -718,7 +718,7 @@ function landingApp(){
 
   <footer class="lp-foot"><div class="lp-in">
     <img src="img/logo-light.png" alt="تكسي مجمع المنصور" width="26" height="40" style="width:auto">
-    <nav><a href="#login">دخول الزبائن</a><a href="#admin">دخول الإدارة</a><a href="#driver">صفحة السائق</a><a href="${APK_URL}">تطبيق السائق</a></nav>
+    <nav><a href="#login">دخول الزبائن</a><a href="#admin">دخول الإدارة</a><a href="#disp">اتصالات التكسي</a><a href="#driver">صفحة السائق</a><a href="${APK_URL}">تطبيق السائق</a></nav>
     <span>© ${new Date().getFullYear()} تكسي مجمع المنصور</span>
   </div></footer>
   </div>`;
@@ -1464,7 +1464,21 @@ let DP={t:null,data:null,prev:[],init:false,open:null,actx:null};
 function dispApp(){
   const tok=store.get("taxi_disp");
   document.title="اتصالات التكسي · تكسي مجمع المنصور";
-  if(!tok){$("#app").innerHTML=`<div class="gate"><div class="gate-card"><div class="brand"><div class="brand-mark">${ICON}</div><div><h1>اتصالات التكسي</h1><small>تكسي مجمع المنصور</small></div></div><p style="margin:0">امسح الباركود اللي تنطيك إياه الإدارة بكاميرا التلفون حتى تدخل.</p><a class="btn" href="#">الصفحة الرئيسية</a></div></div>`;return}
+  if(!tok){let mode="in";
+    const draw=()=>{$("#app").innerHTML=`<div class="gate"><form class="gate-card" id="dg"><div class="brand"><div class="brand-mark">${ICON}</div><div><h1>اتصالات التكسي</h1><small>تكسي مجمع المنصور</small></div></div>
+      <div class="row2" role="tablist"><button type="button" class="btn ${mode==="in"?"primary":""}" data-m="in">دخول</button><button type="button" class="btn ${mode==="up"?"primary":""}" data-m="up">تسجيل موظف جديد</button></div>
+      ${mode==="up"?`<div class="field"><label for="dg-n">الاسم الكامل</label><input id="dg-n" required autocomplete="name"></div>`:""}
+      <div class="field"><label for="dg-p">رقم التلفون</label><input id="dg-p" inputmode="tel" dir="ltr" required placeholder="07xx xxx xxxx" autocomplete="tel"></div>
+      <div class="field"><label for="dg-k">${mode==="up"?"اختار رمز (4 لـ 8 أرقام)":"الرمز"}</label><input id="dg-k" type="password" inputmode="numeric" required autocomplete="${mode==="up"?"new-password":"current-password"}"></div>
+      <div class="err" id="dg-e"></div><button class="btn primary big">${mode==="up"?"سجّل وانتظر موافقة الإدارة":"دخول"}</button>
+      <p class="note" style="margin:0">${mode==="up"?"بعد التسجيل الإدارة توافق على حسابك، وبعدها تدخل برقمك والرمز.":"أو امسح الباركود اللي تنطيك إياه الإدارة."}</p>
+      <a class="btn" href="#">الصفحة الرئيسية</a></form></div>`;
+      document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{mode=b.dataset.m;draw()});
+      $("#dg").onsubmit=async e=>{e.preventDefault();const er=$("#dg-e");er.textContent="";
+        try{if(mode==="up"){await rpc("taxi_disp_signup",{p:{name:$("#dg-n").value,phone:$("#dg-p").value,pin:$("#dg-k").value}});mode="in";draw();$("#dg-e").textContent="";toast("انسجلت ✔ انتظر موافقة الإدارة وبعدها سوّي دخول");return}
+          const r=await rpc("taxi_disp_login",{p_phone:$("#dg-p").value,p_pin:$("#dg-k").value});store.set("taxi_disp",r.token);store.set("taxi_role","disp");dispApp()}
+        catch(x){er.textContent=x.message}}};
+    draw();return}
   $("#app").innerHTML=`<div class="lp"><header class="hero ord-hero"><div class="lp-in hero-top"><img src="img/wordmark-light.png" alt="تكسي مجمع المنصور" width="105" height="70"><span id="dpn" style="color:#fff;font-weight:700"></span></div>
     <div class="lp-in"><h1 class="ord-h1">اتصالات التكسي</h1></div></header>
     <main class="lp-in ord">
@@ -1590,14 +1604,14 @@ async function renderDisps(){
   const box=$("#dbox"); if(!box) return;
   let list; try{list=await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:"list",p:{}})}catch(e){box.innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
   const dt=ts=>ts?new Date(ts).toLocaleString("ar-IQ",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"}):"ما دخل بعد";
-  box.innerHTML=`${list.length?`<ul class="log">${list.map(x=>`<li><span class="pill ${x.active?"s-ok":"s-idle"}">${x.active?"فعّال":"موقوف"}</span><span><b>${esc(x.name)}</b><br><small style="color:var(--muted)">آخر دخول: ${dt(x.last_seen)} · أرسل ${x.sent} طلب</small></span>
-      <span class="acts"><button class="btn sm primary" data-da="qr" data-id="${x.id}">الباركود</button><button class="btn sm" data-da="newcode" data-id="${x.id}">باركود جديد</button><button class="btn sm" data-da="toggle" data-id="${x.id}">${x.active?"إيقاف":"تفعيل"}</button><button class="btn sm danger" data-da="delete" data-id="${x.id}">حذف</button></span></li>`).join("")}</ul>`:""}
+  box.innerHTML=`${list.length?`<ul class="log">${list.map(x=>`<li><span class="pill ${!x.approved?"s-warn":x.active?"s-ok":"s-idle"}">${!x.approved?"ينتظر موافقتك":x.active?"فعّال":"موقوف"}</span><span><b>${esc(x.name)}</b>${x.phone?` · <span dir="ltr">${esc(x.phone)}</span>`:""}<br><small style="color:var(--muted)">آخر دخول: ${dt(x.last_seen)} · أرسل ${x.sent} طلب</small></span>
+      <span class="acts">${!x.approved?`<button class="btn sm primary" data-da="approve" data-id="${x.id}">✔ موافقة</button>`:""}<button class="btn sm primary" data-da="qr" data-id="${x.id}">الباركود</button><button class="btn sm" data-da="newcode" data-id="${x.id}">باركود جديد</button><button class="btn sm" data-da="toggle" data-id="${x.id}">${x.active?"إيقاف":"تفعيل"}</button><button class="btn sm danger" data-da="delete" data-id="${x.id}">حذف</button></span></li>`).join("")}</ul>`:""}
     <form id="dfm" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px"><div class="field" style="flex:1;min-width:180px"><label for="d-name">اسم الشخص</label><input id="d-name" required placeholder="مثال: حارس البوابة"></div><button class="btn primary">+ إضافة وإصدار باركود</button></form><div class="err" id="dfe"></div>`;
   $("#dfm").onsubmit=async e=>{e.preventDefault();try{const r=await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:"add",p:{name:$("#d-name").value}});renderDisps();showDispQR(r.name,r.token)}catch(err){$("#dfe").textContent=err.message}};
   box.querySelectorAll("[data-da]").forEach(b=>b.onclick=async()=>{const id=+b.dataset.id,a=b.dataset.da,x=list.find(y=>y.id===id);
     if(a==="delete") return confirmBox(`حذف ${x.name}؟ الباركود مالته يبطل فورًا.`,"حذف",async()=>{await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:"delete",p:{id}});renderDisps()});
     if(a==="newcode") return confirmBox(`إصدار باركود جديد لـ ${x.name}؟ القديم يبطل ويحتاج يمسح الجديد.`,"باركود جديد",async()=>{const r=await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:"newcode",p:{id}});renderDisps();showDispQR(r.name,r.token)});
-    try{const r=await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:a,p:{id}});if(a==="qr")showDispQR(r.name,r.token);else{toast(x.active?"انوقف":"رجع فعّال");renderDisps()}}catch(e){toast(e.message)}});
+    try{const r=await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:a,p:{id}});if(a==="qr")showDispQR(r.name,r.token);else{toast(a==="approve"?"وافقت، يگدر يدخل هسه":x.active?"انوقف":"رجع فعّال");renderDisps()}}catch(e){toast(e.message)}});
 }
 
 /* ---------------- ADMIN ---------------- */
