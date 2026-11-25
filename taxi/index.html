@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611251630";
+const BUILD="202611251650";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1463,10 +1463,10 @@ window.addEventListener("hashchange",()=>location.reload());
 let DP={t:null,data:null,prev:[],init:false,open:null,actx:null};
 function dispApp(){
   const tok=store.get("taxi_disp");
-  document.title="توجيه الكراوي · تكسي مجمع المنصور";
-  if(!tok){$("#app").innerHTML=`<div class="gate"><div class="gate-card"><div class="brand"><div class="brand-mark">${ICON}</div><div><h1>توجيه الكراوي</h1><small>تكسي مجمع المنصور</small></div></div><p style="margin:0">امسح الباركود اللي تنطيك إياه الإدارة بكاميرا التلفون حتى تدخل.</p><a class="btn" href="#">الصفحة الرئيسية</a></div></div>`;return}
+  document.title="اتصالات التكسي · تكسي مجمع المنصور";
+  if(!tok){$("#app").innerHTML=`<div class="gate"><div class="gate-card"><div class="brand"><div class="brand-mark">${ICON}</div><div><h1>اتصالات التكسي</h1><small>تكسي مجمع المنصور</small></div></div><p style="margin:0">امسح الباركود اللي تنطيك إياه الإدارة بكاميرا التلفون حتى تدخل.</p><a class="btn" href="#">الصفحة الرئيسية</a></div></div>`;return}
   $("#app").innerHTML=`<div class="lp"><header class="hero ord-hero"><div class="lp-in hero-top"><img src="img/wordmark-light.png" alt="تكسي مجمع المنصور" width="105" height="70"><span id="dpn" style="color:#fff;font-weight:700"></span></div>
-    <div class="lp-in"><h1 class="ord-h1">توجيه الكراوي</h1></div></header>
+    <div class="lp-in"><h1 class="ord-h1">اتصالات التكسي</h1></div></header>
     <main class="lp-in ord">
       <div class="ocard"><h2 style="margin:0 0 8px;font-size:18px">🗺 السواق</h2>
         <div id="dpmap" style="height:46vh;min-height:280px;border-radius:12px;overflow:hidden"></div>
@@ -1491,7 +1491,7 @@ function dispApp(){
       <button class="btn" id="dpout" style="align-self:center">خروج</button></main></div>`;
   const unlock=()=>{try{DP.actx=DP.actx||new AudioContext();DP.actx.resume()}catch{}};
   document.addEventListener("click",unlock);
-  $("#dpout").onclick=()=>confirmBox("تطلع من صفحة التوجيه؟ حتى ترجع تحتاج تمسح الباركود مرة ثانية.","خروج",async()=>{store.del("taxi_disp");store.del("taxi_role");clearInterval(DP.t);location.replace(location.pathname+"#")});
+  $("#dpout").onclick=()=>confirmBox("تطلع من صفحة اتصالات التكسي؟ حتى ترجع تحتاج تمسح الباركود مرة ثانية.","خروج",async()=>{store.del("taxi_disp");store.del("taxi_role");clearInterval(DP.t);location.replace(location.pathname+"#")});
   const ring=()=>{try{if(!DP.actx)return;[0,.45,.9].forEach(d=>{const o=DP.actx.createOscillator(),g=DP.actx.createGain();o.frequency.value=880;o.connect(g);g.connect(DP.actx.destination);g.gain.value=.25;o.start(DP.actx.currentTime+d);o.stop(DP.actx.currentTime+d+.3)})}catch{};try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch{}};
   // form state survives the 5-second refresh
   const F={car:null,zone:null};
@@ -1578,7 +1578,7 @@ function loadQR(){return qrLib||(qrLib=new Promise((ok,no)=>{const sc=document.c
 function dispLink(tok){return location.origin+location.pathname+"?d="+tok+"#disp"}
 async function showDispQR(name,tok){
   const link=dispLink(tok);
-  const m=modal(`<h3>باركود دخول ${esc(name)}</h3><p style="margin:0">خلّي ${esc(name)} يمسح الباركود بكاميرا تلفونه، فتنفتح عنده صفحة توزيع الطلبات وتبقى محفوظة. يشوف السواق على الخريطة، ويدز السفرات للسواق ويّا الوجهة والعمارة والشقة، ويرسل طلبات الزباين.</p>
+  const m=modal(`<h3>باركود دخول ${esc(name)}</h3><p style="margin:0">خلّي ${esc(name)} يمسح الباركود بكاميرا تلفونه، فتنفتح عنده صفحة اتصالات التكسي وتبقى محفوظة. يشوف السواق على الخريطة، ويدز السفرات للسواق ويّا الوجهة والعمارة والشقة، ويرسل طلبات الزباين.</p>
     <div id="qrb" style="background:#fff;border-radius:14px;padding:14px;align-self:center;line-height:0"><div class="empty">جارٍ التحميل…</div></div>
     <p class="note" style="margin:0">⚠ الباركود مثل المفتاح، لا تنطيه لغير هذا الشخص. إذا ضاع اضغط «باركود جديد» فالقديم يبطل.</p>
     <div class="row"><button class="btn" id="qcp">نسخ الرابط</button><button class="btn primary" id="qok">تم</button></div>`);
@@ -3430,7 +3430,7 @@ function renderSettings(){
     <p class="note" style="margin:0">كل مسؤول يدخل لوحة الإدارة برمزه الخاص، وعنده نفس صلاحياتك. بالسفرات يبيّن منو أرسل كل طلب. بس إنت (المدير الرئيسي) تگدر تضيف أو تشيل مسؤول.</p>
     <div id="abox"><div class="empty">جارٍ التحميل…</div></div></section>
    <section class="gate-card" style="width:100%;margin-bottom:16px">
-    <h3>📲 موظفين توجيه الكراوي (دخول بالباركود)</h3>
+    <h3>📲 اتصالات التكسي (موظفين، دخول بالباركود)</h3>
     <p class="note" style="margin:0">موظف يدخل بمسح باركود: يشوف السواق على الخريطة، ويدز السفرات (السائق، الوجهة، العمارة والطابق والشقة)، ويرسل طلبات الزباين. ما يشوف حسابات السواق ولا الإعدادات.</p>
     <div id="dbox"><div class="empty">جارٍ التحميل…</div></div></section>
    <form id="sp" class="gate-card" style="width:100%">
