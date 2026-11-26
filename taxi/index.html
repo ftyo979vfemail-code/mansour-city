@@ -591,7 +591,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611262245";
+const BUILD="202611262330";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -3679,6 +3679,7 @@ async function driverStart(){
   $("#app").innerHTML=`<div class="drv">
     <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>${esc(car.driver_name)}</h1><small>${esc([car.model,car.year,car.color].filter(Boolean).join(" · "))}</small></div></div>
     <div style="align-self:center">${plateHTML(car.plate,true)}</div>
+    <div id="linkok" role="status" aria-live="polite" style="border-radius:14px;padding:10px 14px;font-weight:800;text-align:center;background:#fff;border:2px solid #141414">…</div>
     <button class="ring off" id="ring" type="button"><div><strong id="rs">تشغيل التتبع</strong><br><small id="rsub">التتبع مطفأ</small></div></button>
     <div class="stats">
       <div class="stat"><small>آخر إرسال</small><b id="st-sent">—</b></div>
@@ -3761,6 +3762,31 @@ function setExt(on){
   }else{const st=$("#extStatus"); if(st) st.remove(); showTrip(null,true)}
 }
 
+/* ---------- Back to the compound: «قريب» → 3 minutes → «أنا موجود بالمجمع» ---------- */
+const NEAR_KEY=()=>"taxi_near_"+CODE, NEAR_MS=3*60*1000;
+function nearAt(){try{const v=+localStorage.getItem(NEAR_KEY());return v&&Date.now()-v<45*60*1000?v:0}catch{return 0}}
+function nearSet(){try{localStorage.setItem(NEAR_KEY(),String(Date.now()))}catch{}}
+function nearClear(){try{localStorage.removeItem(NEAR_KEY())}catch{}}
+function nearBox(){const n=nearAt();
+  if(!n) return `<button class="btn primary big" id="tr-near">📍 صرت قريب من المجمع</button>`;
+  const left=NEAR_MS-(Date.now()-n);
+  if(left>0) return `<p class="note" style="margin:0">⏳ بعد <b id="near-left">${Math.ceil(left/60000)}</b> دقيقة يطلعلك زر «أنا موجود بالمجمع».</p>`;
+  return `<button class="btn primary big" id="tr-ready">✅ أنا موجود بالمجمع (جاهز للكراوي)</button>`}
+let nearNotified=0;
+setInterval(()=>{if(!CODE||!today.ret)return;const n=nearAt();if(!n)return;
+  if(Date.now()-n>=NEAR_MS&&!$("#tr-ready")){curTrip=undefined;emptyKey="";showTrip(null,true);
+    if(nearNotified!==n){nearNotified=n;try{unlockAudio();siren(true);setTimeout(()=>siren(false),2500)}catch{};
+      try{if("Notification" in window&&Notification.permission==="granted")navigator.serviceWorker&&navigator.serviceWorker.ready.then(r=>r.showNotification("✅ إنت بالمجمع؟",{body:"اضغط «أنا موجود بالمجمع» حتى توصلك الكراوي",tag:"near"}))}catch{}}}
+  else{const el=$("#near-left");if(el)el.textContent=Math.max(1,Math.ceil((NEAR_MS-(Date.now()-n))/60000))}},15000);
+/* ---------- Is my location reaching the office? ---------- */
+function linkStatus(){const el=$("#linkok"); if(!el) return;
+  const srv=today.lastSeen?Date.parse(today.lastSeen):0, last=Math.max(lastSent||0,srv), ago=last?Math.round((Date.now()-last)/1000):null;
+  let bg,fg,t;
+  if(!ON&&!EXT){bg="#e5e5e5";fg="#141414";t="⚪ التتبع مطفأ: الإدارة ما تشوف موقعك"}
+  else if(ago!=null&&ago<=90){bg="#15803D";fg="#fff";t=`✅ موقعك يوصل للإدارة، كلشي طبيعي · آخر إرسال قبل ${ago<60?ago+" ثانية":"دقيقة"}`}
+  else{bg="#B42318";fg="#fff";t=`⚠ موقعك ما يوصل للإدارة${ago!=null?` من ${Math.round(ago/60)} دقيقة`:""}. تأكد من النت والـ GPS`}
+  el.style.background=bg;el.style.color=fg;el.style.borderColor=bg;el.textContent=t}
+setInterval(()=>{if(CODE)linkStatus()},5000);
 /* ---------- Summons: the office calls this driver ---------- */
 let summonSeen=null, summonRing=null;
 function summonBanner(sm){
@@ -3780,7 +3806,7 @@ function summonBanner(sm){
 let curTrip, tripPoll, lastOffer=null, today={trips:0,fares:0,base:null};
 async function refreshTrip(){
   if(!CODE) return;
-  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,fareBase:st.fare_base,wk:st.week_trips||0,zones:st.zones||[],money:st.money,closing:st.closing,bookings:st.bookings||[],debts:st.debts||[],rating:st.rating,ret:st.returning_since,ready:st.ready_at,base:st.base,lat:st.last_lat,lng:st.last_lng};showTrip(st.trip,true);noteCancel(st.cancelled);summonBanner(st.summon)}catch{}
+  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,fareBase:st.fare_base,wk:st.week_trips||0,zones:st.zones||[],money:st.money,closing:st.closing,bookings:st.bookings||[],debts:st.debts||[],rating:st.rating,ret:st.returning_since,ready:st.ready_at,base:st.base,lat:st.last_lat,lng:st.last_lng};today.lastSeen=st.last_seen;showTrip(st.trip,true);noteCancel(st.cancelled);summonBanner(st.summon);linkStatus()}catch{}
 }
 // Waze: to the customer before pickup, to the destination after the trip starts
 function wazeUrl(t){
@@ -3808,19 +3834,20 @@ function showTrip(t,force){
   if(same&&(!force||(t&&t.status==="started"&&$("#tr-end")))) return;
   // the empty card (zone buttons) is redrawn only when something on it really changes,
   // so the zone list doesn't jump back to the top while the driver scrolls it
-  if(!t&&$("#tr-line")){const ek=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT,today.closing&&today.closing.id,(today.bookings||[]).map(b=>b.id).join(),(today.debts||[]).map(b=>b.id).join()]);
+  if(!t&&$("#tr-line")){const ek=JSON.stringify([nearAt()?(Date.now()-nearAt()>=NEAR_MS?2:1):0,today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT,today.closing&&today.closing.id,(today.bookings||[]).map(b=>b.id).join(),(today.debts||[]).map(b=>b.id).join()]);
     if(ek===emptyKey){const eta=$("#back-eta");if(eta&&today.ret){const B=today.base&&today.base.lat?today.base:BASE_DEF,fx=lastFix&&lastFix.coords,la=fx?fx.latitude:today.lat,lo=fx?fx.longitude:today.lng;if(la!=null)eta.textContent=backEta(la,lo,B)}return}}
   curTrip=t;
   if(!ON&&!EXT){box.innerHTML="";return}
   const sum=`<div class="stats" style="margin-top:10px"><div class="stat"><small>سفرات اليوم</small><b>${today.trips}</b></div><div class="stat"><small>هذا الأسبوع</small><b>${today.wk||0} سفرة</b></div>${today.rating&&today.rating.count?`<div class="stat"><small>تقييم الزباين</small><b>⭐ ${today.rating.avg} <small>(${today.rating.count})</small></b></div>`:""}</div>`+moneyCard();
   const B=today.base&&today.base.lat?today.base:BASE_DEF, fx=lastFix&&lastFix.coords, myLat=fx?fx.latitude:today.lat, myLng=fx?fx.longitude:today.lng;
-  const back=!t&&today.ret?`<div class="trip back"><h3>🔙 راجع لـ${esc(B.name)}</h3><p>${myLat!=null?`توصل بعد ~<b><span id="back-eta">${backEta(myLat,myLng,B)}</span> دقيقة</b> (${baseKm(myLat,myLng,B).toFixed(1)} كم). `:""}الطريق للمجمع ما ينحسب «بدون سفرة».</p><button class="btn primary big" id="tr-ready">✅ وصلت المجمع، جاهز للكراوي</button></div>`
+  const back=!t&&today.ret?`<div class="trip back"><h3>🔙 راجع لـ${esc(B.name)}</h3><p>${myLat!=null?`توصل بعد ~<b><span id="back-eta">${backEta(myLat,myLng,B)}</span> دقيقة</b> (${baseKm(myLat,myLng,B).toFixed(1)} كم). `:""}الطريق للمجمع ما ينحسب «بدون سفرة».</p>${nearBox()}></div>`
     :!t&&today.ready?`<p class="note" style="margin:0">✅ إنت جاهز بالمجمع من ${hm(today.ready)}.</p>`:"";
   if(!t){box.innerHTML=`${back}<div class="trip"><h3>ماكو سفرة</h3><p>السفرات توصلك من المكتب ويّا الكروة. إذا ركب زبون من المجمع، <b>اتصل بالمكتب</b> حتى يدزلك السفرة قبل لا تتحرك. الحركة بدون سفرة تنسجل وتوصل للإدارة.</p>
       <button class="btn big" id="tr-line">🛣 رايح أوصل خط</button></div>${sum}`;
-    emptyKey=JSON.stringify([today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT,today.closing&&today.closing.id,(today.bookings||[]).map(b=>b.id).join(),(today.debts||[]).map(b=>b.id).join()]);
+    emptyKey=JSON.stringify([nearAt()?(Date.now()-nearAt()>=NEAR_MS?2:1):0,today.trips,today.fares,today.wk,!!today.ret,today.ready,(today.money||{}).in_hand,(today.money||{}).pending,(today.zones||[]).length,ON,EXT,today.closing&&today.closing.id,(today.bookings||[]).map(b=>b.id).join(),(today.debts||[]).map(b=>b.id).join()]);
     $("#tr-line").onclick=()=>lineForm(B);
-    const rd=$("#tr-ready"); if(rd) rd.onclick=()=>tripAct("ready");
+    const rd=$("#tr-ready"); if(rd) rd.onclick=()=>{nearClear();tripAct("ready")};
+    const nb=$("#tr-near"); if(nb) nb.onclick=async()=>{nb.disabled=true;try{await rpc("taxi_driver_near",{p_code:CODE})}catch{};nearSet();curTrip=undefined;emptyKey="";showTrip(null,true)};
     const db=$("#dep-btn"); if(db) db.onclick=depositForm; return}
   const where=`<p><b>من:</b> ${esc(t.pickup||"—")}${t.pickup_lat?` <a href="https://maps.google.com/?q=${t.pickup_lat},${t.pickup_lng}" target="_blank" rel="noopener">📍 الخريطة</a>`:""}<br><b>إلى:</b> ${esc(t.dropoff||"—")}${t.dropoff_note?` <small>(${esc(t.dropoff_note)})</small>`:""}${t.customer_name?`<br><b>الزبون:</b> ${esc(t.customer_name)}`:""}${t.note?`<br><b>ملاحظة:</b> ${esc(t.note)}`:""}${t.zone_id&&t.fare?`<br><b>الأجرة:</b> ${fmt(t.fare)} د.ع (ثابتة)`:""}${t.points_used?`<br><b style="color:var(--ok)">⭐ الزبون دافع ${fmt(t.points_used)} بالنقاط، استلم منه ${fmt(t.collect)} بس</b>`:""}</p>`;
   if(t.status==="assigned"){
@@ -3836,8 +3863,8 @@ function showTrip(t,force){
     box.innerHTML=`<div class="trip"><h3>${t.pickup_waiting||nsP?"وصلت للزبون":"رايح للزبون"}</h3>${where}${specialBox(t)}
       ${nsP?`<div class="waitbox locked" role="timer"><small>🔒 العدّاد انقفل</small><b>${clock(t.pickup_wait_sec)}</b><small>انتظرت ${Math.floor((t.pickup_wait_sec||0)/60)} دقيقة</small></div>${noshowBox(t)}`
       :t.pickup_waiting?`<div class="waitbox" role="timer" aria-live="off"><small>🕓 تنتظر الزبون ينزل</small><b id="pwclock">${clock(t.pickup_wait_sec)}</b><small>هذا الوقت ما ينحسب بفلوس</small></div>${noshowBox(t)}`
-        :`${wazeBtn(t,"ويز: روح للزبون")}<button class="btn big" id="tr-arr">📍 وصلت، دا أنتظر الزبون</button>${t.pickup_wait_sec>0?`<p class="note" style="margin:0">انتظرت: <b>${clock(t.pickup_wait_sec)}</b></p>`:""}`}
-      <button class="btn primary big" id="tr-go" ${spP?"disabled":""}>🚕 انطلاق (ركب الزبون)</button>${cancelReqBox(t)}</div>`;
+        :`${wazeBtn(t,"ويز: روح للزبون")}<button class="btn big" id="tr-arr">📍 وصلت للزبون</button>${t.pickup_wait_sec>0?`<p class="note" style="margin:0">انتظرت: <b>${clock(t.pickup_wait_sec)}</b></p>`:""}`}
+      <button class="btn primary big" id="tr-go" ${spP?"disabled":""}>🚕 بدأ المشوار (ركب الزبون)</button>${cancelReqBox(t)}</div>`;
     $("#tr-go").onclick=()=>tripAct("start");
     const sp=$("#tr-sp"); if(sp) sp.onclick=()=>specialForm(t);
     const ar=$("#tr-arr"); if(ar) ar.onclick=()=>tripAct("wait_start");
@@ -3868,7 +3895,7 @@ function showTrip(t,force){
     ${fixed||spFree?"":`<div class="field fare-in"><label for="tr-fare">💰 الأجرة اللي استلمتها (دينار)</label><input id="tr-fare" inputmode="numeric" autocomplete="off" placeholder="اكتب المبلغ، مثال 5000 أو 5" value="${esc(fareDraft[t.id]||"")}">
       <div class="fare-q" role="group" aria-label="مبالغ سريعة">${FARE_Q.map(v=>`<button type="button" class="btn sm" data-fq="${v}">${fmt(v)}</button>`).join("")}</div>
       <small id="tr-fv" class="fare-v" aria-live="polite"></small></div>`}
-    ${endNoteBox(t)}<button class="btn primary big" id="tr-end" ${t.waiting||spWait?"disabled":""}>إنهاء السفرة</button>${spFree||spWait?"":`<button type="button" class="btn big" id="tr-debt">🧾 الزبون ما دفع (دين على المكتب)</button>`}${cancelReqBox(t)}</div>`;
+    ${endNoteBox(t)}<button class="btn primary big" id="tr-end" ${t.waiting||spWait?"disabled":""}>🏁 انتهت الرحلة (نزل الزبون)</button>${spFree||spWait?"":`<button type="button" class="btn big" id="tr-debt">🧾 الزبون ما دفع (دين على المكتب)</button>`}${cancelReqBox(t)}</div>`;
   // live fare: base + round trip + waiting beyond the free minutes
   const t0=Date.now(), w0=t.wait_sec||0;
   const calc=()=>{
@@ -4124,11 +4151,13 @@ function moneyCard(){
     <button type="button" class="btn primary big" id="dep-btn">إيداع: سلّمت فلوس للإدارة</button></div>`;
 }
 // today's trips: area + its fare on each line, no total (the office does the sums)
-function priceCard(){const L=((today.money||{}).trip_list||[]);
-  return `<div class="money" style="border-color:var(--line)"><div class="money-top"><span>🚕 سفراتي اليوم (${L.filter(t=>!t.line).length})</span></div>
-    ${L.length?`<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">${L.map(t=>`<li style="display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line)">
-      <span><small style="color:var(--muted);font-family:var(--mono)">${esc(t.time)}</small> · ${esc(t.to||"—")}${t.round?" <small>↩ مرجع</small>":""}${t.line?" <small>(خط)</small>":""}</span><b>${t.line?"—":fmt(t.fare)}</b></li>`).join("")}</ul>`
-      :`<small>بعدك ما سويت سفرات اليوم.</small>`}</div>`}
+function priceCard(){const L=((today.money||{}).trip_list||[]).filter(t=>!t.line);
+  if(!L.length) return `<div class="money" style="border-color:var(--line)"><div class="money-top"><span>🕒 سجل الكراوي</span></div><small>بعدك ما سويت كراوي اليوم.</small></div>`;
+  const li=x=>`<li style="display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line)">${x}</li>`;
+  return `<div class="money" style="border-color:var(--line)"><div class="money-top"><span>🕒 سجل الكراوي (${L.length})</span></div>
+      <ul style="list-style:none;margin:0;padding:0">${L.map(t=>li(`<span><b style="font-family:var(--mono)">${esc(t.time)}</b> · ${esc(t.from||"—")}</span><span>← ${esc(t.to||"—")}</span>`)).join("")}</ul></div>
+    <div class="money" style="border-color:var(--line)"><div class="money-top"><span>📍 المناطق اللي رحتلها وأسعارها</span></div>
+      <ul style="list-style:none;margin:0;padding:0">${L.map(t=>li(`<span>${esc(t.to||"—")}${t.round?" <small>↩ مرجع</small>":""}</span><b>${fmt(t.fare)}</b>`)).join("")}</ul></div>`}
 // a trip from yesterday the driver forgot to record: zone price, or a typed place + fare
 function pastTripForm(zs){
   let pz=null;
@@ -4213,7 +4242,7 @@ function onFix(pos){
 }
 async function send(c){
   try{const r=await rpc("taxi_ping_v2",{p_code:CODE,p_lat:c.latitude,p_lng:c.longitude,p_speed:c.speed,p_acc:c.accuracy,p_heading:c.heading,p_battery:battery});
-    lastSent=Date.now();sentCount++;$("#st-n").textContent=sentCount;
+    lastSent=Date.now();sentCount++;$("#st-n").textContent=sentCount;linkStatus();
     if(r) showTrip(r.trip);
   }catch(e){
     if(/رمز/.test(e.message)){store.del("taxi_driver_code");if(store.get("taxi_role")==="driver")store.del("taxi_role");CODE=null;location.reload()}
