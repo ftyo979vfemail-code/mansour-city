@@ -591,7 +591,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611262230";
+const BUILD="202611262245";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -2009,13 +2009,18 @@ function pollDeposits(){
     if(ds.length){bar.hidden=false;bar.innerHTML=ds.slice(0,4).map((d,i)=>`<div class="sp-row"><span>💵 <b>${esc(d.driver_name)}</b> سلّم <b>${dinar(d.amount)}</b>${d.note?` · «${esc(d.note)}»`:""} <small>${new Date(d.created_at).toLocaleTimeString("ar-IQ",{hour:"numeric",minute:"2-digit"})}</small></span><span class="acts"><button class="btn sm primary" data-dok="${i}">✔ استلمت</button><button class="btn sm danger" data-dno="${i}">✖ ما استلمت</button><button class="btn sm" data-ddt="${i}">التفاصيل</button></span></div>`).join("")+(ds.length>4?`<small>و${ds.length-4} غيرها…</small>`:"");
       bar.querySelectorAll("[data-ddt]").forEach(b=>b.onclick=()=>depositDecide(ds[+b.dataset.ddt]));
       bar.querySelectorAll("[data-dok]").forEach(b=>b.onclick=()=>{const d=ds[+b.dataset.dok];
-        const m=modal(`<h3>✔ استلمت ${dinar(d.amount)} من ${esc(d.driver_name)}؟</h3><p class="note" style="margin:0">تنحسب على أقدم سفراته.</p>
+        const m=modal(`<h3>💵 إيداع ${esc(d.driver_name)}</h3><p class="note" style="margin:0">السائق كتب ${dinar(d.amount)}. اكتب المبلغ اللي استلمته بيدك بالضبط.</p>
+          <div class="field"><label for="dk-a">💵 استلمت بيدي (دينار)</label><input id="dk-a" inputmode="numeric" required placeholder="مثال: 35000" style="font:600 22px var(--mono);text-align:center"></div>
           <div class="field"><label for="dk-m">📝 ملاحظة على الاستلام</label><input id="dk-m" maxlength="300" placeholder="مثال: سلفة 10 وصرف بانزين 5، تنسجل وحدها"></div>
-          <div class="err" id="dk-e"></div><div class="row"><button class="btn" id="dk-x">رجوع</button><button class="btn primary" id="dk-ok">✔ نعم، استلمت</button></div>`);
-        $("#dk-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#dk-m",m).focus(),50);
-        $("#dk-ok",m).onclick=async e=>{const btn=e.currentTarget;if(btn.disabled)return;btn.disabled=true;
-          const it=await noteGate(d.driver_name,$("#dk-m",m).value,d.amount,d.car_id); if(it===null){btn.disabled=false;return}
-          try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:d.amount,p_reason:$("#dk-m",m).value,p_trips:null});m.remove();toast("انسجل الاستلام");await saveNoteItems(d.car_id,it);pollDeposits();if(tab==="files")renderFiles()}catch(er){btn.disabled=false;$("#dk-e",m).textContent=er.message}}});
+          <div class="err" id="dk-e"></div><div class="row"><button class="btn" id="dk-x">رجوع</button><button class="btn primary" id="dk-ok">✔ سجّل الاستلام</button></div>`);
+        $("#dk-x",m).onclick=()=>m.remove();
+        setTimeout(()=>$("#dk-a",m).focus(),60);
+        $("#dk-ok",m).onclick=async e=>{const btn=e.currentTarget;if(btn.disabled)return;
+          let got=parseInt(($("#dk-a",m).value||"").replace(/\D/g,""),10); if(got>0&&got<=1000) got*=1000;
+          if(!(got>0)){$("#dk-e",m).textContent="اكتب المبلغ اللي استلمته بيدك";$("#dk-a",m).focus();return}
+          btn.disabled=true;
+          const it=await noteGate(d.driver_name,$("#dk-m",m).value,got,d.car_id); if(it===null){btn.disabled=false;return}
+          try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:true,p_received:got,p_reason:$("#dk-m",m).value,p_trips:null});m.remove();toast("انسجل الاستلام");await saveNoteItems(d.car_id,it);pollDeposits();if(tab==="files")renderFiles()}catch(er){btn.disabled=false;$("#dk-e",m).textContent=er.message}}});
       bar.querySelectorAll("[data-dno]").forEach(b=>b.onclick=()=>{const d=ds[+b.dataset.dno];const m=modal(`<h3>✖ ما استلمت من ${esc(d.driver_name)}</h3><p style="margin:0">المبلغ ${dinar(d.amount)} يبقى بذمّته، والسائق يشوف السبب.</p><div class="field"><label for="dn-r">السبب</label><input id="dn-r" placeholder="مثال: ما سلّم شي" maxlength="120"></div><div class="err" id="dn-e"></div><div class="row"><button class="btn" id="dn-x">رجوع</button><button class="btn danger" id="dn-ok">تأكيد: ما استلمت</button></div>`);
         $("#dn-x",m).onclick=()=>m.remove();
         $("#dn-ok",m).onclick=async()=>{try{await rpc("taxi_admin_deposit_settle",{p_pin:PIN,p_id:d.id,p_ok:false,p_received:null,p_reason:$("#dn-r",m).value||"غير مستلم",p_trips:null});m.remove();toast("انسجل: ما استلمت، المبلغ باقي بذمّته");pollDeposits()}catch(e){$("#dn-e",m).textContent=e.message}}});
