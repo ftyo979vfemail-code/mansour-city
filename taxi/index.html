@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611261910";
+const BUILD="202611261930";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -3721,7 +3721,7 @@ function showTrip(t,force){
     if(ek===emptyKey){const eta=$("#back-eta");if(eta&&today.ret){const B=today.base&&today.base.lat?today.base:BASE_DEF,fx=lastFix&&lastFix.coords,la=fx?fx.latitude:today.lat,lo=fx?fx.longitude:today.lng;if(la!=null)eta.textContent=backEta(la,lo,B)}return}}
   curTrip=t;
   if(!ON&&!EXT){box.innerHTML="";return}
-  const sum=`<div class="stats" style="margin-top:10px"><div class="stat"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)}</b></div><div class="stat"><small>هذا الأسبوع</small><b>${today.wk||0} سفرة</b></div>${today.rating&&today.rating.count?`<div class="stat"><small>تقييم الزباين</small><b>⭐ ${today.rating.avg} <small>(${today.rating.count})</small></b></div>`:""}</div>`+moneyCard();
+  const sum=`<div class="stats" style="margin-top:10px">${today.money&&today.money.today?"":`<div class="stat"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)}</b></div>`}<div class="stat"><small>هذا الأسبوع</small><b>${today.wk||0} سفرة</b></div>${today.rating&&today.rating.count?`<div class="stat"><small>تقييم الزباين</small><b>⭐ ${today.rating.avg} <small>(${today.rating.count})</small></b></div>`:""}</div>`+moneyCard();
   const B=today.base&&today.base.lat?today.base:BASE_DEF, fx=lastFix&&lastFix.coords, myLat=fx?fx.latitude:today.lat, myLng=fx?fx.longitude:today.lng;
   const back=!t&&today.ret?`<div class="trip back"><h3>🔙 راجع لـ${esc(B.name)}</h3><p>${myLat!=null?`توصل بعد ~<b><span id="back-eta">${backEta(myLat,myLng,B)}</span> دقيقة</b> (${baseKm(myLat,myLng,B).toFixed(1)} كم). `:""}الطريق للمجمع ما ينحسب «بدون سفرة».</p><button class="btn primary big" id="tr-ready">✅ وصلت المجمع، جاهز للكراوي</button></div>`
     :!t&&today.ready?`<p class="note" style="margin:0">✅ إنت جاهز بالمجمع من ${hm(today.ready)}.</p>`:"";
@@ -4025,15 +4025,24 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-cack]");if
   $("#ca-ok",m).onclick=()=>{const n=$("#ca-n",m).value.trim();if(n.length<3){$("#ca-e",m).textContent="اكتب شنو الغلط";return}m.remove();send(false,n)}});
 function moneyCard(){
   const m=today.money; if(!m) return bookingsCard()+closingCard()+debtsCard();
-  const last=(m.deposits||[])[0], free=Math.max(0,(m.in_hand||0)-(m.pending||0));
+  const last=(m.deposits||[])[0], free=Math.max(0,(m.in_hand||0)-(m.pending||0)), T=m.today||null, bf=m.before||0, tot=m.in_hand||0;
+  const dl=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"long",day:"numeric",month:"numeric"});
   const lastLine=!last?"":last.status==="pending"?`⏳ إيداع ${dinar(last.amount)} بانتظار تأكيد الإدارة`
-    :last.status==="confirmed"?`✔ الإدارة استلمت ${dinar(last.received??last.amount)}${last.received!=null&&last.received!==last.amount?` (من ${dinar(last.amount)})`:""}${last.decided_by&&/يدوي/.test(last.decided_by)?" (كانت مسجّلة عند الإدارة)":""}`
+    :last.status==="confirmed"?`✔ آخر إيداع: الإدارة استلمت ${dinar(last.received??last.amount)}`
     :`✖ انرفض إيداع ${dinar(last.amount)}${last.reason?`: ${esc(last.reason)}`:""}`;
-  return bookingsCard()+closingCard()+debtsCard()+`<div class="money"><div class="money-top"><span>💵 المبلغ اللي بيدك للشركة</span><b>${dinar(m.in_hand||0)}</b></div>
+  const dayBox=T?`<div class="calc" style="margin:6px 0">
+      <div><span>سفرات اليوم</span><b>${T.trips||0}</b></div>
+      <div><span>كروات اليوم</span><b>${dinar(T.fares||0)}</b></div>
+      ${T.from_cash?`<div><span>ديون/سلف/مصاريف من الكاش</span><b>− ${dinar(T.from_cash)}</b></div>`:""}
+      ${T.received?`<div><span>سلّمت للإدارة اليوم</span><b>− ${dinar(T.received)}</b></div>`:""}</div>`:"";
+  const oldLine=bf>0?`<small>📌 باقي عليك من الأيام السابقة: <b>${dinar(bf)}</b></small>`:bf<0?`<small>📌 إلك من الأيام السابقة: <b>${dinar(-bf)}</b> (تنحسب من اللي عليك)</small>`:"";
+  return bookingsCard()+closingCard()+debtsCard()+`<div class="money"><div class="money-top"><span>💵 حسابك اليوم${T?` · ${dl(T.day)}`:""}</span></div>
+    ${dayBox}${oldLine}
+    <div class="money-top" style="margin-top:6px;border-top:1px solid var(--line,#ddd);padding-top:8px"><span>${tot>=0?"المجموع اللي لازم تسلّمه":"إلك عند الشركة"}</span><b>${dinar(Math.abs(tot))}</b></div>
     ${m.pending?`<small>منها ${dinar(m.pending)} بانتظار تأكيد الإدارة</small>`:""}
     ${lastLine?`<small class="money-last">${lastLine}</small>`:""}
-    ${free>0?`<button type="button" class="btn primary big" id="dep-btn">إيداع: سلّمت المبلغ للإدارة</button>`
-      :`<div class="money-ok">✔ ما عليك شي للشركة هسه${m.pending?"، والإيداع بانتظار التأكيد":""}${m.last_collected&&!m.pending?`<br><small>آخر استلام سجّلته الإدارة: ${dinar(m.last_collected.amount)} · ${new Date(m.last_collected.at).toLocaleString("ar-IQ",{weekday:"short",hour:"2-digit",minute:"2-digit"})}</small>`:""}</div>`}</div>`;
+    ${free>0?`<button type="button" class="btn primary big" id="dep-btn">إيداع: سلّمت فلوس للإدارة</button>`
+      :`<div class="money-ok">✔ ما عليك شي للشركة هسه${m.pending?"، والإيداع بانتظار التأكيد":""}</div>`}</div>`;
 }
 // a trip from yesterday the driver forgot to record: zone price, or a typed place + fare
 function pastTripForm(zs){
@@ -4058,8 +4067,8 @@ function pastTripForm(zs){
 }
 function depositForm(){
   const m=today.money||{}, free=Math.max(0,(m.in_hand||0)-(m.pending||0));
-  const md=modal(`<h3>💵 إيداع للإدارة</h3><p style="margin:0">اكتب المبلغ اللي سلّمته للإدارة (أكثر شي ${dinar(free)}). ينحسب بعد ما الإدارة تأكد إنها استلمته.</p>
-    <div class="field"><label for="dp-a">المبلغ (دينار)</label><input id="dp-a" inputmode="numeric" value="${free}" style="font:600 24px var(--mono);text-align:center"></div>
+  const md=modal(`<h3>💵 إيداع للإدارة</h3><p style="margin:0">اكتب المبلغ اللي سلّمته بيدك للإدارة بالضبط (عليك ${dinar(free)}). ينحسب بعد ما الإدارة تأكد إنها استلمته.</p>
+    <div class="field"><label for="dp-a">المبلغ (دينار)</label><input id="dp-a" inputmode="numeric" placeholder="اكتب المبلغ اللي سلّمته بالضبط" style="font:600 24px var(--mono);text-align:center"></div>
     <div class="field"><p style="margin:0 0 6px;font-weight:600">هذا الإيداع عن:</p><div class="row2" role="radiogroup" aria-label="يوم الإيداع">
       <button type="button" class="btn big primary" role="radio" aria-checked="true" data-dd="today">إيداع اليوم</button>
       <button type="button" class="btn big" role="radio" aria-checked="false" data-dd="yesterday">إيداع البارحة</button></div></div>
