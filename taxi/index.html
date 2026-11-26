@@ -207,7 +207,11 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 
 /* Driver */
 /* ---- driver pages: «تكسي كلاسيك» — taxi yellow ground, white cards, black ink + checker band ---- */
-body:has(.drv){background:#FFD21F;color-scheme:light}
+body:has(.drv),body:has(.drv-gate){background:#FFD21F;color-scheme:light}
+.drv-gate{--panel:#ffffff;--line:#E6C200;--fg:#141414;--muted:#5B5440;--amber:#141414;--amber-ink:#FFD21F;--teal:#141414;--on-teal:#FFD21F;--bg:#FFD21F;
+  background:#FFD21F;color:#141414;font-family:Cairo,"IBM Plex Sans Arabic",system-ui,sans-serif;color-scheme:light}
+.drv-gate .gate-card{border:2px solid #141414;box-shadow:0 10px 0 -4px #141414}
+.drv-gate .gate-card::before{content:"";display:block;height:10px;border-radius:3px;background:repeating-linear-gradient(90deg,#141414 0 10px,#FFD21F 10px 20px)}
 .drv{--bg:#FFD21F;--panel:#ffffff;--line:#E6C200;--fg:#141414;--muted:#5B5440;--teal:#141414;--teal-deep:#000000;--on-teal:#FFD21F;
   --amber:#141414;--amber-ink:#FFD21F;--ok:#15803D;--warn:#B45309;--bad:#B42318;--idle:#6B6B6B;--body:Cairo,"IBM Plex Sans Arabic",system-ui,sans-serif;--display:Cairo,system-ui,sans-serif;
   background:#FFD21F;color:#141414;font-family:var(--body);color-scheme:light}
@@ -586,7 +590,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611262000";
+const BUILD="202611262010";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -3595,7 +3599,7 @@ let EXT=store.get("taxi_ext")==="1", ON=store.get("taxi_on")==="1", CODE=store.g
 
 function driverApp(){ CODE?driverStart():driverGate(); }
 function driverGate(msg){
-  $("#app").innerHTML=`<div class="gate"><form class="gate-card" id="dg">
+  $("#app").innerHTML=`<div class="gate drv-gate"><form class="gate-card" id="dg">
    <div class="brand"><div class="brand-mark">${ICON}</div><div><h1>صفحة السائق</h1><small>تكسي مجمع المنصور</small></div></div>
    <div class="field"><label for="dc">رمز السائق (6 أرقام من الإدارة)</label><input id="dc" class="code-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></div>
    <div class="err" id="de">${esc(msg||"")}</div>
