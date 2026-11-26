@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611251745";
+const BUILD="202611261900";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1598,6 +1598,34 @@ async function showDispQR(name,tok){
   try{await loadQR();const q=qrcode(0,"M");q.addData(link);q.make();$("#qrb",m).innerHTML=q.createSvgTag({cellSize:6,margin:2,scalable:true});const sv=$("#qrb svg",m);if(sv){sv.style.width="min(260px,70vw)";sv.style.height="auto"}}
   catch(e){$("#qrb",m).innerHTML=`<div class="err">${esc(e.message)}</div>`}
 }
+// «تسكير اليوم»: bring every driver to zero up to a day, then nothing more lands on it
+async function renderDayClose(day){
+  const v=$("#view"); const today=new Date(Date.now()+3*3600e3-7*3600e3).toISOString().slice(0,10);
+  day=day||new Date(Date.parse(today)-864e5).toISOString().slice(0,10);
+  v.innerHTML=`<div class="card"><h3>🔒 تسكير اليوم</h3><p class="note">التسكير يصفّر حساب كل سائق لحد هاليوم، وبعده أي استلام أو دين أو سفرة تنسجل على اليوم الجاي، فما ينخلط شي ويّا الأيام المسكّرة.</p>
+    <div class="field" style="max-width:220px"><label for="dc-d">اليوم</label><input type="date" id="dc-d" value="${day}" max="${today}"></div><div id="dc-b"><div class="empty">جارٍ الحساب…</div></div></div>`;
+  $("#dc-d").onchange=e=>renderDayClose(e.target.value);
+  let r; try{r=await rpc("taxi_admin_dayclose_preview",{p_pin:PIN,p_day:day})}catch(e){$("#dc-b").innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
+  const fd=d=>new Date(d+"T12:00").toLocaleDateString("ar-IQ",{weekday:"long",day:"numeric",month:"numeric"});
+  const locks=r.locks.length?`<h4 style="margin:16px 0 6px">الأيام المسكّرة</h4><ul class="log">${r.locks.map((l,i)=>`<li><span class="pill s-idle">🔒</span><span><b>${fd(l.day)}</b><br><small style="color:var(--muted)">سكّره ${esc(l.by||"")}</small></span>${i===0&&FULL()?`<button class="btn sm" data-reopen="${l.day}">فتح</button>`:""}</li>`).join("")}</ul>`:"";
+  if(r.closed){$("#dc-b").innerHTML=`<div class="alert">🔒 ${fd(day)} مسكّر.</div>${locks}`;bindReopen();return}
+  const D=r.drivers;
+  const rows=D.map(x=>{const b=x.balance;const opt=b>0?`<select data-car="${x.car_id}" class="btn sm"><option value="">اختار…</option><option value="cash">استلمتها هسه كاش</option><option value="advance">سلفة من راتبه</option><option value="writeoff">تنشطب</option></select>`
+      :b<0?`<select data-car="${x.car_id}" class="btn sm"><option value="">اختار…</option><option value="refund">نرجّعله الزايد</option><option value="writeoff">تبقى للشركة</option></select>`:`<span class="pill s-ok">✔ صفر</span>`;
+    return `<tr><td><b>${esc(x.driver_name)}</b></td><td>${fmt(x.day_fares||0)}</td><td>${fmt(x.fares)}</td><td>${fmt(x.received)}</td><td>${fmt(x.from_cash)}</td>
+      <td style="font-weight:700;color:${b>0?"var(--bad)":b<0?"var(--ok)":"inherit"}">${b>0?"عليه "+fmt(b):b<0?"زايد "+fmt(-b):"0"}</td><td>${opt}</td></tr>`}).join("");
+  $("#dc-b").innerHTML=`${r.open_trips?`<div class="alert">⚠ أكو ${r.open_trips} سفرة مفتوحة بهاليوم، خلّصها أو ألغيها قبل التسكير.</div>`:""}
+    <p class="note">من ${r.from==="2000-01-01"?"أول الحساب":fd(r.from)} لحد ${fd(day)}</p>
+    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>السائق</th><th>كروات اليوم</th><th>الكروات</th><th>استلمنا</th><th>ديون/سلف كاش</th><th>الباقي</th><th>شنو يصير</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="err" id="dc-e"></div><button class="btn primary big" id="dc-go" ${r.open_trips?"disabled":""}>🔒 تسكير ${fd(day)} وتصفير الحسابات</button>${locks}`;
+  bindReopen();
+  $("#dc-go").onclick=()=>{const p={};let miss=null;
+    $("#dc-b").querySelectorAll("select[data-car]").forEach(s=>{if(!s.value)miss=s;else p[s.dataset.car]=s.value});
+    if(miss){$("#dc-e").textContent="اختار شنو يصير لكل سائق عليه أو عنده زايد";miss.focus();return}
+    confirmBox(`تسكير ${fd(day)}؟ حسابات السواق تتصفر لحد هاليوم، وما ينسجل عليه شي بعدها.`,"تسكير",async()=>{
+      try{await rpc("taxi_admin_dayclose",{p_pin:PIN,p_day:day,p});toast("انسكّر اليوم ✔");renderDayClose(day)}catch(e){$("#dc-e").textContent=e.message}})};
+  function bindReopen(){$("#view").querySelectorAll("[data-reopen]").forEach(b=>b.onclick=()=>confirmBox(`فتح ${fd(b.dataset.reopen)} مرة ثانية؟ قيود التصفير تبقى.`,"فتح",async()=>{try{await rpc("taxi_admin_dayreopen",{p_pin:PIN,p_day:b.dataset.reopen});renderDayClose(b.dataset.reopen)}catch(e){toast(e.message)}}))}
+}
 async function renderDisps(){
   const box=$("#dbox"); if(!box) return;
   let list; try{list=await rpc("taxi_admin_dispatchers",{p_pin:PIN,p_action:"list",p:{}})}catch(e){box.innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
@@ -1671,6 +1699,7 @@ function adminShell(){
        <button role="tab" data-t="net">📊 الصافي</button>
        <button role="tab" data-t="settle">🧮 المحاسبة</button>
        <button role="tab" data-t="rcp">🧾 الاستلامات</button>
+       <button role="tab" data-t="dclose">🔒 تسكير اليوم</button>
        <button role="tab" data-t="debts">📕 الديون</button>
        <button role="tab" data-t="lines">🛣 الخطوط</button>
        <button role="tab" data-t="daily">التقرير اليومي</button>
@@ -1993,6 +2022,7 @@ function renderTab(){
   if(tab==="settle") renderSettle();
   if(tab==="book") renderBook();
   if(tab==="dayv") renderDayView();
+  if(tab==="dclose") renderDayClose();
   if(tab==="debts") renderDebts();
   if(tab==="net") renderNet();
   if(tab==="lines") renderLines();
