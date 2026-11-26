@@ -591,7 +591,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611262145";
+const BUILD="202611262200";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1750,6 +1750,7 @@ function adminShell(){
        <button role="tab" data-t="rcp">🧾 الاستلامات</button>
        <button role="tab" data-t="dclose">🔒 تسكير اليوم</button>
        <button role="tab" data-t="shifts">⏰ الشفتات</button>
+       <button role="tab" data-t="zones">📍 المناطق والأسعار</button>
        <button role="tab" data-t="debts">📕 الديون</button>
        <button role="tab" data-t="lines">🛣 الخطوط</button>
        <button role="tab" data-t="daily">التقرير اليومي</button>
@@ -2074,6 +2075,7 @@ function renderTab(){
   if(tab==="dayv") renderDayView();
   if(tab==="dclose") renderDayClose();
   if(tab==="shifts") renderShifts();
+  if(tab==="zones"){$("#view").innerHTML=`<div class="wrap" style="max-width:760px"><section class="gate-card" style="width:100%"><h3>📍 المناطق والأسعار</h3><p class="note" style="margin:0">ضيف منطقة جديدة ويّا سعرها، أو غيّر سعر منطقة. السعر ينحط على السفرة تلقائياً.</p><div id="zbox"><div class="empty">جارٍ التحميل…</div></div></section></div>`;renderZones()}
   if(tab==="debts") renderDebts();
   if(tab==="net") renderNet();
   if(tab==="lines") renderLines();
