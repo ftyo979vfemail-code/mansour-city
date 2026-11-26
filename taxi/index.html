@@ -591,7 +591,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611262115";
+const BUILD="202611262130";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -4078,11 +4078,12 @@ function moneyCard(){
     ${lastLine?`<small class="money-last">${lastLine}</small>`:""}
     <button type="button" class="btn primary big" id="dep-btn">إيداع: سلّمت فلوس للإدارة</button></div>`;
 }
-function priceCard(){const Z=[...(today.zones||[])].sort((a,b)=>a.name.localeCompare(b.name,"ar")); if(!Z.length) return "";
-  return `<details class="money" style="border-color:var(--line)"><summary style="font-weight:800;cursor:pointer">📋 أسعار المناطق (${Z.length})</summary>
-    <input type="search" id="pz-q" placeholder="🔎 ابحث عن منطقة" autocomplete="off" style="margin:8px 0;padding:10px;border-radius:10px;width:100%">
-    <ul id="pz-l" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">${Z.map(z=>`<li data-n="${esc(z.name)}" style="display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line)"><span>${esc(z.name)}</span><b>${fmt(z.price)}</b></li>`).join("")}</ul></details>`}
-document.addEventListener("input",e=>{if(e.target.id!=="pz-q")return;const q=e.target.value.trim();document.querySelectorAll("#pz-l li").forEach(li=>li.hidden=!!q&&!li.dataset.n.includes(q))});
+// today's trips: area + its fare on each line, no total (the office does the sums)
+function priceCard(){const L=((today.money||{}).trip_list||[]);
+  return `<div class="money" style="border-color:var(--line)"><div class="money-top"><span>🚕 سفراتي اليوم (${L.filter(t=>!t.line).length})</span></div>
+    ${L.length?`<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">${L.map(t=>`<li style="display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line)">
+      <span><small style="color:var(--muted);font-family:var(--mono)">${esc(t.time)}</small> · ${esc(t.to||"—")}${t.round?" <small>↩ مرجع</small>":""}${t.line?" <small>(خط)</small>":""}</span><b>${t.line?"—":fmt(t.fare)}</b></li>`).join("")}</ul>`
+      :`<small>بعدك ما سويت سفرات اليوم.</small>`}</div>`}
 // a trip from yesterday the driver forgot to record: zone price, or a typed place + fare
 function pastTripForm(zs){
   let pz=null;
