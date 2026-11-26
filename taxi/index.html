@@ -591,7 +591,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611262015";
+const BUILD="202611262030";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1620,7 +1620,7 @@ async function renderDayClose(day){
   $("#dc-d").onchange=e=>renderDayClose(e.target.value);
   let r; try{r=await rpc("taxi_admin_dayclose_preview",{p_pin:PIN,p_day:day})}catch(e){$("#dc-b").innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
   const fd=d=>new Date(d+"T12:00").toLocaleDateString("ar-IQ",{weekday:"long",day:"numeric",month:"numeric"});
-  const locks=r.locks.length?`<h4 style="margin:16px 0 6px">الأيام المسكّرة</h4><ul class="log">${r.locks.map((l,i)=>`<li><span class="pill s-idle">🔒</span><span><b>${fd(l.day)}</b><br><small style="color:var(--muted)">سكّره ${esc(l.by||"")}</small></span>${i===0&&FULL()?`<button class="btn sm" data-reopen="${l.day}">فتح</button>`:""}</li>`).join("")}</ul>`:"";
+  const locks=r.locks.length?`<h4 style="margin:16px 0 6px">الأيام المسكّرة</h4><ul class="log">${r.locks.map((l,i)=>`<li><span class="pill s-idle">🔒</span><span><b>${fd(l.day)}</b><br><small style="color:var(--muted)">سكّره ${esc(l.by||"")}${l.note?` · 📝 ${esc(l.note)}`:""}</small></span>${i===0&&FULL()?`<button class="btn sm" data-reopen="${l.day}">فتح</button>`:""}</li>`).join("")}</ul>`:"";
   if(r.closed){$("#dc-b").innerHTML=`<div class="alert">🔒 ${fd(day)} مسكّر.</div>${locks}`;bindReopen();return}
   const D=r.drivers;
   const rows=D.map(x=>{const b=x.balance;const opt=b>0?`<select data-car="${x.car_id}" class="btn sm"><option value="">اختار…</option><option value="cash">استلمتها هسه كاش</option><option value="advance">سلفة من راتبه</option><option value="writeoff">تنشطب</option></select>`
@@ -1632,14 +1632,32 @@ async function renderDayClose(day){
   $("#dc-b").innerHTML=`${r.open_trips?`<div class="alert">⚠ أكو ${r.open_trips} سفرة مفتوحة بهاليوم، خلّصها أو ألغيها قبل التسكير.</div>`:""}
     <p class="note">«باقي اليوم» حساب ${fd(day)} بس. «باقي من قبل» اللي بقى من ${r.from==="2000-01-01"?"الأيام القديمة (ماكو تسكير قبله)":"بعد آخر تسكير"}. التسكير يصفّر المجموع.</p>
     <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>السائق</th><th>سفرات</th><th>كروات اليوم</th><th>استلمنا اليوم</th><th>ديون/سلف كاش</th><th>باقي اليوم</th><th>باقي من قبل</th><th>المجموع اللي يتصفر</th><th>شنو يصير</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="field"><label for="dc-note">📝 ملاحظات التسكير (اختياري)</label><textarea id="dc-note" rows="2" maxlength="500" placeholder="مثال: حسام استلم الكاش، فاروق يسلّم الباقي باچر"></textarea></div>
     <div class="err" id="dc-e"></div><button class="btn primary big" id="dc-go" ${r.open_trips?"disabled":""}>🔒 تسكير ${fd(day)} وتصفير الحسابات</button>${locks}`;
   bindReopen();
   $("#dc-go").onclick=()=>{const p={};let miss=null;
     $("#dc-b").querySelectorAll("select[data-car]").forEach(s=>{if(!s.value)miss=s;else p[s.dataset.car]=s.value});
     if(miss){$("#dc-e").textContent="اختار شنو يصير لكل سائق عليه أو عنده زايد";miss.focus();return}
     confirmBox(`تسكير ${fd(day)}؟ حسابات السواق تتصفر لحد هاليوم، وما ينسجل عليه شي بعدها.`,"تسكير",async()=>{
+      p._note=$("#dc-note").value;
       try{await rpc("taxi_admin_dayclose",{p_pin:PIN,p_day:day,p});toast("انسكّر اليوم ✔");renderDayClose(day)}catch(e){$("#dc-e").textContent=e.message}})};
   function bindReopen(){$("#view").querySelectorAll("[data-reopen]").forEach(b=>b.onclick=()=>confirmBox(`فتح ${fd(b.dataset.reopen)} مرة ثانية؟ قيود التصفير تبقى.`,"فتح",async()=>{try{await rpc("taxi_admin_dayreopen",{p_pin:PIN,p_day:b.dataset.reopen});renderDayClose(b.dataset.reopen)}catch(e){toast(e.message)}}))}
+}
+// shifts: each driver's shift (morning / evening) and its hours
+async function renderShifts(){
+  const v=$("#view"); v.innerHTML=`<div class="card"><h3>⏰ شفتات السواق</h3><p class="note">اختار لكل سائق الشفت ووقت الدوام من وإلى. شغل الليل بعد 12 ينحسب على يوم المسا.</p><div id="sh-b"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  let L; try{L=await rpc("taxi_admin_shifts",{p_pin:PIN})}catch(e){$("#sh-b").innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
+  $("#sh-b").innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">${L.map(c=>`<form class="trip" data-shc="${c.id}" style="gap:8px">
+      <b>${esc(c.driver_name)} <small style="color:var(--muted);font-weight:400">${esc(c.plate||"")}</small></b>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+        <div class="field" style="min-width:140px"><label for="shs-${c.id}">الشفت</label><select id="shs-${c.id}" class="btn" name="shift"><option value="morning" ${c.shift==="morning"?"selected":""}>☀️ صباحي</option><option value="evening" ${c.shift==="evening"?"selected":""}>🌙 مسائي</option></select></div>
+        <div class="field"><label for="shf-${c.id}">من</label><input id="shf-${c.id}" type="time" name="from" value="${c.from||"07:00"}"></div>
+        <div class="field"><label for="sht-${c.id}">إلى</label><input id="sht-${c.id}" type="time" name="to" value="${c.to||"19:00"}"></div>
+        <button class="btn primary">حفظ</button></div></form>`).join("")}</div>`;
+  $("#sh-b").querySelectorAll("form[data-shc]").forEach(f=>{
+    f.shift.onchange=()=>{if(f.shift.value==="evening"){f.from.value="19:00";f.to.value="07:00"}else{f.from.value="07:00";f.to.value="19:00"}};
+    f.onsubmit=async e=>{e.preventDefault();const b=f.querySelector("button");b.disabled=true;
+      try{await rpc("taxi_admin_shift_set",{p_pin:PIN,p_car:f.dataset.shc,p_shift:f.shift.value,p_from:f.from.value,p_to:f.to.value});toast("انحفظ الشفت ✔")}catch(er){toast(er.message)}finally{b.disabled=false}}});
 }
 async function renderDisps(){
   const box=$("#dbox"); if(!box) return;
@@ -1715,6 +1733,7 @@ function adminShell(){
        <button role="tab" data-t="settle">🧮 المحاسبة</button>
        <button role="tab" data-t="rcp">🧾 الاستلامات</button>
        <button role="tab" data-t="dclose">🔒 تسكير اليوم</button>
+       <button role="tab" data-t="shifts">⏰ الشفتات</button>
        <button role="tab" data-t="debts">📕 الديون</button>
        <button role="tab" data-t="lines">🛣 الخطوط</button>
        <button role="tab" data-t="daily">التقرير اليومي</button>
@@ -2038,6 +2057,7 @@ function renderTab(){
   if(tab==="book") renderBook();
   if(tab==="dayv") renderDayView();
   if(tab==="dclose") renderDayClose();
+  if(tab==="shifts") renderShifts();
   if(tab==="debts") renderDebts();
   if(tab==="net") renderNet();
   if(tab==="lines") renderLines();
