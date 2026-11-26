@@ -578,7 +578,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611261900";
+const BUILD="202611261910";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1612,11 +1612,13 @@ async function renderDayClose(day){
   const D=r.drivers;
   const rows=D.map(x=>{const b=x.balance;const opt=b>0?`<select data-car="${x.car_id}" class="btn sm"><option value="">اختار…</option><option value="cash">استلمتها هسه كاش</option><option value="advance">سلفة من راتبه</option><option value="writeoff">تنشطب</option></select>`
       :b<0?`<select data-car="${x.car_id}" class="btn sm"><option value="">اختار…</option><option value="refund">نرجّعله الزايد</option><option value="writeoff">تبقى للشركة</option></select>`:`<span class="pill s-ok">✔ صفر</span>`;
-    return `<tr><td><b>${esc(x.driver_name)}</b></td><td>${fmt(x.day_fares||0)}</td><td>${fmt(x.fares)}</td><td>${fmt(x.received)}</td><td>${fmt(x.from_cash)}</td>
-      <td style="font-weight:700;color:${b>0?"var(--bad)":b<0?"var(--ok)":"inherit"}">${b>0?"عليه "+fmt(b):b<0?"زايد "+fmt(-b):"0"}</td><td>${opt}</td></tr>`}).join("");
+    const sg=n=>n>0?"عليه "+fmt(n):n<0?"زايد "+fmt(-n):"0";
+    return `<tr><td><b>${esc(x.driver_name)}</b></td><td>${x.day_trips||0}</td><td>${fmt(x.day_fares||0)}</td><td>${fmt(x.day_received||0)}</td><td>${fmt(x.day_from_cash||0)}</td>
+      <td>${sg(x.day_balance||0)}</td><td style="color:var(--muted)">${sg(x.before||0)}</td>
+      <td style="font-weight:700;color:${b>0?"var(--bad)":b<0?"var(--ok)":"inherit"}">${sg(b)}</td><td>${opt}</td></tr>`}).join("");
   $("#dc-b").innerHTML=`${r.open_trips?`<div class="alert">⚠ أكو ${r.open_trips} سفرة مفتوحة بهاليوم، خلّصها أو ألغيها قبل التسكير.</div>`:""}
-    <p class="note">من ${r.from==="2000-01-01"?"أول الحساب":fd(r.from)} لحد ${fd(day)}</p>
-    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>السائق</th><th>كروات اليوم</th><th>الكروات</th><th>استلمنا</th><th>ديون/سلف كاش</th><th>الباقي</th><th>شنو يصير</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="note">«باقي اليوم» حساب ${fd(day)} بس. «باقي من قبل» اللي بقى من ${r.from==="2000-01-01"?"الأيام القديمة (ماكو تسكير قبله)":"بعد آخر تسكير"}. التسكير يصفّر المجموع.</p>
+    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>السائق</th><th>سفرات</th><th>كروات اليوم</th><th>استلمنا اليوم</th><th>ديون/سلف كاش</th><th>باقي اليوم</th><th>باقي من قبل</th><th>المجموع اللي يتصفر</th><th>شنو يصير</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="err" id="dc-e"></div><button class="btn primary big" id="dc-go" ${r.open_trips?"disabled":""}>🔒 تسكير ${fd(day)} وتصفير الحسابات</button>${locks}`;
   bindReopen();
   $("#dc-go").onclick=()=>{const p={};let miss=null;
