@@ -591,7 +591,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611262030";
+const BUILD="202611262045";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1643,21 +1643,34 @@ async function renderDayClose(day){
       try{await rpc("taxi_admin_dayclose",{p_pin:PIN,p_day:day,p});toast("انسكّر اليوم ✔");renderDayClose(day)}catch(e){$("#dc-e").textContent=e.message}})};
   function bindReopen(){$("#view").querySelectorAll("[data-reopen]").forEach(b=>b.onclick=()=>confirmBox(`فتح ${fd(b.dataset.reopen)} مرة ثانية؟ قيود التصفير تبقى.`,"فتح",async()=>{try{await rpc("taxi_admin_dayreopen",{p_pin:PIN,p_day:b.dataset.reopen});renderDayClose(b.dataset.reopen)}catch(e){toast(e.message)}}))}
 }
-// shifts: each driver's shift (morning / evening) and its hours
+// shifts: each driver's shift (morning / evening / 24h) and its hours, shown in plain words
+const SHIFT_PRESET={morning:["07:00","19:00"],evening:["19:00","07:00"],full:["07:00","07:00"]};
+function shiftWords(sh,f,t){
+  const part=x=>{const h=+String(x||"0").slice(0,2);return h<5?"بالليل":h<12?"الصبح":h<16?"الظهر":h<19?"العصر":"المسا"};
+  const tm=x=>{let [h,m]=String(x||"00:00").split(":").map(Number);const h12=h%12||12;return m?`${h12}:${String(m).padStart(2,"0")}`:`${h12}`};
+  if(sh==="full") return `24 ساعة: من ${part(f)} ${tm(f)} لـ ${part(t)} ${tm(t)} اليوم الثاني`;
+  const next=String(t)<=String(f);
+  return `من ${part(f)} ${tm(f)} لـ ${part(t)} ${tm(t)}${next?" (اليوم الثاني)":""}`;
+}
 async function renderShifts(){
-  const v=$("#view"); v.innerHTML=`<div class="card"><h3>⏰ شفتات السواق</h3><p class="note">اختار لكل سائق الشفت ووقت الدوام من وإلى. شغل الليل بعد 12 ينحسب على يوم المسا.</p><div id="sh-b"><div class="empty">جارٍ التحميل…</div></div></div>`;
+  const v=$("#view"); v.innerHTML=`<div class="card"><h3>⏰ شفتات السواق</h3><p class="note">اختار لكل سائق الشفت ووقت الدوام. السائق اللي يشتغل 24 ساعة اختارله «24 ساعة»، وبدّلها بين السواق متى ما تريد. شغل الليل لحد 7 الصبح ينحسب على يوم المسا.</p><div id="sh-b"><div class="empty">جارٍ التحميل…</div></div></div>`;
   let L; try{L=await rpc("taxi_admin_shifts",{p_pin:PIN})}catch(e){$("#sh-b").innerHTML=`<div class="err">${esc(e.message)}</div>`;return}
+  const opt=(c,v,t)=>`<option value="${v}" ${c.shift===v?"selected":""}>${t}</option>`;
   $("#sh-b").innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">${L.map(c=>`<form class="trip" data-shc="${c.id}" style="gap:8px">
       <b>${esc(c.driver_name)} <small style="color:var(--muted);font-weight:400">${esc(c.plate||"")}</small></b>
       <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-        <div class="field" style="min-width:140px"><label for="shs-${c.id}">الشفت</label><select id="shs-${c.id}" class="btn" name="shift"><option value="morning" ${c.shift==="morning"?"selected":""}>☀️ صباحي</option><option value="evening" ${c.shift==="evening"?"selected":""}>🌙 مسائي</option></select></div>
-        <div class="field"><label for="shf-${c.id}">من</label><input id="shf-${c.id}" type="time" name="from" value="${c.from||"07:00"}"></div>
-        <div class="field"><label for="sht-${c.id}">إلى</label><input id="sht-${c.id}" type="time" name="to" value="${c.to||"19:00"}"></div>
-        <button class="btn primary">حفظ</button></div></form>`).join("")}</div>`;
+        <div class="field" style="min-width:200px"><label for="shs-${c.id}">الشفت</label><select id="shs-${c.id}" class="btn" name="shift">
+          ${opt(c,"morning","☀️ صباحي (الصبح ← المسا)")}${opt(c,"evening","🌙 مسائي (المسا ← الصبح)")}${opt(c,"full","🔁 24 ساعة (يوم كامل)")}</select></div>
+        <div class="field"><label for="shf-${c.id}">يبدي</label><input id="shf-${c.id}" type="time" name="from" value="${c.from||"07:00"}"></div>
+        <div class="field"><label for="sht-${c.id}">يخلص</label><input id="sht-${c.id}" type="time" name="to" value="${c.to||"19:00"}"></div>
+        <button class="btn primary">حفظ</button></div>
+      <small class="pill s-idle" data-words style="align-self:flex-start">${esc(shiftWords(c.shift,c.from,c.to))}</small></form>`).join("")}</div>`;
   $("#sh-b").querySelectorAll("form[data-shc]").forEach(f=>{
-    f.shift.onchange=()=>{if(f.shift.value==="evening"){f.from.value="19:00";f.to.value="07:00"}else{f.from.value="07:00";f.to.value="19:00"}};
+    const words=()=>{f.querySelector("[data-words]").textContent=shiftWords(f.shift.value,f.from.value,f.to.value)};
+    f.shift.onchange=()=>{const p=SHIFT_PRESET[f.shift.value];f.from.value=p[0];f.to.value=p[1];words()};
+    f.from.oninput=words; f.to.oninput=words;
     f.onsubmit=async e=>{e.preventDefault();const b=f.querySelector("button");b.disabled=true;
-      try{await rpc("taxi_admin_shift_set",{p_pin:PIN,p_car:f.dataset.shc,p_shift:f.shift.value,p_from:f.from.value,p_to:f.to.value});toast("انحفظ الشفت ✔")}catch(er){toast(er.message)}finally{b.disabled=false}}});
+      try{await rpc("taxi_admin_shift_set",{p_pin:PIN,p_car:f.dataset.shc,p_shift:f.shift.value,p_from:f.from.value,p_to:f.to.value});toast("انحفظ: "+shiftWords(f.shift.value,f.from.value,f.to.value))}catch(er){toast(er.message)}finally{b.disabled=false}}});
 }
 async function renderDisps(){
   const box=$("#dbox"); if(!box) return;
