@@ -591,7 +591,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611262100";
+const BUILD="202611262115";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -3767,7 +3767,7 @@ function showTrip(t,force){
     if(ek===emptyKey){const eta=$("#back-eta");if(eta&&today.ret){const B=today.base&&today.base.lat?today.base:BASE_DEF,fx=lastFix&&lastFix.coords,la=fx?fx.latitude:today.lat,lo=fx?fx.longitude:today.lng;if(la!=null)eta.textContent=backEta(la,lo,B)}return}}
   curTrip=t;
   if(!ON&&!EXT){box.innerHTML="";return}
-  const sum=`<div class="stats" style="margin-top:10px">${today.money&&today.money.today?"":`<div class="stat"><small>سفرات اليوم</small><b>${today.trips} · ${fmt(today.fares)}</b></div>`}<div class="stat"><small>هذا الأسبوع</small><b>${today.wk||0} سفرة</b></div>${today.rating&&today.rating.count?`<div class="stat"><small>تقييم الزباين</small><b>⭐ ${today.rating.avg} <small>(${today.rating.count})</small></b></div>`:""}</div>`+moneyCard();
+  const sum=`<div class="stats" style="margin-top:10px"><div class="stat"><small>سفرات اليوم</small><b>${today.trips}</b></div><div class="stat"><small>هذا الأسبوع</small><b>${today.wk||0} سفرة</b></div>${today.rating&&today.rating.count?`<div class="stat"><small>تقييم الزباين</small><b>⭐ ${today.rating.avg} <small>(${today.rating.count})</small></b></div>`:""}</div>`+moneyCard();
   const B=today.base&&today.base.lat?today.base:BASE_DEF, fx=lastFix&&lastFix.coords, myLat=fx?fx.latitude:today.lat, myLng=fx?fx.longitude:today.lng;
   const back=!t&&today.ret?`<div class="trip back"><h3>🔙 راجع لـ${esc(B.name)}</h3><p>${myLat!=null?`توصل بعد ~<b><span id="back-eta">${backEta(myLat,myLng,B)}</span> دقيقة</b> (${baseKm(myLat,myLng,B).toFixed(1)} كم). `:""}الطريق للمجمع ما ينحسب «بدون سفرة».</p><button class="btn primary big" id="tr-ready">✅ وصلت المجمع، جاهز للكراوي</button></div>`
     :!t&&today.ready?`<p class="note" style="margin:0">✅ إنت جاهز بالمجمع من ${hm(today.ready)}.</p>`:"";
@@ -4069,27 +4069,20 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-cack]");if
   const m=modal(`<h3>✖ اعتراض على الحساب</h3><div class="field"><label for="ca-n">شنو الغلط؟</label><textarea id="ca-n" rows="3" maxlength="300" placeholder="مثال: سلّمت 50,000 يوم 12 وما مسجّلة"></textarea></div><div class="err" id="ca-e"></div><div class="row"><button class="btn" id="ca-x">رجوع</button><button class="btn danger" id="ca-ok">إرسال الاعتراض</button></div>`);
   $("#ca-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#ca-n",m).focus(),50);
   $("#ca-ok",m).onclick=()=>{const n=$("#ca-n",m).value.trim();if(n.length<3){$("#ca-e",m).textContent="اكتب شنو الغلط";return}m.remove();send(false,n)}});
+// driver bottom area: no money totals; a price list of the areas + a plain deposit button
 function moneyCard(){
-  const m=today.money; if(!m) return bookingsCard()+closingCard();
-  const last=(m.deposits||[])[0], free=Math.max(0,(m.in_hand||0)-(m.pending||0)), T=m.today||null, bf=m.before||0, tot=m.in_hand||0;
-  const dl=d=>new Date(d+"T12:00:00Z").toLocaleDateString("ar-IQ",{weekday:"long",day:"numeric",month:"numeric"});
-  const lastLine=!last?"":last.status==="pending"?`⏳ إيداع ${dinar(last.amount)} بانتظار تأكيد الإدارة`
-    :last.status==="confirmed"?`✔ آخر إيداع: الإدارة استلمت ${dinar(last.received??last.amount)}`
-    :`✖ انرفض إيداع ${dinar(last.amount)}${last.reason?`: ${esc(last.reason)}`:""}`;
-  const dayBox=T?`<div class="calc" style="margin:6px 0">
-      <div><span>سفرات اليوم</span><b>${T.trips||0}</b></div>
-      <div><span>كروات اليوم</span><b>${dinar(T.fares||0)}</b></div>
-      ${T.from_cash?`<div><span>ما تنحسب عليك (زباين ما دفعوا على المكتب، سلف، مصاريف)</span><b>− ${dinar(T.from_cash)}</b></div>`:""}
-      ${T.received?`<div><span>سلّمت للإدارة اليوم</span><b>− ${dinar(T.received)}</b></div>`:""}</div>`:"";
-  const oldLine=bf>0?`<small>📌 باقي عليك من الأيام السابقة: <b>${dinar(bf)}</b></small>`:bf<0?`<small>📌 إلك من الأيام السابقة: <b>${dinar(-bf)}</b> (تنحسب من اللي عليك)</small>`:"";
-  return bookingsCard()+closingCard()+`<div class="money"><div class="money-top"><span>💵 حسابك اليوم${T?` · ${dl(T.day)}`:""}</span></div>
-    ${dayBox}${oldLine}
-    <div class="money-top" style="margin-top:6px;border-top:1px solid var(--line,#ddd);padding-top:8px"><span>${tot>=0?"المجموع اللي لازم تسلّمه":"إلك عند الشركة"}</span><b>${dinar(Math.abs(tot))}</b></div>
-    ${m.pending?`<small>منها ${dinar(m.pending)} بانتظار تأكيد الإدارة</small>`:""}
+  const m=today.money||{}, last=(m.deposits||[])[0];
+  const lastLine=!last?"":last.status==="pending"?`⏳ إيداعك ${dinar(last.amount)} بانتظار تأكيد الإدارة`
+    :last.status==="confirmed"?`✔ آخر إيداع: الإدارة استلمت ${dinar(last.received??last.amount)}`:`✖ انرفض إيداع ${dinar(last.amount)}${last.reason?`: ${esc(last.reason)}`:""}`;
+  return bookingsCard()+closingCard()+priceCard()+`<div class="money"><div class="money-top"><span>💵 سلّمت فلوس للإدارة؟</span></div>
     ${lastLine?`<small class="money-last">${lastLine}</small>`:""}
-    ${free>0?`<button type="button" class="btn primary big" id="dep-btn">إيداع: سلّمت فلوس للإدارة</button>`
-      :`<div class="money-ok">✔ ما عليك شي للشركة هسه${m.pending?"، والإيداع بانتظار التأكيد":""}</div>`}</div>`;
+    <button type="button" class="btn primary big" id="dep-btn">إيداع: سلّمت فلوس للإدارة</button></div>`;
 }
+function priceCard(){const Z=[...(today.zones||[])].sort((a,b)=>a.name.localeCompare(b.name,"ar")); if(!Z.length) return "";
+  return `<details class="money" style="border-color:var(--line)"><summary style="font-weight:800;cursor:pointer">📋 أسعار المناطق (${Z.length})</summary>
+    <input type="search" id="pz-q" placeholder="🔎 ابحث عن منطقة" autocomplete="off" style="margin:8px 0;padding:10px;border-radius:10px;width:100%">
+    <ul id="pz-l" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">${Z.map(z=>`<li data-n="${esc(z.name)}" style="display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line)"><span>${esc(z.name)}</span><b>${fmt(z.price)}</b></li>`).join("")}</ul></details>`}
+document.addEventListener("input",e=>{if(e.target.id!=="pz-q")return;const q=e.target.value.trim();document.querySelectorAll("#pz-l li").forEach(li=>li.hidden=!!q&&!li.dataset.n.includes(q))});
 // a trip from yesterday the driver forgot to record: zone price, or a typed place + fare
 function pastTripForm(zs){
   let pz=null;
@@ -4113,7 +4106,7 @@ function pastTripForm(zs){
 }
 function depositForm(){
   const m=today.money||{}, free=Math.max(0,(m.in_hand||0)-(m.pending||0));
-  const md=modal(`<h3>💵 إيداع للإدارة</h3><p style="margin:0">اكتب المبلغ اللي سلّمته بيدك للإدارة بالضبط (عليك ${dinar(free)}). ينحسب بعد ما الإدارة تأكد إنها استلمته.</p>
+  const md=modal(`<h3>💵 إيداع للإدارة</h3><p style="margin:0">اكتب المبلغ اللي سلّمته بيدك للإدارة بالضبط. ينحسب بعد ما الإدارة تأكد إنها استلمته.</p>
     <div class="field"><label for="dp-a">المبلغ (دينار)</label><input id="dp-a" inputmode="numeric" placeholder="اكتب المبلغ اللي سلّمته بالضبط" style="font:600 24px var(--mono);text-align:center"></div>
     <div class="field"><p style="margin:0 0 6px;font-weight:600">هذا الإيداع عن:</p><div class="row2" role="radiogroup" aria-label="يوم الإيداع">
       <button type="button" class="btn big primary" role="radio" aria-checked="true" data-dd="today">إيداع اليوم</button>
