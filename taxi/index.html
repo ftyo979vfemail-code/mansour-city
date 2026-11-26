@@ -591,7 +591,7 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611262200";
+const BUILD="202611262230";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
@@ -1614,6 +1614,25 @@ async function showDispQR(name,tok){
   try{await loadQR();const q=qrcode(0,"M");q.addData(link);q.make();$("#qrb",m).innerHTML=q.createSvgTag({cellSize:6,margin:2,scalable:true});const sv=$("#qrb svg",m);if(sv){sv.style.width="min(260px,70vw)";sv.style.height="auto"}}
   catch(e){$("#qrb",m).innerHTML=`<div class="err">${esc(e.message)}</div>`}
 }
+// summon chosen drivers: they get a push + a loud banner until they answer
+async function summonForm(){
+  const act=cars.filter(c=>c.active); const pick=new Set();
+  const m=modal(`<h3>📣 استدعاء سواق</h3><p class="note" style="margin:0">اختار السواق اللي تريدهم. يوصلهم إشعار وجرس بالتطبيق لحد ما يردّون.</p>
+    <div class="zones" id="sm-c" role="group" aria-label="السواق">${act.map(c=>`<button type="button" class="zchip" aria-pressed="false" data-c="${c.id}">${esc(c.driver_name)}</button>`).join("")}</div>
+    <div class="zones" id="sm-p">${["تعال للمكتب","ارجع للمجمع","اتصل بالإدارة","عندك سفرة، تعال للبوابة"].map(t=>`<button type="button" class="zchip" data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+    <div class="field"><label for="sm-m">الرسالة</label><input id="sm-m" maxlength="200" value="تعال للمكتب"></div>
+    <div class="err" id="sm-e"></div><div class="row"><button class="btn" id="sm-x">رجوع</button><button class="btn primary" id="sm-ok">📣 استدعاء</button></div>
+    <div id="sm-l" style="margin-top:6px"></div>`);
+  m.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{const id=b.dataset.c;pick.has(id)?pick.delete(id):pick.add(id);b.classList.toggle("on",pick.has(id));b.setAttribute("aria-pressed",pick.has(id))});
+  m.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{$("#sm-m",m).value=b.dataset.t});
+  $("#sm-x",m).onclick=()=>m.remove();
+  const list=async()=>{try{const L=await rpc("taxi_admin_summons",{p_pin:PIN});$("#sm-l",m).innerHTML=L.length?`<b>آخر الاستدعاءات</b><ul class="log" style="margin:4px 0 0">${L.slice(0,8).map(x=>`<li><span class="pill ${x.ack_at?"s-ok":"s-warn"}">${x.ack_at?"✔ "+esc(x.ack_note||"رد"):"⏳ ما ردّ"}</span><span><b>${esc(x.driver_name)}</b> · ${esc(x.message)}<br><small style="color:var(--muted)">${esc(x.by||"")} · ${new Date(x.at).toLocaleTimeString("ar-IQ",{hour:"2-digit",minute:"2-digit"})}</small></span></li>`).join("")}</ul>`:""}catch{}};
+  list();
+  $("#sm-ok",m).onclick=async e=>{if(!pick.size){$("#sm-e",m).textContent="اختار سائق واحد على الأقل";return}
+    const b=e.currentTarget;b.disabled=true;
+    try{const r=await rpc("taxi_admin_summon",{p_pin:PIN,p_cars:[...pick],p_message:$("#sm-m",m).value});toast(`انرسل الاستدعاء لـ ${r.sent} سائق`);pick.clear();m.querySelectorAll("[data-c]").forEach(x=>{x.classList.remove("on");x.setAttribute("aria-pressed","false")});list()}
+    catch(er){$("#sm-e",m).textContent=er.message}finally{b.disabled=false}};
+}
 // «تسكير اليوم»: bring every driver to zero up to a day, then nothing more lands on it
 async function renderDayClose(day){
   const v=$("#view"); const today=new Date(Date.now()+3*3600e3-7*3600e3).toISOString().slice(0,10);
@@ -1734,7 +1753,7 @@ function adminShell(){
      <div class="alert reqbar spbar" id="cxbar" hidden></div>
      <div class="alert reqbar" id="scbar" hidden></div>
      <div class="alert" id="alert" hidden></div>
-     <button type="button" class="btn primary big" id="calls-btn" style="margin:8px 0">📞 اتصالات التكسي: دز سفرة لسائق</button>
+     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><button type="button" class="btn primary big" id="calls-btn" style="flex:2">📞 اتصالات التكسي: دز سفرة لسائق</button><button type="button" class="btn big" id="summon-btn" style="flex:1">📣 استدعاء سواق</button></div>
      <nav class="tabs" role="tablist">
        <button role="tab" data-t="live">الخريطة الحيّة</button>
        <button role="tab" data-t="files">ملفات السواق</button>
@@ -1772,6 +1791,7 @@ function adminShell(){
   if(!FULL()) document.querySelectorAll(".tabs button").forEach(b=>{if(MONEY_TABS.includes(b.dataset.t))b.remove()});
   if(!OWNER()){["inv"].forEach(k=>{const ib=document.querySelector(`.tabs [data-t="${k}"]`);if(ib)ib.remove()});if(tab==="inv")tab="live"}
   document.querySelectorAll(".tabs button[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderTab()});
+  $("#summon-btn").onclick=()=>summonForm();
   document.querySelectorAll("#calls-btn,.calls-open").forEach(cbtn=>cbtn.onclick=async()=>{cbtn.disabled=true;
     try{const r=await rpc("taxi_admin_disp_token",{p_pin:PIN});const w=window.open(dispLink(r.token),"_blank");if(!w)location.href=dispLink(r.token)}
     catch(e){toast(e.message)}finally{cbtn.disabled=false}});
@@ -3736,11 +3756,26 @@ function setExt(on){
   }else{const st=$("#extStatus"); if(st) st.remove(); showTrip(null,true)}
 }
 
+/* ---------- Summons: the office calls this driver ---------- */
+let summonSeen=null, summonRing=null;
+function summonBanner(sm){
+  let el=$("#summon");
+  if(!sm){if(el)el.remove();clearInterval(summonRing);summonRing=null;summonSeen=null;return}
+  if(!el){el=document.createElement("div");el.id="summon";el.setAttribute("role","alertdialog");el.setAttribute("aria-live","assertive");
+    el.style.cssText="position:fixed;inset:auto 12px 12px 12px;z-index:9999;background:#141414;color:#FFD21F;border:3px solid #FFD21F;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 30px rgb(0 0 0/.45);font-family:Cairo,system-ui,sans-serif";
+    document.body.appendChild(el)}
+  el.innerHTML=`<b style="font-size:20px">📣 الإدارة تستدعيك</b><span style="font-size:18px;color:#fff">${esc(sm.message)}</span><small style="color:#d6c36a">${esc(sm.by||"")} · ${new Date(sm.at).toLocaleTimeString("ar-IQ",{hour:"2-digit",minute:"2-digit"})}</small>
+    <div style="display:flex;gap:8px"><button type="button" class="btn big" data-sack="جاي" style="flex:2;background:#FFD21F;color:#141414;border:0;font-weight:900">✔ جاي</button><button type="button" class="btn big" data-sack="مشغول بسفرة" style="flex:1;background:transparent;color:#FFD21F;border:2px solid #FFD21F">بسفرة</button></div>`;
+  el.querySelectorAll("[data-sack]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await rpc("taxi_driver_summon_ack",{p_code:CODE,p_id:sm.id,p_note:b.dataset.sack});summonBanner(null);toast("وصل ردّك للإدارة")}catch(e){toast(e.message);b.disabled=false}});
+  if(summonSeen!==sm.id){summonSeen=sm.id;clearInterval(summonRing);
+    const ring=()=>{try{const A=window.__sctx||(window.__sctx=new AudioContext());A.resume();[0,.35,.7].forEach(d=>{const o=A.createOscillator(),g=A.createGain();o.frequency.value=988;o.connect(g);g.connect(A.destination);g.gain.value=.35;o.start(A.currentTime+d);o.stop(A.currentTime+d+.25)})}catch{};try{navigator.vibrate&&navigator.vibrate([500,200,500,200,500])}catch{}};
+    ring(); summonRing=setInterval(()=>{if($("#summon"))ring();else clearInterval(summonRing)},20000)}
+}
 /* ---------- Driver trips ---------- */
 let curTrip, tripPoll, lastOffer=null, today={trips:0,fares:0,base:null};
 async function refreshTrip(){
   if(!CODE) return;
-  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,fareBase:st.fare_base,wk:st.week_trips||0,zones:st.zones||[],money:st.money,closing:st.closing,bookings:st.bookings||[],debts:st.debts||[],rating:st.rating,ret:st.returning_since,ready:st.ready_at,base:st.base,lat:st.last_lat,lng:st.last_lng};showTrip(st.trip,true);noteCancel(st.cancelled)}catch{}
+  try{const st=await rpc("taxi_driver_state",{p_code:CODE});today={trips:st.today_trips,fares:st.today_fares,fareBase:st.fare_base,wk:st.week_trips||0,zones:st.zones||[],money:st.money,closing:st.closing,bookings:st.bookings||[],debts:st.debts||[],rating:st.rating,ret:st.returning_since,ready:st.ready_at,base:st.base,lat:st.last_lat,lng:st.last_lng};showTrip(st.trip,true);noteCancel(st.cancelled);summonBanner(st.summon)}catch{}
 }
 // Waze: to the customer before pickup, to the destination after the trip starts
 function wazeUrl(t){
