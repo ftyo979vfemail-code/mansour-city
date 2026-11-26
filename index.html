@@ -4496,7 +4496,7 @@ function remBadge(c,s){const r=remLast(c);if(!s.over&&!r)return'';const d=r?Math
   const nm=r?(S.staff||[]).find(p=>p.id===r.by_uid)?.full_name||'':'';
   if(r)return`<span class="pill ${d<=7?'p-ok':'p-warn'}" title="${esc(nm)}">🔔 ذُكّر ${d===0?'اليوم':d===1?'أمس':'قبل '+d+' يوم'}</span>`;
   return`<span class="pill p-bad">🔕 ما مذكّر</span>`}
-async function walletLoad(){const {data}=await sb.from('sales_wallet').select('*').order('day');S.wallet=data||[]}
+async function walletLoad(){const all=[];for(let f=0;f<100000;f+=1000){const {data,error}=await sb.from('sales_wallet').select('*').order('day').order('created_at').order('id').range(f,f+999);if(error){console.warn(error);break}all.push(...(data||[]));if(!data||data.length<1000)break}S.wallet=all}
 
 const SVC0=[{name:'صيانة',amount:0},{name:'كهرباء',amount:0},{name:'إنترنت',amount:0},{name:'ماء',amount:0},{name:'نظافة وحراسة',amount:0}];
 const svcCat=()=>(S.settings?.svc?.length?S.settings.svc:SVC0);
