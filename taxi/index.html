@@ -591,13 +591,16 @@ const SB_URL=/github\.io$/.test(location.hostname)?"https://xdyxcvyhoidojtfpoepk
 const SB_KEY="sb_publishable_MuXMUJQUAFEhLabb7koN1A_Dlmm6z5-";
 const STALE_SEC=60;
 // Auto-update: if a newer version of this page is published, reload into it.
-const BUILD="202611262130";
+const BUILD="202611262145";
 (function(){const chk=()=>fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(v=>{
   if(v.build&&v.build!==BUILD&&!document.querySelector(".modal")&&!document.activeElement.matches("input,textarea,select")
      &&new URLSearchParams(location.search).get("v")!==v.build){location.replace(location.pathname+"?v="+v.build+location.hash)}}).catch(()=>{});
   setTimeout(chk,3000);setInterval(chk,120000);})();
 const APK_URL="https://github.com/ftyo979vfemail-code/mansour-city/releases/download/taxi-driver/taxi-driver.apk";
 const $=(s,r=document)=>r.querySelector(s);
+// loose Arabic search: ignores hamza forms, ة/ه, ى/ي, ض/ظ, "ال", spaces
+const arN=x=>String(x||"").replace(/[\u064B-\u0652\u0640]/g,"").replace(/[أإآٱ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/ظ/g,"ض").replace(/ؤ/g,"و").replace(/ئ/g,"ي").replace(/(^|\s)ال/g,"$1").replace(/\s+/g,"");
+const zMatch=(name,q)=>!q||arN(name).includes(arN(q));
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
 const sess={get(k){try{return sessionStorage.getItem(k)}catch{return null}},set(k,v){try{sessionStorage.setItem(k,v)}catch{}},del(k){try{sessionStorage.removeItem(k)}catch{}}};
@@ -1041,7 +1044,7 @@ async function orderForm(){
   const TICK=`<svg class="tick" aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#febd02" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>`;
   const day=ts=>{const d=Math.floor((Date.now()-new Date(ts))/864e5);return d<1?"اليوم":d<2?"البارحة":new Date(ts).toLocaleDateString("ar-IQ",{weekday:"long"})};
   const draw=()=>{const q=$("#o-q").value.trim();
-    const list=q?orderZones.filter(z=>z.name.includes(q)):showAll?[...rec,...orderZones.filter(z=>!seen[z.id])]:rec;
+    const list=q?orderZones.filter(z=>zMatch(z.name,q)):showAll?[...rec,...orderZones.filter(z=>!seen[z.id])]:rec;
     $("#zones").innerHTML=list.length?list.map(z=>{const r=seen[z.id],air=/مطار/.test(z.name);
       return `<li><button type="button" role="radio" aria-checked="${orderZone===z.id}" data-z="${z.id}"><span class="cx-ico">${r?ICO_CLOCK:air?ICO_PLANE:ICO_PIN}</span><span><b>${esc(z.name)}</b><small>${r?(r.n>1?`رحت إلها ${r.n} مرات · آخر مرة ${day(r.at)}`:`آخر مرة ${day(r.at)}`):air?"ذهاب أو رجعة":"بغداد"}</small></span>${TICK}</button></li>`}).join("")
       :`<li class="empty">ماكو منطقة بهذا الاسم.</li>`;
@@ -1538,7 +1541,7 @@ function dispApp(){
     if(F.car&&!D.some(x=>x.id===F.car&&!x.busy))F.car=null;
     $("#dp-drv").innerHTML=D.map(x=>`<button type="button" data-c="${x.id}" aria-pressed="${F.car===x.id}" ${x.busy?"disabled":""}>${plateHTML(x.plate)}<span class="dn"><b>${esc(x.driver_name)}</b><small>${x.busy?"عنده سفرة":x.online?"🟢 متصل · فاضي":"⚪ غير متصل"}</small></span></button>`).join("");
     $("#dp-drv").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>pick(b.dataset.c))};
-  const drawZones=()=>{const q=$("#dp-zq").value.trim(),Z=(DP.data.zones||[]).filter(z=>!q||z.name.includes(q));
+  const drawZones=()=>{const q=$("#dp-zq").value.trim(),Z=(DP.data.zones||[]).filter(z=>zMatch(z.name,q));
     $("#dp-z").innerHTML=Z.map(z=>`<button type="button" role="radio" aria-checked="${F.zone===z.id}" class="zchip${F.zone===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}<small>${fmt(z.price)}</small></button>`).join("")
       +`<button type="button" role="radio" aria-checked="${F.zone===0}" class="zchip other${F.zone===0?" on":""}" data-z="0">✏️ منطقة أخرى</button>`;
     $("#dp-z").querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{F.zone=+b.dataset.z;$("#dp-other").hidden=F.zone!==0;drawZones();sum()})};
@@ -3914,7 +3917,7 @@ function zonePicker(zs){
     <div class="row"><button class="btn" id="zp-x">رجوع</button><button class="btn primary" id="zp-ok" hidden>🚕 بدء سفرة</button></div>`);
   const go=p=>{m.remove();drvZone=null;drvQ="";drvTo="";tripAct("start",p)};
   const draw=()=>{const q=$("#zp-q",m).value.trim();
-    $("#zp-z",m).innerHTML=zs.filter(z=>!q||z.name.includes(q)).map(z=>`<button type="button" class="zchip" data-z="${z.id}">${esc(z.name)}<small>${fmt(z.price)}</small></button>`).join("")+`<button type="button" class="zchip other" data-z="0">✏️ منطقة أخرى</button>`;
+    $("#zp-z",m).innerHTML=zs.filter(z=>zMatch(z.name,q)).map(z=>`<button type="button" class="zchip" data-z="${z.id}">${esc(z.name)}<small>${fmt(z.price)}</small></button>`).join("")+`<button type="button" class="zchip other" data-z="0">✏️ منطقة أخرى</button>`;
     $("#zp-z",m).querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const id=+b.dataset.z;
       if(id){go({zone_id:id,dropoff:""});return}
       $("#zp-of",m).hidden=false;$("#zp-ok",m).hidden=false;$("#zp-o",m).focus()})};
@@ -3929,7 +3932,7 @@ function lineForm(B){
     <div class="zones" id="ln-z" role="radiogroup" aria-label="المنطقة"></div>
     <div class="err" id="ln-e"></div><div class="row"><button class="btn" id="ln-x">رجوع</button><button class="btn primary" id="ln-ok">🛣 انطلق</button></div>`);
   let sel=null;
-  const draw=()=>{const q=$("#ln-q",m).value.trim();const L=zs.filter(z=>!q||z.name.includes(q)).slice(0,24);
+  const draw=()=>{const q=$("#ln-q",m).value.trim();const L=zs.filter(z=>zMatch(z.name,q)).slice(0,24);
     $("#ln-z",m).innerHTML=L.map(z=>`<button type="button" role="radio" aria-checked="${sel===z.id}" class="zchip${sel===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}</button>`).join("")+(q&&!L.some(z=>z.name===q)?`<small style="color:var(--muted)">أو انطلق بالاسم اللي كتبته: «${esc(q)}»</small>`:"");
     $("#ln-z",m).querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{sel=+b.dataset.z;$("#ln-q",m).value=zs.find(z=>z.id===sel).name;draw()})};
   draw(); $("#ln-q",m).oninput=()=>{sel=null;draw()}; $("#ln-x",m).onclick=()=>m.remove(); setTimeout(()=>$("#ln-q",m).focus(),50);
@@ -4049,7 +4052,7 @@ function destChangeForm(t){
     <div class="zones" id="chg-z" role="radiogroup" aria-label="المنطقة الجديدة"></div>
     <div class="err" id="chg-e"></div><div class="row"><button class="btn" id="chg-c">رجوع</button><button class="btn primary" id="chg-ok">إرسال للإدارة</button></div>`);
   let sel=null;
-  const draw=()=>{const q=$("#chg-q",m).value.trim();$("#chg-z",m).innerHTML=zs.filter(z=>!q||z.name.includes(q)).map(z=>`<button type="button" role="radio" aria-checked="${sel===z.id}" class="zchip${sel===z.id?" on":""}" data-z="${z.id}">${esc(z.name)} — ${fmt(z.price)}</button>`).join("")||`<div class="empty">ماكو منطقة بهذا الاسم.</div>`;
+  const draw=()=>{const q=$("#chg-q",m).value.trim();$("#chg-z",m).innerHTML=zs.filter(z=>zMatch(z.name,q)).map(z=>`<button type="button" role="radio" aria-checked="${sel===z.id}" class="zchip${sel===z.id?" on":""}" data-z="${z.id}">${esc(z.name)} — ${fmt(z.price)}</button>`).join("")||`<div class="empty">ماكو منطقة بهذا الاسم.</div>`;
     $("#chg-z",m).querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{sel=+b.dataset.z;draw()})};
   draw();$("#chg-q",m).oninput=draw;$("#chg-c",m).onclick=()=>m.remove();
   $("#chg-ok",m).onclick=async()=>{if(!sel){$("#chg-e",m).textContent="اختار المنطقة الجديدة";return}const b=$("#chg-ok",m);b.disabled=true;
@@ -4093,7 +4096,7 @@ function pastTripForm(zs){
     <div id="pt-o" hidden><div class="field"><label for="pt-to">اسم المكان</label><input id="pt-to"></div>
       <div class="field"><label for="pt-f">الكروة (دينار)</label><input id="pt-f" inputmode="numeric" style="font:600 22px var(--mono);text-align:center"></div></div>
     <div class="err" id="pt-e"></div><div class="row"><button class="btn" id="pt-c">رجوع</button><button class="btn primary" id="pt-ok">سجّل سفرة البارحة</button></div>`);
-  const draw=()=>{const q=$("#pt-q",md).value.trim();const L=zs.filter(z=>!q||z.name.includes(q));
+  const draw=()=>{const q=$("#pt-q",md).value.trim();const L=zs.filter(z=>zMatch(z.name,q));
     $("#pt-z",md).innerHTML=L.map(z=>`<button type="button" role="radio" aria-checked="${pz===z.id}" class="zchip${pz===z.id?" on":""}" data-z="${z.id}">${esc(z.name)}<small>${fmt(z.price)}</small></button>`).join("")
       +`<button type="button" role="radio" aria-checked="${pz===0}" class="zchip other${pz===0?" on":""}" data-z="0">✏️ منطقة أخرى</button>`;
     $("#pt-z",md).querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{pz=+b.dataset.z;$("#pt-o",md).hidden=pz!==0;draw()})};
