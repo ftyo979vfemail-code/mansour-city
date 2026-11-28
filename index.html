@@ -955,7 +955,7 @@ function issEditForm(kind,key){
       else{const nr=clean(r);nr.issue=nx;nr.log=[...(nr.log||[]),{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'عدّل الصرف ('+name+')',note:ch+' — السبب: '+why}];await putReq(nr)}
       await invLog('عدّل صرف '+name+(m?' للآلية '+m.name:' للطلب #'+r.code),ch+' — السبب: '+why);
       await loadAll('inventory');closeOv();toast('انحفظ التعديل');
-      if(r){const nr=S.requests.find(q2=>q2.id===r.id);if(nr)openReq(nr)}else render()}
+      if(r&&S.tab!=='exp'){const nr=S.requests.find(q2=>q2.id===r.id);if(nr)openReq(nr)}else render()}
     catch(x2){er.textContent=x2.message;$('#ieS').disabled=false}})}
 /* ===== ⛽ مراقبة صرف الكاز: معدل كل آلية هالأسبوع مقارنة بمعدلها قبل ===== */
 const TRIP_TYPES=['قلاب','سيارة نقل'];
@@ -5563,9 +5563,9 @@ const sameDayT=t=>new Date(t).toDateString()===new Date().toDateString();
 const sameMonthT=t=>{const a=new Date(t),b=new Date();return a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear()};
 function expEntries(wh){const E=[];const ok=w=>!wh||w===wh;
   S.requests.forEach(r=>{const w=whOf(r);if(!ok(w))return;
-    if(r.issue)E.push({t:r.issue.t||r.updatedAt,k:'issue',d:`${r.issue.name} × ${nf.format(r.issue.qty)} ${r.issue.unit||''} ← ${r.dept} #${r.code}`,a:r.issue.total||0,uid:r.issue.uid,wh:w});
+    if(r.issue)E.push({t:r.issue.t||r.updatedAt,k:'issue',d:`${r.issue.name} × ${nf.format(r.issue.qty)} ${r.issue.unit||''} ← ${r.issue.to?r.issue.to+' · ':''}${r.dept} #${r.code}`,a:r.issue.total||0,uid:r.issue.uid,wh:w,ed:canEditIss(r.issue)?'r:'+r.id:null});
     if(r.purchase?.total)E.push({t:r.purchase.at||r.updatedAt,k:'buy',d:`${r.item} × ${nf.format(r.qty)} — ${r.purchase.supplier||''}`,a:+r.purchase.total,wh:w,uid:(r.log||[]).filter(l=>/الشراء|اشترى/.test(l.a)).slice(-1)[0]?.uid});});
-  if(ok('mach')){S.machines.forEach(m=>(m.issues||[]).forEach(x=>E.push({t:x.t,k:'issue',d:`${x.item} × ${nf.format(x.qty)} ${x.unit||''} ← ${m.name}`,a:x.total||0,uid:x.uid,wh:'mach'})));
+  if(ok('mach')){S.machines.forEach(m=>(m.issues||[]).forEach((x,i)=>E.push({t:x.t,k:'issue',d:`${x.item} × ${nf.format(x.qty)} ${x.unit||''} ← ${m.name}${x.to?' · '+x.to:''}`,a:x.total||0,uid:x.uid,wh:'mach',ed:canEditIss(x)?'m:'+m.id+'|'+i:null})));
     const f=fuelItem();(f?.log||[]).forEach(l=>{if(l.k==='adj')return;if(l.k==='in')E.push({t:l.at||l.t,k:'fuelin',d:`استلام كاز ${nf.format(l.l)} لتر${l.sup?' — '+l.sup:''}`,a:l.p?l.l*l.p:0,uid:l.uid,wh:'mach'});else E.push({t:l.at||l.t,k:'fuelout',d:`كاز ${nf.format(l.l)} لتر ← ${l.to||''}`,a:l.p?l.l*l.p:0,uid:l.uid,wh:'mach'})})}
   S.invlog.forEach(e=>{if(e.kind==='out'&&ok(e.wh)&&!e.reqId)E.push({t:e.at||e.t,k:'out',d:`${e.item} × ${nf.format(e.qty)} ${e.unit||''}${e.to?' ← '+e.to:''}${e.dept?' ('+e.dept+')':''}`,a:e.total||0,uid:e.uid,wh:e.wh})});
   (S.invoices||[]).forEach(v=>{if(ok(v.wh)&&!(v.reqIds?.length&&!v.delivery))E.push({t:v.at||v.createdAt,k:v.kind==='in'?'in':'inv',d:v.reqIds?.length?`توصيل فاتورة${v.number?' #'+v.number:''} ${v.supplier||''} (المواد محسوبة بالشراء)`:`فاتورة${v.number?' #'+v.number:''} ${v.supplier||''}${v.lines?.length?' — '+v.lines.length+' مادة':''}`,a:v.reqIds?.length?+v.delivery||0:+v.total||0,uid:v.uid,wh:v.wh,id:v.id})});
@@ -5578,7 +5578,7 @@ function expView(role){const fixed=scopeWh(role),wh=fixed||S.expWh||'';const per
    <div class="seg" style="flex:1 1 220px">${[['today','اليوم'],['month','هذا الشهر'],['all','الكل']].map(([k,t])=>`<label><input type="radio" name="expP" value="${k}" ${per===k?'checked':''}>${t}</label>`).join('')}</div></div>
    <div class="stats"><div class="stat hot"><b class="num" style="font-size:18px">${money(sum())}</b><span>مجموع الصرفيات</span></div>${Object.entries(EXPK).filter(([k])=>list.some(e=>e.k===k)).map(([k,v])=>`<div class="stat"><b class="num" style="font-size:16px">${money(sum(k))}</b><span>${v[0]}</span></div>`).join('')}</div>`;
   if(!list.length)return h+`<div class="empty"><b>ماكو صرفيات بهاي الفترة</b>تظهر هنا كل عملية صرف من المخزن وشراء وفاتورة وكاز، ويّا سعرها.</div>`;
-  return h+`<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>الوقت</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th></tr></thead><tbody>${list.slice(0,400).map(e=>`<tr ${e.id?`data-a="invcOpen" data-v="${e.id}" style="cursor:pointer"`:''}><td class="num small">${new Date(e.t).toLocaleString('ar-IQ-u-nu-latn',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td><span class="pill p-${EXPK[e.k][1]}">${EXPK[e.k][0]}</span></td><td class="small">${esc(e.d)}${!wh?` <span class="muted">· ${e.wh==='mach'?'الآليات':'الرئيسي'}</span>`:''}${e.uid&&S.names[e.uid]?` <span class="muted">— ${esc(S.names[e.uid].name)}</span>`:''}</td><td class="num">${e.a?money(e.a):'<span class="muted">بدون سعر</span>'}</td></tr>`).join('')}</tbody></table></div>`}
+  return h+`<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>الوقت</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th></th></tr></thead><tbody>${list.slice(0,400).map(e=>`<tr ${e.id?`data-a="invcOpen" data-v="${e.id}" style="cursor:pointer"`:''}><td class="num small">${new Date(e.t).toLocaleString('ar-IQ-u-nu-latn',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td><span class="pill p-${EXPK[e.k][1]}">${EXPK[e.k][0]}</span></td><td class="small">${esc(e.d)}${!wh?` <span class="muted">· ${e.wh==='mach'?'الآليات':'الرئيسي'}</span>`:''}${e.uid&&S.names[e.uid]?` <span class="muted">— ${esc(S.names[e.uid].name)}</span>`:''}</td><td class="num">${e.a?money(e.a):'<span class="muted">بدون سعر</span>'}</td><td>${e.ed?`<button class="btn sm ghost" data-a="issEd" data-v="${esc(e.ed)}" title="تعديل الكمية والسعر والمستلم">✎ تعديل</button>`:''}</td></tr>`).join('')}</tbody></table></div>`}
 
 /* external invoices */
 function invcView(role){const fixed=scopeWh(role);const list=(S.invoices||[]).filter(v=>!fixed||v.wh===fixed).sort((a,b)=>(b.at||0)-(a.at||0));
