@@ -935,11 +935,21 @@ function issEditForm(kind,key){
   overlay('issEd','✎ تعديل الصرف',`<form class="f" id="fIE"><p style="margin:0"><b>${esc(name)}</b>${m?' ← '+esc(m.name):r?' — طلب <span class="num">#'+esc(r.code)+'</span>':''}</p>
    <label class="l">الكمية المصروفة (${esc(unit)})<input id="ieQ" class="in num" type="number" min="0" step="any" required value="${esc(x.qty)}"></label><span class="note" id="ieD">${esc(bal())}</span>
    <label class="l">سعر المفرد (دينار)<input id="ieP" class="in num" type="number" min="0" step="any" value="${esc(x.price??'')}" placeholder="اختياري"></label><span class="note" id="ieT">${+x.price?'المجموع: '+iqd((+x.price)*q0):''}</span>
+   ${m?`<label class="l">الآلية<select id="ieM" class="in">${S.machines.filter(q=>!q.deleted).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar',{numeric:true})).map(q=>`<option value="${esc(q.id)}" ${q.id===m.id?'selected':''}>${esc(q.name)}${q.plate?' · '+esc(q.plate):''}</option>`).join('')}</select></label>`:''}
    <label class="l">المصروف إلى (المستلم)<input id="ieTo" class="in" data-sug="people" autocomplete="off" value="${esc(x.to||'')}" placeholder="اسم الشخص أو الجهة"></label>
    ${dtField('ieW','تاريخ الصرف',+x.t||Date.now())}
    <label class="l">ملاحظات<textarea id="ieN" class="in" rows="2" maxlength="500" placeholder="أي ملاحظة تريد تثبتها">${esc(x.note||'')}</textarea></label>
    <label class="l">سبب التعديل<input id="ieWhy" class="in" required maxlength="200" placeholder="مثال: الكمية انكتبت غلط"></label>
-   <div class="err" id="ieE"></div><div class="acts"><button class="btn pri" type="submit" id="ieS">حفظ التعديل</button><button class="btn ghost" type="button" data-a="close">إلغاء</button></div></form>`);
+   <div class="err" id="ieE"></div><div class="acts"><button class="btn pri" type="submit" id="ieS">حفظ التعديل</button><button class="btn ghost" type="button" data-a="close">إلغاء</button><button class="btn bad sm" type="button" id="ieDel" style="margin-inline-start:auto">🗑 حذف الصرف</button></div></form>`);
+  $('#ieDel').addEventListener('click',async e=>{const b=e.currentTarget,why=$('#ieWhy').value.trim(),er=$('#ieE');if(!why){er.textContent='اكتب سبب الحذف بخانة «سبب التعديل»';$('#ieWhy').focus();return}
+    if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='تأكيد: احذف وارجع '+nf.format(q0)+' '+unit+' للمخزن';return}
+    b.disabled=true;try{if(it)await issStockDelta(it,-q0);
+      const note=name+' × '+nf.format(q0)+' '+unit+(x.to?' ← '+x.to:'')+' — السبب: '+why;
+      if(m){const mm=clean(m);mm.issues=(mm.issues||[]).filter((_,i)=>i!==ix);mLog(mm,'حذف صرف '+name,note);await putMachine(mm)}
+      else{const nr=clean(r);nr.issue_del=[...(nr.issue_del||[]),{...x,del:{t:Date.now(),uid:S.me?.id||null,why}}];delete nr.issue;nr.log=[...(nr.log||[]),{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'حذف الصرف ('+name+')',note}];await putReq(nr)}
+      await invLog('حذف صرف '+name+(m?' للآلية '+m.name:' للطلب #'+r.code),note+(it?' — رجعت الكمية للمخزن':''));
+      await loadAll('inventory');closeOv();render();toast('🗑 انحذف الصرف'+(it?' ورجعت الكمية للمخزن':''))}
+    catch(x2){er.textContent=x2.message;b.disabled=false}});
   const ieTot=()=>{const p=+$('#ieP').value||0,q=+$('#ieQ').value||0;$('#ieT').textContent=p?'المجموع: '+iqd(p*q):''};$('#ieP').addEventListener('input',ieTot);$('#ieQ').addEventListener('input',ieTot);
   $('#ieQ').addEventListener('input',()=>{const d=+((+$('#ieQ').value||0)-q0).toFixed(3);$('#ieD').textContent=!d?bal():d>0?'راح ينخصم '+nf.format(d)+' '+unit+' زيادة من المخزون':'راح يرجع '+nf.format(-d)+' '+unit+' للمخزون'});
   $('#fIE').addEventListener('submit',async e=>{e.preventDefault();const q=+$('#ieQ').value,why=$('#ieWhy').value.trim(),er=$('#ieE');
@@ -952,7 +962,10 @@ function issEditForm(kind,key){
       const nx={...x,qty:q,price:p,t:readDt('ieW'),note:$('#ieN').value.trim()||null,total:+((+p||0)*q).toFixed(2),ed:[...(x.ed||[]),{t:Date.now(),uid:S.me?.id||null,why,old}]};
       if($('#ieTo'))nx.to=$('#ieTo').value.trim();
       const ch=[q!==q0?'الكمية '+nf.format(q0)+' ← '+nf.format(q)+' '+unit:'',(+p||0)!==(+old.price||0)?'السعر '+iqd(+old.price||0)+' ← '+iqd(+p||0):'',(nx.to||'')!==old.to?'المستلم '+(old.to||'—')+' ← '+(nx.to||'—'):'',nx.t!==old.t?'التاريخ':'',(nx.note||'')!==old.note?'الملاحظة':''].filter(Boolean).join(' · ')||'بدون تغيير';
-      if(m){const mm=clean(m);mm.issues=[...(mm.issues||[])];mm.issues[ix]=nx;mLog(mm,'عدّل صرف '+name,ch+' — السبب: '+why);await putMachine(mm)}
+      const m2=m&&$('#ieM')?S.machines.find(q=>q.id===$('#ieM').value):null;
+      if(m&&m2&&m2.id!==m.id){const mv='الآلية '+m.name+' ← '+m2.name;const a=clean(m);a.issues=(a.issues||[]).filter((_,i)=>i!==ix);mLog(a,'نقل صرف '+name+' إلى '+m2.name,(ch==='بدون تغيير'?'':ch+' · ')+mv+' — السبب: '+why);await putMachine(a);
+        const b2=clean(m2);b2.issues=[...(b2.issues||[]),nx];mLog(b2,'استلم صرف '+name+' منقول من '+m.name,(ch==='بدون تغيير'?'':ch+' · ')+mv+' — السبب: '+why);await putMachine(b2)}
+      else if(m){const mm=clean(m);mm.issues=[...(mm.issues||[])];mm.issues[ix]=nx;mLog(mm,'عدّل صرف '+name,ch+' — السبب: '+why);await putMachine(mm)}
       else{const nr=clean(r);nr.issue=nx;nr.log=[...(nr.log||[]),{t:Date.now(),role:S.role,uid:S.me?.id||null,a:'عدّل الصرف ('+name+')',note:ch+' — السبب: '+why}];await putReq(nr)}
       await invLog('عدّل صرف '+name+(m?' للآلية '+m.name:' للطلب #'+r.code),ch+' — السبب: '+why);
       await loadAll('inventory');closeOv();toast('انحفظ التعديل');
